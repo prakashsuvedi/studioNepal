@@ -1,29 +1,30 @@
-# Multi-Stage Dockerfile for Web Server and Dedicated FFmpeg Render Worker
+FROM node:20-slim
 
-# Stage 1: Base & Dependencies
-FROM node:20-slim AS base
 WORKDIR /app
+
+# Install system dependencies including FFmpeg and fonts
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libx264-dev \
     libx265-dev \
     fonts-liberation \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy package manifest and install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
+# Copy source files
 COPY . .
+
+# Build frontend and server backend
 RUN npm run build
 
-# Stage 2: Web Application Container
-FROM base AS web
+# Environment settings for Hugging Face
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
-CMD ["npm", "run", "start"]
 
-# Stage 3: Dedicated Render Worker Container
-FROM base AS render-worker
-ENV NODE_ENV=production
-CMD ["npx", "tsx", "src/server/worker.ts"]
+# Start server
+CMD ["npm", "run", "start"]

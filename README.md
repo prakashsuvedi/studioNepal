@@ -1,7 +1,7 @@
 ---
 title: NepalAI Studio
 emoji: 🎬
-colorFrom: rose
+colorFrom: red
 colorTo: indigo
 sdk: docker
 app_port: 3000

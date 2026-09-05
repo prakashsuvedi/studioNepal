@@ -30,14 +30,20 @@ jobs:
           # Mask HF_TOKEN in logs
           echo "::add-mask::$HF_TOKEN"
 
-          # Remove tracked binary audio/video files from Git index before pushing to HF
-          git rm -r --cached "data/storage/*.mp3" "data/storage/*.mp4" "data/storage/*.png" "data/storage/*.jpg" "data/storage/*.wav" 2>/dev/null || true
-          git rm -r --cached "*.mp3" "*.mp4" 2>/dev/null || true
-          git commit -m "Chore: exclude generated media binaries from Hugging Face deployment" 2>/dev/null || true
+          # Create a clean orphan branch without legacy binary history
+          git checkout --orphan deploy-clean
+          
+          # Remove any binary media files from git staging
+          git rm -rf --cached "data/storage/*.mp3" "data/storage/*.mp4" "data/storage/*.wav" "data/storage/*.png" "data/storage/*.jpg" 2>/dev/null || true
+          git rm -rf --cached "*.mp3" "*.mp4" "*.wav" 2>/dev/null || true
+          find data/storage -type f \( -name "*.mp3" -o -name "*.mp4" -o -name "*.wav" \) -delete 2>/dev/null || true
+
+          git add .
+          git commit -m "Deploy NepalAI Studio Clean Codebase" || true
 
           git remote remove hf 2>/dev/null || true
           git remote add hf https://prakashsuvedi:${HF_TOKEN}@huggingface.co/spaces/prakashsuvedi/nepalai-studio
           
-          echo "Pushing code to Hugging Face Space..."
-          git push hf HEAD:refs/heads/main --force
+          echo "Pushing clean codebase to Hugging Face Space..."
+          git push hf deploy-clean:refs/heads/main --force
 

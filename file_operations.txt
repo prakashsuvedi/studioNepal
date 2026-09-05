@@ -1,0 +1,137 @@
+=== FILE OPERATIONS ===
+
+{
+  "id": "P2rjPgGCNKpsLLiMaCoHJG",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788239825039,
+  "filePath": "/home/ubuntu/nepalai_review/nepalai_video_studio_v1.29.0_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on nepalai_video_studio_v1.29.0_notes.md"
+}
+---
+{
+  "id": "LsD7YcIbClagXMqMQVXrow",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788241054976,
+  "filePath": "/home/ubuntu/nepalai_review/nepalai_video_studio_v1.30.0-A_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on nepalai_video_studio_v1.30.0-A_notes.md"
+}
+---
+{
+  "id": "BGtwgea9Eh5XjD7g9ec0lD",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788241500005,
+  "filePath": "/home/ubuntu/nepalai_review/nepalai_video_studio_v1.31.0-A_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on nepalai_video_studio_v1.31.0-A_notes.md"
+}
+---
+{
+  "id": "Vh5BOFYybuDhSn6khbr9ek",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788241778828,
+  "filePath": "/home/ubuntu/nepalai_review/nepalai_video_studio_v1.32.0-A_notes.md",
+  "suggestion": "Great audio-lane workflow—turn it into a website that guides uploads and acceptance",
+  "promptForAI": "Please build a website based on nepalai_video_studio_v1.32.0-A_notes.md"
+}
+---
+{
+  "id": "wctymfbt6Jzbjdl5HsTiYI",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788242235913,
+  "filePath": "/home/ubuntu/nepalai_review/nepalai_video_studio_production_mode_v1.32.0-A_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on nepalai_video_studio_production_mode_v1.32.0-A_notes.md"
+}
+---
+{
+  "id": "w4t7YexZ5x7HH5L95y8Gs9",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788322050645,
+  "filePath": "/home/ubuntu/nepalai_review/nepalai_video_studio_v1.32.0-B_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on nepalai_video_studio_v1.32.0-B_notes.md"
+}
+---
+{
+  "id": "MGdJtQkse0kx1vsnbSPTIi",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788323209174,
+  "filePath": "/home/ubuntu/nepalai_review/NepalAI_Studio_backend_integration_plan_background_removal_mp4.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on NepalAI_Studio_backend_integration_plan_background_removal_mp4.md"
+}
+---
+{
+  "id": "oFvhE0IWTBe8gOlQFi6Aww",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788324238353,
+  "filePath": "/home/ubuntu/nepalai_review/hf_live_backend/PRODUCTION_MEDIA_BACKEND_v1.8.0_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on PRODUCTION_MEDIA_BACKEND_v1.8.0_notes.md"
+}
+---
+{
+  "id": "7V42NiSmQif6FZzaXab7VO",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788325098526,
+  "filePath": "/home/ubuntu/nepalai_review/hf_live_backend/PRODUCTION_MEDIA_BACKEND_v1.8.0_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on PRODUCTION_MEDIA_BACKEND_v1.8.0_notes.md"
+}
+---
+{
+  "id": "lj16uFR8cQ4fU5gpj3q6kG",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788407223752,
+  "filePath": "/home/ubuntu/nepalai_review/AZURE_PRIMARY_IMAGE_VIDEO_v1.33.0_notes.md",
+  "suggestion": "Clear Azure integration notes",
+  "promptForAI": "Please build a website based on AZURE_PRIMARY_IMAGE_VIDEO_v1.33.0_notes.md"
+}
+---
+{
+  "id": "ogfdFCmtcZsjc5HQY6So7E",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788407424503,
+  "filePath": "/home/ubuntu/nepalai_review/AZURE_PRIMARY_IMAGE_VIDEO_v1.33.0_notes.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on AZURE_PRIMARY_IMAGE_VIDEO_v1.33.0_notes.md"
+}
+---
+{
+  "id": "PKuraWm9IOisqVXUh3NpRv",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788408294359,
+  "filePath": "/home/ubuntu/nepalai_review/HUGGINGFACE_STARTUP_FIX_v1.9.1.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on HUGGINGFACE_STARTUP_FIX_v1.9.1.md"
+}
+---
+{
+  "id": "ofLTpKVeOmicVccjdbDjjm",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788488813236,
+  "filePath": "/home/ubuntu/nepalai_review/HUGGINGFACE_STARTUP_FIX_v1.9.1.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on HUGGINGFACE_STARTUP_FIX_v1.9.1.md"
+}
+---
+{
+  "id": "wDr4fkEnmiBi2fEIRsTqZR",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788489969955,
+  "filePath": "/home/ubuntu/nepalai_review/HUGGINGFACE_STARTUP_FIX_v1.9.1.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on HUGGINGFACE_STARTUP_FIX_v1.9.1.md"
+}
+---
+{
+  "id": "Z1Rsb84gE6bwS8qQVU0whD",
+  "type": "fileOperationPromotion",
+  "timestamp": 1788491263426,
+  "filePath": "/home/ubuntu/nepalai_review/HUGGINGFACE_STARTUP_FIX_v1.9.1.md",
+  "suggestion": "Solid content. Ready to share it as a website?",
+  "promptForAI": "Please build a website based on HUGGINGFACE_STARTUP_FIX_v1.9.1.md"
+}
+---

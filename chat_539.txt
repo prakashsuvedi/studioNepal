@@ -1,0 +1,54 @@
+## Hugging Face startup error fixed
+
+The root cause was exactly what the log reported: `server.js` imports `./mediaJobRoutes`, but that file was not present in the deployed Space. The complete require chain also needed the previously missing `azureClient.js` compatibility module.
+
+I added `azureClient.js`, retained the new Azure gpt-image-1.5 and Sora routes, and verified that the full CommonJS require chain resolves successfully under Node 18.
+
+### Verification passed
+
+```text
+node --check azureClient.js
+node --check azureMediaProvider.js
+node --check azureMediaRoutes.js
+node --check mediaJobRoutes.js
+node --check mediaJobStore.js
+node --check privateMediaStorage.js
+node --check mediaWorker.js
+node --check server.js
+REQUIRE_CHAIN_OK
+```
+
+### Important upload instruction
+
+Do not upload only `server.js`. Upload the backend files together, especially:
+
+```text
+server.js
+azureClient.js
+azureMediaProvider.js
+azureMediaRoutes.js
+mediaJobRoutes.js
+mediaJobStore.js
+privateMediaStorage.js
+backgroundRemovalProvider.js
+mediaWorker.js
+creditLedger.js
+orderLedger.js
+workspaceStore.js
+trialQuotaStore.js
+projectStore.js
+assetStore.js
+marketplaceStore.js
+licenseTemplateStore.js
+sessionStore.js
+marketplaceEntitlementStore.js
+collaborationStore.js
+projectRevisionStore.js
+supabaseShadowRead.js
+package.json
+package-lock.json
+```
+
+Also upload the migration file under `migrations/` if it is part of the Space repository. Preserve all existing data files and pre-existing backend modules.
+
+Keep media-job and worker flags disabled until the Space starts successfully. Then test one Azure preview image and one 4-second Sora preview from Admin Workspace. The detailed recovery note is attached.

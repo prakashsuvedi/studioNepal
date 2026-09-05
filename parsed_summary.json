@@ -1,0 +1,1505 @@
+{
+  "title": "Enhancing Frontend and Backend Integration on cPanel and Hugging Face",
+  "createdAt": 1787571220485,
+  "agentTaskMode": 1,
+  "userPrompts": [],
+  "toolCalls": [
+    {
+      "sIdx": 0,
+      "eIdx": 18,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 19,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 20,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 21,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 22,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 23,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 24,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 31,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 38,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 40,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 41,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 43,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 44,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 45,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 47,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 48,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 49,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 50,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 51,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 53,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 54,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 55,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 56,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 57,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 59,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 61,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 69,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 73,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 75,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 76,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 77,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 79,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 80,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 81,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 83,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 84,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 85,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 87,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 88,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 89,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 91,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 92,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 93,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 94,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 96,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 97,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 98,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 100,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 101,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 102,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 104,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 105,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 106,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 108,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 109,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 110,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 112,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 119,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 129,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 133,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 138,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 140,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 141,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 142,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 144,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 145,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 146,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 148,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 152,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 160,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 167,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 174,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 176,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 177,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 178,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 180,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 181,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 182,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 187,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 192,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 200,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 207,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 209,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 210,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 211,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 213,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 214,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 215,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 217,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 218,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 219,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 221,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 222,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 223,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 225,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 229,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 242,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 244,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 245,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 246,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 248,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 249,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 250,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 252,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 256,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 263,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 267,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 269,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 270,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 271,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 274,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 281,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 282,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 283,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 285,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 286,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 287,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 289,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 290,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 291,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 293,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 294,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 295,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 297,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 298,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 299,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 301,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 302,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 303,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 305,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 306,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 307,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 312,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 319,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 323,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 324,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 326,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 330,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 337,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 341,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 343,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 344,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 345,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 347,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 348,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 349,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 351,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 352,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 353,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 355,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 356,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 357,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 359,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 360,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 361,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 363,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 364,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 365,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 367,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 368,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 369,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 371,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 372,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 376,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 381,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 383,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 387,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 389,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 390,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 391,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 393,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 394,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 395,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 397,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 398,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 399,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 401,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 402,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 403,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 405,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 406,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 407,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 409,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 410,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 411,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 413,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 414,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 421,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 431,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 433,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 434,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 435,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 436,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 437,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 439,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 440,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 441,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 443,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 444,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 445,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 447,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 448,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 449,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 451,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 452,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 453,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 455,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 456,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 457,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 459,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 460,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 461,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 463,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 464,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 465,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 467,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 468,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 469,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 471,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 472,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 473,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 475,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 476,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 477,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 479,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 480,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 481,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 489,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 497,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 499,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 500,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 501,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 503,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 504,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 505,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 507,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 511,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 518,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 525,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 527,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 528,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 529,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 531,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 532,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 533,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 541,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 551,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 553,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 555,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 565,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 567,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 568,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 569,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 577,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 587,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 589,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 590,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 591,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 593,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 597,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 607,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 609,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 610,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 611,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 616,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 624,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 631,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 632,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 633,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 635,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 639,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 641,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 642,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 643,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 645,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 646,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 647,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 649,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 650,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 651,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 653,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 654,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 655,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 657,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 658,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 659,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 660,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 662,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 663,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 664,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 666,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 667,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 669,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 671,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 672,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 673,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 674,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 676,
+      "type": "toolUsed"
+    },
+    {
+      "sIdx": 0,
+      "eIdx": 678,
+      "type": "toolUsed"
+    }
+  ],
+  "agentResponses": [],
+  "filesCreated": []
+}

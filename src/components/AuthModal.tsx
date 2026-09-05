@@ -85,8 +85,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const setupGoogleGsi = () => {
       if (window.google?.accounts?.id && googleBtnRef.current) {
         try {
+          const cleanClientId = clientId.trim().replace(/^["']|["']$/g, '');
           window.google.accounts.id.initialize({
-            client_id: clientId,
+            client_id: cleanClientId,
             callback: async (response: { credential?: string }) => {
               if (response.credential) {
                 await verifyAndLogin({ credential: response.credential });
@@ -160,13 +161,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       setLoading(true);
+      const cleanClientId = clientId.trim().replace(/^["']|["']$/g, '');
       const tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'email profile openid',
+        client_id: cleanClientId,
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
         callback: async (response) => {
           if (response.error) {
             setLoading(false);
-            setError(`Google Sign-In was cancelled or failed: ${response.error}`);
+            setError(`Google Sign-In failed: ${response.error}`);
             return;
           }
           if (response.access_token) {

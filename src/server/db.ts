@@ -261,7 +261,7 @@ class Database {
         : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
       role: isAdmin ? 'admin' : 'user',
       tier: isAdmin ? 'pro_studio' : 'free_trial',
-      credits: isAdmin ? 999999 : 0,
+      credits: isAdmin ? 999999 : 500, // Generous starter credits
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -272,15 +272,15 @@ class Database {
     this.store.trialUsage[newUser.id] = {
       userId: newUser.id,
       imagesCount: 0,
-      maxImages: isAdmin ? 99999 : 3,
+      maxImages: isAdmin ? 99999 : 50,
       videoCount: 0,
-      maxVideo: isAdmin ? 99999 : 1,
+      maxVideo: isAdmin ? 99999 : 20,
       videoDurationSeconds: 0,
       audioCount: 0,
-      maxAudio: isAdmin ? 99999 : 1,
+      maxAudio: isAdmin ? 99999 : 30,
       audioDurationSeconds: 0,
       rendersCount: 0,
-      maxRenders: isAdmin ? 99999 : 1,
+      maxRenders: isAdmin ? 99999 : 20,
       totalTokensUsed: 0,
       lastUsedAt: new Date().toISOString(),
     };
@@ -307,15 +307,15 @@ class Database {
       this.store.trialUsage[userId] = {
         userId,
         imagesCount: 0,
-        maxImages: isAdmin ? 99999 : 3,
+        maxImages: isAdmin ? 99999 : 50,
         videoCount: 0,
-        maxVideo: isAdmin ? 99999 : 1,
+        maxVideo: isAdmin ? 99999 : 20,
         videoDurationSeconds: 0,
         audioCount: 0,
-        maxAudio: isAdmin ? 99999 : 1,
+        maxAudio: isAdmin ? 99999 : 30,
         audioDurationSeconds: 0,
         rendersCount: 0,
-        maxRenders: isAdmin ? 99999 : 1,
+        maxRenders: isAdmin ? 99999 : 20,
         totalTokensUsed: 0,
         lastUsedAt: new Date().toISOString(),
         lastResetDate: today,
@@ -357,6 +357,13 @@ class Database {
     }
 
     const usage = this.getTrialUsage(userId); // Triggers daily reset if new day
+
+    // Auto-update legacy trial limits to generous defaults
+    if (usage.maxImages < 50) usage.maxImages = 50;
+    if (usage.maxVideo < 20) usage.maxVideo = 20;
+    if (usage.maxAudio < 30) usage.maxAudio = 30;
+    if (usage.maxRenders < 20) usage.maxRenders = 20;
+    if (user.credits < 100) user.credits = 500;
 
     // Priority 1: Check if Daily Free Quota for today is available
     let hasDailyFree = false;

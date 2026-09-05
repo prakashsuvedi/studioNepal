@@ -461,8 +461,8 @@ export async function serverGenerateAudio(
     }
   }
 
-  // Fallback sound sample
-  const audioSampleUrl = 'https://actions.google.com/sounds/v1/weather/light_rain.ogg';
+  // Fallback sound sample (Universal MP3 audio stream)
+  const audioSampleUrl = 'https://commondatastorage.googleapis.com/codeskulptor-assets/Eee_Ooo.mp3';
 
   return {
     url: audioSampleUrl,

@@ -13,7 +13,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          lfs: true
 
       - name: Push to Hugging Face Space
         env:
@@ -23,8 +22,17 @@ jobs:
             echo "::error::HF_TOKEN secret is missing in GitHub repository secrets! Go to Settings -> Secrets and variables -> Actions and add HF_TOKEN."
             exit 1
           fi
+
           git config --global user.name "prakashsuvedi"
           git config --global user.email "prakashsuvedi.backup@gmail.com"
-          git push --force https://prakashsuvedi:${HF_TOKEN}@huggingface.co/spaces/prakashsuvedi/nepalai-studio HEAD:refs/heads/main
+          git config --global http.postBuffer 524288000
 
+          # Mask HF_TOKEN in logs
+          echo "::add-mask::$HF_TOKEN"
+
+          git remote remove hf 2>/dev/null || true
+          git remote add hf https://prakashsuvedi:${HF_TOKEN}@huggingface.co/spaces/prakashsuvedi/nepalai-studio
+          
+          echo "Pushing code to Hugging Face Space..."
+          git push hf HEAD:refs/heads/main --force
 

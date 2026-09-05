@@ -6,3 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Exclude runtime generated media & storage binaries
+data/storage/*
+!data/storage/.gitkeep
+*.mp3
+*.mp4
+*.wav
+*.aac
+*.m4a

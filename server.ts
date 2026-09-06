@@ -1413,6 +1413,7 @@ async function startServer() {
   app.get('/api/youtube/auth-url', (req, res) => {
     const pricing = db.getPricingConfig();
     const clientId = pricing.youtubeClientId || process.env.GOOGLE_CLIENT_ID || process.env.YOUTUBE_CLIENT_ID || '';
+    const hasSecret = Boolean(pricing.youtubeClientSecret || process.env.GOOGLE_CLIENT_SECRET || process.env.YOUTUBE_CLIENT_SECRET);
     const redirectUri = getYoutubeRedirectUri(req);
     const scope = encodeURIComponent('https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly');
 
@@ -1423,6 +1424,8 @@ async function startServer() {
       authUrl,
       redirectUri,
       configured: Boolean(clientId && clientId.length > 5),
+      hasClientSecret: hasSecret,
+      rawClientId: clientId,
       clientIdMasked: clientId ? `${clientId.substring(0, 10)}...apps.googleusercontent.com` : '',
     });
   });
@@ -1491,6 +1494,52 @@ async function startServer() {
       const clientId = pricing.youtubeClientId || process.env.GOOGLE_CLIENT_ID || process.env.YOUTUBE_CLIENT_ID || '';
       const clientSecret = pricing.youtubeClientSecret || process.env.GOOGLE_CLIENT_SECRET || process.env.YOUTUBE_CLIENT_SECRET || '';
       const redirectUri = getYoutubeRedirectUri(req);
+
+      if (!clientSecret) {
+        const helpfulMsg = 'Client Secret is missing. Google OAuth requires both Client ID and Client Secret (GOCSPX-...) to complete token exchange. Enter your Client Secret in the Client Credentials tab.';
+        return res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>YouTube Client Secret Required</title>
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0f19; color: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;">
+            <div style="max-width: 480px; width: 100%; background: #111827; border: 1px solid #374151; border-radius: 16px; padding: 28px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+              <div style="width: 52px; height: 52px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <h2 style="font-size: 18px; font-weight: 700; color: #f87171; margin: 0 0 8px;">Client Secret Missing</h2>
+              <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin: 0 0 20px;">
+                Google OAuth granted the authorization code, but requires your <strong>Client Secret</strong> (starts with <code>GOCSPX-</code>) to exchange it for upload tokens.
+              </p>
+              
+              <div style="background: #1f2937; border-radius: 10px; padding: 14px 16px; text-align: left; font-size: 12px; color: #cbd5e1; margin-bottom: 20px; line-height: 1.6;">
+                <div style="font-weight: 600; color: #e2e8f0; margin-bottom: 6px;">How to fix:</div>
+                <div style="margin-bottom: 4px;">1. Open <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #60a5fa; text-decoration: underline;">Google Cloud Console &gt; Credentials</a></div>
+                <div style="margin-bottom: 4px;">2. Click your OAuth 2.0 Client ID and copy the <strong>Client Secret</strong></div>
+                <div>3. In NepalAI Studio, paste it into the <strong>Client Credentials</strong> tab (or use <strong>Direct Access Token</strong>).</div>
+              </div>
+
+              <button onclick="window.close()" style="width: 100%; background: #dc2626; color: white; border: none; padding: 11px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                Close Window &amp; Enter Client Secret
+              </button>
+            </div>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ 
+                  type: 'YOUTUBE_AUTH_ERROR', 
+                  error: ${JSON.stringify(helpfulMsg)}
+                }, '*');
+              }
+            </script>
+          </body>
+          </html>
+        `);
+      }
 
       const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',

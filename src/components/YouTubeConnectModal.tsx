@@ -48,6 +48,8 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
     authUrl: string;
     redirectUri: string;
     clientIdMasked?: string;
+    hasClientSecret?: boolean;
+    rawClientId?: string;
   } | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [isWaitingPopup, setIsWaitingPopup] = useState(false);
@@ -65,6 +67,10 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
   const [isSavingKeys, setIsSavingKeys] = useState(false);
   const [keysSuccess, setKeysSuccess] = useState(false);
 
+  // Inline Client Secret State
+  const [inlineSecretInput, setInlineSecretInput] = useState('');
+  const [isSavingInlineSecret, setIsSavingInlineSecret] = useState(false);
+
   // Fetch YouTube OAuth config from backend
   const fetchAuthConfig = async () => {
     setIsLoadingConfig(true);
@@ -78,7 +84,12 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
           authUrl: data.authUrl,
           redirectUri: data.redirectUri,
           clientIdMasked: data.clientIdMasked,
+          hasClientSecret: Boolean(data.hasClientSecret),
+          rawClientId: data.rawClientId,
         });
+        if (data.rawClientId && !clientIdInput) {
+          setClientIdInput(data.rawClientId);
+        }
       }
     } catch (err: any) {
       console.error('Failed to fetch YouTube auth configuration:', err);
@@ -195,7 +206,9 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
 
   // Save Client ID and Secret to Server
   const handleSaveCredentials = async () => {
-    if (!clientIdInput.trim()) return;
+    const targetClientId = clientIdInput.trim() || authConfig?.rawClientId || '';
+    const targetSecret = clientSecretInput.trim();
+    if (!targetClientId && !targetSecret) return;
     setIsSavingKeys(true);
     setAuthError(null);
 
@@ -204,8 +217,8 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          youtubeClientId: clientIdInput.trim(),
-          youtubeClientSecret: clientSecretInput.trim(),
+          ...(targetClientId ? { youtubeClientId: targetClientId } : {}),
+          ...(targetSecret ? { youtubeClientSecret: targetSecret } : {}),
         }),
       });
 
@@ -222,6 +235,35 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
       setAuthError(err.message || 'Error saving credentials');
     } finally {
       setIsSavingKeys(false);
+    }
+  };
+
+  // Quick inline save for Client Secret from OAuth tab
+  const handleSaveInlineSecret = async () => {
+    if (!inlineSecretInput.trim()) return;
+    setIsSavingInlineSecret(true);
+    setAuthError(null);
+
+    try {
+      const res = await fetch('/api/youtube/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(authConfig?.rawClientId ? { youtubeClientId: authConfig.rawClientId } : {}),
+          youtubeClientSecret: inlineSecretInput.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to save client secret');
+
+      setClientSecretInput(inlineSecretInput.trim());
+      setInlineSecretInput('');
+      await fetchAuthConfig();
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to save client secret');
+    } finally {
+      setIsSavingInlineSecret(false);
     }
   };
 
@@ -384,25 +426,69 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
                   <span className="text-slate-300 font-semibold flex items-center gap-2">
                     <span>Google Cloud OAuth Status:</span>
                   </span>
-                  {authConfig?.configured ? (
+                  {authConfig?.configured && authConfig?.hasClientSecret ? (
                     <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Configured
+                      <Check className="w-3 h-3" /> Fully Configured
+                    </span>
+                  ) : authConfig?.configured && !authConfig?.hasClientSecret ? (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700/60 text-[10px] font-bold flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Client Secret Missing
                     </span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700/60 text-[10px] font-bold">
-                      Awaiting Client ID
+                      Awaiting Setup
                     </span>
                   )}
                 </div>
 
-                {authConfig?.configured ? (
-                  <div className="text-[11px] text-slate-400">
-                    Client ID:{' '}
-                    <span className="font-mono text-slate-200 bg-slate-900 px-1.5 py-0.5 rounded">
-                      {authConfig.clientIdMasked || 'Google Cloud Client ID Configured'}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider">Client ID</span>
+                    <span className="font-mono text-slate-200 truncate block mt-0.5" title={authConfig?.rawClientId}>
+                      {authConfig?.clientIdMasked || 'Not configured'}
                     </span>
                   </div>
-                ) : (
+                  <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold tracking-wider">Client Secret</span>
+                    <span className={`font-semibold block mt-0.5 ${authConfig?.hasClientSecret ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {authConfig?.hasClientSecret ? '✓ Configured & Ready' : '✗ Missing (Required)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Inline Client Secret input prompt when missing */}
+                {authConfig?.configured && !authConfig?.hasClientSecret && (
+                  <div className="mt-2 p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl space-y-2 animate-in fade-in">
+                    <div className="flex items-start gap-1.5 text-amber-200 text-xs">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">Missing Client Secret</span>
+                        <p className="text-[11px] text-amber-300/90 leading-relaxed mt-0.5">
+                          Google Cloud OAuth Web Client requires the <strong>Client Secret</strong> (<code>GOCSPX-...</code>) to exchange the authorization code for upload tokens.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="password"
+                        placeholder="Paste Client Secret (GOCSPX-xxxx)"
+                        value={inlineSecretInput}
+                        onChange={(e) => setInlineSecretInput(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-amber-700/60 rounded-lg px-2.5 py-2 text-xs text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveInlineSecret}
+                        disabled={isSavingInlineSecret || !inlineSecretInput.trim()}
+                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-semibold rounded-lg text-xs transition cursor-pointer shrink-0 shadow-sm"
+                      >
+                        {isSavingInlineSecret ? 'Saving...' : 'Save Secret'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!authConfig?.configured && (
                   <div className="p-3 bg-amber-950/30 border border-amber-800/40 rounded-lg text-[11px] text-amber-200/90 leading-relaxed">
                     Google OAuth Client ID is not yet saved in server config. You can configure it in the{' '}
                     <button
@@ -434,13 +520,19 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
               <div>
                 <button
                   onClick={handleLaunchGoogleOAuth}
-                  disabled={isWaitingPopup || isLoadingConfig || !authConfig?.configured}
+                  disabled={isWaitingPopup || isLoadingConfig || !authConfig?.configured || !authConfig?.hasClientSecret}
                   className="w-full py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-red-950 flex items-center justify-center gap-2 transition cursor-pointer"
+                  title={!authConfig?.hasClientSecret ? 'Please enter your Client Secret first' : undefined}
                 >
                   {isWaitingPopup ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin text-white" />
                       <span>Waiting for Google Authorization Popup...</span>
+                    </>
+                  ) : !authConfig?.hasClientSecret ? (
+                    <>
+                      <Key className="w-4 h-4" />
+                      <span>Enter Client Secret (GOCSPX-...) Above to Enable Sign-In</span>
                     </>
                   ) : (
                     <>
@@ -618,7 +710,14 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
 
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-slate-400 font-semibold text-[11px]">YouTube Client ID</label>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <label className="text-slate-400 font-semibold">YouTube Client ID</label>
+                    {authConfig?.configured ? (
+                      <span className="text-emerald-400 text-[10px]">✓ Configured</span>
+                    ) : (
+                      <span className="text-slate-500 text-[10px]">From Google Cloud Console</span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={clientIdInput}
@@ -629,7 +728,14 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-400 font-semibold text-[11px]">YouTube Client Secret</label>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <label className="text-slate-400 font-semibold">YouTube Client Secret</label>
+                    {authConfig?.hasClientSecret ? (
+                      <span className="text-emerald-400 text-[10px]">✓ Saved on Server</span>
+                    ) : (
+                      <span className="text-amber-400 text-[10px] font-semibold">Required for token exchange</span>
+                    )}
+                  </div>
                   <input
                     type="password"
                     value={clientSecretInput}
@@ -637,12 +743,15 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
                     placeholder="GOCSPX-xxxx"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white font-mono focus:outline-none focus:border-red-500"
                   />
+                  <p className="text-[10px] text-slate-500">
+                    Found in Google Cloud Console &gt; APIs &amp; Services &gt; Credentials &gt; OAuth 2.0 Client IDs.
+                  </p>
                 </div>
               </div>
 
               <button
                 onClick={handleSaveCredentials}
-                disabled={isSavingKeys || !clientIdInput.trim()}
+                disabled={isSavingKeys || (!clientIdInput.trim() && !authConfig?.rawClientId && !clientSecretInput.trim())}
                 className="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 {isSavingKeys ? (

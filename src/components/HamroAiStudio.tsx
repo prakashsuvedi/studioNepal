@@ -22,6 +22,9 @@ import {
   X,
   Cpu,
   ArrowRight,
+  Mic,
+  Video,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { UserSession, HamroAiModel, HamroAiLanguage, HamroChatMessage, StudioTab } from '../types';
 import { apiSendHamroAiChat } from '../lib/api';
@@ -35,6 +38,9 @@ interface HamroAiStudioProps {
   onOpenAuth: () => void;
   onNavigateTab?: (tab: StudioTab) => void;
   onSendToVideoStudio?: (scriptText: string) => void;
+  onSendToVoiceStudio?: (text: string) => void;
+  onSendToSoraStudio?: (prompt: string) => void;
+  onSendToImageStudio?: (prompt: string) => void;
   onStartGlobalLoading?: (info: { title: string; subtitle?: string; type?: 'video' | 'image' | 'voice' | 'render' | 'hamroai'; progress?: number }) => void;
   onStopGlobalLoading?: () => void;
 }
@@ -53,6 +59,9 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
   onOpenAuth,
   onNavigateTab,
   onSendToVideoStudio,
+  onSendToVoiceStudio,
+  onSendToSoraStudio,
+  onSendToImageStudio,
   onStartGlobalLoading,
   onStopGlobalLoading,
 }) => {
@@ -300,6 +309,33 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
     }
     if (onNavigateTab) {
       onNavigateTab('video_studio');
+    }
+  };
+
+  const transferToVoiceStudio = (text: string) => {
+    if (onSendToVoiceStudio) {
+      onSendToVoiceStudio(text);
+    }
+    if (onNavigateTab) {
+      onNavigateTab('tts_studio');
+    }
+  };
+
+  const transferToSoraStudio = (prompt: string) => {
+    if (onSendToSoraStudio) {
+      onSendToSoraStudio(prompt);
+    }
+    if (onNavigateTab) {
+      onNavigateTab('sora_studio');
+    }
+  };
+
+  const transferToImageStudio = (prompt: string) => {
+    if (onSendToImageStudio) {
+      onSendToImageStudio(prompt);
+    }
+    if (onNavigateTab) {
+      onNavigateTab('image_studio');
     }
   };
 
@@ -763,20 +799,42 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                             )}
                           </button>
 
-                          {/* If the message looks like a video script, show Send to Video Studio */}
-                          {(msg.content.includes('दृश्य') ||
-                            msg.content.includes('Script') ||
-                            msg.content.includes('Scene') ||
-                            msg.content.includes('Visual')) && (
-                            <button
-                              onClick={() => transferToVideoStudio(msg.content)}
-                              className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition py-0.5 px-1.5 rounded hover:bg-zinc-800"
-                              title="Transfer script to Video Studio Timeline"
-                            >
-                              <Film className="w-3.5 h-3.5" />
-                              <span className="text-[11px]">Send to Video Studio</span>
-                            </button>
-                          )}
+                          {/* Action buttons under assistant message */}
+                          <button
+                            onClick={() => transferToVideoStudio(msg.content)}
+                            className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition py-0.5 px-1.5 rounded hover:bg-zinc-800"
+                            title="Transfer script to Video Studio Timeline"
+                          >
+                            <Film className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Timeline</span>
+                          </button>
+
+                          <button
+                            onClick={() => transferToVoiceStudio(msg.content)}
+                            className="flex items-center gap-1 text-purple-400 hover:text-purple-300 transition py-0.5 px-1.5 rounded hover:bg-zinc-800"
+                            title="Synthesize Voiceover in Voice Studio"
+                          >
+                            <Mic className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Voice Studio</span>
+                          </button>
+
+                          <button
+                            onClick={() => transferToSoraStudio(msg.content.slice(0, 300))}
+                            className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition py-0.5 px-1.5 rounded hover:bg-zinc-800"
+                            title="Synthesize Video in Sora-2 Studio"
+                          >
+                            <Video className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Sora Studio</span>
+                          </button>
+
+                          <button
+                            onClick={() => transferToImageStudio(msg.content.slice(0, 300))}
+                            className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition py-0.5 px-1.5 rounded hover:bg-zinc-800"
+                            title="Synthesize Art in Image Studio"
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Image Studio</span>
+                          </button>
                         </div>
                       )}
                     </div>

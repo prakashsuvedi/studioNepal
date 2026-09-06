@@ -238,7 +238,7 @@ export const ScenePreviewModal: React.FC<ScenePreviewModalProps> = ({
                 )}
 
                 {/* Watermark Overlay Rendered on Media Stage */}
-                {scene.watermark && (
+                {scene.watermark && scene.watermark.url && (
                   <div 
                     className={`absolute p-2 z-20 pointer-events-none ${
                       scene.watermark.position === 'top-left' ? 'top-4 left-4' :

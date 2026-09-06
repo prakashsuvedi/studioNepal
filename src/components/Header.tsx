@@ -189,11 +189,17 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* User Avatar & Logout */}
                 <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-700 shrink-0">
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="w-7 h-7 rounded-full object-cover border border-slate-200"
-                  />
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold border border-slate-200">
+                      {user.name?.charAt(0) || 'U'}
+                    </div>
+                  )}
                   <div className="hidden xl:block text-left">
                     <div className="text-[11px] font-bold text-slate-900 dark:text-slate-100 leading-tight max-w-[100px] truncate">{user.name}</div>
                   </div>

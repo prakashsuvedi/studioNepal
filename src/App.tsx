@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StudioTab, Scene, UserSession, UserTrialQuota, StripeTransactionItem } from './types';
-import { INITIAL_SCENES } from './data';
+import { StudioTab, Scene, UserSession, UserTrialQuota, StripeTransactionItem, AudioTrack } from './types';
+import { INITIAL_SCENES, INITIAL_AUDIO_TRACKS } from './data';
+import { SubtitleItem } from './components/SubtitleEditorModal';
 import { Header } from './components/Header';
 import { LandingPageView } from './components/LandingPageView';
 import { AuditReportView } from './components/AuditReportView';
@@ -26,6 +27,11 @@ export default function App() {
   // Navigation & studio state
   const [activeTab, setActiveTab] = useState<StudioTab>('landing');
   const [scenes, setScenes] = useState<Scene[]>(INITIAL_SCENES);
+  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>(INITIAL_AUDIO_TRACKS);
+  const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
+  const [sharedVoiceText, setSharedVoiceText] = useState<string>('');
+  const [sharedSoraPrompt, setSharedSoraPrompt] = useState<string>('');
+  const [sharedImagePrompt, setSharedImagePrompt] = useState<string>('');
 
   // Authentication & Paywall states
   const [user, setUser] = useState<UserSession | null>(null);
@@ -254,11 +260,45 @@ export default function App() {
                 {
                   id: newSceneId,
                   prompt: scriptText.slice(0, 300),
-                  duration: 15,
+                  duration: 10,
                   title: firstLine || 'HamroAI Scene',
                   status: 'draft',
+                  mediaUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1280&q=80',
+                  mediaType: 'image',
+                  aspectRatio: '16:9',
+                  motion: 'zoom_in',
+                  transition: 'dissolve',
+                  textOverlay: firstLine || 'HamroAI Scene',
+                  textPosition: 'lower_third',
+                  textColor: '#ffffff',
+                  textFont: 'devanagari',
+                  volume: 80,
                 },
               ]);
+
+              const newSub: SubtitleItem = {
+                id: 'sub_' + Date.now(),
+                index: subtitles.length + 1,
+                startTimeSec: 0,
+                endTimeSec: 10,
+                text: scriptText.slice(0, 160),
+                devanagariText: scriptText.slice(0, 160),
+              };
+              setSubtitles((prev) => [...prev, newSub]);
+
+              handleSelectTab('video_studio');
+            }}
+            onSendToVoiceStudio={(text) => {
+              setSharedVoiceText(text);
+              handleSelectTab('tts_studio');
+            }}
+            onSendToSoraStudio={(prompt) => {
+              setSharedSoraPrompt(prompt);
+              handleSelectTab('sora_studio');
+            }}
+            onSendToImageStudio={(prompt) => {
+              setSharedImagePrompt(prompt);
+              handleSelectTab('image_studio');
             }}
           />
         )}
@@ -280,12 +320,18 @@ export default function App() {
             onOpenSoraStudio={() => handleSelectTab('sora_studio')}
             onStartGlobalLoading={handleStartGlobalLoading}
             onStopGlobalLoading={handleStopGlobalLoading}
+            audioTracks={audioTracks}
+            setAudioTracks={setAudioTracks}
+            subtitles={subtitles}
+            setSubtitles={setSubtitles}
           />
         )}
 
         {user && activeTab === 'image_studio' && (
           <ImageStudioView
+            initialPrompt={sharedImagePrompt}
             onAddSceneToVideo={handleAddSceneToVideo}
+            onNavigateToTimeline={() => handleSelectTab('video_studio')}
             bypassControlledMode={user?.role === 'admin'}
             user={user}
             onTriggerPaywall={handleTriggerPaywall}
@@ -297,7 +343,9 @@ export default function App() {
 
         {user && activeTab === 'sora_studio' && (
           <SoraStudioView
+            initialPrompt={sharedSoraPrompt}
             onAddSceneToVideo={handleAddSceneToVideo}
+            onNavigateToTimeline={() => handleSelectTab('video_studio')}
             bypassControlledMode={user?.role === 'admin'}
             user={user}
             onTriggerPaywall={handleTriggerPaywall}
@@ -309,10 +357,35 @@ export default function App() {
 
         {user && activeTab === 'tts_studio' && (
           <VoiceStudioView
+            initialText={sharedVoiceText}
             user={user}
             onTriggerPaywall={handleTriggerPaywall}
             onUsageUpdated={handleUsageUpdated}
-            onAttachAudioTrack={(title) => {
+            onAttachAudioTrack={(title, duration, audioUrl, scriptText) => {
+              const newTrack: AudioTrack = {
+                id: 'voice-' + Date.now(),
+                title: title || 'Nepali Neural Voiceover',
+                artist: 'NepalAI Neural TTS (SpeechT5)',
+                url: audioUrl || '',
+                duration: duration || 8,
+                volume: 95,
+                genre: 'Voiceover',
+                type: 'voiceover',
+              };
+              setAudioTracks(prev => [newTrack, ...prev.filter(t => t.id !== newTrack.id)]);
+
+              if (scriptText) {
+                const newSub: SubtitleItem = {
+                  id: 'sub_' + Date.now(),
+                  index: subtitles.length + 1,
+                  startTimeSec: 0,
+                  endTimeSec: duration || 8,
+                  text: scriptText,
+                  devanagariText: scriptText,
+                };
+                setSubtitles(prev => [...prev, newSub]);
+              }
+
               handleSelectTab('video_studio');
             }}
             onStartGlobalLoading={handleStartGlobalLoading}

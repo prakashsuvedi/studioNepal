@@ -236,11 +236,15 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
                   <span className="text-slate-500 text-[10px]">Master Benchmark</span>
                 </div>
                 <div className="aspect-video bg-slate-900 rounded-lg overflow-hidden relative">
-                  <img
-                    src={referenceScene?.mediaUrl}
-                    alt="Reference"
-                    className="w-full h-full object-cover"
-                  />
+                  {referenceScene?.mediaUrl ? (
+                    <img
+                      src={referenceScene.mediaUrl}
+                      alt="Reference"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">No reference</div>
+                  )}
                   <span className="absolute bottom-1.5 left-1.5 bg-black/80 px-1.5 py-0.5 rounded text-[9px] font-mono text-emerald-300">
                     {referenceScene?.title || 'Master Ref'}
                   </span>
@@ -254,11 +258,15 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
                   <span className="text-slate-500 text-[10px]">Unmatched</span>
                 </div>
                 <div className="aspect-video bg-slate-900 rounded-lg overflow-hidden relative">
-                  <img
-                    src={targetScene?.mediaUrl}
-                    alt="Target Original"
-                    className="w-full h-full object-cover"
-                  />
+                  {targetScene?.mediaUrl ? (
+                    <img
+                      src={targetScene.mediaUrl}
+                      alt="Target Original"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">No target</div>
+                  )}
                   <span className="absolute bottom-1.5 left-1.5 bg-black/80 px-1.5 py-0.5 rounded text-[9px] font-mono text-slate-400">
                     Before
                   </span>
@@ -272,12 +280,16 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
                   <span className="text-violet-400 font-mono text-[10px]">Normalized</span>
                 </div>
                 <div className="aspect-video bg-slate-900 rounded-lg overflow-hidden relative">
-                  <img
-                    src={targetScene?.mediaUrl}
-                    alt="Target Matched"
-                    className="w-full h-full object-cover transition-all duration-300"
-                    style={{ filter: getCssFilterString(suggestedAdjustments) }}
-                  />
+                  {targetScene?.mediaUrl ? (
+                    <img
+                      src={targetScene.mediaUrl}
+                      alt="Target Matched"
+                      className="w-full h-full object-cover transition-all duration-300"
+                      style={{ filter: getCssFilterString(suggestedAdjustments) }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">No target</div>
+                  )}
                   <span className="absolute bottom-1.5 left-1.5 bg-violet-950/90 border border-violet-500/40 px-1.5 py-0.5 rounded text-[9px] font-mono text-violet-200">
                     ✨ Matched
                   </span>

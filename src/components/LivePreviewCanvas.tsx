@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Scene, SceneWatermark, BrandOverlayConfig, TickerConfig } from '../types';
+import { SubtitleItem, SubtitleBurnOptions } from './SubtitleEditorModal';
 import { Play, Pause, Maximize, RefreshCw, Layers, Sparkles, Activity } from 'lucide-react';
 
 interface LivePreviewCanvasProps {
@@ -12,6 +13,8 @@ interface LivePreviewCanvasProps {
   selectedSceneId?: string;
   onSelectScene?: (id: string) => void;
   className?: string;
+  subtitles?: SubtitleItem[];
+  subtitleBurnOptions?: SubtitleBurnOptions;
 }
 
 export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
@@ -24,6 +27,8 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   selectedSceneId,
   onSelectScene,
   className = '',
+  subtitles,
+  subtitleBurnOptions,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -303,6 +308,52 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     if (isTransitioning && nextScene) {
       if (currentScene.transition === 'dissolve' || currentScene.transition === 'fade') {
         drawSceneFrame(nextScene, 0.05, transitionProgress, 0);
+      } else if (currentScene.transition === 'fade_to_black') {
+        if (transitionProgress < 0.5) {
+          ctx.save();
+          ctx.fillStyle = '#000000';
+          ctx.globalAlpha = transitionProgress * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        } else {
+          drawSceneFrame(nextScene, 0.05, 1.0, 0);
+          ctx.save();
+          ctx.fillStyle = '#000000';
+          ctx.globalAlpha = (1 - transitionProgress) * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        }
+      } else if (currentScene.transition === 'flash_white') {
+        if (transitionProgress < 0.5) {
+          ctx.save();
+          ctx.fillStyle = '#ffffff';
+          ctx.globalAlpha = transitionProgress * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        } else {
+          drawSceneFrame(nextScene, 0.05, 1.0, 0);
+          ctx.save();
+          ctx.fillStyle = '#ffffff';
+          ctx.globalAlpha = (1 - transitionProgress) * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        }
+      } else if (currentScene.transition === 'slide_left') {
+        ctx.save();
+        const offsetX = width * (1 - transitionProgress);
+        ctx.translate(offsetX, 0);
+        drawSceneFrame(nextScene, 0.05, 1.0, 0);
+        ctx.restore();
+      } else if (currentScene.transition === 'slide_right') {
+        ctx.save();
+        const offsetX = -width * (1 - transitionProgress);
+        ctx.translate(offsetX, 0);
+        drawSceneFrame(nextScene, 0.05, 1.0, 0);
+        ctx.restore();
+      } else if (currentScene.transition === 'blur_dissolve') {
+        ctx.save();
+        drawSceneFrame(nextScene, 0.05, transitionProgress, 0);
+        ctx.restore();
       } else if (currentScene.transition === 'wipe_left') {
         ctx.save();
         const wipeX = width * (1 - transitionProgress);
@@ -330,6 +381,14 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         ctx.moveTo(wipeX, 0);
         ctx.lineTo(wipeX, height);
         ctx.stroke();
+        ctx.restore();
+      } else if (currentScene.transition === 'zoom_in' || currentScene.transition === 'zoom_out') {
+        ctx.save();
+        const scale = currentScene.transition === 'zoom_in' ? 0.7 + transitionProgress * 0.3 : 1.3 - transitionProgress * 0.3;
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-width / 2, -height / 2);
+        drawSceneFrame(nextScene, 0.05, transitionProgress, 0);
         ctx.restore();
       }
     }
@@ -585,8 +644,58 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       ctx.restore();
     }
 
+    // 6. Draw Timed Subtitles (Bilingual Devanagari & English)
+    if (subtitles && subtitles.length > 0 && (subtitleBurnOptions?.burnIn ?? true)) {
+      const activeSub = subtitles.find(
+        (s) => currentTime >= s.startTimeSec && currentTime <= s.endTimeSec
+      );
+      if (activeSub && (activeSub.text || activeSub.devanagariText)) {
+        ctx.save();
+        const subFontSize = subtitleBurnOptions?.fontSize === 'large' ? 18 : subtitleBurnOptions?.fontSize === 'small' ? 12 : 15;
+        const subColor = subtitleBurnOptions?.textColor || '#ffffff';
+        const subBg = subtitleBurnOptions?.backgroundColor || 'rgba(0, 0, 0, 0.75)';
+
+        ctx.font = `600 ${subFontSize}px "Plus Jakarta Sans", "Mukta", sans-serif`;
+        ctx.textAlign = 'center';
+
+        const hasBilingual = subtitleBurnOptions?.bilingualDevanagari && activeSub.devanagariText && activeSub.text && activeSub.devanagariText !== activeSub.text;
+        const mainLine = hasBilingual ? activeSub.devanagariText : (activeSub.text || activeSub.devanagariText);
+        const secondLine = hasBilingual ? activeSub.text : null;
+
+        const subMetrics = ctx.measureText(mainLine);
+        const subBoxPad = 12;
+        const subBoxW = Math.min(width - 24, Math.max(160, subMetrics.width + subBoxPad * 2));
+        const subBoxH = secondLine ? subFontSize * 2.6 + 12 : subFontSize + 14;
+
+        let subY = height - subBoxH - 18;
+        if (subtitleBurnOptions?.position === 'top') {
+          subY = 24;
+        } else if (subtitleBurnOptions?.position === 'center') {
+          subY = (height - subBoxH) / 2;
+        }
+
+        const subX = (width - subBoxW) / 2;
+
+        ctx.fillStyle = subBg;
+        ctx.beginPath();
+        ctx.roundRect?.(subX, subY, subBoxW, subBoxH, 8);
+        ctx.fill();
+
+        ctx.fillStyle = subColor;
+        ctx.fillText(mainLine, width / 2, subY + subFontSize + 4);
+
+        if (secondLine) {
+          ctx.font = `500 ${Math.round(subFontSize * 0.85)}px "Plus Jakarta Sans", sans-serif`;
+          ctx.fillStyle = '#fde047';
+          ctx.fillText(secondLine, width / 2, subY + subFontSize * 2 + 8);
+        }
+
+        ctx.restore();
+      }
+    }
+
     ctx.restore();
-  }, [currentTime, scenes, canvasDimensions, isPlaying, brandOverlayConfig]);
+  }, [currentTime, scenes, canvasDimensions, isPlaying, brandOverlayConfig, subtitles, subtitleBurnOptions]);
 
   const formatTimecode = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

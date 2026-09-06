@@ -320,11 +320,13 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
                       transform: `scale(${config.scalePercent / 25})`,
                     }}
                   >
-                    <img
-                      src={config.logoUrl}
-                      alt="Watermark"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-amber-400 shadow-lg"
-                    />
+                    {config.logoUrl ? (
+                      <img
+                        src={config.logoUrl}
+                        alt="Watermark"
+                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-400 shadow-lg"
+                      />
+                    ) : null}
                     {config.showBrandText && config.brandText && (
                       <span className="text-[10px] font-extrabold text-white bg-slate-950/80 px-2 py-0.5 rounded border border-amber-500/40 font-mono tracking-wider shadow">
                         {config.brandText}

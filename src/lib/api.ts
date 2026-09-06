@@ -341,3 +341,18 @@ export async function apiSendHamroAiChat(params: {
   }
   return data;
 }
+
+export async function apiTranslatePrompt(text: string, targetLang: 'en' | 'ne'): Promise<string> {
+  try {
+    const res = await fetch('/api/ai/translate-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, targetLang }),
+    });
+    if (!res.ok) return text;
+    const data = await res.json();
+    return data.translatedText || text;
+  } catch {
+    return text;
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Share2, 
   Youtube, 
@@ -25,9 +25,13 @@ import {
   Info,
   Calendar,
   Layers,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  RefreshCw,
+  LogIn
 } from 'lucide-react';
 import { Scene } from '../types';
+import { YouTubeConnectModal, YouTubeChannelInfo } from './YouTubeConnectModal';
 
 export interface SocialPublisherModalProps {
   isOpen: boolean;
@@ -170,6 +174,91 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
   const [connectingPlatformId, setConnectingPlatformId] = useState<string | null>(null);
   const [customHandleInput, setCustomHandleInput] = useState('');
 
+  // YouTube Dedicated OAuth & Channel State
+  const [isYouTubeConnectOpen, setIsYouTubeConnectOpen] = useState(false);
+  const [youtubeToken, setYoutubeToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('nepalai_youtube_token');
+    } catch {
+      return null;
+    }
+  });
+  const [youtubeChannel, setYoutubeChannel] = useState<YouTubeChannelInfo | null>(() => {
+    try {
+      const saved = localStorage.getItem('nepalai_youtube_channel');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Restore YouTube Channel Connection from Local Storage on Mount
+  useEffect(() => {
+    if (youtubeToken && youtubeChannel) {
+      setPlatformAccounts(prev => prev.map(p => {
+        if (p.id === 'youtube') {
+          return {
+            ...p,
+            connected: true,
+            displayName: youtubeChannel.title || p.displayName,
+            handle: youtubeChannel.handle || p.handle,
+            avatarUrl: youtubeChannel.avatar || p.avatarUrl,
+            followerCount: youtubeChannel.subscriberCount || p.followerCount,
+          };
+        }
+        return p;
+      }));
+    }
+  }, [youtubeToken, youtubeChannel]);
+
+  // Handle YouTube Channel Connect Callback
+  const handleYouTubeConnected = (token: string, channel: YouTubeChannelInfo) => {
+    setYoutubeToken(token);
+    setYoutubeChannel(channel);
+    try {
+      localStorage.setItem('nepalai_youtube_token', token);
+      localStorage.setItem('nepalai_youtube_channel', JSON.stringify(channel));
+    } catch (err) {
+      console.warn('Failed to persist YouTube channel info:', err);
+    }
+
+    setPlatformAccounts(prev => prev.map(p => {
+      if (p.id === 'youtube') {
+        return {
+          ...p,
+          connected: true,
+          displayName: channel.title,
+          handle: channel.handle,
+          avatarUrl: channel.avatar || p.avatarUrl,
+          followerCount: channel.subscriberCount || p.followerCount,
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Handle YouTube Disconnect
+  const handleYouTubeDisconnect = () => {
+    setYoutubeToken(null);
+    setYoutubeChannel(null);
+    try {
+      localStorage.removeItem('nepalai_youtube_token');
+      localStorage.removeItem('nepalai_youtube_channel');
+    } catch {}
+
+    setPlatformAccounts(prev => prev.map(p => {
+      if (p.id === 'youtube') {
+        return {
+          ...p,
+          connected: false,
+          handle: '@nepalai_channel',
+          displayName: 'NepalAI Official',
+        };
+      }
+      return p;
+    }));
+  };
+
   // Publishing State
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishProgress, setPublishProgress] = useState<{
@@ -198,6 +287,10 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
   };
 
   const handleConnectOAuth = (platformId: string) => {
+    if (platformId === 'youtube') {
+      setIsYouTubeConnectOpen(true);
+      return;
+    }
     setConnectingPlatformId(platformId);
     const target = platformAccounts.find(p => p.id === platformId);
     if (target) {
@@ -222,6 +315,10 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
   };
 
   const handleDisconnectOAuth = (platformId: string) => {
+    if (platformId === 'youtube') {
+      handleYouTubeDisconnect();
+      return;
+    }
     setPlatformAccounts(prev => prev.map(p => p.id === platformId ? { ...p, connected: false } : p));
   };
 
@@ -239,41 +336,66 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
     });
     setPublishProgress(initialProgress);
 
-    // Check if YouTube is selected -> dispatch real backend upload to /api/youtube/upload
+    // 1. Check if YouTube is selected -> dispatch real backend upload to /api/youtube/upload
     if (selectedPlatformIds.includes('youtube')) {
-      const sampleVideoUrl = scenes[0]?.mediaUrl || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1080&auto=format&fit=crop&q=80';
-      
-      try {
-        setPublishProgress(prev => ({
-          ...prev,
-          youtube: { status: 'uploading', percent: 45 },
-        }));
+      const activeVideoUrl = scenes[selectedThumbnailSceneIndex]?.mediaUrl || scenes[0]?.mediaUrl || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1080&auto=format&fit=crop&q=80';
+      const effectiveToken = youtubeToken || 'demo_token';
 
-        const ytRes = await fetch('/api/youtube/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            accessToken: 'yt_oauth_access_token_verified',
-            title,
-            description,
-            privacyStatus: privacy,
-            tags: hashtags,
-            videoUrl: sampleVideoUrl,
-          }),
-        });
+      setPublishProgress(prev => ({
+        ...prev,
+        youtube: { status: 'uploading', percent: 25 },
+      }));
 
-        const ytData = await ytRes.json();
-        const liveYtUrl = ytData.shortsUrl || ytData.watchUrl || `https://youtube.com/shorts/np_${Date.now().toString(36)}`;
+      // Asynchronously perform real YouTube Data API v3 upload
+      (async () => {
+        try {
+          // Pre-processing and session establishment
+          setPublishProgress(prev => ({
+            ...prev,
+            youtube: { status: 'uploading', percent: 60 },
+          }));
 
-        setPublishProgress(prev => ({
-          ...prev,
-          youtube: { status: 'done', percent: 100, liveUrl: liveYtUrl },
-        }));
-      } catch (err) {
-        console.warn('YouTube upload endpoint error:', err);
-      }
+          const ytRes = await fetch('/api/youtube/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: effectiveToken,
+              title,
+              description: `${description}\n\n${hashtags.map(t => `#${t}`).join(' ')}`,
+              privacyStatus: privacy,
+              tags: hashtags,
+              videoUrl: activeVideoUrl,
+              isShorts: aspectRatio === '9:16' || true,
+            }),
+          });
+
+          const ytData = await ytRes.json();
+
+          if (!ytRes.ok || !ytData.success) {
+            throw new Error(ytData.error || 'YouTube video upload request was not accepted');
+          }
+
+          const liveYtUrl = ytData.shortsUrl || ytData.watchUrl || `https://youtube.com/shorts/${ytData.videoId}`;
+
+          setPublishProgress(prev => ({
+            ...prev,
+            youtube: { status: 'done', percent: 100, liveUrl: liveYtUrl },
+          }));
+        } catch (err: any) {
+          console.warn('YouTube upload endpoint error:', err);
+          setPublishProgress(prev => ({
+            ...prev,
+            youtube: {
+              status: 'error',
+              percent: 100,
+              errorMsg: err.message || 'YouTube publishing failed. Please reconnect channel.',
+            },
+          }));
+        }
+      })();
     }
 
+    // 2. Multi-platform staggered timer for other platforms
     let currentStep = 0;
     const totalSteps = 8;
 
@@ -284,7 +406,8 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
       setPublishProgress(prev => {
         const next = { ...prev };
         selectedPlatformIds.forEach((pId, idx) => {
-          if (pId === 'youtube' && next.youtube?.status === 'done') return;
+          // Do not overwrite YouTube progress - it is driven by the real network call
+          if (pId === 'youtube') return;
 
           // Stagger progress per platform
           const pPercent = Math.min(100, Math.max(0, stepPercent - idx * 8));
@@ -296,7 +419,6 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
           else {
             status = 'done';
             const randomId = Math.floor(100000 + Math.random() * 900000);
-            if (pId === 'youtube') next[pId].liveUrl = `https://youtube.com/shorts/np_ai_${randomId}`;
             if (pId === 'x') next[pId].liveUrl = `https://x.com/NepalAI_Official/status/${randomId}981`;
             if (pId === 'tiktok') next[pId].liveUrl = `https://tiktok.com/@nepalai_tok/video/${randomId}456`;
             if (pId === 'instagram') next[pId].liveUrl = `https://instagram.com/reels/C${randomId}`;
@@ -414,16 +536,37 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
 
                       {/* OAuth Status Badge */}
                       {platform.connected ? (
-                        <div className="flex items-center gap-1 bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                          <span>Connected</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>Connected</span>
+                          </div>
+                          {platform.id === 'youtube' && (
+                            <button
+                              onClick={() => setIsYouTubeConnectOpen(true)}
+                              className="text-[10px] text-red-300 hover:text-white px-2 py-0.5 rounded bg-red-950/70 border border-red-800/60 font-medium transition cursor-pointer"
+                            >
+                              Manage
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <button
                           onClick={() => handleConnectOAuth(platform.id)}
-                          className="px-2 py-1 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-[10px] font-bold transition"
+                          className={`px-2.5 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                            platform.id === 'youtube'
+                              ? 'bg-red-600 hover:bg-red-500 text-white shadow-sm'
+                              : 'bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40'
+                          }`}
                         >
-                          + Login OAuth
+                          {platform.id === 'youtube' ? (
+                            <>
+                              <Youtube className="w-3 h-3" />
+                              <span>Connect YouTube</span>
+                            </>
+                          ) : (
+                            <span>+ Login OAuth</span>
+                          )}
                         </button>
                       )}
                     </div>
@@ -432,11 +575,13 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                     {platform.connected ? (
                       <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-[11px] bg-slate-900/60 px-2.5 py-1.5 rounded-lg">
                         <div className="flex items-center gap-2 min-w-0">
-                          <img
-                            src={platform.avatarUrl}
-                            alt={platform.handle}
-                            className="w-5 h-5 rounded-full object-cover shrink-0 border border-purple-500/50"
-                          />
+                          {platform.avatarUrl ? (
+                            <img
+                              src={platform.avatarUrl}
+                              alt={platform.handle}
+                              className="w-5 h-5 rounded-full object-cover shrink-0 border border-purple-500/50"
+                            />
+                          ) : null}
                           <span className="font-mono text-purple-200 truncate font-semibold">
                             {platform.handle}
                           </span>
@@ -446,14 +591,16 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                         </div>
                         <button
                           onClick={() => handleDisconnectOAuth(platform.id)}
-                          className="text-[10px] text-slate-400 hover:text-rose-400 transition underline shrink-0"
+                          className="text-[10px] text-slate-400 hover:text-rose-400 transition underline shrink-0 cursor-pointer"
                         >
-                          Switch
+                          {platform.id === 'youtube' ? 'Switch Channel' : 'Switch'}
                         </button>
                       </div>
                     ) : (
                       <p className="text-[10px] text-amber-400 italic pt-1">
-                        Client login required. Click "Login OAuth" to authenticate your account.
+                        {platform.id === 'youtube'
+                          ? 'Connect your YouTube channel to enable direct Shorts publishing.'
+                          : 'Client login required. Click "Login OAuth" to authenticate your account.'}
                       </p>
                     )}
                   </div>
@@ -593,7 +740,7 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                 <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-black border border-purple-500/40 shadow-inner group">
                   {customThumbnailUrl || selectedThumbnailScene?.mediaUrl ? (
                     <img
-                      src={customThumbnailUrl || selectedThumbnailScene.mediaUrl}
+                      src={customThumbnailUrl || selectedThumbnailScene?.mediaUrl || undefined}
                       alt="Thumbnail Preview"
                       className="w-full h-full object-cover"
                     />
@@ -788,7 +935,11 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                           </span>
 
                           <span className="font-mono text-[10px] font-bold text-purple-300">
-                            {statusObj.status === 'done' ? '100% • Published' : `${statusObj.percent}%`}
+                            {statusObj.status === 'done' 
+                              ? '100% • Published' 
+                              : statusObj.status === 'error'
+                              ? 'Failed'
+                              : `${statusObj.percent}%`}
                           </span>
                         </div>
 
@@ -796,11 +947,32 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                         <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className={`h-full transition-all duration-300 ${
-                              statusObj.status === 'done' ? 'bg-emerald-500' : 'bg-purple-600'
+                              statusObj.status === 'done' 
+                                ? 'bg-emerald-500' 
+                                : statusObj.status === 'error'
+                                ? 'bg-red-500'
+                                : pId === 'youtube'
+                                ? 'bg-red-600'
+                                : 'bg-purple-600'
                             }`}
                             style={{ width: `${statusObj.percent}%` }}
                           />
                         </div>
+
+                        {/* Error Message & Reconnect Action */}
+                        {statusObj.status === 'error' && (
+                          <div className="pt-1 text-[10px] text-red-300 flex items-start justify-between gap-1">
+                            <span className="truncate">{statusObj.errorMsg || 'Upload failed'}</span>
+                            {pId === 'youtube' && (
+                              <button
+                                onClick={() => setIsYouTubeConnectOpen(true)}
+                                className="text-red-400 hover:text-white underline font-bold shrink-0 cursor-pointer"
+                              >
+                                Reconnect
+                              </button>
+                            )}
+                          </div>
+                        )}
 
                         {/* Live Post Link */}
                         {statusObj.liveUrl && (
@@ -811,6 +983,7 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                               rel="noreferrer"
                               className="text-[10px] font-mono text-purple-300 hover:text-white flex items-center gap-1 underline truncate"
                             >
+                              {pId === 'youtube' && <Youtube className="w-2.5 h-2.5 text-red-400 shrink-0" />}
                               <span>{statusObj.liveUrl}</span>
                               <ExternalLink className="w-2.5 h-2.5 shrink-0" />
                             </a>
@@ -821,7 +994,7 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                                 setCopiedLink(pId);
                                 setTimeout(() => setCopiedLink(null), 2000);
                               }}
-                              className="text-[10px] text-slate-400 hover:text-purple-200 flex items-center gap-0.5 ml-2 shrink-0"
+                              className="text-[10px] text-slate-400 hover:text-purple-200 flex items-center gap-0.5 ml-2 shrink-0 cursor-pointer"
                             >
                               {copiedLink === pId ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                               <span>{copiedLink === pId ? 'Copied' : 'Copy'}</span>
@@ -931,6 +1104,15 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
           </div>
         </div>
       )}
+      {/* YOUTUBE DEDICATED OAUTH & CHANNEL CONNECTION MODAL */}
+      <YouTubeConnectModal
+        isOpen={isYouTubeConnectOpen}
+        onClose={() => setIsYouTubeConnectOpen(false)}
+        onConnected={handleYouTubeConnected}
+        currentChannel={youtubeChannel}
+        isConnected={Boolean(youtubeToken && youtubeChannel)}
+        onDisconnect={handleYouTubeDisconnect}
+      />
     </div>
   );
 };

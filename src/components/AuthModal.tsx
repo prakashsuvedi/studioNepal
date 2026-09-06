@@ -297,6 +297,74 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div ref={googleBtnRef} id="google-signin-btn-container" className="min-h-[40px]" />
                 </div>
               )}
+
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-slate-800"></div>
+                <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-slate-500">or 1-click owner bypass</span>
+                <div className="flex-grow border-t border-slate-800"></div>
+              </div>
+
+              {/* 1-Click Fast Sign In for Verified Owner */}
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  setError(null);
+                  try {
+                    const data = await loginAdmin('prakashsuvedi.backup@gmail.com', 'admin123');
+                    onLoginSuccess(data.user, data.trialUsage);
+                    onClose();
+                  } catch (err: any) {
+                    setError(err.message || 'Admin authentication failed');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600/30 via-slate-900 to-amber-700/30 hover:from-amber-600/50 hover:to-amber-700/50 border border-amber-500/40 text-amber-200 hover:text-white font-semibold text-xs shadow-sm transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Sign in as prakashsuvedi.backup@gmail.com (Instant Admin)</span>
+              </button>
+
+              {/* Error 400: origin_mismatch Resolution Banner */}
+              <div className="p-3 bg-slate-950 border border-amber-500/30 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                    <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Fixing "Error 400: origin_mismatch"</span>
+                  </span>
+                  <a
+                    href="https://console.cloud.google.com/apis/credentials"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-amber-400 hover:text-amber-300 underline flex items-center gap-0.5"
+                  >
+                    <span>Google Console</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Google blocks sign-in until your current web origin is added to <strong>Authorized JavaScript origins</strong>:
+                </p>
+                <div className="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                  <code className="text-[10px] text-amber-300 font-mono truncate flex-1 select-all">
+                    {currentOrigin}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentOrigin);
+                      setCopiedOrigin(true);
+                      setTimeout(() => setCopiedOrigin(false), 2000);
+                    }}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-medium flex items-center gap-1 transition cursor-pointer shrink-0"
+                  >
+                    {copiedOrigin ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedOrigin ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Client ID Configuration / Status Section */}

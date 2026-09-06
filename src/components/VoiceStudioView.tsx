@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mic, Play, Volume2, Sparkles, Check, Download, Music, AlertCircle } from 'lucide-react';
 import { UserSession, UserTrialQuota } from '../types';
 import { apiGenerateAudio } from '../lib/api';
 import { VoiceWaveformVisualizer } from './VoiceWaveformVisualizer';
 
 interface VoiceStudioViewProps {
-  onAttachAudioTrack?: (title: string, duration: number) => void;
+  initialText?: string;
+  onAttachAudioTrack?: (title: string, duration: number, audioUrl?: string, scriptText?: string) => void;
   user?: UserSession | null;
   onTriggerPaywall?: (reason: string) => void;
   onUsageUpdated?: (usage: UserTrialQuota, credits: number) => void;
@@ -14,6 +15,7 @@ interface VoiceStudioViewProps {
 }
 
 export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({ 
+  initialText,
   onAttachAudioTrack,
   user,
   onTriggerPaywall,
@@ -21,7 +23,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   onStartGlobalLoading,
   onStopGlobalLoading,
 }) => {
-  const [text, setText] = useState('नमस्ते! नेपालएआई स्टुडियोमा तपाईंलाई हार्दिक स्वागत छ।');
+  const [text, setText] = useState(() => initialText || 'नमस्ते! नेपालएआई स्टुडियोमा तपाईंलाई हार्दिक स्वागत छ।');
+
+  useEffect(() => {
+    if (initialText) {
+      setText(initialText);
+    }
+  }, [initialText]);
   const [language, setLanguage] = useState<'ne' | 'en'>('ne');
   const [voiceName, setVoiceName] = useState('Sita (Nepali Natural)');
   const [rate, setRate] = useState(1.0);
@@ -185,7 +193,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
   const handleAttachToVideo = () => {
     if (onAttachAudioTrack) {
-      onAttachAudioTrack(`Voiceover: ${text.slice(0, 15)}...`, 12);
+      const estimatedDuration = Math.max(4, Math.ceil(text.length / 14));
+      onAttachAudioTrack(
+        `Voiceover: ${text.slice(0, 24)}...`,
+        estimatedDuration,
+        generatedAudioUrl || undefined,
+        text
+      );
     }
     setAttachedSuccess(true);
     setTimeout(() => setAttachedSuccess(false), 3000);

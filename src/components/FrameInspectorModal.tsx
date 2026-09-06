@@ -195,11 +195,17 @@ export const FrameInspectorModal: React.FC<FrameInspectorModalProps> = ({
           <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 border border-sky-500/40 shadow-2xl flex items-center justify-center group">
             
             {/* Media Image / Video */}
-            <img
-              src={scene.mediaUrl}
-              alt={scene.title}
-              className="w-full h-full object-cover transition-all"
-            />
+            {scene.mediaUrl ? (
+              <img
+                src={scene.mediaUrl}
+                alt={scene.title}
+                className="w-full h-full object-cover transition-all"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
+                No Media Available
+              </div>
+            )}
 
             {/* Crosshair / Inspection Grid Overlay */}
             {showGridOverlay && (

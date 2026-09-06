@@ -108,6 +108,10 @@ interface VideoStudioViewProps {
   onOpenSoraStudio: () => void;
   onStartGlobalLoading?: (info: { title: string; subtitle?: string; type?: 'video' | 'image' | 'voice' | 'render' | 'hamroai'; progress?: number }) => void;
   onStopGlobalLoading?: () => void;
+  audioTracks?: AudioTrack[];
+  setAudioTracks?: React.Dispatch<React.SetStateAction<AudioTrack[]>>;
+  subtitles?: SubtitleItem[];
+  setSubtitles?: React.Dispatch<React.SetStateAction<SubtitleItem[]>>;
 }
 
 export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
@@ -118,6 +122,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   onOpenSoraStudio,
   onStartGlobalLoading,
   onStopGlobalLoading,
+  audioTracks: propsAudioTracks,
+  setAudioTracks: propsSetAudioTracks,
+  subtitles: propsSubtitles,
+  setSubtitles: propsSetSubtitles,
 }) => {
   // Workflow state
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('polish');
@@ -269,9 +277,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
   
   // Audio state
-  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>(INITIAL_AUDIO_TRACKS);
-  const [selectedAudioId, setSelectedAudioId] = useState<string>(INITIAL_AUDIO_TRACKS[0]?.id || '');
+  const [internalAudioTracks, setInternalAudioTracks] = useState<AudioTrack[]>(INITIAL_AUDIO_TRACKS);
+  const audioTracks = propsAudioTracks ?? internalAudioTracks;
+  const setAudioTracks = propsSetAudioTracks ?? setInternalAudioTracks;
+  const [selectedAudioId, setSelectedAudioId] = useState<string>(() => audioTracks[0]?.id || INITIAL_AUDIO_TRACKS[0]?.id || '');
   const [showAssetAndSoundLibraryModal, setShowAssetAndSoundLibraryModal] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const voAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Proxy Rendering Mode & Advanced Production Suite Modals State
   const [rightTab, setRightTab] = useState<'inspector' | 'medialib'>('inspector');
@@ -295,7 +307,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [exportSuccess, setExportSuccess] = useState(false);
 
   // Subtitles & Brand Overlay State
-  const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
+  const [internalSubtitles, setInternalSubtitles] = useState<SubtitleItem[]>([]);
+  const subtitles = propsSubtitles ?? internalSubtitles;
+  const setSubtitles = propsSetSubtitles ?? setInternalSubtitles;
   const [subtitleBurnOptions, setSubtitleBurnOptions] = useState<SubtitleBurnOptions>({
     burnIn: true,
     fontSize: 'medium',
@@ -560,6 +574,51 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     }
     setIsPlaying(!isPlaying);
   };
+
+  // Active BGM and Voiceover tracks
+  const bgmTrack = audioTracks.find(a => a.id === selectedAudioId) || audioTracks.find(a => a.type !== 'voiceover') || audioTracks[0];
+  const voTrack = audioTracks.find(a => a.type === 'voiceover');
+
+  // Multi-Track Audio Playback Sync & Intelligent Auto-Ducking
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      if (bgmTrack?.url) {
+        // Auto-ducking: when a voiceover track is active or current scene has dialogue, duck BGM
+        const isVoiceActive = Boolean(voTrack?.url) || Boolean(selectedScene?.scriptText || selectedScene?.narrationVoice);
+        const baseVol = (bgmVolume ?? 75) / 100;
+        audioRef.current.volume = isVoiceActive ? Math.max(0.1, baseVol * 0.28) : baseVol;
+        audioRef.current.play().catch(e => console.warn('BGM play notice:', e));
+      }
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying, bgmTrack, voTrack, bgmVolume, selectedScene]);
+
+  // Voiceover audio playback sync
+  useEffect(() => {
+    if (!voAudioRef.current) return;
+    if (isPlaying && voTrack?.url) {
+      voAudioRef.current.volume = (voVolume ?? 90) / 100;
+      voAudioRef.current.play().catch(e => console.warn('VO play notice:', e));
+    } else if (voAudioRef.current) {
+      voAudioRef.current.pause();
+    }
+  }, [isPlaying, voTrack, voVolume]);
+
+  // Audio Playhead Seek Sync
+  useEffect(() => {
+    if (audioRef.current && Math.abs(audioRef.current.currentTime - currentTime) > 0.4) {
+      try {
+        audioRef.current.currentTime = Math.min(audioRef.current.duration || totalDuration, currentTime);
+      } catch (e) {}
+    }
+    if (voAudioRef.current && Math.abs(voAudioRef.current.currentTime - currentTime) > 0.4) {
+      try {
+        voAudioRef.current.currentTime = Math.min(voAudioRef.current.duration || totalDuration, currentTime);
+      } catch (e) {}
+    }
+  }, [currentTime, totalDuration]);
 
   // Jump to Previous Scene
   const handlePrevScene = () => {
@@ -1641,6 +1700,14 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               </div>
             )}
 
+            {/* Hidden multi-track synchronized audio elements */}
+            {bgmTrack?.url ? (
+              <audio ref={audioRef} src={bgmTrack.url} preload="auto" className="hidden" />
+            ) : null}
+            {voTrack?.url ? (
+              <audio ref={voAudioRef} src={voTrack.url} preload="auto" className="hidden" />
+            ) : null}
+
             {previewMode === 'canvas' ? (
               <LivePreviewCanvas
                 scenes={scenes}
@@ -1651,6 +1718,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 onTogglePlay={togglePlay}
                 selectedSceneId={selectedSceneId}
                 onSelectScene={(id) => setSelectedSceneId(id)}
+                subtitles={subtitles}
+                subtitleBurnOptions={subtitleBurnOptions}
               />
             ) : (
               <div 
@@ -1730,7 +1799,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 )}
 
                 {/* Scene Watermark / Brand Stamp */}
-                {selectedScene?.watermark ? (
+                {selectedScene?.watermark && selectedScene.watermark.url ? (
                   <div
                     className={`absolute pointer-events-none transition-all z-20 ${
                       selectedScene.watermark.position === 'top-left' ? 'top-3 left-3' :
@@ -1750,7 +1819,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                       className="max-h-12 max-w-28 object-contain drop-shadow-md"
                     />
                   </div>
-                ) : brandOverlayConfig.enabled ? (
+                ) : (brandOverlayConfig.enabled && brandOverlayConfig.logoUrl) ? (
                   <div 
                     className={`absolute pointer-events-none transition-all z-20 flex items-center gap-1.5 ${
                       brandOverlayConfig.position === 'top-left' ? 'top-3 left-3' :
@@ -2067,7 +2136,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                     {selectedScene.watermark ? 'Change Asset' : '+ Choose Asset'}
                   </button>
                 </div>
-                {selectedScene.watermark ? (
+                {selectedScene.watermark && selectedScene.watermark.url ? (
                   <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-indigo-200 text-xs">
                     <div className="flex items-center gap-2">
                       <img
@@ -2804,13 +2873,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                  <span className="text-slate-900 font-bold truncate">
-                    Nepali / Hindi Neural Voiceover (Studio Master)
+                  <span className={`w-2 h-2 rounded-full ${voTrack ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-500'}`}></span>
+                  <span className="text-slate-900 font-bold truncate max-w-xs">
+                    {voTrack ? voTrack.title : 'Nepali / Hindi Neural Voiceover (Studio Master)'}
                   </span>
                   <div className="flex items-center gap-0.5 opacity-60">
                     {[6, 12, 8, 14, 10, 16, 7, 11, 13, 9].map((h, i) => (
-                      <div key={i} className="w-1 bg-indigo-600 rounded-full" style={{ height: `${h}px` }} />
+                      <div key={i} className={`w-1 rounded-full ${voTrack ? 'bg-emerald-600' : 'bg-indigo-600'}`} style={{ height: `${h}px` }} />
                     ))}
                   </div>
                 </div>
@@ -2827,8 +2896,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                     />
                     <span className="font-mono text-[10px] font-bold text-slate-700 w-7">{voVolume}%</span>
                   </div>
-                  <span className="text-[10px] bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded border border-indigo-200">
-                    AI TTS Active
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                    voTrack 
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                      : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                  }`}>
+                    {voTrack ? 'VO Synced' : 'AI TTS Active'}
                   </span>
                 </div>
               </div>

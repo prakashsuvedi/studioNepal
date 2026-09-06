@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Scene, UserSession, UserTrialQuota } from '../types';
-import { apiGenerateImage } from '../lib/api';
+import { apiGenerateImage, apiTranslatePrompt } from '../lib/api';
 import { 
   Sparkles, 
   Image as ImageIcon, 
@@ -17,12 +17,15 @@ import {
   SlidersHorizontal,
   Sliders,
   ShieldCheck,
-  CheckCheck
+  CheckCheck,
+  ExternalLink
 } from 'lucide-react';
 import { ImageMicroEditorModal } from './ImageMicroEditorModal';
 
 interface ImageStudioViewProps {
+  initialPrompt?: string;
   onAddSceneToVideo: (scene: Scene) => void;
+  onNavigateToTimeline?: () => void;
   bypassControlledMode: boolean;
   user?: UserSession | null;
   onTriggerPaywall?: (reason: string) => void;
@@ -67,7 +70,9 @@ const CAMERA_ANGLES = [
 ];
 
 export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
+  initialPrompt,
   onAddSceneToVideo,
+  onNavigateToTimeline,
   bypassControlledMode,
   user,
   onTriggerPaywall,
@@ -75,8 +80,17 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
   onStartGlobalLoading,
   onStopGlobalLoading,
 }) => {
-  const [promptEn, setPromptEn] = useState(SAMPLE_NEPALI_PROMPTS[0].en);
-  const [promptNe, setPromptNe] = useState(SAMPLE_NEPALI_PROMPTS[0].ne);
+  const [prompt, setPrompt] = useState(() => initialPrompt || SAMPLE_NEPALI_PROMPTS[0].en);
+  const [canvasSubtitle, setCanvasSubtitle] = useState('');
+  const [presetLang, setPresetLang] = useState<'en' | 'ne'>('en');
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  React.useEffect(() => {
+    if (initialPrompt) {
+      setPrompt(initialPrompt);
+    }
+  }, [initialPrompt]);
+
   const [model, setModel] = useState<'gpt-image-1.5' | 'flux-schnell' | 'pollinations-free'>('gpt-image-1.5');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:5'>('1:1');
   const [quality, setQuality] = useState<'standard' | 'hd'>('hd');
@@ -91,19 +105,40 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
   const [generationMetadata, setGenerationMetadata] = useState<{ engine?: string; resolution?: string } | null>(null);
   const [isMicroEditorOpen, setIsMicroEditorOpen] = useState(false);
 
-  // Apply Prompt Modifier
+  // Devanagari detection
+  const hasDevanagari = /[\u0900-\u097F]/.test(prompt);
+
+  // Translate prompt between Nepali and English
+  const handleTranslatePrompt = async (target: 'en' | 'ne') => {
+    if (!prompt.trim() || isTranslating) return;
+    setIsTranslating(true);
+    try {
+      const translated = await apiTranslatePrompt(prompt, target);
+      if (translated && translated.trim()) {
+        setPrompt(translated.trim());
+      }
+    } catch (err) {
+      console.warn('Translate prompt failed', err);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  // Apply Prompt Modifier to the single active prompt
   const applyStylePreset = (modifier: string) => {
-    if (!promptEn.includes(modifier)) {
-      setPromptEn(prev => `${prev}, ${modifier}`);
+    if (!prompt.includes(modifier)) {
+      setPrompt(prev => prev.trim() ? `${prev.trim()}, ${modifier}` : modifier);
     }
   };
 
   const applyCameraAngle = (angle: string) => {
-    setPromptEn(prev => `${prev}, ${angle}`);
+    if (!prompt.includes(angle)) {
+      setPrompt(prev => prev.trim() ? `${prev.trim()}, ${angle}` : angle);
+    }
   };
 
   const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(promptEn || promptNe);
+    navigator.clipboard.writeText(prompt);
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
   };
@@ -132,7 +167,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
 
     try {
       const activeUserId = user?.id || 'usr_admin_01';
-      const promptText = promptEn || promptNe || 'Nepal scenic Himalaya landscape';
+      const promptText = prompt.trim() || 'Nepal scenic Himalaya landscape';
       
       const apiModel =
         model === 'gpt-image-1.5'
@@ -178,17 +213,17 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
   const handleAddToTimeline = () => {
     const newScene: Scene = {
       id: 'scene-' + Math.random().toString(36).substring(2, 9),
-      title: promptEn.slice(0, 24) || 'Generated Image Scene',
+      title: prompt.slice(0, 24) || 'Generated Image Scene',
       duration: 4,
-      prompt: promptEn,
-      promptNepali: promptNe,
+      prompt: prompt,
+      promptNepali: hasDevanagari ? prompt : canvasSubtitle || prompt,
       mediaUrl: generatedImageUrl,
       mediaType: 'image',
       aspectRatio,
       motion: 'pan_right',
       transition: 'fade',
-      textOverlay: promptEn.slice(0, 32),
-      textNepali: promptNe.slice(0, 32),
+      textOverlay: (canvasSubtitle || prompt).slice(0, 32),
+      textNepali: (hasDevanagari ? prompt : canvasSubtitle).slice(0, 32),
       textPosition: 'lower_third',
       textColor: '#ffffff',
       textFont: 'devanagari',
@@ -294,31 +329,80 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             </div>
           </div>
 
-          {/* Bilingual Prompts & Prompt Assist */}
+          {/* Single Unified Prompt & Model Input */}
           <div className="space-y-3">
-            {/* English Prompt */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-slate-700">English Generation Prompt</label>
-                <button
-                  type="button"
-                  onClick={handleCopyPrompt}
-                  className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
-                >
-                  {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedPrompt ? 'Copied!' : 'Copy Prompt'}</span>
-                </button>
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span>Generation Prompt</span>
+                    <span className="text-[11px] font-normal text-slate-500 font-['Mukta']">(प्रम्प्ट)</span>
+                  </label>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Active AI Input
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {hasDevanagari ? (
+                    <button
+                      type="button"
+                      onClick={() => handleTranslatePrompt('en')}
+                      disabled={isTranslating}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                      title="Translate Nepali prompt into rich English for optimal diffusion model results"
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                      <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🌐 Translate to English for AI'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleTranslatePrompt('ne')}
+                      disabled={isTranslating}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
+                      title="Translate English prompt to Nepali"
+                    >
+                      <Languages className={`w-3.5 h-3.5 text-amber-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                      <span>{isTranslating ? 'Translating...' : '🇳🇵 नेपालीमा अनुवाद'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleCopyPrompt}
+                    className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 border border-slate-200"
+                  >
+                    {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Single Unified Prompt Textarea */}
               <textarea
                 rows={3}
-                value={promptEn}
-                onChange={e => setPromptEn(e.target.value)}
-                placeholder="Describe your scene in English..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-500 focus:bg-white focus:ring-1 focus:ring-rose-500 resize-none"
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                placeholder="Describe your scene in English or नेपाली (e.g., Majestic Mount Everest with glowing golden sunlight at dawn, ultra-photorealistic 8k)..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-500 focus:bg-white focus:ring-1 focus:ring-rose-500 resize-none font-sans leading-relaxed"
               />
+
+              {/* Transparent Direct Model Payload Indicator */}
+              <div className="flex items-center justify-between text-[11px] px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200/80 text-slate-600">
+                <div className="flex items-center gap-1.5 truncate">
+                  <span className="font-semibold text-slate-700 shrink-0">Model Payload ({model}):</span>
+                  <span className="truncate italic text-slate-500">"{prompt.trim() || 'Default scene prompt'}"</span>
+                </div>
+                <span className="shrink-0 text-[10px] text-emerald-700 font-medium ml-2 flex items-center gap-1">
+                  <Check className="w-3 h-3 text-emerald-600" />
+                  100% Direct Model Input
+                </span>
+              </div>
             </div>
 
-            {/* Prompt Assist Dropdowns */}
+            {/* Prompt Assist & Style Presets */}
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
               <span className="text-[11px] font-extrabold uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -353,35 +437,62 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
               </div>
             </div>
 
-            {/* Nepali Prompt */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-amber-700 flex items-center justify-between">
-                <span>नेपाली प्रम्प्ट (Nepali / Devanagari Prompt)</span>
-                <span className="text-[10px] text-slate-400 font-normal">Auto-translation ready</span>
-              </label>
-              <textarea
-                rows={2}
-                value={promptNe}
-                onChange={e => setPromptNe(e.target.value)}
-                placeholder="नेपाली भाषामा दृश्य वर्णन गर्नुहोस्..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 font-['Mukta'] text-sm focus:outline-none focus:border-amber-500 focus:bg-white focus:ring-1 focus:ring-amber-500 resize-none"
-              />
+            {/* Quick Scene Presets */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600">Quick Scene Presets:</span>
+                <div className="flex items-center text-[10px] border border-slate-200 rounded-md overflow-hidden bg-white">
+                  <button
+                    type="button"
+                    onClick={() => setPresetLang('en')}
+                    className={`px-2 py-0.5 font-medium transition cursor-pointer ${presetLang === 'en' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    English
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresetLang('ne')}
+                    className={`px-2 py-0.5 font-medium font-['Mukta'] transition cursor-pointer ${presetLang === 'ne' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    नेपाली
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                {SAMPLE_NEPALI_PROMPTS.map((p, idx) => {
+                  const textVal = presetLang === 'en' ? p.en : p.ne;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setPrompt(textVal)}
+                      className="text-[10px] p-2 text-left rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-800 text-slate-700 border border-slate-200 transition cursor-pointer group"
+                      title={textVal}
+                    >
+                      <span className="font-bold block text-slate-900 group-hover:text-indigo-700">Preset {idx + 1}</span>
+                      <span className="truncate block opacity-80">{textVal.slice(0, 34)}...</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Preset Suggestions */}
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-medium text-slate-500">Quick Nepali Scene Presets:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {SAMPLE_NEPALI_PROMPTS.map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => { setPromptEn(p.en); setPromptNe(p.ne); }}
-                    className="text-[10px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200/70 text-slate-700 border border-slate-200 transition cursor-pointer"
-                  >
-                    Preset {idx + 1}: {p.en.slice(0, 24)}...
-                  </button>
-                ))}
+            {/* Optional On-Canvas Subtitle / Caption Overlay */}
+            <div className="p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+                  <span>On-Canvas Subtitle / Title Overlay</span>
+                  <span className="text-[10px] font-normal text-slate-400">(Optional • Timeline Display)</span>
+                </label>
               </div>
+              <input
+                type="text"
+                value={canvasSubtitle}
+                onChange={e => setCanvasSubtitle(e.target.value)}
+                placeholder="Optional text to display on the image/video timeline (Nepali or English)..."
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 font-sans"
+              />
             </div>
           </div>
 
@@ -519,9 +630,21 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             </div>
 
             {addedSuccess && (
-              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>Scene inserted into Video Studio Timeline! Switch to "Video Studio" tab to inspect.</span>
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-medium">Scene inserted into Video Studio Timeline!</span>
+                </div>
+                {onNavigateToTimeline && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToTimeline}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer shrink-0 shadow-xs"
+                  >
+                    <span>Open Timeline</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             )}
           </div>

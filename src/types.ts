@@ -347,6 +347,19 @@ export interface KeyboardShortcutItem {
   category: 'Playback' | 'Timeline & Editing' | 'Project & System' | 'Navigation';
 }
 
+export type FrameOverlayType = 'none' | 'letterbox_cinematic' | 'academy_4_3' | 'safe_zone_9_16' | 'vintage_border';
+
+export interface VfxConfig {
+  filmGrain: boolean;
+  filmGrainIntensity?: number; // 0.1 to 1.0
+  lightLeaks: boolean;
+  rgbGlitch: boolean;
+  vignette: boolean;
+  goldenHour: boolean;
+  dreamyGlow: boolean;
+  frameType: FrameOverlayType;
+}
+
 export interface AudioTrack {
   id: string;
   title: string;
@@ -380,6 +393,7 @@ export interface StarterTemplate {
   scenesCount: number;
   totalDuration: number;
   scenes: Omit<Scene, 'id'>[];
+  tier?: 'standard' | 'premium';
 }
 
 export interface AdminSettings {

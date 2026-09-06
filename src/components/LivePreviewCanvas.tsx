@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Scene, SceneWatermark, BrandOverlayConfig, TickerConfig } from '../types';
+import { Scene, SceneWatermark, BrandOverlayConfig, TickerConfig, VfxConfig } from '../types';
 import { SubtitleItem, SubtitleBurnOptions } from './SubtitleEditorModal';
-import { Play, Pause, Maximize, RefreshCw, Layers, Sparkles, Activity } from 'lucide-react';
+import { Play, Pause, Maximize, RefreshCw, Layers, Sparkles, Activity, Wand2 } from 'lucide-react';
 
 interface LivePreviewCanvasProps {
   scenes: Scene[];
@@ -15,6 +15,7 @@ interface LivePreviewCanvasProps {
   className?: string;
   subtitles?: SubtitleItem[];
   subtitleBurnOptions?: SubtitleBurnOptions;
+  vfxConfig?: VfxConfig;
 }
 
 export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
@@ -29,6 +30,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   className = '',
   subtitles,
   subtitleBurnOptions,
+  vfxConfig,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -694,8 +696,143 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       }
     }
 
+    // 7. LIVE VFX & BFX OVERLAYS
+    if (vfxConfig) {
+      // A. Golden Hour Warmth
+      if (vfxConfig.goldenHour) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+        ctx.globalCompositeOperation = 'color-burn';
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+
+      // B. Dreamy Soft Glow
+      if (vfxConfig.dreamyGlow) {
+        ctx.save();
+        const glowGrad = ctx.createRadialGradient(width / 2, height / 2, width * 0.2, width / 2, height / 2, width * 0.7);
+        glowGrad.addColorStop(0, 'rgba(244, 114, 182, 0.08)');
+        glowGrad.addColorStop(1, 'rgba(99, 102, 241, 0.08)');
+        ctx.fillStyle = glowGrad;
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+
+      // C. Procedural Light Leaks / Lens Flare
+      if (vfxConfig.lightLeaks) {
+        ctx.save();
+        const pulse = Math.sin(currentTime * 2.5) * 0.2 + 0.8;
+        const flareGrad = ctx.createRadialGradient(
+          width * 0.85, 
+          height * 0.15, 
+          10, 
+          width * 0.85, 
+          height * 0.15, 
+          width * 0.6 * pulse
+        );
+        flareGrad.addColorStop(0, 'rgba(254, 240, 138, 0.45)');
+        flareGrad.addColorStop(0.3, 'rgba(251, 146, 60, 0.25)');
+        flareGrad.addColorStop(0.7, 'rgba(244, 63, 94, 0.12)');
+        flareGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = flareGrad;
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+
+      // D. Animated 35mm Film Grain
+      if (vfxConfig.filmGrain) {
+        ctx.save();
+        const intensity = vfxConfig.filmGrainIntensity || 0.15;
+        ctx.fillStyle = '#ffffff';
+        // Generate pseudo-random noise dots
+        const seed = Math.floor(currentTime * 30);
+        const dotsCount = Math.floor(width * height * 0.0008);
+        for (let i = 0; i < dotsCount; i++) {
+          const rx = ((Math.sin(seed + i * 12.9898) * 43758.5453) % 1) * width;
+          const ry = ((Math.cos(seed + i * 78.233) * 43758.5453) % 1) * height;
+          ctx.globalAlpha = Math.abs(rx % 1) * intensity;
+          ctx.fillRect(Math.abs(rx), Math.abs(ry), 1.5, 1.5);
+        }
+        ctx.restore();
+      }
+
+      // E. Cinematic Vignette
+      if (vfxConfig.vignette) {
+        ctx.save();
+        const vigGrad = ctx.createRadialGradient(
+          width / 2, 
+          height / 2, 
+          Math.min(width, height) * 0.45, 
+          width / 2, 
+          height / 2, 
+          Math.max(width, height) * 0.75
+        );
+        vigGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vigGrad.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
+        ctx.fillStyle = vigGrad;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+
+      // F. BFX Frame Overlays
+      if (vfxConfig.frameType === 'letterbox_cinematic' || vfxConfig.frameType === 'letterbox') {
+        ctx.save();
+        ctx.fillStyle = '#000000';
+        const barH = Math.round(height * 0.12);
+        // Top Matte Bar
+        ctx.fillRect(0, 0, width, barH);
+        // Bottom Matte Bar
+        ctx.fillRect(0, height - barH, width, barH);
+        // Add subtle golden bars edge option
+        ctx.restore();
+      } else if (vfxConfig.frameType === 'academy_4_3') {
+        ctx.save();
+        ctx.fillStyle = '#000000';
+        const barW = Math.round(width * 0.125);
+        // Left Pillarbox
+        ctx.fillRect(0, 0, barW, height);
+        // Right Pillarbox
+        ctx.fillRect(width - barW, 0, barW, height);
+        ctx.restore();
+      } else if (vfxConfig.frameType === 'safe_zone_9_16') {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        const padX = Math.round(width * 0.08);
+        const padY = Math.round(height * 0.1);
+        ctx.strokeRect(padX, padY, width - padX * 2, height - padY * 2);
+
+        // Safe zone label
+        ctx.font = 'bold 9px "Plus Jakarta Sans", sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.textAlign = 'right';
+        ctx.fillText('9:16 SAFE ZONE', width - padX - 4, padY + 12);
+        ctx.restore();
+      } else if (vfxConfig.frameType === 'vintage_border' || vfxConfig.frameType === 'vintage_8mm') {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(10, 10, width - 20, height - 20);
+        // Corner crosses
+        const cross = (cx: number, cy: number) => {
+          ctx.beginPath();
+          ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy);
+          ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6);
+          ctx.stroke();
+        };
+        cross(20, 20);
+        cross(width - 20, 20);
+        cross(20, height - 20);
+        cross(width - 20, height - 20);
+        ctx.restore();
+      }
+    }
+
     ctx.restore();
-  }, [currentTime, scenes, canvasDimensions, isPlaying, brandOverlayConfig, subtitles, subtitleBurnOptions]);
+  }, [currentTime, scenes, canvasDimensions, isPlaying, brandOverlayConfig, subtitles, subtitleBurnOptions, vfxConfig]);
 
   const formatTimecode = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

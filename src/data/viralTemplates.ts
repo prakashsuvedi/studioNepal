@@ -39,11 +39,13 @@ export interface ViralTemplate {
   };
   viralHookTip: string;
   suggestedVoiceover?: string;
+  tier?: 'standard' | 'premium';
 }
 
 export const VIRAL_TEMPLATES: ViralTemplate[] = [
   {
     id: 'himalayan-mystery-lore',
+    tier: 'premium',
     title: 'Himalayan Mystery & Hidden Myths',
     titleNe: 'हिमाली रहस्य र अज्ञात पौराणिक कथा',
     titleHi: 'हिमालय के अनसुलझे रहस्य और लोककथाएं',
@@ -119,6 +121,7 @@ export const VIRAL_TEMPLATES: ViralTemplate[] = [
   },
   {
     id: 'nepali-shop-flash-sale',
+    tier: 'standard',
     title: 'Festive Flash Sale & Business Ad',
     titleNe: 'दशैं-तिहार धमाका अफर & व्यापारिक विज्ञापन',
     titleHi: 'दुकान सेल और बिजनेस प्रमोशनल ऐड',
@@ -194,6 +197,7 @@ export const VIRAL_TEMPLATES: ViralTemplate[] = [
   },
   {
     id: 'mindblowing-facts-shorts',
+    tier: 'standard',
     title: 'Top 3 Mind-Blowing Facts (Explainer)',
     titleNe: '३ अचम्मका तथ्यहरू (भाइरल शर्ट्स)',
     titleHi: '३ होश उड़ाने वाले रोचक तथ्य',
@@ -269,6 +273,7 @@ export const VIRAL_TEMPLATES: ViralTemplate[] = [
   },
   {
     id: 'nepal-travel-cinematic',
+    tier: 'premium',
     title: 'Wanderlust 4K Cinematic Travel Reel',
     titleNe: 'नेपाल भ्रमण ४K सिनेम्याटिक रिल्स',
     titleHi: 'सिनेमैटिक ट्रैवल और टूरिज्म रील',
@@ -344,6 +349,7 @@ export const VIRAL_TEMPLATES: ViralTemplate[] = [
   },
   {
     id: 'daily-motivational-quote',
+    tier: 'standard',
     title: 'Daily Motivation & Shayari (Devanagari)',
     titleNe: 'दैनिक प्रेरणा र शक्तिशाली सुविचार',
     titleHi: 'दैनिक मोटिवेशन और शायरी रील',
@@ -407,6 +413,7 @@ export const VIRAL_TEMPLATES: ViralTemplate[] = [
   },
   {
     id: 'street-food-sizzle',
+    tier: 'premium',
     title: 'Mouthwatering Street Food Showcase',
     titleNe: 'स्वादिष्ट सडक परिकार & रेस्टुरेन्ट प्रोमो',
     titleHi: 'स्ट्रीट फूड और रेस्टोरेंट प्रमोशन',

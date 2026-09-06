@@ -231,7 +231,9 @@ export async function apiGenerateAudio(
   userId: string,
   text: string,
   voiceId = 'aakash_ne',
-  language: 'ne-NP' | 'en-US' = 'ne-NP'
+  language: 'ne-NP' | 'en-US' = 'ne-NP',
+  emotion = 'neutral',
+  deliveryStyle = 'general'
 ): Promise<{
   success: boolean;
   result: { url: string; duration: number; voice: string; language: string; format: string };
@@ -241,11 +243,38 @@ export async function apiGenerateAudio(
   const res = await fetch('/api/generate/audio', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-    body: JSON.stringify({ userId, text, voiceId, language }),
+    body: JSON.stringify({ userId, text, voiceId, language, emotion, deliveryStyle }),
   });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.error || 'Audio generation failed');
+  }
+  return data;
+}
+
+export async function apiGetAudioSuggestions(
+  text: string,
+  language: 'ne' | 'en' = 'ne'
+): Promise<{
+  success: boolean;
+  suggestions: {
+    recommendedVoice: string;
+    recommendedDemographic: string;
+    recommendedEmotion: string;
+    recommendedFormat: string;
+    analysis: string;
+    suggestions: { originalText: string; suggestedText: string; explanation: string }[];
+    formattedScript: string;
+  };
+}> {
+  const res = await fetch('/api/generate/audio-suggestions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, language }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Smart script analysis failed');
   }
   return data;
 }

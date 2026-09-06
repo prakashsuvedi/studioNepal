@@ -31,11 +31,13 @@ export const ViralTemplatesSection: React.FC<ViralTemplatesSectionProps> = ({
 }) => {
   const { language } = useLanguage();
   const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'tiktok' | 'reels' | 'shorts' | 'commercial'>('all');
+  const [selectedTier, setSelectedTier] = useState<'all' | 'standard' | 'premium'>('all');
   const [previewTemplate, setPreviewTemplate] = useState<ViralTemplate | null>(null);
 
   const filteredTemplates = VIRAL_TEMPLATES.filter((tpl) => {
-    if (selectedPlatform === 'all') return true;
-    return tpl.category === selectedPlatform;
+    const matchesPlatform = selectedPlatform === 'all' || tpl.category === selectedPlatform;
+    const matchesTier = selectedTier === 'all' || (tpl.tier || 'standard') === selectedTier;
+    return matchesPlatform && matchesTier;
   });
 
   const getLocalizedTitle = (tpl: ViralTemplate) => {
@@ -111,21 +113,46 @@ export const ViralTemplatesSection: React.FC<ViralTemplatesSectionProps> = ({
               );
             })}
           </div>
+
+          {/* Tier Filter Toggle (Standard vs Premium) */}
+          <div className="pt-2 flex items-center justify-center gap-1.5 text-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mr-1">Tier:</span>
+            {[
+              { id: 'all', label: 'All Tiers' },
+              { id: 'standard', label: 'Standard (Free)' },
+              { id: 'premium', label: '⭐ Premium VIP' }
+            ].map(tierOption => {
+              const isTierActive = selectedTier === tierOption.id;
+              return (
+                <button
+                  key={tierOption.id}
+                  onClick={() => setSelectedTier(tierOption.id as any)}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition cursor-pointer ${
+                    isTierActive
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-xs font-bold'
+                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {tierOption.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Templates Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map((template) => {
+        {/* Single Line of Standard & Premium Templates */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {filteredTemplates.slice(0, 4).map((template) => {
             const localizedTitle = getLocalizedTitle(template);
             const localizedDesc = getLocalizedDesc(template);
 
             return (
               <div
                 key={template.id}
-                className="group rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500/50 dark:hover:border-rose-500/50 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden"
+                className="group rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500/60 dark:hover:border-rose-500/60 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden"
               >
                 {/* Visual Cover Banner with Overlay Badges */}
-                <div className="relative aspect-video w-full overflow-hidden bg-slate-950">
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-950">
                   <img
                     src={template.coverImage}
                     alt={template.title}
@@ -137,70 +164,76 @@ export const ViralTemplatesSection: React.FC<ViralTemplatesSectionProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
                   {/* Top Badges */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                    <span className={`text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs ${template.badgeColor}`}>
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                    {template.tier === 'premium' ? (
+                      <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded shadow-sm flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5 fill-current" />
+                        PREMIUM
+                      </span>
+                    ) : (
+                      <span className="bg-emerald-600/90 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow-xs">
+                        STANDARD
+                      </span>
+                    )}
+                    <span className={`text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-xs ${template.badgeColor}`}>
                       {template.badge}
                     </span>
-                    <span className="bg-black/70 backdrop-blur-xs text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10">
+                    <span className="bg-black/70 backdrop-blur-xs text-slate-200 text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10">
                       {template.aspectRatio}
                     </span>
                   </div>
 
-                  <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-xs text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-500/30">
+                  <div className="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-xs text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border border-amber-500/30">
                     <Flame className="w-3 h-3 text-amber-400" />
-                    <span>{template.viralityScore}% Virality</span>
+                    <span>{template.viralityScore}%</span>
                   </div>
 
                   {/* Bottom Preview Info */}
-                  <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[11px] text-slate-300">
-                    <div className="flex items-center gap-1.5 font-medium">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-[10px] text-slate-300 font-medium">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-slate-400" />
                       <span>{template.targetDuration}s runtime</span>
                     </div>
-                    <div className="flex items-center gap-1.5 font-medium">
-                      <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>{template.scenes.length} Scenes Beat</span>
+                    <div className="flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-indigo-400" />
+                      <span>{template.scenes.length} Beats</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Content Details */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
+                <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between space-y-3">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
                         {template.categoryLabel}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-medium">
+                      <span className="text-[9px] text-slate-500 font-medium">
                         Hook: {template.hookRetentionRate}
                       </span>
                     </div>
 
-                    <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition leading-snug">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition leading-snug line-clamp-1">
                       {localizedTitle}
                     </h3>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                       {localizedDesc}
                     </p>
 
-                    {/* Scene Beats Strip */}
-                    <div className="pt-2">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                        Storyboard Structure:
-                      </div>
-                      <div className="grid grid-cols-4 gap-1 text-[9px] text-center font-medium">
-                        {template.scenes.map((sc, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-slate-100 dark:bg-slate-800/80 rounded px-1 py-1 border border-slate-200/60 dark:border-slate-700/50 truncate"
-                            title={`${sc.title} (${sc.duration}s)`}
-                          >
-                            <span className="font-bold text-slate-700 dark:text-slate-300">S{idx + 1}: </span>
-                            <span className="text-slate-500">{sc.duration}s</span>
-                          </div>
-                        ))}
-                      </div>
+                    {/* Compact Scene Sequence Pills */}
+                    <div className="pt-1 flex items-center gap-1 overflow-hidden">
+                      {template.scenes.slice(0, 3).map((sc, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-slate-100 dark:bg-slate-800/80 rounded px-1.5 py-0.5 border border-slate-200/60 dark:border-slate-700/50 text-[9px] text-slate-600 dark:text-slate-400 truncate max-w-[70px]"
+                        >
+                          S{idx + 1}: {sc.duration}s
+                        </div>
+                      ))}
+                      {template.scenes.length > 3 && (
+                        <span className="text-[9px] text-slate-500 font-mono">+{template.scenes.length - 3}</span>
+                      )}
                     </div>
                   </div>
 
@@ -208,24 +241,58 @@ export const ViralTemplatesSection: React.FC<ViralTemplatesSectionProps> = ({
                   <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
                     <button
                       onClick={() => setPreviewTemplate(template)}
-                      className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5"
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1"
+                      title="Inspect storyboard beats"
                     >
-                      <Film className="w-3.5 h-3.5" />
-                      <span>{language === 'ne' ? 'स्टोरीबोर्ड हेर्नुहोस्' : language === 'hi' ? 'स्टोरीबोर्ड देखें' : 'Inspect'}</span>
+                      <Film className="w-3 h-3" />
+                      <span>{language === 'ne' ? 'हेर्नुहोस्' : language === 'hi' ? 'देखें' : 'Inspect'}</span>
                     </button>
 
                     <button
                       onClick={() => onSelectTemplate(template)}
-                      className="flex-1 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-bold shadow-xs hover:shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+                      className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-bold shadow-xs hover:shadow-md transition cursor-pointer flex items-center justify-center gap-1"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{language === 'ne' ? 'स्टुडियोमा खोल्नुहोस्' : language === 'hi' ? 'स्टूडियो में उपयोग करें' : 'Use Template'}</span>
+                      <Sparkles className="w-3 h-3" />
+                      <span>{language === 'ne' ? 'लोड गर्नुहोस्' : language === 'hi' ? 'उपयोग करें' : 'Use'}</span>
                     </button>
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+
+        {/* Clean Studio Explore Banner Beneath Single Row */}
+        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-white">
+                {language === 'ne'
+                  ? 'थप ५०+ भाइरल स्ट्रक्चर, एजेन्सी एड्स र अडियो टेम्प्लेट्स भिडियो स्टुडियो भित्र उपलब्ध छन्'
+                  : language === 'hi'
+                  ? 'अतिरिक्त 50+ वायरल स्ट्रक्चर, ऐड और ऑडियो टेम्पलेट्स वीडियो स्टूडियो के अंदर उपलब्ध हैं'
+                  : 'Full catalog of 20+ viral structures, commercial storyboards & audio templates available inside Studio'}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                {language === 'ne'
+                  ? 'ल्यान्डिङ पेजलाई सफा राख्न बाँकी टेम्प्लेट्स स्टुडियोको टाइमलाइनमा १-क्लिकमा लोड गर्न सकिन्छ।'
+                  : language === 'hi'
+                  ? 'लैंडिंग पेज साफ रखने के लिए बाकी सभी टेम्पलेट्स स्टूडियो टाइमलाइन में 1-क्लिक में लोड किए जा सकते हैं।'
+                  : 'Curated for clean browsing. Access complete niche libraries directly on your studio timeline.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onSelectTemplate(filteredTemplates[0] || VIRAL_TEMPLATES[0])}
+            className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-950 text-xs font-extrabold shadow-sm transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+          >
+            <span>{language === 'ne' ? 'स्टुडियोमा सबै टेम्प्लेट्स खोल्नुहोस्' : language === 'hi' ? 'स्टूडियो में सभी टेम्पलेट्स खोलें' : 'Open All Templates in Studio'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 

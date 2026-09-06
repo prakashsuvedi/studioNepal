@@ -460,10 +460,38 @@ export async function serverGenerateVideo(
   };
 }
 
+function parseAudioMarkupTags(escapedText: string): string {
+  let parsed = escapedText;
+  
+  // Replace pauses: [Pause: 1s] -> <break time="1s"/>
+  parsed = parsed.replace(/\[Pause:\s*([0-9\.]+(?:s|ms))\]/gi, (match, p1) => {
+    return `<break time="${p1}"/>`;
+  });
+  
+  // Replace Speed wraps: [Speed: Fast] ... [/Speed]
+  parsed = parsed.replace(/\[Speed:\s*(fast|slow|medium|x-fast|x-slow)\]([\s\S]*?)\[\/Speed\]/gi, (match, rate, content) => {
+    return `<prosody rate="${rate}">${content}</prosody>`;
+  });
+  
+  // Replace Volume wraps: [Volume: Loud] ... [/Volume]
+  parsed = parsed.replace(/\[Volume:\s*(loud|soft|medium|x-loud|x-soft)\]([\s\S]*?)\[\/Volume\]/gi, (match, vol, content) => {
+    return `<prosody volume="${vol}">${content}</prosody>`;
+  });
+
+  // Replace Emphasis wraps: [Emphasis: Strong] ... [/Emphasis]
+  parsed = parsed.replace(/\[Emphasis:\s*(strong|moderate|reduced)\]([\s\S]*?)\[\/Emphasis\]/gi, (match, level, content) => {
+    return `<emphasis level="${level}">${content}</emphasis>`;
+  });
+
+  return parsed;
+}
+
 export async function serverGenerateAudio(
   text: string,
   voiceId = 'aakash_ne',
-  language: 'ne-NP' | 'en-US' = 'ne-NP'
+  language: 'ne-NP' | 'en-US' = 'ne-NP',
+  emotion = 'neutral',
+  deliveryStyle = 'general'
 ): Promise<{ url: string; storageUrl?: string; filename?: string; duration: number; voice: string; language: string; format: string }> {
   // Check Azure Speech Subscription Key in environment variables
   const speechKey =
@@ -475,20 +503,71 @@ export async function serverGenerateAudio(
 
   const region = process.env.AZURE_SPEECH_REGION || 'eastus';
 
-  // Determine Azure Speech Neural Voice Name
+  // Determine Azure Speech Neural Voice Name & default demographics
   let azureVoice = language === 'en-US' ? 'en-US-AvaNeural' : 'ne-NP-HemkalaNeural';
+  
   if (language === 'ne-NP') {
-    if (voiceId.includes('aakash') || voiceId.includes('sagar') || voiceId.includes('male')) {
+    if (voiceId.includes('aakash') || voiceId.includes('sagar') || voiceId.includes('male') || voiceId.includes('rohan') || voiceId.includes('sanjok') || voiceId.includes('guru')) {
       azureVoice = 'ne-NP-SagarNeural';
     } else {
       azureVoice = 'ne-NP-HemkalaNeural';
     }
   } else if (language === 'en-US') {
-    if (voiceId.includes('andrew') || voiceId.includes('guy') || voiceId.includes('male')) {
+    if (voiceId.includes('ana')) {
+      azureVoice = 'en-US-AnaNeural'; // Native Child Voice
+    } else if (voiceId.includes('andrew') || voiceId.includes('guy') || voiceId.includes('male') || voiceId.includes('david') || voiceId.includes('arthur')) {
       azureVoice = 'en-US-AndrewNeural';
+    } else if (voiceId.includes('emma')) {
+      azureVoice = 'en-US-EmmaNeural';
+    } else if (voiceId.includes('jenny')) {
+      azureVoice = 'en-US-JennyNeural';
     } else {
       azureVoice = 'en-US-AvaNeural';
     }
+  }
+
+  // Calculate default prosody modifiers based on demographic selection
+  let defaultPitch = "0%";
+  let defaultRate = "1.0";
+  
+  if (voiceId.includes('kanti') || voiceId.includes('sanjok') || voiceId.includes('child')) {
+    defaultPitch = "+30%";
+    defaultRate = "1.06";
+  } else if (voiceId.includes('rohan') || voiceId.includes('emily') || voiceId.includes('teen')) {
+    defaultPitch = "+12%";
+    defaultRate = "1.03";
+  } else if (voiceId.includes('guru') || voiceId.includes('aama') || voiceId.includes('old') || voiceId.includes('arthur')) {
+    defaultPitch = "-18%";
+    defaultRate = "0.86";
+  } else if (voiceId.includes('ambient') || voiceId.includes('background')) {
+    // Soft ambient low hum background
+    defaultPitch = "-8%";
+    defaultRate = "0.95";
+  }
+
+  // Adjust for emotional state properties
+  if (emotion === 'happy') {
+    defaultPitch = defaultPitch === "0%" ? "+8%" : defaultPitch;
+    defaultRate = defaultRate === "1.0" ? "1.08" : defaultRate;
+  } else if (emotion === 'sad') {
+    defaultPitch = defaultPitch === "0%" ? "-10%" : defaultPitch;
+    defaultRate = defaultRate === "1.0" ? "0.88" : defaultRate;
+  } else if (emotion === 'energetic') {
+    defaultPitch = defaultPitch === "0%" ? "+12%" : defaultPitch;
+    defaultRate = defaultRate === "1.0" ? "1.16" : defaultRate;
+  } else if (emotion === 'horror') {
+    defaultPitch = defaultPitch === "0%" ? "-22%" : defaultPitch;
+    defaultRate = defaultRate === "1.0" ? "0.82" : defaultRate;
+  }
+
+  // Adjust for genre formats
+  if (deliveryStyle === 'documentary') {
+    defaultPitch = defaultPitch === "0%" ? "-5%" : defaultPitch;
+    defaultRate = defaultRate === "1.0" ? "0.90" : defaultRate;
+  } else if (deliveryStyle === 'drama') {
+    defaultRate = defaultRate === "1.0" ? "0.92" : defaultRate;
+  } else if (deliveryStyle === 'quick_talk' || deliveryStyle === 'quick') {
+    defaultRate = defaultRate === "1.0" ? "1.32" : defaultRate;
   }
 
   // 1. Azure Cognitive Services Text-to-Speech REST API (eastus region)
@@ -504,9 +583,17 @@ export async function serverGenerateAudio(
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 
-      const ssml = `<speak version='1.0' xml:lang='${language}'>
+      // Parse custom directional bracket tags into XML-compliant prosody and breaks
+      let innerText = parseAudioMarkupTags(escapedText);
+
+      // Wrap in dynamic prosody properties
+      if (defaultPitch !== "0%" || defaultRate !== "1.0") {
+        innerText = `<prosody pitch="${defaultPitch}" rate="${defaultRate}">${innerText}</prosody>`;
+      }
+
+      const ssml = `<speak version='1.0' xml:lang='${language}' xmlns="http://www.w3.org/2001/10/synthesis">
   <voice xml:lang='${language}' name='${azureVoice}'>
-    ${escapedText}
+    ${innerText}
   </voice>
 </speak>`;
 
@@ -839,6 +926,93 @@ ${dynamicUnicodeInstructions}
         : language === 'hi'
         ? `नमस्ते! मैं HamroAI (${model}) हूँ। मैं आपकी किसी भी प्रकार की सहायता के लिए तैयार हूँ।`
         : `Hello! I am HamroAI (${model}). How can I assist you with your content, scripts, code, or tasks today?`,
+  };
+}
+
+export async function serverGetAudioSuggestions(
+  text: string,
+  language: 'ne' | 'en' = 'ne'
+): Promise<{
+  recommendedVoice: string;
+  recommendedDemographic: string;
+  recommendedEmotion: string;
+  recommendedFormat: string;
+  analysis: string;
+  suggestions: { originalText: string; suggestedText: string; explanation: string }[];
+  formattedScript: string;
+}> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey && geminiKey.trim().length > 5) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
+      const prompt = `Analyze this Text-to-Speech script in language "${language}".
+Script: "${text}"
+
+Recommend the best voice, demographic (Children, Teenagers, Young Adult, Adult, Elderly), emotion (Happy, Sad, Energetic, Horror, Neutral), and style format (Drama, Documentary, Story, Talk, Quick Talk).
+Also, output dynamic text optimizations by suggesting where to add natural dramatic pauses (e.g. [Pause: 1s]) or pacing tweaks, and output a "formattedScript" which is the script containing annotated directional brackets like "[Pause: 1s]", "[Speed: Fast]...[/Speed]", "[Volume: Loud]...[/Volume]" for maximum expression.
+
+Return strictly a valid raw JSON object matching this structure without any markdown wrap or codeblock markers:
+{
+  "recommendedVoice": "string (name of recommended voice)",
+  "recommendedDemographic": "Children" | "Teenagers" | "Young Adult" | "Adult" | "Elderly",
+  "recommendedEmotion": "Happy" | "Sad" | "Energetic" | "Horror" | "Neutral",
+  "recommendedFormat": "Drama" | "Documentary" | "Story" | "Talk" | "Quick Talk",
+  "analysis": "string (contextual analysis of the narrative theme)",
+  "suggestions": [
+    {
+      "originalText": "string fragment",
+      "suggestedText": "optimized fragment with tags",
+      "explanation": "why this helps"
+    }
+  ],
+  "formattedScript": "string (entire script pre-annotated with bracket tags)"
+}`;
+
+      const res = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+
+      if (res && res.text) {
+        let cleanText = res.text.trim();
+        if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+        }
+        try {
+          const parsed = JSON.parse(cleanText);
+          return parsed;
+        } catch (jsonErr) {
+          console.warn('JSON parse error from Gemini text, cleanText was:', cleanText);
+        }
+      }
+    } catch (err) {
+      console.warn('Gemini audio suggestion error:', err);
+    }
+  }
+
+  // High-fidelity fallback analyzer
+  const wordCount = text.split(/\s+/).length;
+  const hasNamaste = text.includes('नमस्ते') || text.includes('स्वागत');
+  const isEn = language === 'en';
+
+  return {
+    recommendedVoice: isEn ? "David (English Cinematic)" : (hasNamaste ? "Sita (Nepali Natural)" : "Aarav (Nepali Warm)"),
+    recommendedDemographic: hasNamaste ? "Young Adult" : "Adult",
+    recommendedEmotion: hasNamaste ? "Happy" : "Neutral",
+    recommendedFormat: wordCount < 10 ? "Quick Talk" : "Story",
+    analysis: isEn 
+      ? "Professional English promotional or content narration narrative."
+      : "पारम्परिक वाचन तथा सन्देशमूलक साहित्यिक नेपाली प्रस्तुति।",
+    suggestions: [
+      {
+        originalText: isEn ? "Welcome to our studio." : "नेपालएआई स्टुडियोमा स्वागत छ।",
+        suggestedText: isEn ? "Welcome [Pause: 500ms] to our studio!" : "नेपालएआई स्टुडियोमा [Pause: 1s] हार्दिक स्वागत छ।",
+        explanation: isEn ? "Adding a pause after welcome adds a professional greeting pacing." : "स्वागत अघि सानो विश्राम राख्दा स्वागत बढी भव्य र प्राकृतिक सुनिन्छ।"
+      }
+    ],
+    formattedScript: isEn
+      ? `${text.replace(/(premier|powered by AI)/gi, '[Speed: Slow] $1 [/Speed] [Pause: 500ms]')}`
+      : `नमस्ते! [Pause: 500ms] ${text}`
   };
 }
 

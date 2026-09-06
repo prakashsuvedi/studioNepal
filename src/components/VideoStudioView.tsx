@@ -8,7 +8,9 @@ import {
   StarterTemplate,
   AudioTrack,
   SceneWatermark,
-  StudioWorkspace
+  StudioWorkspace,
+  VfxConfig,
+  FrameOverlayType
 } from '../types';
 import { STARTER_TEMPLATES, INITIAL_AUDIO_TRACKS } from '../data';
 import { SocialPublisherModal } from './SocialPublisherModal';
@@ -34,6 +36,7 @@ import {
   Maximize2, 
   Magnet, 
   Sparkles, 
+  Wand2, 
   Download, 
   Check, 
   Film, 
@@ -76,7 +79,9 @@ import {
   CheckSquare,
   FileText,
   Database,
-  ChevronDown
+  ChevronDown,
+  Plus,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SceneTemplatesModal } from './SceneTemplatesModal';
@@ -185,6 +190,40 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [bgmVolume, setBgmVolume] = useState<number>(80);
   const [voVolume, setVoVolume] = useState<number>(90);
   const [sfxVolume, setSfxVolume] = useState<number>(75);
+
+  // VFX & Frame Overlays Configuration (Rendered lively on LivePreviewCanvas)
+  const [vfxConfig, setVfxConfig] = useState<VfxConfig>({
+    filmGrain: true,
+    filmGrainIntensity: 0.15,
+    lightLeaks: false,
+    rgbGlitch: false,
+    vignette: true,
+    goldenHour: false,
+    dreamyGlow: false,
+    frameType: 'none',
+  });
+
+  // Sound Effects (SFX) Track Library & Active Selection
+  const INITIAL_SFX_LIST: AudioTrack[] = [
+    { id: 'sfx-whoosh', title: 'Cinematic Whoosh & Swoosh', artist: 'Atmos FX', url: 'https://cdn.freesound.org/previews/608/608645_11861866-lq.mp3', duration: 2, volume: 80, genre: 'Transition', type: 'sfx' },
+    { id: 'sfx-bell', title: 'Temple Bell & Chimes', artist: 'Himalayan Heritage', url: 'https://cdn.freesound.org/previews/568/568779_6142149-lq.mp3', duration: 4, volume: 75, genre: 'Heritage', type: 'sfx' },
+    { id: 'sfx-wind', title: 'Himalayan Mountain Wind Atmos', artist: 'Alpine Field', url: 'https://cdn.freesound.org/previews/518/518290_7037-lq.mp3', duration: 6, volume: 70, genre: 'Atmosphere', type: 'sfx' },
+    { id: 'sfx-flute', title: 'Mountain Bamboo Flute Echo', artist: 'Folk Master', url: 'https://cdn.freesound.org/previews/522/522247_11861866-lq.mp3', duration: 4, volume: 75, genre: 'Acoustic', type: 'sfx' },
+    { id: 'sfx-impact', title: 'Deep Sub-Bass Cinematic Drop', artist: 'Impact Labs', url: 'https://cdn.freesound.org/previews/443/443806_9159316-lq.mp3', duration: 3, volume: 85, genre: 'Impact', type: 'sfx' },
+    { id: 'sfx-rain', title: 'Kathmandu Monsoon Rain & Thunder', artist: 'Nature Audio', url: 'https://cdn.freesound.org/previews/612/612887_11861866-lq.mp3', duration: 5, volume: 70, genre: 'Weather', type: 'sfx' },
+  ];
+  const [sfxTracks, setSfxTracks] = useState<AudioTrack[]>(INITIAL_SFX_LIST);
+  const [selectedSfxId, setSelectedSfxId] = useState<string>('sfx-whoosh');
+  const sfxAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioFileInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaFileInputRef = useRef<HTMLInputElement | null>(null);
+  const sfxFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Asset Modals & Drag State
+  const [showVfxModal, setShowVfxModal] = useState(false);
+  const [showAudioAddModal, setShowAudioAddModal] = useState(false);
+  const [showSfxModal, setShowSfxModal] = useState(false);
+  const [isTimelineDragActive, setIsTimelineDragActive] = useState(false);
 
   // Workspaces & Collaboration
   const [showWorkspacesModal, setShowWorkspacesModal] = useState(false);
@@ -649,6 +688,18 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     }
   }, [isPlaying, voTrack, voVolume]);
 
+  // SFX audio playback sync
+  const sfxTrack = sfxTracks.find(s => s.id === selectedSfxId) || sfxTracks[0];
+  useEffect(() => {
+    if (!sfxAudioRef.current) return;
+    if (isPlaying && sfxTrack?.url) {
+      sfxAudioRef.current.volume = (sfxVolume ?? 75) / 100;
+      sfxAudioRef.current.play().catch(e => console.warn('SFX play notice:', e));
+    } else if (sfxAudioRef.current) {
+      sfxAudioRef.current.pause();
+    }
+  }, [isPlaying, sfxTrack, sfxVolume]);
+
   // Audio Playhead Seek Sync
   useEffect(() => {
     if (audioRef.current && Math.abs(audioRef.current.currentTime - currentTime) > 0.4) {
@@ -661,7 +712,92 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         voAudioRef.current.currentTime = Math.min(voAudioRef.current.duration || totalDuration, currentTime);
       } catch (e) {}
     }
+    if (sfxAudioRef.current && Math.abs(sfxAudioRef.current.currentTime - currentTime) > 0.4) {
+      try {
+        sfxAudioRef.current.currentTime = Math.min(sfxAudioRef.current.duration || totalDuration, currentTime);
+      } catch (e) {}
+    }
   }, [currentTime, totalDuration]);
+
+  // Handle Drag and Drop Media/Audio Files directly into Timeline
+  const handleAudioUpload = (file: File, trackType: 'bgm' | 'voiceover' | 'sfx' = 'bgm') => {
+    try {
+      const url = URL.createObjectURL(file);
+      const newTrack: AudioTrack = {
+        id: `custom-audio-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        artist: 'Studio Local Upload',
+        url,
+        duration: 30,
+        volume: 80,
+        genre: 'User Audio',
+        type: trackType
+      };
+
+      if (trackType === 'sfx') {
+        setSfxTracks(prev => [newTrack, ...prev]);
+        setSelectedSfxId(newTrack.id);
+        setProjectNotice(`SFX Asset Loaded: "${newTrack.title}"`);
+      } else {
+        setAudioTracks(prev => [...prev, newTrack]);
+        if (trackType === 'bgm') {
+          setSelectedAudioId(newTrack.id);
+        }
+        setProjectNotice(`Audio Track Loaded: "${newTrack.title}" (${trackType.toUpperCase()})`);
+      }
+      setTimeout(() => setProjectNotice(null), 3000);
+    } catch (err) {
+      console.error('Audio upload error:', err);
+    }
+  };
+
+  const handleMediaUpload = (file: File) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const isVideo = file.type.startsWith('video/');
+      const newScene: Scene = {
+        id: `scene-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        duration: 4,
+        prompt: `Custom imported asset: ${file.name}`,
+        mediaUrl: url,
+        mediaType: isVideo ? 'video' : 'image',
+        aspectRatio,
+        motion: 'pan_right',
+        transition: 'dissolve',
+        transitionDuration: 0.8,
+        textOverlay: '',
+        textColor: '#ffffff',
+        textFont: 'sans',
+        textPosition: 'lower_third',
+        filter: 'cinematic',
+        volume: 90
+      };
+      pushToHistory(scenes);
+      setScenes(prev => [...prev, newScene]);
+      setSelectedSceneId(newScene.id);
+      setProjectNotice(`Asset Added to Timeline: "${newScene.title}"`);
+      setTimeout(() => setProjectNotice(null), 3000);
+    } catch (err) {
+      console.error('Media upload error:', err);
+    }
+  };
+
+  const handleTimelineDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsTimelineDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files) as File[];
+      files.forEach(file => {
+        if (file.type.startsWith('audio/')) {
+          handleAudioUpload(file, 'bgm');
+        } else if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+          handleMediaUpload(file);
+        }
+      });
+    }
+  };
 
   // Jump to Previous Scene
   const handlePrevScene = () => {
@@ -1794,6 +1930,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             {voTrack?.url ? (
               <audio ref={voAudioRef} src={voTrack.url} preload="auto" className="hidden" />
             ) : null}
+            {sfxTrack?.url ? (
+              <audio ref={sfxAudioRef} src={sfxTrack.url} preload="auto" className="hidden" />
+            ) : null}
 
             {previewMode === 'canvas' ? (
               <LivePreviewCanvas
@@ -1807,6 +1946,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 onSelectScene={(id) => setSelectedSceneId(id)}
                 subtitles={subtitles}
                 subtitleBurnOptions={subtitleBurnOptions}
+                vfxConfig={vfxConfig}
               />
             ) : (
               <div 
@@ -2317,15 +2457,76 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         </div>
       </div>
 
-      {/* Multi-Track Timeline Dock (Core engineering implementation from v1.30.0-A) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs transition-colors">
+      {/* Hidden File Inputs for Drag & Drop / Click to Upload into Timeline */}
+      <input
+        ref={mediaFileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) {
+            (Array.from(e.target.files) as File[]).forEach(handleMediaUpload);
+          }
+        }}
+      />
+      <input
+        ref={audioFileInputRef}
+        type="file"
+        accept="audio/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) {
+            (Array.from(e.target.files) as File[]).forEach(f => handleAudioUpload(f, 'bgm'));
+          }
+        }}
+      />
+      <input
+        ref={sfxFileInputRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleAudioUpload(e.target.files[0], 'sfx');
+          }
+        }}
+      />
+
+      {/* Multi-Track Timeline Dock (Ultra-Premium Studio Canvas) */}
+      <div 
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsTimelineDragActive(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsTimelineDragActive(false);
+        }}
+        onDrop={handleTimelineDrop}
+        className={`relative bg-[#0b0f19] dark:bg-[#070b14] border text-slate-100 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xl transition-all ${
+          isTimelineDragActive 
+            ? 'border-2 border-dashed border-indigo-500 bg-indigo-950/40 ring-4 ring-indigo-500/20' 
+            : 'border-slate-800/90'
+        }`}
+      >
+        {/* Drag Active Drop Zone Overlay */}
+        {isTimelineDragActive && (
+          <div className="absolute inset-0 z-50 bg-indigo-950/85 backdrop-blur-xs rounded-2xl border-2 border-dashed border-indigo-400 flex flex-col items-center justify-center gap-2 pointer-events-none animate-in fade-in duration-150">
+            <Upload className="w-10 h-10 text-indigo-400 animate-bounce" />
+            <p className="text-sm font-bold text-white">Drop Audio (MP3/WAV), Video clips, or Photos</p>
+            <p className="text-xs text-indigo-200">Files will automatically be appended as tracks or scenes</p>
+          </div>
+        )}
+
         {/* Dock Control Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
           {/* Playback controls */}
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrevScene}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all cursor-pointer border border-slate-700/60"
               title="Previous Scene"
             >
               <SkipBack className="w-4 h-4" />
@@ -2333,33 +2534,32 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             <button
               id="timeline-play-btn"
               onClick={togglePlay}
-              className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
-                isPlaying
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
-                  : 'bg-indigo-600 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700'
-              }`}
-              title={isPlaying ? 'Pause' : 'Play'}
+              className="w-11 h-11 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:scale-105 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
+              title={isPlaying ? 'Pause' : 'Play Live Timeline'}
             >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
             </button>
             <button
               onClick={() => { setIsPlaying(false); setCurrentTime(0); }}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all cursor-pointer border border-slate-700/60"
               title="Stop and Reset"
             >
               <Square className="w-4 h-4" />
             </button>
             <button
               onClick={handleNextScene}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all cursor-pointer border border-slate-700/60"
               title="Next Scene"
             >
               <SkipForward className="w-4 h-4" />
             </button>
 
-            {/* Timecode display */}
-            <div className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs text-indigo-700 dark:text-indigo-400 font-bold ml-2">
-              {formatTimecode(currentTime)} <span className="text-slate-400 font-normal">/</span> {formatTimecode(totalDuration)}
+            {/* Timecode display with Neon Cyan accent */}
+            <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 font-mono text-xs text-cyan-400 font-bold ml-2 shadow-inner flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>{formatTimecode(currentTime)}</span>
+              <span className="text-slate-500 font-normal">/</span>
+              <span className="text-slate-400">{formatTimecode(totalDuration)}</span>
             </div>
           </div>
 
@@ -2523,6 +2723,78 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 <Maximize2 className="w-3.5 h-3.5" />
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Asset Quick-Add Toolstrip: Media, Audio, SFX, VFX, Frame, Templates */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 pb-2 border-b border-slate-800/60 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Add Asset:</span>
+            
+            {/* + Media / Scene Clip */}
+            <button
+              onClick={() => mediaFileInputRef.current?.click()}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 hover:border-indigo-500 text-[11px] font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Upload video or image file to append to timeline"
+            >
+              <Film className="w-3.5 h-3.5 text-indigo-400" />
+              <span>+ Media Clip</span>
+            </button>
+
+            {/* + Audio Track */}
+            <button
+              onClick={() => audioFileInputRef.current?.click()}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-purple-600 text-slate-200 hover:text-white border border-slate-700 hover:border-purple-500 text-[11px] font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Upload custom MP3/WAV background music"
+            >
+              <Music className="w-3.5 h-3.5 text-purple-400" />
+              <span>+ Audio (BGM)</span>
+            </button>
+
+            {/* + SFX Track */}
+            <button
+              onClick={() => sfxFileInputRef.current?.click()}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-amber-600 text-slate-200 hover:text-white border border-slate-700 hover:border-amber-500 text-[11px] font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Upload custom sound effect (WAV/MP3)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>+ SFX Audio</span>
+            </button>
+
+            {/* ✨ VFX & BFX Engine Modal Toggle */}
+            <button
+              onClick={() => setShowVfxModal(true)}
+              className="px-2.5 py-1 rounded-lg bg-teal-950/60 hover:bg-teal-600 text-teal-200 hover:text-white border border-teal-700/60 hover:border-teal-400 text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Configure live Film Grain, Light Leaks, RGB Glitch, and Golden Hour glow"
+            >
+              <Wand2 className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
+              <span>✨ VFX & BFX Overlays</span>
+            </button>
+
+            {/* 🎬 Frame & Matte Quick Selector */}
+            <div className="flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700 text-[11px]">
+              <Layers className="w-3 h-3 text-slate-400" />
+              <span className="text-[10px] text-slate-400 font-medium">Frame:</span>
+              <select
+                value={vfxConfig.frameType}
+                onChange={(e) => setVfxConfig(prev => ({ ...prev, frameType: e.target.value as FrameOverlayType }))}
+                className="bg-transparent text-indigo-300 font-bold text-[11px] focus:outline-none cursor-pointer"
+                title="Apply cinematic aspect ratio matte overlay"
+              >
+                <option value="none" className="bg-slate-900 text-white">None (Standard)</option>
+                <option value="letterbox" className="bg-slate-900 text-white">2.35:1 Letterbox</option>
+                <option value="academy_4_3" className="bg-slate-900 text-white">4:3 Academy</option>
+                <option value="safe_zone_9_16" className="bg-slate-900 text-white">9:16 Safe Zone</option>
+                <option value="vintage_8mm" className="bg-slate-900 text-white">Vintage 8mm Matte</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+              Drag & Drop Supported
+            </span>
           </div>
         </div>
 
@@ -2890,143 +3162,447 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             </div>
           </div>
 
-          {/* Multi-Track Audio Rows: Background Music, Voiceover, SFX */}
-          <div className="space-y-2">
-            {/* 1. Background Music Track */}
+          {/* Multi-Track Audio & Visual Rows: Background Music, Voiceover, SFX, and VFX/BFX */}
+          <div className="space-y-2.5">
+            {/* 1. Background Music Track (BGM) */}
             <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-purple-800 dark:text-purple-300 flex items-center gap-1.5 pl-1">
-                <Music className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <div className="w-24 shrink-0 text-xs font-semibold text-purple-400 flex items-center gap-1.5 pl-1">
+                <Music className="w-3.5 h-3.5 text-purple-400" />
                 <span>BGM Track</span>
               </div>
               <div
-                className="p-2 bg-purple-50/80 dark:bg-purple-950/40 rounded-xl border border-purple-200/80 dark:border-purple-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
+                className="p-2.5 bg-purple-950/40 rounded-xl border border-purple-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
                 style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
-                  <span className="text-slate-900 dark:text-slate-100 font-bold truncate">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                  <span className="text-purple-200 font-bold truncate max-w-xs">
                     {audioTracks.find(a => a.id === selectedAudioId)?.title || 'Background Cinematic Theme'}
                   </span>
-                  <div className="flex items-center gap-0.5 opacity-60">
+                  <div className="flex items-center gap-0.5 opacity-70">
                     {[4, 8, 12, 6, 14, 10, 5, 9, 13, 7].map((h, i) => (
-                      <div key={i} className="w-1 bg-purple-600 dark:bg-purple-400 rounded-full" style={{ height: `${h}px` }} />
+                      <div key={i} className="w-1 bg-purple-400 rounded-full" style={{ height: `${h}px` }} />
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Vol:</span>
+                    <span className="text-[10px] text-purple-300 font-semibold">Vol:</span>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
                       value={bgmVolume} 
                       onChange={e => setBgmVolume(Number(e.target.value))}
-                      className="w-20 accent-purple-600 h-1 bg-purple-200 dark:bg-purple-900 rounded-lg cursor-pointer" 
+                      className="w-16 accent-purple-500 h-1 bg-purple-900/80 rounded-lg cursor-pointer" 
                     />
-                    <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 w-7">{bgmVolume}%</span>
+                    <span className="font-mono text-[10px] font-bold text-purple-200 w-7">{bgmVolume}%</span>
                   </div>
                   <select
                     value={selectedAudioId}
                     onChange={e => setSelectedAudioId(e.target.value)}
-                    className="bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-700 rounded-lg px-2.5 py-1 text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:border-purple-500 shadow-2xs cursor-pointer"
+                    className="bg-slate-900 border border-purple-700/80 rounded-lg px-2 py-1 text-purple-200 text-xs focus:outline-none focus:border-purple-400 shadow-2xs cursor-pointer max-w-[130px] truncate"
                   >
                     {audioTracks.map(track => (
                       <option key={track.id} value={track.id}>{track.title}</option>
                     ))}
                   </select>
+                  <button
+                    onClick={() => audioFileInputRef.current?.click()}
+                    className="p-1 rounded bg-purple-700 hover:bg-purple-600 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                    title="Upload Custom BGM MP3/WAV"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* 2. Voiceover (VO) Track */}
             <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5 pl-1">
-                <Volume2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <div className="w-24 shrink-0 text-xs font-semibold text-emerald-400 flex items-center gap-1.5 pl-1">
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Voiceover (VO)</span>
               </div>
               <div
-                className="p-2 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200/80 dark:border-indigo-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
+                className="p-2.5 bg-emerald-950/30 rounded-xl border border-emerald-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
                 style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${voTrack ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-500'}`}></span>
-                  <span className="text-slate-900 dark:text-slate-100 font-bold truncate max-w-xs">
+                  <span className={`w-2 h-2 rounded-full ${voTrack ? 'bg-emerald-400 animate-pulse' : 'bg-indigo-400'}`}></span>
+                  <span className="text-emerald-200 font-bold truncate max-w-xs">
                     {voTrack ? voTrack.title : 'Nepali / Hindi Neural Voiceover (Studio Master)'}
                   </span>
-                  <div className="flex items-center gap-0.5 opacity-60">
+                  <div className="flex items-center gap-0.5 opacity-70">
                     {[6, 12, 8, 14, 10, 16, 7, 11, 13, 9].map((h, i) => (
-                      <div key={i} className={`w-1 rounded-full ${voTrack ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-indigo-600 dark:bg-indigo-400'}`} style={{ height: `${h}px` }} />
+                      <div key={i} className={`w-1 rounded-full ${voTrack ? 'bg-emerald-400' : 'bg-indigo-400'}`} style={{ height: `${h}px` }} />
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Vol:</span>
+                    <span className="text-[10px] text-emerald-300 font-semibold">Vol:</span>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
                       value={voVolume} 
                       onChange={e => setVoVolume(Number(e.target.value))}
-                      className="w-20 accent-indigo-600 h-1 bg-indigo-200 dark:bg-indigo-900 rounded-lg cursor-pointer" 
+                      className="w-16 accent-emerald-500 h-1 bg-emerald-900/80 rounded-lg cursor-pointer" 
                     />
-                    <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 w-7">{voVolume}%</span>
+                    <span className="font-mono text-[10px] font-bold text-emerald-200 w-7">{voVolume}%</span>
                   </div>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
                     voTrack 
-                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700' 
-                      : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700'
+                      ? 'bg-emerald-900/80 text-emerald-200 border-emerald-700' 
+                      : 'bg-indigo-900/80 text-indigo-200 border-indigo-700'
                   }`}>
                     {voTrack ? 'VO Synced' : 'AI TTS Active'}
                   </span>
+                  <button
+                    onClick={() => audioFileInputRef.current?.click()}
+                    className="p-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                    title="Upload Custom Voiceover WAV/MP3"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* 3. Sound Effects (SFX) Track */}
             <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 pl-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <div className="w-24 shrink-0 text-xs font-semibold text-amber-400 flex items-center gap-1.5 pl-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>SFX Track</span>
               </div>
               <div
-                className="p-2 bg-amber-50/80 dark:bg-amber-950/40 rounded-xl border border-amber-200/80 dark:border-amber-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
+                className="p-2.5 bg-amber-950/40 rounded-xl border border-amber-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
                 style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                  <span className="text-slate-900 dark:text-slate-100 font-bold truncate">
-                    Cinematic Whoosh, Risers & Environment Atmos
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                  <span className="text-amber-200 font-bold truncate max-w-xs">
+                    {sfxTracks.find(s => s.id === selectedSfxId)?.title || 'Cinematic Impact & Whoosh'}
                   </span>
-                  <div className="flex items-center gap-0.5 opacity-60">
+                  <div className="flex items-center gap-0.5 opacity-70">
                     {[3, 10, 5, 12, 8, 15, 6, 11, 4, 13].map((h, i) => (
-                      <div key={i} className="w-1 bg-amber-600 dark:bg-amber-400 rounded-full" style={{ height: `${h}px` }} />
+                      <div key={i} className="w-1 bg-amber-400 rounded-full" style={{ height: `${h}px` }} />
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Vol:</span>
+                    <span className="text-[10px] text-amber-300 font-semibold">Vol:</span>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
                       value={sfxVolume} 
                       onChange={e => setSfxVolume(Number(e.target.value))}
-                      className="w-20 accent-amber-600 h-1 bg-amber-200 dark:bg-amber-900 rounded-lg cursor-pointer" 
+                      className="w-16 accent-amber-500 h-1 bg-amber-900/80 rounded-lg cursor-pointer" 
                     />
-                    <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 w-7">{sfxVolume}%</span>
+                    <span className="font-mono text-[10px] font-bold text-amber-200 w-7">{sfxVolume}%</span>
                   </div>
-                  <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-200 dark:border-amber-700">
-                    Auto-Synced
+                  <select
+                    value={selectedSfxId}
+                    onChange={e => setSelectedSfxId(e.target.value)}
+                    className="bg-slate-900 border border-amber-700/80 rounded-lg px-2 py-1 text-amber-200 text-xs focus:outline-none focus:border-amber-400 shadow-2xs cursor-pointer max-w-[130px] truncate"
+                  >
+                    {sfxTracks.map(track => (
+                      <option key={track.id} value={track.id}>{track.title}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => sfxFileInputRef.current?.click()}
+                    className="p-1 rounded bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                    title="Upload Custom SFX WAV/MP3"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. VFX, BFX & Frame Matte Track */}
+            <div className="flex items-center gap-2">
+              <div className="w-24 shrink-0 text-xs font-semibold text-teal-400 flex items-center gap-1.5 pl-1">
+                <Wand2 className="w-3.5 h-3.5 text-teal-400" />
+                <span>VFX / BFX</span>
+              </div>
+              <div
+                className="p-2.5 bg-teal-950/40 rounded-xl border border-teal-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
+                style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
+              >
+                <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+                  <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse shrink-0"></span>
+                  <span className="text-teal-200 font-bold text-[11px] shrink-0">
+                    Live Overlays:
                   </span>
+
+                  {/* Film Grain Live Chip */}
+                  <button
+                    onClick={() => setVfxConfig(prev => ({ ...prev, filmGrain: !prev.filmGrain }))}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                      vfxConfig.filmGrain
+                        ? 'bg-teal-600 text-white border-teal-400 shadow-xs'
+                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                    title="Toggle 35mm Film Grain Simulation"
+                  >
+                    Grain {vfxConfig.filmGrain ? '15%' : 'Off'}
+                  </button>
+
+                  {/* Light Leaks Live Chip */}
+                  <button
+                    onClick={() => setVfxConfig(prev => ({ ...prev, lightLeaks: !prev.lightLeaks }))}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                      vfxConfig.lightLeaks
+                        ? 'bg-amber-600 text-white border-amber-400 shadow-xs'
+                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                    title="Toggle Anamorphic Warm Light Leaks"
+                  >
+                    Light Leaks {vfxConfig.lightLeaks ? 'ON' : 'Off'}
+                  </button>
+
+                  {/* Golden Hour Live Chip */}
+                  <button
+                    onClick={() => setVfxConfig(prev => ({ ...prev, goldenHour: !prev.goldenHour }))}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                      vfxConfig.goldenHour
+                        ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white border-amber-300 shadow-xs'
+                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                    title="Toggle Golden Hour Himalayan Sunset Warmth"
+                  >
+                    Golden Hour {vfxConfig.goldenHour ? 'ON' : 'Off'}
+                  </button>
+
+                  {/* Dreamy Glow Live Chip */}
+                  <button
+                    onClick={() => setVfxConfig(prev => ({ ...prev, dreamyGlow: !prev.dreamyGlow }))}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                      vfxConfig.dreamyGlow
+                        ? 'bg-indigo-600 text-white border-indigo-400 shadow-xs'
+                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                    title="Toggle Dreamy Halation Glow"
+                  >
+                    Dreamy Glow {vfxConfig.dreamyGlow ? 'ON' : 'Off'}
+                  </button>
+
+                  {/* RGB Glitch Live Chip */}
+                  <button
+                    onClick={() => setVfxConfig(prev => ({ ...prev, rgbGlitch: !prev.rgbGlitch }))}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                      vfxConfig.rgbGlitch
+                        ? 'bg-rose-600 text-white border-rose-400 shadow-xs'
+                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                    title="Toggle Cyberpunk RGB Chromatic Aberration"
+                  >
+                    RGB Glitch {vfxConfig.rgbGlitch ? 'ON' : 'Off'}
+                  </button>
+
+                  {/* Vignette Live Chip */}
+                  <button
+                    onClick={() => setVfxConfig(prev => ({ ...prev, vignette: !prev.vignette }))}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                      vfxConfig.vignette
+                        ? 'bg-slate-700 text-white border-slate-500 shadow-xs'
+                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                    }`}
+                    title="Toggle Cinematic Edge Vignette"
+                  >
+                    Vignette {vfxConfig.vignette ? 'ON' : 'Off'}
+                  </button>
+
+                  {/* Frame Matte Pill */}
+                  {vfxConfig.frameType !== 'none' && (
+                    <span className="px-2 py-0.5 rounded bg-indigo-900/90 text-indigo-200 border border-indigo-500/60 text-[10px] font-bold shrink-0">
+                      Matte: {vfxConfig.frameType.replace(/_/g, ' ')}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setShowVfxModal(true)}
+                    className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Sliders className="w-3 h-3" />
+                    <span>Tune Intensity</span>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* VFX & Frame Overlays Tuning Modal */}
+      {showVfxModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-teal-500/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-5 h-5 text-teal-400" />
+                <h3 className="font-bold text-base text-slate-100">Live VFX, BFX & Frame Engine</h3>
+              </div>
+              <button
+                onClick={() => setShowVfxModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Adjust visual effects in real time. Changes lively render immediately inside the Studio Live Preview Canvas.
+            </p>
+
+            <div className="space-y-4">
+              {/* Film Grain */}
+              <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-200">35mm Film Grain Simulation</span>
+                    {vfxConfig.filmGrain && (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-teal-600 text-white font-bold">Active</span>
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={vfxConfig.filmGrain}
+                    onChange={(e) => setVfxConfig(prev => ({ ...prev, filmGrain: e.target.checked }))}
+                    className="w-4 h-4 accent-teal-500 rounded cursor-pointer"
+                  />
+                </div>
+                {vfxConfig.filmGrain && (
+                  <div className="flex items-center gap-3 pt-1">
+                    <span className="text-[10px] text-slate-400">Intensity:</span>
+                    <input
+                      type="range"
+                      min="0.05"
+                      max="0.4"
+                      step="0.05"
+                      value={vfxConfig.filmGrainIntensity ?? 0.15}
+                      onChange={(e) => setVfxConfig(prev => ({ ...prev, filmGrainIntensity: parseFloat(e.target.value) }))}
+                      className="flex-1 accent-teal-500 h-1 bg-slate-700 rounded-lg cursor-pointer"
+                    />
+                    <span className="font-mono text-[10px] text-teal-300 w-10 text-right">
+                      {Math.round((vfxConfig.filmGrainIntensity ?? 0.15) * 100)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Toggles Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Light Leaks */}
+                <div 
+                  onClick={() => setVfxConfig(prev => ({ ...prev, lightLeaks: !prev.lightLeaks }))}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                    vfxConfig.lightLeaks ? 'bg-amber-950/40 border-amber-500/60 text-amber-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">Light Leaks</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.lightLeaks ? 'bg-amber-500 text-black' : 'bg-slate-700 text-slate-400'}`}>
+                      {vfxConfig.lightLeaks ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Anamorphic warm amber edge flare</p>
+                </div>
+
+                {/* Golden Hour */}
+                <div 
+                  onClick={() => setVfxConfig(prev => ({ ...prev, goldenHour: !prev.goldenHour }))}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                    vfxConfig.goldenHour ? 'bg-rose-950/40 border-rose-500/60 text-rose-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">Golden Hour</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.goldenHour ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                      {vfxConfig.goldenHour ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Himalayan sunrise radiant warmth</p>
+                </div>
+
+                {/* Dreamy Glow */}
+                <div 
+                  onClick={() => setVfxConfig(prev => ({ ...prev, dreamyGlow: !prev.dreamyGlow }))}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                    vfxConfig.dreamyGlow ? 'bg-indigo-950/40 border-indigo-500/60 text-indigo-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">Dreamy Halation</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.dreamyGlow ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                      {vfxConfig.dreamyGlow ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Soft diffuse cinematic highlights</p>
+                </div>
+
+                {/* RGB Glitch */}
+                <div 
+                  onClick={() => setVfxConfig(prev => ({ ...prev, rgbGlitch: !prev.rgbGlitch }))}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                    vfxConfig.rgbGlitch ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">RGB Glitch</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.rgbGlitch ? 'bg-emerald-500 text-black' : 'bg-slate-700 text-slate-400'}`}>
+                      {vfxConfig.rgbGlitch ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Chromatic aberration sync pulses</p>
+                </div>
+              </div>
+
+              {/* Frame Matte Selection */}
+              <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/80 space-y-2">
+                <span className="text-xs font-bold text-slate-200">Cinematic Frame & Matte Overlay</span>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {[
+                    { id: 'none', label: 'None' },
+                    { id: 'letterbox', label: '2.35:1 Scope' },
+                    { id: 'academy_4_3', label: '4:3 Academy' },
+                    { id: 'safe_zone_9_16', label: '9:16 Social' },
+                    { id: 'vintage_8mm', label: 'Vintage 8mm' },
+                  ].map(frame => (
+                    <button
+                      key={frame.id}
+                      onClick={() => setVfxConfig(prev => ({ ...prev, frameType: frame.id as FrameOverlayType }))}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer text-center ${
+                        vfxConfig.frameType === frame.id
+                          ? 'bg-teal-600 text-white border-teal-400 shadow-md'
+                          : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500'
+                      }`}
+                    >
+                      {frame.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setShowVfxModal(false)}
+                className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-lg shadow-teal-600/30 transition-all cursor-pointer"
+              >
+                Apply to Live Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Starter Templates Modal */}
       {showTemplatesModal && (

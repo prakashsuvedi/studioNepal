@@ -25,6 +25,7 @@ import {
   serverHamroAiChat,
   getHuggingFaceStatus,
   getAzureOpenAIKey,
+  serverGetAudioSuggestions,
 } from './src/server/aiServices';
 
 // Helper to decode Google OAuth GSI JWT credentials safely
@@ -732,7 +733,7 @@ async function startServer() {
   // Audio / TTS Synthesis Endpoint (Hugging Face / SpeechT5)
   app.post('/api/generate/audio', async (req, res) => {
     try {
-      const { userId, text, voiceId, language } = req.body;
+      const { userId, text, voiceId, language, emotion, deliveryStyle } = req.body;
       if (!userId || !text) {
         return res.status(400).json({ error: 'User ID and text are required' });
       }
@@ -748,7 +749,7 @@ async function startServer() {
         });
       }
 
-      const result = await serverGenerateAudio(text, voiceId, language);
+      const result = await serverGenerateAudio(text, voiceId, language, emotion || 'neutral', deliveryStyle || 'general');
       db.recordGeneration(userId, 'audio', text, result.url, result.voice, duration);
 
       const user = db.getUserById(userId);
@@ -760,6 +761,23 @@ async function startServer() {
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Audio generation failed' });
+    }
+  });
+
+  // AI TTS Suggestion & Script Context-Aware Analysis Endpoint (Google Gemini 2.5 Flash)
+  app.post('/api/generate/audio-suggestions', async (req, res) => {
+    try {
+      const { text, language } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: 'Text script is required for analysis' });
+      }
+      const suggestions = await serverGetAudioSuggestions(text, language || 'ne');
+      res.json({
+        success: true,
+        suggestions,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Audio smart suggestions analysis failed' });
     }
   });
 

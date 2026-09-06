@@ -1709,7 +1709,16 @@ async function startServer() {
           const cleanBase64 = videoUrl.replace(/^data:[^;]+;base64,/, '');
           rawBuffer = Buffer.from(cleanBase64, 'base64');
         } else {
-          const fetchRes = await fetch(videoUrl);
+          let resolvedUrl = videoUrl;
+          if (resolvedUrl.startsWith('/')) {
+            resolvedUrl = `http://127.0.0.1:3000${resolvedUrl}`;
+          }
+          const fetchRes = await fetch(resolvedUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': '*/*',
+            },
+          });
           if (!fetchRes.ok) {
             throw new Error(`Failed to fetch media from videoUrl (HTTP ${fetchRes.status})`);
           }

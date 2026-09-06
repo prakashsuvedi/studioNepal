@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { STARTER_TEMPLATES, INITIAL_AUDIO_TRACKS } from '../data';
 import { SocialPublisherModal } from './SocialPublisherModal';
+import { YouTubePublisherModal } from './YouTubePublisherModal';
 import { RenderPresetModal, RENDER_PRESETS, RenderPreset } from './RenderPresetModal';
 import { SubtitleEditorModal, SubtitleItem, SubtitleBurnOptions } from './SubtitleEditorModal';
 import { BrandOverlayModal, BrandOverlayConfig, WATERMARK_PRESETS } from './BrandOverlayModal';
@@ -42,6 +43,7 @@ import {
   Palette, 
   Layers, 
   Share2,
+  Youtube,
   FolderOpen,
   Music,
   Monitor,
@@ -299,6 +301,29 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [showPreRenderValidationModal, setShowPreRenderValidationModal] = useState(false);
   const [validationReport, setValidationReport] = useState<TimelineValidationReport | null>(null);
   const [showSocialPublisherModal, setShowSocialPublisherModal] = useState(false);
+  const [showYouTubePublisherModal, setShowYouTubePublisherModal] = useState(false);
+  const [isYouTubeConnected, setIsYouTubeConnected] = useState<boolean>(() => {
+    try {
+      return !!localStorage.getItem('nepalai_youtube_token');
+    } catch {
+      return false;
+    }
+  });
+
+  // Keep YouTube connection status reactive
+  useEffect(() => {
+    const checkYt = () => {
+      try {
+        setIsYouTubeConnected(!!localStorage.getItem('nepalai_youtube_token'));
+      } catch {}
+    };
+    window.addEventListener('storage', checkYt);
+    const interval = setInterval(checkYt, 3000);
+    return () => {
+      window.removeEventListener('storage', checkYt);
+      clearInterval(interval);
+    };
+  }, []);
   const [showRenderPresetModal, setShowRenderPresetModal] = useState(false);
   const [showSubtitleModal, setShowSubtitleModal] = useState(false);
   const [showBrandModal, setShowBrandModal] = useState(false);
@@ -1566,14 +1591,37 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             )}
           </div>
 
+          {/* Dedicated YouTube Video & Shorts Publisher Button */}
+          <button
+            onClick={() => setShowYouTubePublisherModal(true)}
+            className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-xs shadow-red-600/30 flex items-center gap-1.5 transition cursor-pointer shrink-0"
+            title={
+              exportSuccess
+                ? "Video rendered & ready! Click to publish to YouTube"
+                : scenes.some(s => !!s.mediaUrl)
+                ? "Timeline has video scenes ready to publish or upload"
+                : "Open YouTube Publisher (Upload MP4 or select timeline video)"
+            }
+          >
+            <Youtube className="w-4 h-4 text-white" />
+            <span>Post to YouTube</span>
+            {exportSuccess ? (
+              <span className="px-1 py-0.2 rounded bg-emerald-400/20 text-emerald-300 text-[9px] font-extrabold border border-emerald-400/40">
+                Ready
+              </span>
+            ) : isYouTubeConnected ? (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" title="YouTube Connected" />
+            ) : null}
+          </button>
+
           {/* Post to Social Channels */}
           <button
             onClick={() => setShowSocialPublisherModal(true)}
             className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 border border-slate-700 dark:border-slate-600 shadow-2xs transition cursor-pointer shrink-0"
-            title="Post output directly to YouTube, X, TikTok, & Instagram Reels"
+            title="Post output to X, TikTok, & Instagram Reels"
           >
             <Share2 className="w-3.5 h-3.5 text-purple-400" />
-            <span>Share</span>
+            <span>Multi-Social</span>
           </button>
 
           {/* Primary Render / Export Action */}
@@ -3091,16 +3139,29 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
             {/* Modal Actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setShowExportModal(false);
-                  setShowSocialPublisherModal(true);
-                }}
-                className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Share2 className="w-4 h-4 text-purple-200" />
-                <span>Post to YouTube / X / TikTok / Reels</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowExportModal(false);
+                    setShowYouTubePublisherModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Youtube className="w-4 h-4 text-white" />
+                  <span>Post to YouTube</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowExportModal(false);
+                    setShowSocialPublisherModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4 text-purple-200" />
+                  <span>Other Socials</span>
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button
@@ -3260,6 +3321,19 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           }}
         />
       )}
+
+      {/* Dedicated YouTube Video & Shorts Publisher Modal */}
+      <YouTubePublisherModal
+        isOpen={showYouTubePublisherModal}
+        onClose={() => setShowYouTubePublisherModal(false)}
+        projectTitle={projectTitle}
+        scenes={scenes}
+        aspectRatio={aspectRatio}
+        totalDuration={totalDuration}
+        initialVideoUrl={selectedScene?.mediaUrl}
+        isExportSuccess={exportSuccess}
+        isTimelineReady={scenes.some(s => !!s.mediaUrl)}
+      />
 
       {/* Social Media Publisher Suite Modal */}
       <SocialPublisherModal

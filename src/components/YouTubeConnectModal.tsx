@@ -112,12 +112,17 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
         setIsWaitingPopup(false);
         setAuthError(null);
         if (accessToken) {
-          onConnected(accessToken, channel || {
+          const resolvedChannel = channel || {
             title: 'My YouTube Channel',
             handle: '@YouTubeChannel',
             avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80',
             subscriberCount: 'Connected',
-          });
+          };
+          try {
+            localStorage.setItem('nepalai_youtube_token', accessToken);
+            localStorage.setItem('nepalai_youtube_channel', JSON.stringify(resolvedChannel));
+          } catch {}
+          onConnected(accessToken, resolvedChannel);
           onClose();
         }
       } else if (event.data?.type === 'YOUTUBE_AUTH_ERROR') {
@@ -195,6 +200,10 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
         };
       }
 
+      try {
+        localStorage.setItem('nepalai_youtube_token', token);
+        localStorage.setItem('nepalai_youtube_channel', JSON.stringify(channel));
+      } catch {}
       onConnected(token, channel);
       onClose();
     } catch (err: any) {
@@ -275,6 +284,10 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
       avatar: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=120&auto=format&fit=crop&q=80',
       subscriberCount: '128K Subscribers',
     };
+    try {
+      localStorage.setItem('nepalai_youtube_token', 'demo_token');
+      localStorage.setItem('nepalai_youtube_channel', JSON.stringify(demoChannel));
+    } catch {}
     onConnected('demo_token', demoChannel);
     onClose();
   };

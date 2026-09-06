@@ -162,7 +162,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col selection:bg-rose-600 selection:text-white relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col selection:bg-rose-600 selection:text-white relative transition-colors duration-200">
       {/* Global Revolving Animation Loading Overlay */}
       <GlobalLoadingOverlay loading={globalLoading} />
 

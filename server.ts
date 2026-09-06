@@ -44,6 +44,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.set('trust proxy', 1);
+
   app.use(express.json());
 
   // CORS / logging helper
@@ -1350,8 +1352,14 @@ async function startServer() {
   // ==========================================
 
   const getYoutubeRedirectUri = (req: any) => {
-    const base = process.env.APP_URL ? process.env.APP_URL.replace(/\/$/, '') : `${req.protocol}://${req.get('host')}`;
-    return `${base}/api/youtube/callback`;
+    if (process.env.APP_URL) {
+      const base = process.env.APP_URL.replace(/\/$/, '');
+      return `${base}/api/youtube/callback`;
+    }
+    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000';
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const proto = isLocal ? (req.headers['x-forwarded-proto'] || req.protocol || 'http') : 'https';
+    return `${proto}://${host}/api/youtube/callback`;
   };
 
   // Helper: Ensures media buffer is an MP4 video, converting images/stills to MP4 with FFmpeg if needed
@@ -1452,17 +1460,22 @@ async function startServer() {
       const error = req.query.error as string;
 
       if (error) {
+        const isAccessDenied = error === 'access_denied';
+        const friendlyMsg = isAccessDenied
+          ? 'Error 403: access_denied — Your Google Cloud OAuth App is in "Testing" mode or missing Test Users. In Google Cloud Console -> APIs & Services -> OAuth consent screen, add your email to "Test users" or publish the app.'
+          : `OAuth Authentication Cancelled or Denied (${error})`;
+
         return res.send(`
           <!DOCTYPE html>
           <html>
-          <head><title>YouTube Authentication Cancelled</title></head>
+          <head><title>YouTube Authentication Error</title></head>
           <body style="font-family: system-ui, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 40px;">
-            <h3 style="color: #f87171;">Authentication Cancelled or Denied</h3>
-            <p style="color: #94a3b8; font-size: 13px;">${error}</p>
+            <h3 style="color: #f87171;">Authentication ${isAccessDenied ? 'Access Denied (403)' : 'Failed'}</h3>
+            <p style="color: #94a3b8; font-size: 13px; max-width: 500px; margin: 0 auto 20px;">${friendlyMsg}</p>
             <script>
               if (window.opener) {
-                window.opener.postMessage({ type: 'YOUTUBE_AUTH_ERROR', error: '${error}' }, '*');
-                setTimeout(() => window.close(), 1500);
+                window.opener.postMessage({ type: 'YOUTUBE_AUTH_ERROR', error: ${JSON.stringify(friendlyMsg)} }, '*');
+                setTimeout(() => window.close(), 3500);
               }
             </script>
           </body>

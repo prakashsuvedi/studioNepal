@@ -233,13 +233,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Studio Navigation Tabs */}
-        <nav className="flex space-x-1 overflow-x-auto pb-2 scrollbar-none border-t border-slate-100 pt-1.5">
+        <nav className="flex space-x-1 overflow-x-auto pb-2 scrollbar-none border-t border-slate-100 dark:border-slate-800 pt-1.5">
           <button
             onClick={() => setActiveTab('landing')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'landing'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-rose-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Home className="w-3.5 h-3.5" />
@@ -257,14 +257,14 @@ export const Header: React.FC<HeaderProps> = ({
             title={!user ? 'Sign in with Google to unlock HamroAI' : 'HamroAI (Multilingual GPT-4o & GPT-5-mini)'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'hamro_ai'
-                ? 'bg-gradient-to-r from-amber-500 to-red-600 text-white shadow-sm'
-                : 'text-slate-800 hover:text-slate-950 hover:bg-amber-50/80 border border-amber-300/80 bg-amber-50/40'
+                ? 'bg-gradient-to-r from-amber-500 to-red-600 text-white shadow-sm font-bold'
+                : 'text-slate-800 dark:text-amber-200 hover:text-slate-950 dark:hover:text-white hover:bg-amber-50/80 dark:hover:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 bg-amber-50/40 dark:bg-amber-950/20'
             }`}
           >
-            <Bot className={`w-3.5 h-3.5 ${activeTab === 'hamro_ai' ? 'text-white' : 'text-amber-600'}`} />
+            <Bot className={`w-3.5 h-3.5 ${activeTab === 'hamro_ai' ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
             <span className="font-bold">HamroAI</span>
             <span className={`text-[9px] px-1 py-0.2 rounded font-bold ${
-              activeTab === 'hamro_ai' ? 'bg-amber-400 text-zinc-950' : 'bg-amber-100 text-amber-900 border border-amber-200'
+              activeTab === 'hamro_ai' ? 'bg-amber-400 text-zinc-950' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
             }`}>
               Nepali/Hindi
             </span>
@@ -282,8 +282,8 @@ export const Header: React.FC<HeaderProps> = ({
             title={!user ? 'Sign in with Google to unlock Video Studio' : 'Video Studio'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'video_studio'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-rose-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Film className="w-3.5 h-3.5" />
@@ -302,8 +302,8 @@ export const Header: React.FC<HeaderProps> = ({
             title={!user ? 'Sign in with Google to unlock Image Engine' : 'Image Engine'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'image_studio'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-rose-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
@@ -322,8 +322,8 @@ export const Header: React.FC<HeaderProps> = ({
             title={!user ? 'Sign in with Google to unlock Sora-2 Video' : 'Sora-2 Video'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'sora_studio'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-rose-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Video className="w-3.5 h-3.5" />
@@ -342,8 +342,8 @@ export const Header: React.FC<HeaderProps> = ({
             title={!user ? 'Sign in with Google to unlock Nepali Voiceover' : 'Nepali Voiceover'}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'tts_studio'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-rose-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Mic className="w-3.5 h-3.5" />
@@ -359,13 +359,13 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Superadmin Control Center"
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
                   activeTab === 'admin'
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-rose-600 text-white shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
                 <span>Admin Center</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800">
                   PRO
                 </span>
               </button>
@@ -375,8 +375,8 @@ export const Header: React.FC<HeaderProps> = ({
                 title="System Audit & Preflight Diagnostics (Superadmin Only)"
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
                   activeTab === 'audit'
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-rose-600 text-white shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -388,8 +388,8 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Hugging Face Deployment Kit & Secrets (Superadmin Only)"
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
                   activeTab === 'hf_deployment_kit'
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-rose-600 text-white shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                 }`}
               >
                 <Code2 className="w-3.5 h-3.5" />

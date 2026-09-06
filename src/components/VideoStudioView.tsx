@@ -73,7 +73,8 @@ import {
   Tag,
   CheckSquare,
   FileText,
-  Database
+  Database,
+  ChevronDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SceneTemplatesModal } from './SceneTemplatesModal';
@@ -333,6 +334,23 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // Template loader drawer & Scene Templates Modal
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [showSceneTemplatesModal, setShowSceneTemplatesModal] = useState(false);
+  const [showToolsDropdown, setShowToolsDropdown] = useState(false);
+  const toolsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close tools dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(event.target as Node)) {
+        setShowToolsDropdown(false);
+      }
+    };
+    if (showToolsDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showToolsDropdown]);
 
   // Refs for Timeline and Project File Import
   const timelineScrollRef = useRef<HTMLDivElement>(null);
@@ -1204,10 +1222,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       )}
 
       {/* 3-Step Production Stepper & Project Command Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col xl:flex-row items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col xl:flex-row items-center justify-between gap-4 shadow-xs transition-colors">
         {/* Project Title & Auto-Save Badge */}
         <div className="flex items-center gap-3 w-full xl:w-auto">
-          <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+          <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
             <Film className="w-5 h-5" />
           </div>
           <div className="space-y-0.5">
@@ -1221,11 +1239,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                     onBlur={() => setIsEditingTitle(false)}
                     onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
                     autoFocus
-                    className="text-sm font-bold text-slate-900 border-b-2 border-indigo-600 bg-slate-50 px-2 py-0.5 rounded outline-none w-48 sm:w-60"
+                    className="text-sm font-bold text-slate-900 dark:text-white border-b-2 border-indigo-600 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded outline-none w-48 sm:w-60"
                   />
                   <button
                     onClick={() => setIsEditingTitle(false)}
-                    className="text-xs text-indigo-600 font-bold px-1 hover:underline"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 font-bold px-1 hover:underline"
                   >
                     Done
                   </button>
@@ -1236,22 +1254,22 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                   onClick={() => setIsEditingTitle(true)}
                   title="Click to rename project"
                 >
-                  <h2 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     {projectTitle}
                   </h2>
-                  <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                  <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
                 </div>
               )}
               {/* Active Team Workspace Badge */}
               <button
                 onClick={() => setShowWorkspacesModal(true)}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 text-indigo-700 text-[11px] font-medium transition cursor-pointer"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium transition cursor-pointer"
                 title="Active workspace & shared folder - Click to manage or switch"
               >
                 <span>{activeWorkspace.icon}</span>
                 <span className="font-semibold">{activeWorkspace.name}</span>
-                <span className="text-indigo-300">/</span>
-                <span className="text-indigo-600">{activeWorkspace.folders[0]?.name || 'Main'}</span>
+                <span className="text-slate-400 dark:text-slate-500">/</span>
+                <span className="text-indigo-600 dark:text-indigo-400">{activeWorkspace.folders[0]?.name || 'Main'}</span>
               </button>
 
               {/* Realtime Supabase Presence Component */}
@@ -1266,23 +1284,23 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             {/* Auto-Save Status Indicator */}
             <div className="flex items-center gap-2 text-xs">
               {isAutoSaving ? (
-                <span className="flex items-center gap-1 text-amber-600 font-medium text-[11px]">
+                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium text-[11px]">
                   <Clock className="w-3 h-3 animate-spin" />
                   <span>Auto-saving...</span>
                 </span>
               ) : lastAutoSavedTime ? (
-                <span className="flex items-center gap-1 text-emerald-700 font-medium text-[11px]">
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium text-[11px]">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span>Auto-saved at {lastAutoSavedTime}</span>
                 </span>
               ) : (
-                <span className="text-slate-400 text-[11px]">Auto-save active</span>
+                <span className="text-slate-400 dark:text-slate-500 text-[11px]">Auto-save active</span>
               )}
 
               {hasExistingAutoSave && (
                 <button
                   onClick={handleRestoreAutoSave}
-                  className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold underline underline-offset-2 flex items-center gap-0.5 ml-1 transition-colors"
+                  className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold underline underline-offset-2 flex items-center gap-0.5 ml-1 transition-colors cursor-pointer"
                   title="Restore previous auto-saved project state"
                 >
                   <RotateCcw className="w-2.5 h-2.5" />
@@ -1293,255 +1311,276 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           </div>
         </div>
 
-        {/* Workflow Stepper */}
-        <div className="flex items-center gap-1.5 sm:gap-2 w-full xl:w-auto justify-center bg-slate-100 p-1.5 rounded-xl border border-slate-200/80 overflow-x-auto">
-          <button
-            onClick={() => setCurrentStep('story')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-              currentStep === 'story'
-                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
-              currentStep === 'story' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>1</span>
-            <span>Build Story</span>
-          </button>
-
-          <span className="text-slate-400 text-xs">→</span>
-
-          <button
-            onClick={() => setCurrentStep('polish')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-              currentStep === 'polish'
-                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
-              currentStep === 'polish' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>2</span>
-            <span>Polish Edit</span>
-          </button>
-
-          <span className="text-slate-400 text-xs">→</span>
-
-          <button
-            onClick={() => {
-              setCurrentStep('export');
-              setShowProjectExportModal(true);
-            }}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-              currentStep === 'export'
-                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
-              currentStep === 'export' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>3</span>
-            <span>Export & Share</span>
-          </button>
-        </div>
-
-        {/* Top Project & Template Actions */}
-        <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-end">
-          {/* Global Media Library Trigger */}
-          <button
-            onClick={() => setShowGlobalMediaLibrary(true)}
-            className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-            title="Open Global Media Library (Uploads, AI Images, Sora Videos)"
-          >
-            <Film className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Media Library</span>
-          </button>
-
-          {/* Asset Library Trigger */}
-          <button
-            onClick={() => setShowAssetLibrary(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
-            title="Open Asset Library (Watermarks, logos, brand graphics) - Shortcut: B"
-          >
-            <Layers className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Asset Library</span>
-          </button>
-
-          {/* Workspaces & Team Folders Trigger */}
-          <button
-            onClick={() => setShowWorkspacesModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
-            title="Workspaces & Shared Folders - Shortcut: W"
-          >
-            <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Workspaces</span>
-          </button>
-
-          {/* Version History Trigger */}
-          <button
-            onClick={() => setShowVersionHistoryModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
-            title="Open Supabase Storage Version History & Checkpoints"
-          >
-            <History className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Version History</span>
-          </button>
-
-          {/* Keyboard Shortcuts Trigger */}
-          <button
-            onClick={() => setShowShortcutsModal(true)}
-            className="px-2 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors"
-            title="Keyboard Shortcuts Cheatsheet - Shortcut: ?"
-          >
-            <Command className="w-3.5 h-3.5 text-slate-500" />
-            <span className="font-mono text-[10px] bg-slate-100 px-1 py-0.2 rounded border">?</span>
-          </button>
-
-          {/* Scene Templates Trigger */}
-          <button
-            onClick={() => setShowSceneTemplatesModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-            title="Browse modular scene templates (Intro, Outro, Lower-Thirds, News Banners) - Shortcut: T"
-          >
-            <LayoutTemplate className="w-3.5 h-3.5 text-amber-600" />
-            <span>Templates</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">8</span>
-          </button>
-
-          {/* Render Queue */}
-          <button
-            onClick={() => setShowRenderQueueModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-            title="Batch render queue for multi-scene projects"
-          >
-            <Layers className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Render Queue</span>
-          </button>
-
-          {/* AI Storyboard Generator */}
+        {/* Premium Clustered Studio Toolbar */}
+        <div className="flex items-center gap-2 w-full xl:w-auto justify-end flex-wrap sm:flex-nowrap">
+          {/* AI Storyboard Creator */}
           <button
             onClick={() => setShowAiStoryboardModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-            title="AI Script-to-Storyboard Generator"
+            className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
+            title="AI Script-to-Storyboard Studio - Decompose script into cinematic multi-scene timeline"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            <Sparkles className="w-3.5 h-3.5 text-purple-200 animate-pulse" />
             <span>AI Storyboard</span>
           </button>
 
-          {/* Storyboard PDF Printable Export */}
+          {/* Modular Scene Templates */}
           <button
-            onClick={() => setShowStoryboardPdfModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-            title="Generate and download a static 'Storyboard' PDF capturing thumbnails & scene metadata for client review"
+            onClick={() => setShowSceneTemplatesModal(true)}
+            className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer shrink-0"
+            title="Browse modular scene templates (Intro, Outro, Lower-Thirds, News Banners) - Shortcut: T"
           >
-            <FileText className="w-3.5 h-3.5 text-rose-600" />
-            <span>Storyboard PDF</span>
+            <LayoutTemplate className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>Templates</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 text-[10px] font-bold">8</span>
           </button>
 
-          {/* Save Project to JSON */}
-          <button
-            onClick={handleExportProjectJson}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
-            title="Export project scenes, title and metadata as a JSON file to save progress locally (Ctrl+S)"
-          >
-            <FileDown className="w-3.5 h-3.5 text-slate-600" />
-            <span className="hidden sm:inline">Save</span> JSON
-          </button>
+          {/* Media Suite: Media & Assets */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80 shrink-0">
+            <button
+              onClick={() => setShowGlobalMediaLibrary(true)}
+              className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center gap-1.5 transition cursor-pointer"
+              title="Open Global Media Library (Uploads, AI Images, Sora Videos)"
+            >
+              <Film className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Media</span>
+            </button>
+            <button
+              onClick={() => setShowAssetLibrary(true)}
+              className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center gap-1.5 transition cursor-pointer"
+              title="Open Asset Library (Watermarks, logos, brand graphics) - Shortcut: B"
+            >
+              <Layers className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Assets</span>
+            </button>
+          </div>
 
-          {/* Import Project from JSON */}
-          <button
-            onClick={() => projectFileInputRef.current?.click()}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
-            title="Load project progress from a saved .nepalai.json file"
-          >
-            <Upload className="w-3.5 h-3.5 text-slate-600" />
-            <span className="hidden sm:inline">Open</span> JSON
-          </button>
+          {/* Unified Studio Tools Menu */}
+          <div className="relative shrink-0" ref={toolsDropdownRef}>
+            <button
+              onClick={() => setShowToolsDropdown(!showToolsDropdown)}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
+              title="Open Studio Production & Project Tools"
+            >
+              <Sliders className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Tools</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showToolsDropdown ? 'rotate-180' : ''}`} />
+            </button>
 
-          {/* Starter Project Templates */}
-          <button
-            onClick={() => setShowTemplatesModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
-            title="Load starter project packs"
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-slate-500" />
-            <span>Kits</span>
-          </button>
+            {/* Floating Dropdown Drawer */}
+            {showToolsDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                  Production & FX
+                </div>
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowSubtitleModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Subtitles & SRT Sync</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">Auto</span>
+                  </button>
 
-          {/* Export Render Presets Button */}
-          <button
-            onClick={() => setShowRenderPresetModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Select professional export render presets (TikTok 9:16, YouTube 16:9, IG Reel)"
-          >
-            <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Presets</span>
-          </button>
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowColorMatchModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Palette className="w-3.5 h-3.5 text-violet-500" />
+                      <span>Color Match & Balance</span>
+                    </span>
+                  </button>
 
-          {/* Auto-Subtitles Button */}
-          <button
-            onClick={() => setShowSubtitleModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Auto-generate subtitles from voice tracks and edit visual .SRT transcriptions"
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Subtitles</span>
-          </button>
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowBrandModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Shield className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Brand Watermark & Logo</span>
+                    </span>
+                  </button>
 
-          {/* Brand Overlay Watermark Button */}
-          <button
-            onClick={() => setShowBrandModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Configure fixed brand watermark overlay and logo stamp"
-          >
-            <Shield className="w-3.5 h-3.5 text-amber-600" />
-            <span>Watermark</span>
-          </button>
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowFrameInspectorModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Crosshair className="w-3.5 h-3.5 text-sky-500" />
+                      <span>Frame Inspector (Cut Point)</span>
+                    </span>
+                  </button>
 
-          {/* Auto-Color Match Button */}
-          <button
-            onClick={() => setShowColorMatchModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Normalize exposure and color temperature across consecutive scenes"
-          >
-            <Palette className="w-3.5 h-3.5 text-violet-600" />
-            <span>Color Match</span>
-          </button>
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowSceneLibraryModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FolderPlus className="w-3.5 h-3.5 text-teal-500" />
+                      <span>Scene Library (Reusables)</span>
+                    </span>
+                  </button>
 
-          {/* Frame Inspector Button */}
-          <button
-            onClick={() => setShowFrameInspectorModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Step frame-by-frame through selected scene for precision cut points"
-          >
-            <Crosshair className="w-3.5 h-3.5 text-sky-600" />
-            <span>Frame Inspector</span>
-          </button>
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowRenderPresetModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Render Presets (Format & FPS)</span>
+                    </span>
+                  </button>
 
-          {/* Scene Library Button */}
-          <button
-            onClick={() => setShowSceneLibraryModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Save and reuse common scene templates across projects"
-          >
-            <FolderPlus className="w-3.5 h-3.5 text-teal-600" />
-            <span>Scene Library</span>
-          </button>
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowRenderQueueModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Batch Render Queue</span>
+                    </span>
+                  </button>
+                </div>
 
-          {/* Social Publisher Button */}
+                <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                  Project & Collaboration
+                </div>
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowVersionHistoryModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <History className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Version History & Checkpoints</span>
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowWorkspacesModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Workspace & Folders</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">W</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowStoryboardPdfModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-rose-500" />
+                      <span>Export Storyboard PDF</span>
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowTemplatesModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FolderOpen className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Starter Project Kits</span>
+                    </span>
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-1 pt-1">
+                    <button
+                      onClick={() => {
+                        setShowToolsDropdown(false);
+                        handleExportProjectJson();
+                      }}
+                      className="px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      title="Save project JSON locally (Ctrl+S)"
+                    >
+                      <FileDown className="w-3.5 h-3.5" />
+                      <span>Save JSON</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowToolsDropdown(false);
+                        projectFileInputRef.current?.click();
+                      }}
+                      className="px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      title="Load project JSON"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Open JSON</span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      setShowShortcutsModal(true);
+                    }}
+                    className="w-full px-2.5 py-1.5 mt-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Command className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Keyboard Shortcuts</span>
+                    </span>
+                    <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-700 px-1 py-0.2 rounded">?</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Post to Social Channels */}
           <button
             onClick={() => setShowSocialPublisherModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-sm shadow-purple-200 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 border border-slate-700 dark:border-slate-600 shadow-2xs transition cursor-pointer shrink-0"
             title="Post output directly to YouTube, X, TikTok, & Instagram Reels"
           >
-            <Share2 className="w-3.5 h-3.5 text-purple-200" />
-            <span>Post to Socials</span>
+            <Share2 className="w-3.5 h-3.5 text-purple-400" />
+            <span>Share</span>
           </button>
 
-          {/* Production Export Button */}
+          {/* Primary Render / Export Action */}
           <button
             onClick={handleInitiatePreRenderCheck}
-            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm shadow-indigo-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-xs shadow-rose-600/20 flex items-center gap-1.5 transition cursor-pointer shrink-0"
+            title="Perform pre-flight verification & render project"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Video</span>
@@ -1552,12 +1591,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       {/* Main Workspace Grid: Stage Preview & Scene Inspector */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 7 Columns: Stage Preview Canvas */}
-        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-sm">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-xs transition-colors">
           {/* Stage Header Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-900">Stage Preview</span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono border border-slate-200/60 max-w-[150px] truncate">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Stage Preview</span>
+              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-mono border border-slate-200/60 dark:border-slate-700 max-w-[150px] truncate">
                 {selectedScene ? selectedScene.title : 'No scene'}
               </span>
             </div>
@@ -1567,7 +1606,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowTextStylingToolkitModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                 title="Open Kinetic Typography & Lower-Third Generator"
               >
                 <Type className="w-3.5 h-3.5 text-purple-200" />
@@ -1578,65 +1617,65 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAssetAndSoundLibraryModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                 title="Browse predefined sounds, BGM, SFX, tickers, watermarks, and text styles"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Asset & Sound Library</span>
+                <span>Asset & Sound</span>
               </button>
 
               {/* Proxy Rendering Mode Toggle */}
               <button
                 type="button"
                 onClick={() => setIsProxyMode(prev => !prev)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
                   isProxyMode
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm animate-pulse'
-                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs animate-pulse'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700'
                 }`}
                 title="Enable low-resolution proxy mode for real-time 60fps timeline editing performance"
               >
                 <Zap className={`w-3.5 h-3.5 ${isProxyMode ? 'fill-slate-950' : 'text-amber-500'}`} />
-                <span>{isProxyMode ? '⚡ Proxy 360p Active' : 'Proxy Mode'}</span>
+                <span>{isProxyMode ? '⚡ 360p Proxy' : 'Proxy'}</span>
               </button>
 
               {/* Preview Mode Switcher (Canvas API vs Interactive DOM) */}
-              <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
                 <button
                   type="button"
                   onClick={() => setPreviewMode('canvas')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[11px] font-semibold ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[11px] font-semibold cursor-pointer ${
                     previewMode === 'canvas'
                       ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Canvas API real-time proxy engine: renders crossfades, wipes, and video proxies at 60fps"
                 >
                   <Activity className="w-3 h-3" />
-                  <span>Live Canvas</span>
+                  <span>Canvas</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewMode('interactive')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[11px] font-semibold ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[11px] font-semibold cursor-pointer ${
                     previewMode === 'interactive'
                       ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Interactive DOM Stage with direct element overlays"
                 >
                   <Monitor className="w-3 h-3" />
-                  <span>Stage DOM</span>
+                  <span>Stage</span>
                 </button>
               </div>
 
               {/* Aspect Ratio Switcher */}
-              <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
                 <button
                   type="button"
                   onClick={() => setAspectRatio('16:9')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${
-                    aspectRatio === '16:9' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer ${
+                    aspectRatio === '16:9' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="16:9 Cinema / YouTube"
                 >
@@ -1646,8 +1685,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setAspectRatio('9:16')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${
-                    aspectRatio === '9:16' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer ${
+                    aspectRatio === '9:16' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="9:16 TikTok / Reels"
                 >
@@ -1657,8 +1696,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setAspectRatio('1:1')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors ${
-                    aspectRatio === '1:1' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer ${
+                    aspectRatio === '1:1' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="1:1 Square"
                 >
@@ -1853,42 +1892,42 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           </div>
 
           {/* Quick Media Action Bar under Canvas */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Generate for this scene:</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Generate for this scene:</span>
               <button
                 onClick={onOpenImageStudio}
-                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold border border-indigo-200 flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <Sparkles className="w-3 h-3 text-indigo-600" />
+                <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                 <span>Azure GPT-Image</span>
               </button>
               <button
                 onClick={onOpenSoraStudio}
-                className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold border border-purple-200 flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-xs font-semibold border border-purple-200 dark:border-purple-800 flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <Film className="w-3 h-3 text-purple-600" />
+                <Film className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                 <span>Azure Sora Video</span>
               </button>
             </div>
 
-            <div className="text-xs font-mono text-slate-500">
+            <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
               {formatTimecode(currentTime)} / {formatTimecode(totalDuration)}
             </div>
           </div>
         </div>
 
         {/* Right 5 Columns: Selected-Scene Inspector OR Media Library */}
-        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-sm">
-          <div className="border-b border-slate-100 pb-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold">
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-xs transition-colors">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setRightTab('inspector')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded transition cursor-pointer ${
                   rightTab === 'inspector'
                     ? 'bg-indigo-600 text-white font-bold shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
@@ -1898,10 +1937,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               <button
                 type="button"
                 onClick={() => setRightTab('medialib')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded transition cursor-pointer ${
                   rightTab === 'medialib'
                     ? 'bg-indigo-600 text-white font-bold shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <Database className="w-3.5 h-3.5" />
@@ -1910,7 +1949,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             </div>
 
             {rightTab === 'inspector' && (
-              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono font-semibold border border-indigo-100">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-mono font-semibold border border-indigo-100 dark:border-indigo-800">
                 {selectedScene?.id}
               </span>
             )}
@@ -1947,25 +1986,25 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             <div className="space-y-4 text-xs overflow-y-auto max-h-[460px] pr-1 scrollbar-thin">
               {/* Scene Title */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-semibold">Scene Title</label>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">Scene Title</label>
                 <input
                   type="text"
                   value={selectedScene.title}
                   onChange={e => updateSelectedScene('title', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
                 />
               </div>
 
               {/* Duration Slider with Snap Grid Support */}
               <div className="space-y-1">
-                <div className="flex justify-between items-center text-slate-700">
+                <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                   <label className="font-semibold flex items-center gap-1">
                     <span>Duration</span>
                     {snapEnabled && (
-                      <span className="text-[10px] text-indigo-600 font-normal font-mono">({snapGridInterval}s step)</span>
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-normal font-mono">({snapGridInterval}s step)</span>
                     )}
                   </label>
-                  <span className="font-mono text-indigo-600 font-bold">{selectedScene.duration}s</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{selectedScene.duration}s</span>
                 </div>
                 <input
                   type="range"
@@ -1986,11 +2025,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
               {/* Camera Motion */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-semibold">Camera Motion (Dynamic Zoom / Pan)</label>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">Camera Motion (Dynamic Zoom / Pan)</label>
                 <select
                   value={selectedScene.motion}
                   onChange={e => updateSelectedScene('motion', e.target.value as CameraMotion)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
                 >
                   <option value="static">Static (No Camera Motion)</option>
                   <option value="pan_right">Cinematic Pan Right →</option>
@@ -2004,11 +2043,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
               {/* Transition */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-semibold">Scene Transition</label>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">Scene Transition</label>
                 <select
                   value={selectedScene.transition}
                   onChange={e => updateSelectedScene('transition', e.target.value as TransitionType)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
                 >
                   <option value="fade">Smooth Crossfade</option>
                   <option value="dissolve">Film Dissolve</option>
@@ -2026,11 +2065,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
               {/* Clip Color Tag & Organization */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-semibold">Clip Color Tag & Organization</label>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">Clip Color Tag & Organization</label>
                 <select
                   value={selectedScene.colorTag || 'b_roll'}
                   onChange={e => updateSelectedScene('colorTag', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-xs font-semibold"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs font-semibold"
                 >
                   <option value="b_roll">🎬 B-roll (Indigo)</option>
                   <option value="a_roll">🌟 A-roll (Emerald)</option>
@@ -2049,50 +2088,50 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                     setTransitionTargetSceneIndex(idx !== -1 ? idx : 0);
                     setShowTransitionManagerModal(true);
                   }}
-                  className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-200 flex items-center justify-center gap-1.5 transition shadow-2xs"
+                  className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800 flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Configure Transition Manager →</span>
                 </button>
               </div>
 
               {/* Devanagari Subtitle / Nepali Text */}
-              <div className="space-y-1 bg-amber-50/70 p-3 rounded-xl border border-amber-200/80">
+              <div className="space-y-1 bg-amber-50/70 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-200/80 dark:border-amber-800/40">
                 <div className="flex items-center justify-between">
-                  <label className="text-amber-900 font-semibold flex items-center gap-1.5">
-                    <Type className="w-3.5 h-3.5 text-amber-700" />
+                  <label className="text-amber-900 dark:text-amber-300 font-semibold flex items-center gap-1.5">
+                    <Type className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
                     <span>नेपाली टेक्स्ट (Nepali Subtitle)</span>
                   </label>
-                  <span className="text-[10px] text-amber-700 font-medium">Devanagari</span>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">Devanagari</span>
                 </div>
                 <input
                   type="text"
                   placeholder="उदा: सगरमाथाको सुन्दर बिहानी..."
                   value={selectedScene.textNepali || ''}
                   onChange={e => updateSelectedScene('textNepali', e.target.value)}
-                  className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-900 font-['Mukta'] text-sm focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/60 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-['Mukta'] text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* English Subtitle */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-semibold">English Subtitle / Lower Third</label>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">English Subtitle / Lower Third</label>
                 <input
                   type="text"
                   placeholder="e.g. The Rooftop of the World"
                   value={selectedScene.textOverlay}
                   onChange={e => updateSelectedScene('textOverlay', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
                 />
               </div>
 
               {/* Color Filter */}
               <div className="space-y-1">
-                <label className="text-slate-700 font-semibold">Color Grade / Filter</label>
+                <label className="text-slate-700 dark:text-slate-300 font-semibold">Color Grade / Filter</label>
                 <select
                   value={selectedScene.filter}
                   onChange={e => updateSelectedScene('filter', e.target.value as ColorFilter)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
                 >
                   <option value="none">Standard Natural</option>
                   <option value="cinematic">Cinematic High Contrast</option>
@@ -2104,12 +2143,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
               {/* Volume Slider */}
               <div className="space-y-1">
-                <div className="flex justify-between text-slate-700">
+                <div className="flex justify-between text-slate-700 dark:text-slate-300">
                   <label className="font-semibold flex items-center gap-1">
-                    <Volume2 className="w-3.5 h-3.5 text-slate-500" />
+                    <Volume2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     <span>Scene Audio Level</span>
                   </label>
-                  <span className="font-mono text-indigo-600 font-bold">{selectedScene.volume}%</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{selectedScene.volume}%</span>
                 </div>
                 <input
                   type="range"
@@ -2122,31 +2161,31 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               </div>
 
               {/* Scene Watermark / Brand Logo */}
-              <div className="space-y-2 p-3 rounded-xl border border-indigo-100 bg-indigo-50/40">
+              <div className="space-y-2 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/20">
                 <div className="flex items-center justify-between">
-                  <label className="text-indigo-950 font-semibold flex items-center gap-1.5 text-xs">
-                    <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                  <label className="text-indigo-950 dark:text-indigo-200 font-semibold flex items-center gap-1.5 text-xs">
+                    <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                     <span>Scene Watermark & Brand Stamp</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowAssetLibrary(true)}
-                    className="text-[11px] text-indigo-600 font-bold hover:underline"
+                    className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
                   >
                     {selectedScene.watermark ? 'Change Asset' : '+ Choose Asset'}
                   </button>
                 </div>
                 {selectedScene.watermark && selectedScene.watermark.url ? (
-                  <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-indigo-200 text-xs">
+                  <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded-lg border border-indigo-200 dark:border-indigo-800 text-xs">
                     <div className="flex items-center gap-2">
                       <img
                         src={selectedScene.watermark.url}
                         alt="Watermark"
-                        className="w-8 h-8 object-contain rounded bg-slate-50 border p-0.5"
+                        className="w-8 h-8 object-contain rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-0.5"
                       />
                       <div>
-                        <div className="font-semibold text-slate-800">{selectedScene.watermark.name}</div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">{selectedScene.watermark.name}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
                           {selectedScene.watermark.position} • {Math.round(selectedScene.watermark.opacity * 100)}% opacity
                         </div>
                       </div>
@@ -2154,42 +2193,42 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveWatermark(false)}
-                      className="text-slate-400 hover:text-rose-600 p-1 transition"
+                      className="text-slate-400 hover:text-rose-600 p-1 transition cursor-pointer"
                       title="Remove watermark from this scene"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     No watermark applied. Open the Asset Library or drag a logo onto the stage box above.
                   </p>
                 )}
               </div>
 
               {/* Scene Production Notes & Client Feedback */}
-              <div className="space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="space-y-1 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
-                  <label className="text-slate-800 font-semibold flex items-center gap-1.5 text-xs">
-                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                  <label className="text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-1.5 text-xs">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>Production Instructions & Notes</span>
                   </label>
-                  <span className="text-[10px] text-slate-500">Persisted in JSON</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Persisted in JSON</span>
                 </div>
                 <textarea
                   rows={2}
                   value={selectedScene.notes || ''}
                   onChange={e => updateSelectedScene('notes', e.target.value)}
                   placeholder="e.g. Director note: Fade music at 3s; increase warm filter..."
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               {/* Scene Batch Tags Display */}
-              <div className="space-y-1 p-2.5 bg-purple-50/50 rounded-xl border border-purple-100">
+              <div className="space-y-1 p-2.5 bg-purple-50/50 dark:bg-purple-950/20 rounded-xl border border-purple-100 dark:border-purple-900/40">
                 <div className="flex items-center justify-between">
-                  <label className="text-purple-950 font-semibold flex items-center gap-1.5 text-xs">
-                    <Tag className="w-3.5 h-3.5 text-purple-600" />
+                  <label className="text-purple-950 dark:text-purple-300 font-semibold flex items-center gap-1.5 text-xs">
+                    <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                     <span>Scene Tags & Status Labels</span>
                   </label>
                 </div>
@@ -2202,26 +2241,26 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-500 italic">No batch tags assigned. Use the timeline Batch Tagging toolbar to apply status labels.</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">No batch tags assigned. Use the timeline Batch Tagging toolbar to apply status labels.</p>
                 )}
               </div>
             </div>
           ) : (
-            <p className="text-xs text-slate-500">Select a scene from the timeline to edit properties.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Select a scene from the timeline to edit properties.</p>
           )}
 
           {/* Scene Operations Toolbar */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <button
               onClick={handleDuplicateScene}
-              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Copy className="w-3.5 h-3.5 text-slate-500" />
+              <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <span>Duplicate</span>
             </button>
             <button
               onClick={handleDeleteScene}
-              className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Delete Scene</span>
@@ -2231,14 +2270,14 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       </div>
 
       {/* Multi-Track Timeline Dock (Core engineering implementation from v1.30.0-A) */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs transition-colors">
         {/* Dock Control Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           {/* Playback controls */}
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrevScene}
-              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
               title="Previous Scene"
             >
               <SkipBack className="w-4 h-4" />
@@ -2246,7 +2285,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             <button
               id="timeline-play-btn"
               onClick={togglePlay}
-              className={`p-2.5 rounded-xl transition-colors ${
+              className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
                 isPlaying
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
                   : 'bg-indigo-600 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700'
@@ -2257,67 +2296,57 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             </button>
             <button
               onClick={() => { setIsPlaying(false); setCurrentTime(0); }}
-              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
               title="Stop and Reset"
             >
               <Square className="w-4 h-4" />
             </button>
             <button
               onClick={handleNextScene}
-              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
               title="Next Scene"
             >
               <SkipForward className="w-4 h-4" />
             </button>
 
             {/* Timecode display */}
-            <div className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 font-mono text-xs text-indigo-700 font-bold ml-2">
+            <div className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs text-indigo-700 dark:text-indigo-400 font-bold ml-2">
               {formatTimecode(currentTime)} <span className="text-slate-400 font-normal">/</span> {formatTimecode(totalDuration)}
             </div>
           </div>
 
-          {/* Edit Actions: Undo, Redo, Batch Render Queue, Split, Snap, Zoom, Fit */}
+          {/* Edit Actions: Undo, Redo, Split, Snap, Zoom, Fit */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Undo & Redo History Stack Controls */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
               <button
                 onClick={handleUndo}
                 disabled={historyIndexRef.current <= 0}
-                className="px-2 py-1 rounded bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:hover:bg-white border border-slate-200/80 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors"
+                className="px-2 py-1 rounded bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 border border-slate-200/80 dark:border-slate-600 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors cursor-pointer"
                 title="Undo last action (Ctrl+Z)"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-indigo-600" />
+                <RotateCcw className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span className="hidden sm:inline">Undo</span>
               </button>
               <button
                 onClick={handleRedo}
                 disabled={historyIndexRef.current >= historyRef.current.length - 1}
-                className="px-2 py-1 rounded bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:hover:bg-white border border-slate-200/80 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors"
+                className="px-2 py-1 rounded bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 border border-slate-200/80 dark:border-slate-600 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors cursor-pointer"
                 title="Redo change (Ctrl+Y)"
               >
-                <RotateCw className="w-3.5 h-3.5 text-indigo-600" />
+                <RotateCw className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span className="hidden sm:inline">Redo</span>
               </button>
             </div>
-
-            {/* Batch Render Queue Button */}
-            <button
-              onClick={() => setShowRenderQueueModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-sm"
-              title="Queue multiple scenes for sequential rendering & progress tracking"
-            >
-              <Layers className="w-3.5 h-3.5 text-indigo-200" />
-              <span>Batch Render Queue</span>
-            </button>
 
             {/* Split at playhead */}
             <button
               id="btn-split-playhead"
               onClick={handleSplitAtPlayhead}
-              className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Split active scene into two clips at playhead time"
             >
-              <Scissors className="w-3.5 h-3.5 text-indigo-600" />
+              <Scissors className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span>Split</span>
             </button>
 
@@ -2333,10 +2362,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                   }
                 }
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border cursor-pointer ${
                 isBatchSelectMode || selectedSceneIds.length > 0
-                  ? 'bg-purple-600 text-white border-purple-700 shadow-sm'
-                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
+                  ? 'bg-purple-600 text-white border-purple-700 shadow-xs'
+                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 shadow-2xs'
               }`}
               title="Batch select multiple scenes to apply custom labels like Draft, Final, or Needs Review"
             >
@@ -2352,15 +2381,15 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             {/* Snap-to-Grid Controls */}
             <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
               snapEnabled
-                ? 'bg-indigo-50/90 text-indigo-900 border-indigo-200 shadow-2xs'
-                : 'bg-slate-100 text-slate-600 border-slate-200'
+                ? 'bg-indigo-50/90 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 shadow-2xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
             }`}>
               <button
                 onClick={() => setSnapEnabled(!snapEnabled)}
-                className={`px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                className={`px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                   snapEnabled
                     ? 'bg-indigo-600 text-white shadow-2xs'
-                    : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-200'
+                    : 'bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600'
                 }`}
                 title={snapEnabled ? 'Snap-to-Grid is ON (click to disable)' : 'Enable Snap-to-Grid alignment'}
               >
@@ -2373,7 +2402,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                   <select
                     value={snapGridInterval}
                     onChange={(e) => setSnapGridInterval(parseFloat(e.target.value))}
-                    className="bg-white border border-indigo-200 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-indigo-700 focus:outline-none cursor-pointer"
+                    className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300 focus:outline-none cursor-pointer"
                     title="Select snap-to-grid time interval"
                   >
                     <option value={0.25}>0.25s Grid</option>
@@ -2386,11 +2415,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             </div>
 
             {/* Precision Timeline Zoom Slider Component */}
-            <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 shadow-2xs">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider hidden md:inline">Zoom:</span>
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider hidden md:inline">Zoom:</span>
               <button
                 onClick={() => setTimelineZoom(prev => Math.max(0.5, Number((prev - 0.2).toFixed(1))))}
-                className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-slate-200 transition"
+                className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
                 title="Zoom Out Time-Axis Scale (-)"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
@@ -2404,32 +2433,32 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 step="0.1"
                 value={timelineZoom}
                 onChange={(e) => setTimelineZoom(parseFloat(e.target.value))}
-                className="w-16 sm:w-24 accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                className="w-16 sm:w-24 accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
                 title={`Timeline Zoom Scale: ${Math.round(timelineZoom * 100)}% (${pixelsPerSecond} px/sec)`}
               />
 
               <button
                 onClick={() => setTimelineZoom(prev => Math.min(3.0, Number((prev + 0.2).toFixed(1))))}
-                className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-slate-200 transition"
+                className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
                 title="Zoom In Time-Axis Scale (+)"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
 
-              <span className="text-[10px] text-slate-800 font-mono px-1 font-bold min-w-[38px] text-center bg-white rounded border border-slate-200/80 py-0.5">
+              <span className="text-[10px] text-slate-800 dark:text-slate-200 font-mono px-1 font-bold min-w-[38px] text-center bg-white dark:bg-slate-700 rounded border border-slate-200/80 dark:border-slate-600 py-0.5">
                 {Math.round(timelineZoom * 100)}%
               </span>
 
               {/* Quick Zoom Presets */}
-              <div className="hidden sm:flex items-center gap-0.5 border-l border-slate-200 pl-1">
+              <div className="hidden sm:flex items-center gap-0.5 border-l border-slate-200 dark:border-slate-700 pl-1">
                 {[0.5, 1.0, 1.5, 2.0, 3.0].map(zoomLevel => (
                   <button
                     key={zoomLevel}
                     onClick={() => setTimelineZoom(zoomLevel)}
-                    className={`px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded transition ${
+                    className={`px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded transition cursor-pointer ${
                       Math.abs(timelineZoom - zoomLevel) < 0.05
                         ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'text-slate-500 hover:bg-slate-200 hover:text-slate-800'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white'
                     }`}
                   >
                     {zoomLevel}x
@@ -2440,7 +2469,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               {/* Fit to window button */}
               <button
                 onClick={handleFitToWindow}
-                className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-slate-200 border-l border-slate-200 pl-1.5 transition"
+                className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 border-l border-slate-200 dark:border-slate-700 pl-1.5 transition cursor-pointer"
                 title="Fit timeline tracks to window width"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
@@ -2535,7 +2564,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         <div
           ref={timelineScrollRef}
           onWheel={handleTimelineWheel}
-          className="relative space-y-2 overflow-x-auto pb-4 pt-1 scrollbar-thin select-none rounded-xl border border-slate-200 bg-slate-50/70 p-2"
+          className="relative space-y-2 overflow-x-auto pb-4 pt-1 scrollbar-thin select-none rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-2 transition-colors"
         >
           {/* Active Red Draggable Playhead Scrub Indicator & Real-Time Badge */}
           <div
@@ -2576,13 +2605,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           {/* Timecode Interactive Ruler */}
           <div
             onPointerDown={handleScrubPointerDown}
-            className="flex items-center text-[10px] font-mono text-slate-400 border-b border-slate-200 pb-1 cursor-pointer hover:bg-slate-100/60 rounded transition-colors relative select-none"
+            className="flex items-center text-[10px] font-mono text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-1 cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/40 rounded transition-colors relative select-none"
             title="Click or drag across ruler to scrub playhead"
           >
             <div className="w-20 shrink-0 flex flex-col justify-center pl-1">
-              <span className="font-bold text-slate-600 text-[11px]">TRACKS</span>
+              <span className="font-bold text-slate-600 dark:text-slate-300 text-[11px]">TRACKS</span>
               {snapEnabled && (
-                <span className="text-[8px] font-mono font-bold text-indigo-600 flex items-center gap-0.5">
+                <span className="text-[8px] font-mono font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5">
                   <Magnet className="w-2.5 h-2.5" />
                   <span>{snapGridInterval}s Snap</span>
                 </span>
@@ -2598,7 +2627,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 return (
                   <div
                     key={`grid-${gIdx}`}
-                    className="absolute top-0 bottom-0 w-px bg-indigo-300/40 pointer-events-none"
+                    className="absolute top-0 bottom-0 w-px bg-indigo-300/40 dark:bg-indigo-600/30 pointer-events-none"
                     style={{ left: `${gSec * pixelsPerSecond}px` }}
                   />
                 );
@@ -2616,9 +2645,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                     className="absolute top-0 flex flex-col items-center pointer-events-none z-10"
                     style={{ left: `${sec * pixelsPerSecond}px` }}
                   >
-                    <div className={`w-px ${isMajor ? 'h-2.5 bg-slate-500' : 'h-1 bg-slate-400'}`} />
+                    <div className={`w-px ${isMajor ? 'h-2.5 bg-slate-500 dark:bg-slate-400' : 'h-1 bg-slate-400 dark:bg-slate-600'}`} />
                     {isMajor && (
-                      <span className="text-[9px] text-slate-600 font-mono -translate-x-1/2 mt-0.5 font-semibold">
+                      <span className="text-[9px] text-slate-600 dark:text-slate-400 font-mono -translate-x-1/2 mt-0.5 font-semibold">
                         {formatTimecode(sec)}
                       </span>
                     )}
@@ -2630,13 +2659,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
           {/* Video Scene Blocks Row */}
           <div className="flex items-center gap-2">
-            <div className="w-20 shrink-0 text-xs font-semibold text-slate-700 flex items-center gap-1.5 pl-1">
-              <Film className="w-3.5 h-3.5 text-indigo-600" />
+            <div className="w-20 shrink-0 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 pl-1">
+              <Film className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span>Video</span>
             </div>
 
             <div
-              className="flex items-center gap-1.5 p-1 bg-white rounded-xl border border-slate-200 shadow-2xs min-w-max"
+              className="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs min-w-max"
             >
               {scenes.map((scene, idx) => {
                 const isSelected = scene.id === selectedSceneId;
@@ -2697,12 +2726,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                       style={{ width: `${sceneWidthPx}px` }}
                       className={`h-22 rounded-lg p-2 cursor-pointer transition-all relative overflow-hidden flex flex-col justify-between border select-none shrink-0 ${
                         isBeingDragged
-                          ? 'opacity-40 border-dashed border-indigo-500 bg-indigo-50 scale-95'
+                          ? 'opacity-40 border-dashed border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 scale-95'
                           : isTargetedDrop
-                          ? 'border-indigo-600 ring-2 ring-indigo-500/80 bg-indigo-100 scale-105 z-20 shadow-md'
+                          ? 'border-indigo-600 ring-2 ring-indigo-500/80 bg-indigo-100 dark:bg-indigo-900/60 scale-105 z-20 shadow-md'
                           : isSelected
-                          ? 'border-indigo-600 ring-2 ring-indigo-500/30 bg-indigo-50/90 shadow-sm'
-                          : 'border-slate-200 bg-slate-50 hover:border-slate-300 shadow-2xs hover:bg-white'
+                          ? 'border-indigo-600 dark:border-indigo-500 ring-2 ring-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/50 shadow-sm'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs hover:bg-white dark:hover:bg-slate-800'
                       }`}
                     >
                       {/* Scene Background Thumbnail */}
@@ -2727,8 +2756,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                             className="w-3.5 h-3.5 accent-purple-600 rounded cursor-pointer shrink-0"
                             title="Select scene for batch operations"
                           />
-                          <GripVertical className="w-3.5 h-3.5 text-slate-400 cursor-grab shrink-0 hover:text-indigo-600 transition-colors" title="Drag to reorder sequence" />
-                          <span className="text-[10px] font-bold text-slate-900 truncate">
+                          <GripVertical className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 cursor-grab shrink-0 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Drag to reorder sequence" />
+                          <span className="text-[10px] font-bold text-slate-900 dark:text-slate-100 truncate">
                             {idx + 1}. {scene.title}
                           </span>
                         </div>
@@ -2740,13 +2769,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                               e.stopPropagation();
                               setPreviewModalSceneIndex(idx);
                             }}
-                            className="px-1.5 py-0.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-bold flex items-center gap-0.5 shadow-2xs transition-colors"
+                            className="px-1.5 py-0.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-bold flex items-center gap-0.5 shadow-2xs transition-colors cursor-pointer"
                             title="Preview scene media, text overlays & metadata"
                           >
                             <Eye className="w-2.5 h-2.5" />
                             <span>Preview</span>
                           </button>
-                          <span className="px-1 py-0.2 rounded bg-slate-200/90 text-[9px] font-mono text-slate-700 border border-slate-300/60 font-semibold">
+                          <span className="px-1 py-0.2 rounded bg-slate-200/90 dark:bg-slate-700 text-[9px] font-mono text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-slate-600 font-semibold">
                             {scene.duration}s
                           </span>
                         </div>
@@ -2766,9 +2795,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                         )}
                       </div>
 
-                      <div className="relative z-10 flex items-center justify-between text-[9px] text-slate-500 gap-1">
+                      <div className="relative z-10 flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400 gap-1">
                         <span className="truncate max-w-[65px] font-medium">{scene.motion}</span>
-                        <span className="px-1 py-0.2 rounded bg-indigo-100 text-[8px] text-indigo-700 font-semibold shrink-0 capitalize">
+                        <span className="px-1 py-0.2 rounded bg-indigo-100 dark:bg-indigo-950/80 text-[8px] text-indigo-700 dark:text-indigo-300 font-semibold shrink-0 capitalize">
                           {scene.transition || 'dissolve'}
                         </span>
                       </div>
@@ -2804,10 +2833,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               {/* Quick Append Scene Template Button */}
               <button
                 onClick={() => setShowSceneTemplatesModal(true)}
-                className="h-22 px-3 rounded-lg border border-dashed border-amber-300 bg-amber-50/60 hover:bg-amber-100/80 hover:border-amber-400 text-amber-900 flex flex-col items-center justify-center gap-1 transition-colors shrink-0 text-center"
+                className="h-22 px-3 rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30 hover:bg-amber-100/80 dark:hover:bg-amber-900/40 hover:border-amber-400 text-amber-900 dark:text-amber-200 flex flex-col items-center justify-center gap-1 transition-colors shrink-0 text-center cursor-pointer"
                 title="Append pre-configured scene template (Intro, Outro, Lower-Thirds, News Banners)"
               >
-                <LayoutTemplate className="w-4 h-4 text-amber-600" />
+                <LayoutTemplate className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 <span className="text-[10px] font-bold whitespace-nowrap">+ Scene Template</span>
               </button>
             </div>
@@ -2817,42 +2846,42 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           <div className="space-y-2">
             {/* 1. Background Music Track */}
             <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-purple-800 flex items-center gap-1.5 pl-1">
-                <Music className="w-3.5 h-3.5 text-purple-600" />
+              <div className="w-24 shrink-0 text-xs font-semibold text-purple-800 dark:text-purple-300 flex items-center gap-1.5 pl-1">
+                <Music className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                 <span>BGM Track</span>
               </div>
               <div
-                className="p-2 bg-purple-50/80 rounded-xl border border-purple-200/80 flex items-center justify-between text-xs gap-4 shadow-2xs"
+                className="p-2 bg-purple-50/80 dark:bg-purple-950/40 rounded-xl border border-purple-200/80 dark:border-purple-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
                 style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
               >
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
-                  <span className="text-slate-900 font-bold truncate">
+                  <span className="text-slate-900 dark:text-slate-100 font-bold truncate">
                     {audioTracks.find(a => a.id === selectedAudioId)?.title || 'Background Cinematic Theme'}
                   </span>
                   <div className="flex items-center gap-0.5 opacity-60">
                     {[4, 8, 12, 6, 14, 10, 5, 9, 13, 7].map((h, i) => (
-                      <div key={i} className="w-1 bg-purple-600 rounded-full" style={{ height: `${h}px` }} />
+                      <div key={i} className="w-1 bg-purple-600 dark:bg-purple-400 rounded-full" style={{ height: `${h}px` }} />
                     ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500 font-semibold">Vol:</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Vol:</span>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
                       value={bgmVolume} 
                       onChange={e => setBgmVolume(Number(e.target.value))}
-                      className="w-20 accent-purple-600 h-1 bg-purple-200 rounded-lg cursor-pointer" 
+                      className="w-20 accent-purple-600 h-1 bg-purple-200 dark:bg-purple-900 rounded-lg cursor-pointer" 
                     />
-                    <span className="font-mono text-[10px] font-bold text-slate-700 w-7">{bgmVolume}%</span>
+                    <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 w-7">{bgmVolume}%</span>
                   </div>
                   <select
                     value={selectedAudioId}
                     onChange={e => setSelectedAudioId(e.target.value)}
-                    className="bg-white border border-purple-200 rounded-lg px-2.5 py-1 text-slate-800 text-xs focus:outline-none focus:border-purple-500 shadow-2xs"
+                    className="bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-700 rounded-lg px-2.5 py-1 text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:border-purple-500 shadow-2xs cursor-pointer"
                   >
                     {audioTracks.map(track => (
                       <option key={track.id} value={track.id}>{track.title}</option>
@@ -2864,42 +2893,42 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
             {/* 2. Voiceover (VO) Track */}
             <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-indigo-800 flex items-center gap-1.5 pl-1">
-                <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+              <div className="w-24 shrink-0 text-xs font-semibold text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5 pl-1">
+                <Volume2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span>Voiceover (VO)</span>
               </div>
               <div
-                className="p-2 bg-indigo-50/80 rounded-xl border border-indigo-200/80 flex items-center justify-between text-xs gap-4 shadow-2xs"
+                className="p-2 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200/80 dark:border-indigo-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
                 style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
               >
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${voTrack ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-500'}`}></span>
-                  <span className="text-slate-900 font-bold truncate max-w-xs">
+                  <span className="text-slate-900 dark:text-slate-100 font-bold truncate max-w-xs">
                     {voTrack ? voTrack.title : 'Nepali / Hindi Neural Voiceover (Studio Master)'}
                   </span>
                   <div className="flex items-center gap-0.5 opacity-60">
                     {[6, 12, 8, 14, 10, 16, 7, 11, 13, 9].map((h, i) => (
-                      <div key={i} className={`w-1 rounded-full ${voTrack ? 'bg-emerald-600' : 'bg-indigo-600'}`} style={{ height: `${h}px` }} />
+                      <div key={i} className={`w-1 rounded-full ${voTrack ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-indigo-600 dark:bg-indigo-400'}`} style={{ height: `${h}px` }} />
                     ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500 font-semibold">Vol:</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Vol:</span>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
                       value={voVolume} 
                       onChange={e => setVoVolume(Number(e.target.value))}
-                      className="w-20 accent-indigo-600 h-1 bg-indigo-200 rounded-lg cursor-pointer" 
+                      className="w-20 accent-indigo-600 h-1 bg-indigo-200 dark:bg-indigo-900 rounded-lg cursor-pointer" 
                     />
-                    <span className="font-mono text-[10px] font-bold text-slate-700 w-7">{voVolume}%</span>
+                    <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 w-7">{voVolume}%</span>
                   </div>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
                     voTrack 
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
-                      : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700' 
+                      : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700'
                   }`}>
                     {voTrack ? 'VO Synced' : 'AI TTS Active'}
                   </span>
@@ -2909,39 +2938,39 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
             {/* 3. Sound Effects (SFX) Track */}
             <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-amber-800 flex items-center gap-1.5 pl-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <div className="w-24 shrink-0 text-xs font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 pl-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>SFX Track</span>
               </div>
               <div
-                className="p-2 bg-amber-50/80 rounded-xl border border-amber-200/80 flex items-center justify-between text-xs gap-4 shadow-2xs"
+                className="p-2 bg-amber-50/80 dark:bg-amber-950/40 rounded-xl border border-amber-200/80 dark:border-amber-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
                 style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
               >
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                  <span className="text-slate-900 font-bold truncate">
+                  <span className="text-slate-900 dark:text-slate-100 font-bold truncate">
                     Cinematic Whoosh, Risers & Environment Atmos
                   </span>
                   <div className="flex items-center gap-0.5 opacity-60">
                     {[3, 10, 5, 12, 8, 15, 6, 11, 4, 13].map((h, i) => (
-                      <div key={i} className="w-1 bg-amber-600 rounded-full" style={{ height: `${h}px` }} />
+                      <div key={i} className="w-1 bg-amber-600 dark:bg-amber-400 rounded-full" style={{ height: `${h}px` }} />
                     ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500 font-semibold">Vol:</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Vol:</span>
                     <input 
                       type="range" 
                       min="0" 
                       max="100" 
                       value={sfxVolume} 
                       onChange={e => setSfxVolume(Number(e.target.value))}
-                      className="w-20 accent-amber-600 h-1 bg-amber-200 rounded-lg cursor-pointer" 
+                      className="w-20 accent-amber-600 h-1 bg-amber-200 dark:bg-amber-900 rounded-lg cursor-pointer" 
                     />
-                    <span className="font-mono text-[10px] font-bold text-slate-700 w-7">{sfxVolume}%</span>
+                    <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 w-7">{sfxVolume}%</span>
                   </div>
-                  <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded border border-amber-200">
+                  <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold px-2 py-0.5 rounded border border-amber-200 dark:border-amber-700">
                     Auto-Synced
                   </span>
                 </div>
@@ -2953,16 +2982,16 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
       {/* Starter Templates Modal */}
       {showTemplatesModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl transition-colors">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Starter Video Templates</h3>
-                <p className="text-xs text-slate-500">Load pre-composed cinematic sequences or commercial ads.</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Starter Video Templates</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Load pre-composed cinematic sequences or commercial ads.</p>
               </div>
               <button
                 onClick={() => setShowTemplatesModal(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 font-bold text-base"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 font-bold text-base cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -2972,20 +3001,20 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               {STARTER_TEMPLATES.map(tpl => (
                 <div 
                   key={tpl.id}
-                  className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 hover:border-indigo-300 transition-colors cursor-pointer flex flex-col justify-between"
+                  className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl p-4 space-y-3 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer flex flex-col justify-between"
                   onClick={() => handleLoadTemplate(tpl)}
                 >
                   <div className="space-y-1">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
                       {tpl.category}
                     </span>
-                    <h4 className="font-bold text-slate-900 text-sm">{tpl.title}</h4>
-                    <p className="text-xs text-slate-600">{tpl.description}</p>
+                    <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{tpl.title}</h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">{tpl.description}</p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 text-xs">
-                    <span className="text-slate-500">{tpl.scenesCount} Scenes • {tpl.totalDuration}s</span>
-                    <span className="text-indigo-600 font-semibold">Load Template →</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-slate-700/60 text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">{tpl.scenesCount} Scenes • {tpl.totalDuration}s</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Load Template →</span>
                   </div>
                 </div>
               ))}
@@ -2996,38 +3025,38 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
       {/* Export & Share Modal with Preflight Checks */}
       {showExportModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-indigo-600" />
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl transition-colors">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Export & Production Render</span>
               </h3>
               <button
                 onClick={() => setShowExportModal(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 font-bold text-base"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 font-bold text-base cursor-pointer transition-colors"
               >
                 ✕
               </button>
             </div>
 
             {/* Preflight Verification Checklist */}
-            <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-              <span className="font-semibold text-slate-900 block mb-2">Preflight Verification Checks</span>
-              <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <div className="space-y-2 bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+              <span className="font-semibold text-slate-900 dark:text-slate-100 block mb-2">Preflight Verification Checks</span>
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Scenes validated ({scenes.length} scenes, {totalDuration}s total duration)</span>
               </div>
-              <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Aspect ratio locked to {aspectRatio}</span>
               </div>
-              <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Devanagari text encoding confirmed</span>
               </div>
-              <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Audio sync configured with background track</span>
               </div>
             </div>
@@ -3035,11 +3064,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             {/* Progress bar if exporting */}
             {isExporting && (
               <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-600">
+                <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                   <span>Rendering cinematic composite...</span>
-                  <span className="font-mono text-indigo-600 font-bold">{exportProgress}%</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{exportProgress}%</span>
                 </div>
-                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-indigo-600 transition-all duration-300"
                     style={{ width: `${exportProgress}%` }}
@@ -3049,12 +3078,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             )}
 
             {exportSuccess && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 space-y-1">
-                <p className="font-bold flex items-center gap-1.5 text-emerald-700">
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
                   <CheckCircle2 className="w-4 h-4" />
                   Video Rendered & Exported Successfully!
                 </p>
-                <p className="text-slate-600">
+                <p className="text-slate-600 dark:text-slate-400">
                   Composite MP4 ready for social distribution or download.
                 </p>
               </div>
@@ -3076,14 +3105,14 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowExportModal(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Close
                 </button>
                 <button
                   onClick={handleStartExport}
                   disabled={isExporting}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm shadow-indigo-200 flex items-center gap-1.5 transition-colors"
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm shadow-indigo-200 dark:shadow-none flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   <span>{isExporting ? 'Rendering...' : 'Render & Download MP4'}</span>

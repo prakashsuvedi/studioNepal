@@ -12,7 +12,10 @@ import {
   ShieldCheck, 
   RefreshCw,
   HelpCircle,
-  LogIn
+  LogIn,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from 'lucide-react';
 
 export interface YouTubeChannelInfo {
@@ -50,6 +53,7 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
   const [isWaitingPopup, setIsWaitingPopup] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [copiedCallback, setCopiedCallback] = useState(false);
+  const [showTroubleshoot, setShowTroubleshoot] = useState(true);
 
   // Manual Token State
   const [tokenInput, setTokenInput] = useState('');
@@ -467,6 +471,76 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Error 403 / Access Denied Guided Resolution Card */}
+              <div className="p-3.5 bg-slate-950/90 rounded-xl border border-red-800/40 space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowTroubleshoot(!showTroubleshoot)}
+                  className="w-full flex items-center justify-between text-left cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="font-semibold text-slate-200 text-xs group-hover:text-white transition">
+                      Fixing "Error 403: access_denied" in Google Cloud
+                    </span>
+                  </div>
+                  {showTroubleshoot ? (
+                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  )}
+                </button>
+
+                {showTroubleshoot && (
+                  <div className="space-y-2.5 pt-1.5 border-t border-slate-800/80 text-[11px] text-slate-300 leading-relaxed">
+                    <p className="text-amber-200/90">
+                      Google OAuth throws <strong>Error 403: access_denied</strong> when your Google Cloud OAuth app is in <em>Testing</em> mode and your Google account is not added as an authorized Test User.
+                    </p>
+
+                    <ol className="list-decimal pl-4 space-y-1.5 text-slate-300">
+                      <li>
+                        <strong>Add Your Email to Test Users:</strong> Open{' '}
+                        <a
+                          href="https://console.cloud.google.com/apis/credentials/consent"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-red-400 underline hover:text-red-300 inline-flex items-center gap-0.5"
+                        >
+                          Google Cloud OAuth Consent Screen <ExternalLink className="w-2.5 h-2.5 inline" />
+                        </a>
+                        , scroll to <em>Test users</em>, click <strong>+ ADD USERS</strong>, enter your email (e.g. your creator/backup Gmail), and click <strong>Save</strong>.
+                      </li>
+                      <li>
+                        <strong>Enable YouTube Data API v3:</strong> In{' '}
+                        <a
+                          href="https://console.cloud.google.com/apis/library/youtube.googleapis.com"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-red-400 underline hover:text-red-300 inline-flex items-center gap-0.5"
+                        >
+                          API Library <ExternalLink className="w-2.5 h-2.5 inline" />
+                        </a>
+                        , make sure <em>YouTube Data API v3</em> is <strong>Enabled</strong> for project <code className="text-slate-200 bg-slate-900 px-1 rounded">431029366940</code>.
+                      </li>
+                      <li>
+                        <strong>Verify Redirect URI:</strong> In Credentials &gt; OAuth 2.0 Client IDs, verify that the URI matches exactly: <code className="text-slate-200 bg-slate-900 px-1 rounded">{authConfig?.redirectUri || 'https://.../api/youtube/callback'}</code>.
+                      </li>
+                    </ol>
+
+                    <div className="pt-1 flex items-center gap-2">
+                      <span className="text-slate-400">Want to connect immediately?</span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('token')}
+                        className="text-red-400 font-bold hover:underline cursor-pointer"
+                      >
+                        Use Direct Access Token →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -474,8 +548,33 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
           {activeTab === 'token' && (
             <div className="space-y-4">
               <p className="text-slate-300 leading-relaxed">
-                If you have an active OAuth 2.0 Bearer Access Token (from Google OAuth 2.0 Playground or gcloud), paste it below to connect immediately without configuring a client secret.
+                If you have an active OAuth 2.0 Bearer Access Token, paste it below to connect immediately without waiting for Google Cloud verification.
               </p>
+
+              {/* Quick helper for Google OAuth Playground */}
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] space-y-1.5">
+                <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+                  <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                  <span>How to generate an instant access token (1 minute):</span>
+                </div>
+                <ol className="list-decimal pl-4 space-y-1 text-slate-400">
+                  <li>
+                    Go to{' '}
+                    <a
+                      href="https://developers.google.com/oauthplayground"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-red-400 underline hover:text-red-300 inline-flex items-center gap-0.5"
+                    >
+                      Google OAuth 2.0 Playground <ExternalLink className="w-2.5 h-2.5 inline" />
+                    </a>
+                  </li>
+                  <li>In Step 1, select <strong>YouTube Data API v3</strong> and check <code className="text-slate-200 bg-slate-900 px-1 rounded">https://www.googleapis.com/auth/youtube.upload</code></li>
+                  <li>Click <strong>Authorize APIs</strong> and log in with your YouTube account</li>
+                  <li>In Step 2, click <strong>Exchange authorization code for tokens</strong></li>
+                  <li>Copy the <strong>Access token</strong> string (<code className="text-slate-200 bg-slate-900 px-1 rounded">ya29...</code>) and paste it below</li>
+                </ol>
+              </div>
 
               <div className="space-y-1.5">
                 <label className="text-slate-400 font-semibold text-[11px]">

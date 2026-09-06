@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
@@ -16,6 +17,7 @@ import { generatePreSignedDownloadUrl, syncDatabaseAssetExpiration } from './src
 import {
   serverGenerateImage,
   serverGenerateVideo,
+  serverCheckVideoJob,
   serverGenerateAudio,
   serverRenderVideoProject,
   serverHamroAiChat,
@@ -428,10 +430,59 @@ async function startServer() {
     }
   });
 
+  // Check Sora-2 Video Job Status
+  app.get('/api/video/status/:id', async (req, res) => {
+    try {
+      const videoId = req.params.id;
+      const status = await serverCheckVideoJob(videoId);
+      res.json(status);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to check video status' });
+    }
+  });
+
   // Stream/Proxy Generated Azure Sora-2 MP4 Video Content
   app.get('/api/video/content/:id', async (req, res) => {
     try {
       const videoId = req.params.id;
+      const localFilename = `sora_${videoId}.mp4`;
+      const localFile = storageBucket.getLocalFile(localFilename);
+
+      // If video was already cached locally, stream it directly with Range support
+      if (localFile.exists && localFile.filePath) {
+        const stat = fs.statSync(localFile.filePath);
+        const fileSize = stat.size;
+        const range = req.headers.range;
+
+        if (range) {
+          const parts = range.replace(/bytes=/, '').split('-');
+          const start = parseInt(parts[0], 10);
+          const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+          const chunkSize = end - start + 1;
+          const fileStream = fs.createReadStream(localFile.filePath, { start, end });
+
+          res.writeHead(206, {
+            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunkSize,
+            'Content-Type': 'video/mp4',
+            'Cache-Control': 'public, max-age=86400',
+          });
+          fileStream.pipe(res);
+          return;
+        } else {
+          res.writeHead(200, {
+            'Content-Length': fileSize,
+            'Content-Type': 'video/mp4',
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=86400',
+          });
+          fs.createReadStream(localFile.filePath).pipe(res);
+          return;
+        }
+      }
+
+      // Fetch from Azure
       const azureKey = process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY || process.env.AZURE_API_KEY || '';
       const azureContentUrl = `https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/videos/${encodeURIComponent(videoId)}/content`;
 
@@ -446,16 +497,43 @@ async function startServer() {
         return res.status(azureRes.status).json({ error: 'Failed to stream video from Azure resource' });
       }
 
-      const contentType = azureRes.headers.get('content-type') || 'video/mp4';
-      const contentLength = azureRes.headers.get('content-length');
-
-      res.setHeader('Content-Type', contentType);
-      if (contentLength) res.setHeader('Content-Length', contentLength);
-      res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-
       const arrayBuffer = await azureRes.arrayBuffer();
-      res.send(Buffer.from(arrayBuffer));
+      const videoBuffer = Buffer.from(arrayBuffer);
+
+      // Cache locally in background
+      try {
+        await storageBucket.saveMedia(localFilename, videoBuffer, 'video/mp4');
+      } catch (cacheErr) {
+        console.warn('Cache save warning:', cacheErr);
+      }
+
+      const fileSize = videoBuffer.length;
+      const range = req.headers.range;
+
+      if (range) {
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+        const chunk = videoBuffer.subarray(start, end + 1);
+
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunkSize,
+          'Content-Type': 'video/mp4',
+          'Cache-Control': 'public, max-age=86400',
+        });
+        res.end(chunk);
+      } else {
+        res.writeHead(200, {
+          'Content-Length': fileSize,
+          'Content-Type': 'video/mp4',
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=86400',
+        });
+        res.end(videoBuffer);
+      }
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Video content proxy failed' });
     }
@@ -936,13 +1014,39 @@ async function startServer() {
     let mimeType = 'application/octet-stream';
     if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) mimeType = 'image/jpeg';
     else if (filename.endsWith('.png')) mimeType = 'image/png';
+    else if (filename.endsWith('.webp')) mimeType = 'image/webp';
     else if (filename.endsWith('.mp4')) mimeType = 'video/mp4';
+    else if (filename.endsWith('.mp3')) mimeType = 'audio/mpeg';
     else if (filename.endsWith('.wav')) mimeType = 'audio/wav';
     else if (filename.endsWith('.ogg')) mimeType = 'audio/ogg';
+    else if (filename.endsWith('.m4a') || filename.endsWith('.aac')) mimeType = 'audio/aac';
 
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(buffer);
+    const total = buffer.length;
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+      const chunkSize = end - start + 1;
+      const chunk = buffer.subarray(start, end + 1);
+
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${total}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': mimeType,
+      });
+      res.end(chunk);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': total,
+        'Accept-Ranges': 'bytes',
+        'Content-Type': mimeType,
+        'Cache-Control': 'public, max-age=86400',
+      });
+      res.end(buffer);
+    }
   });
 
   // ==========================================

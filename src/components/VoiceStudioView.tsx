@@ -97,15 +97,70 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
         audio.onplay = () => setIsPlaying(true);
         audio.onended = () => setIsPlaying(false);
-        audio.onerror = () => setIsPlaying(false);
+        audio.onerror = () => {
+          setIsPlaying(false);
+          // Fallback to browser Web Speech API
+          if ('speechSynthesis' in window && text) {
+            try {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(text);
+              utterance.lang = language === 'ne' ? 'ne-NP' : 'en-US';
+              utterance.rate = rate;
+              utterance.pitch = pitch;
+              utterance.onstart = () => setIsPlaying(true);
+              utterance.onend = () => setIsPlaying(false);
+              utterance.onerror = () => setIsPlaying(false);
+              window.speechSynthesis.speak(utterance);
+            } catch (err) {
+              console.warn('SpeechSynthesis fallback error:', err);
+            }
+          }
+        };
 
         setActiveAudioElement(audio);
-        await audio.play().catch(e => console.warn('Audio auto-play notice:', e));
+        await audio.play().catch(e => {
+          console.warn('Audio auto-play notice:', e);
+          // Fallback to browser Web Speech API on auto-play failure
+          if ('speechSynthesis' in window && text) {
+            try {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(text);
+              utterance.lang = language === 'ne' ? 'ne-NP' : 'en-US';
+              utterance.rate = rate;
+              utterance.pitch = pitch;
+              utterance.onstart = () => setIsPlaying(true);
+              utterance.onend = () => setIsPlaying(false);
+              utterance.onerror = () => setIsPlaying(false);
+              window.speechSynthesis.speak(utterance);
+            } catch (err) {
+              console.warn('SpeechSynthesis fallback error:', err);
+            }
+          }
+        });
         setIsPlaying(true);
       }
     } catch (e: any) {
       console.error(e);
-      setAudioError(e.message || 'Audio synthesis failed');
+      // If server error, attempt browser Web Speech API
+      if ('speechSynthesis' in window && text) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = language === 'ne' ? 'ne-NP' : 'en-US';
+          utterance.rate = rate;
+          utterance.pitch = pitch;
+          utterance.onstart = () => setIsPlaying(true);
+          utterance.onend = () => setIsPlaying(false);
+          utterance.onerror = () => setIsPlaying(false);
+          window.speechSynthesis.speak(utterance);
+          setAudioError(null);
+        } catch (synthErr) {
+          setAudioError(e.message || 'Audio synthesis failed');
+        }
+      } else {
+        setAudioError(e.message || 'Audio synthesis failed');
+      }
+
       if (e.message?.includes('trial') || e.message?.includes('credit') || e.message?.includes('limit')) {
         if (onTriggerPaywall) onTriggerPaywall(e.message);
       }

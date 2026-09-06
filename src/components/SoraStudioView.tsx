@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Scene, UserSession, UserTrialQuota } from '../types';
-import { apiGenerateVideo } from '../lib/api';
+import { apiGenerateVideo, apiCheckVideoStatus } from '../lib/api';
 import { 
   Video, 
   Sparkles, 
@@ -69,13 +69,13 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
     try {
       if (user) {
-        setJobProgress(30);
+        setJobProgress(25);
         if (onStartGlobalLoading) {
           onStartGlobalLoading({
             type: 'video',
             title: 'Synthesizing Sora-2 Neural Video...',
-            subtitle: 'Dispatching diffusion synthesis pipeline...',
-            progress: 35,
+            subtitle: 'Dispatching diffusion synthesis to Azure OpenAI cluster...',
+            progress: 25,
           });
         }
         const data = await apiGenerateVideo(
@@ -84,18 +84,58 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           parseInt(seconds) || 4,
           resolution === '720x1280' ? '720p' : '1080p'
         );
-        setJobProgress(90);
+
+        let finalUrl = data.result?.url;
+
+        // If the Sora-2 job is in progress on Azure GPU cluster, poll until complete
+        if (data.result?.status === 'in_progress' && data.result?.jobId) {
+          const jobId = data.result.jobId;
+          let done = false;
+          let retries = 0;
+          const maxRetries = 35; // 35 * 3s = ~105s
+
+          while (!done && retries < maxRetries) {
+            retries++;
+            await new Promise((r) => setTimeout(r, 3000));
+            try {
+              const statusData = await apiCheckVideoStatus(jobId);
+              const p = Math.min(98, Math.max(30, statusData.progress || (30 + retries * 2)));
+              setJobProgress(p);
+              if (onStartGlobalLoading) {
+                onStartGlobalLoading({
+                  type: 'video',
+                  title: 'Synthesizing Sora-2 Neural Video...',
+                  subtitle: `Rendering diffusion frames on Azure GPU (${p}%)...`,
+                  progress: p,
+                });
+              }
+
+              if (statusData.status === 'completed' && statusData.url) {
+                finalUrl = statusData.url;
+                done = true;
+                break;
+              } else if (statusData.status === 'failed') {
+                console.warn('Sora-2 job reported failure:', statusData.error);
+                break;
+              }
+            } catch (pollErr) {
+              console.warn('Sora polling notice:', pollErr);
+            }
+          }
+        }
+
+        setJobProgress(95);
         if (onStartGlobalLoading) {
           onStartGlobalLoading({
             type: 'video',
             title: 'Finalizing Video Composition...',
-            subtitle: 'Encoding MP4 stream and syncing video timeline...',
+            subtitle: 'Encoding MP4 stream and syncing timeline...',
             progress: 95,
           });
         }
         await new Promise(r => setTimeout(r, 400));
-        if (data.result && data.result.url) {
-          setVideoResultUrl(data.result.url);
+        if (finalUrl) {
+          setVideoResultUrl(finalUrl);
         }
         setJobProgress(100);
         if (onUsageUpdated) {

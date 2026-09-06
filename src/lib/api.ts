@@ -188,7 +188,17 @@ export async function apiGenerateVideo(
   model = 'openai/sora-2'
 ): Promise<{
   success: boolean;
-  result: { url: string; model: string; duration: number; resolution: string; fps: number };
+  result: {
+    url: string;
+    model: string;
+    duration: number;
+    resolution: string;
+    fps: number;
+    jobId?: string;
+    status?: string;
+    progress?: number;
+    engine?: string;
+  };
   trialUsage: UserTrialQuota;
   remainingCredits: number;
 }> {
@@ -202,6 +212,19 @@ export async function apiGenerateVideo(
     throw new Error(data.error || 'Video generation failed');
   }
   return data;
+}
+
+export async function apiCheckVideoStatus(jobId: string): Promise<{
+  status: 'queued' | 'in_progress' | 'completed' | 'failed';
+  progress: number;
+  url?: string;
+  error?: string;
+}> {
+  const res = await fetch(`/api/video/status/${encodeURIComponent(jobId)}`);
+  if (!res.ok) {
+    throw new Error('Failed to check video status');
+  }
+  return res.json();
 }
 
 export async function apiGenerateAudio(

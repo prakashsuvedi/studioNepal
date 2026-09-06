@@ -215,11 +215,11 @@ export class StorageBucketService {
   /**
    * Read file synchronously from local disk
    */
-  public getLocalFile(filename: string): { buffer: Buffer; exists: boolean } {
+  public getLocalFile(filename: string): { buffer: Buffer; exists: boolean; filePath?: string; fileSize?: number } {
     const sanitized = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
     const filePath = path.join(LOCAL_STORAGE_DIR, sanitized);
     if (fs.existsSync(filePath)) {
-      return { buffer: fs.readFileSync(filePath), exists: true };
+      return { buffer: fs.readFileSync(filePath), exists: true, filePath, fileSize: fs.statSync(filePath).size };
     }
     return { buffer: Buffer.alloc(0), exists: false };
   }

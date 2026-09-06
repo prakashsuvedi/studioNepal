@@ -1,0 +1,22 @@
+{
+  "short_name": "NepalAI",
+  "name": "NepalAI Studio - AI Video & Creative Suite",
+  "description": "Professional AI Video Studio, HamroAI multilingual intelligence, Sora-2 video generator, and multi-track timeline editor.",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}

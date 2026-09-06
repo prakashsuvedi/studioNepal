@@ -19,6 +19,10 @@ import { WorkspacesModal, Workspace, DEFAULT_WORKSPACES } from './components/Wor
 import { UsageHistoryModal } from './components/UsageHistoryModal';
 import { PublicPagesView } from './components/PublicPagesView';
 import { GlobalLoadingOverlay, GlobalLoadingState } from './components/GlobalLoadingOverlay';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { UserDashboardView } from './components/UserDashboardView';
+import { OnboardingTourModal } from './components/OnboardingTourModal';
+import { ViralTemplate } from './data/viralTemplates';
 
 import { apiGetMe, apiLogout } from './lib/api';
 import { Lock, Sparkles, ShieldAlert } from 'lucide-react';
@@ -32,6 +36,9 @@ export default function App() {
   const [sharedVoiceText, setSharedVoiceText] = useState<string>('');
   const [sharedSoraPrompt, setSharedSoraPrompt] = useState<string>('');
   const [sharedImagePrompt, setSharedImagePrompt] = useState<string>('');
+
+  // Onboarding Walkthrough Tour State
+  const [isTourOpen, setIsTourOpen] = useState(false);
 
   // Authentication & Paywall states
   const [user, setUser] = useState<UserSession | null>(null);
@@ -148,6 +155,56 @@ export default function App() {
     setScenes(prev => [...prev, newScene]);
   };
 
+  // Apply a pre-set Viral Storyboard Template into the video editor
+  const handleApplyTemplate = (template: ViralTemplate) => {
+    const newScenes: Scene[] = template.scenes.map((s, idx) => ({
+      id: `scn_tmpl_${Date.now()}_${idx}`,
+      prompt: s.prompt,
+      duration: s.duration,
+      title: s.title,
+      mediaUrl: template.coverImage || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1280&q=80',
+      mediaType: s.mediaType || 'image',
+      aspectRatio: template.aspectRatio,
+      motion: s.motion,
+      transition: s.transition,
+      textOverlay: s.textOverlay,
+      textPosition: s.textPosition || 'lower_third',
+      textColor: s.textColor || '#ffffff',
+      textFont: 'devanagari',
+      filter: 'none',
+      volume: 85,
+    }));
+
+    setScenes(newScenes);
+
+    // Create synchronized subtitle cues from storyboard texts
+    let cumulativeSec = 0;
+    const newSubs: SubtitleItem[] = template.scenes.map((s, idx) => {
+      const start = cumulativeSec;
+      const end = cumulativeSec + s.duration;
+      cumulativeSec = end;
+      return {
+        id: `sub_tmpl_${Date.now()}_${idx}`,
+        index: idx + 1,
+        startTimeSec: start,
+        endTimeSec: end,
+        text: s.textOverlay,
+        devanagariText: s.textOverlay,
+      };
+    });
+    setSubtitles(newSubs);
+
+    if (template.suggestedVoiceover) {
+      setSharedVoiceText(template.suggestedVoiceover);
+    }
+
+    if (!user) {
+      handleOpenAuth('user');
+    } else {
+      handleSelectTab('video_studio');
+    }
+  };
+
   const handleSelectTab = (tab: StudioTab) => {
     if (tab !== 'landing' && !user) {
       handleOpenAuth(tab === 'admin' ? 'admin' : 'user');
@@ -178,11 +235,12 @@ export default function App() {
         onOpenShortcuts={() => setShowGlobalShortcuts(true)}
         onOpenWorkspaces={() => setShowGlobalWorkspaces(true)}
         onOpenUsageHistory={() => setIsUsageHistoryOpen(true)}
+        onOpenTour={() => setIsTourOpen(true)}
         activeWorkspaceName={globalWorkspace.name}
       />
 
       {/* Main Studio Viewport */}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-24 md:pb-16">
         {activeTab === 'landing' && (
           <LandingPageView
             user={user}
@@ -208,6 +266,7 @@ export default function App() {
                 handleTriggerPaywall(`Upgrade to ${plan.toUpperCase()} tier`);
               }
             }}
+            onSelectTemplate={handleApplyTemplate}
           />
         )}
 
@@ -406,6 +465,20 @@ export default function App() {
           <HfDeploymentKitView />
         )}
 
+        {/* User Dashboard & Viral Referral Engine */}
+        {user && activeTab === 'dashboard' && (
+          <UserDashboardView
+            user={user}
+            trialUsage={trialUsage}
+            onNavigateTab={handleSelectTab}
+            onOpenPaywall={() => handleTriggerPaywall('Top up generation credits or upgrade your plan')}
+            onCreditEarned={(newTotal) => {
+              setUser(prev => prev ? { ...prev, credits: newTotal } : null);
+            }}
+            onOpenTour={() => setIsTourOpen(true)}
+          />
+        )}
+
         {/* Public Pages: FAQ, About, Privacy, Contact */}
         {(activeTab === 'faq' || activeTab === 'about' || activeTab === 'privacy' || activeTab === 'contact') && (
           <PublicPagesView initialTab={activeTab as 'faq' | 'about' | 'privacy' | 'contact'} />
@@ -437,6 +510,14 @@ export default function App() {
         </div>
       </footer>
 
+      {/* Mobile & Tablet App Bottom Navigation Bar */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={handleSelectTab}
+        user={user}
+        onOpenAuth={handleOpenAuth}
+        onOpenPaywall={() => handleTriggerPaywall('Manage subscription & credits')}
+      />
 
       {/* Authentication Modal */}
       <AuthModal
@@ -477,6 +558,13 @@ export default function App() {
         isOpen={isUsageHistoryOpen}
         onClose={() => setIsUsageHistoryOpen(false)}
         user={user}
+      />
+
+      {/* Interactive Studio Onboarding Tour Walkthrough Modal */}
+      <OnboardingTourModal
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+        onNavigateTab={handleSelectTab}
       />
     </div>
   );

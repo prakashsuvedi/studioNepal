@@ -39,6 +39,10 @@ import {
   HeartHandshake
 } from 'lucide-react';
 import { UserSession } from '../types';
+import { InteractiveStudioPlayer } from './InteractiveStudioPlayer';
+import { ViralTemplatesSection } from './ViralTemplatesSection';
+import { ViralTemplate } from '../data/viralTemplates';
+import { useLanguage } from '../context/LanguageContext';
 
 interface LandingPageViewProps {
   user: UserSession | null;
@@ -46,6 +50,7 @@ interface LandingPageViewProps {
   onLaunchStudio: () => void;
   onLaunchHamroAi?: () => void;
   onSelectPlan: (planId: 'starter' | 'creator' | 'pro_studio' | 'sasta_50_npr' | string) => void;
+  onSelectTemplate?: (template: ViralTemplate) => void;
 }
 
 type LangMode = 'en' | 'ne' | 'hi';
@@ -57,8 +62,21 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onLaunchStudio,
   onLaunchHamroAi,
   onSelectPlan,
+  onSelectTemplate,
 }) => {
-  const [lang, setLang] = useState<LangMode>('en');
+  const { language: globalLang, setLanguage: setGlobalLanguage } = useLanguage();
+  const [lang, setLang] = useState<LangMode>(() => {
+    if (globalLang === 'ne' || globalLang === 'hi' || globalLang === 'en') {
+      return globalLang;
+    }
+    return 'en';
+  });
+
+  useEffect(() => {
+    if (globalLang === 'ne' || globalLang === 'hi' || globalLang === 'en') {
+      setLang(globalLang);
+    }
+  }, [globalLang]);
   const [activePersona, setActivePersona] = useState<PersonaType>('creators');
   const [activeDemo, setActiveDemo] = useState<'video' | 'shorts' | 'business' | 'voice'>('video');
   const [videoCount, setVideoCount] = useState<number>(15);
@@ -356,61 +374,61 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </p>
         </div>
 
-        {/* Persona Selector Tabs */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+        {/* Persona Selector Tabs (Mobile Grid & Touch-Optimized) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mb-8 max-w-5xl mx-auto w-full">
           <button
             onClick={() => setActivePersona('creators')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border ${
+            className={`px-4 py-3 rounded-2xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center justify-center sm:justify-start gap-2.5 border min-h-[48px] ${
               activePersona === 'creators'
                 ? 'bg-rose-600 border-rose-500 text-white shadow-lg shadow-rose-950/40'
                 : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            <Youtube className="w-4 h-4" />
-            <span>
-              {lang === 'ne' ? '१. युट्युबर र क्रिएटर (भाइरल र कमाई)' : lang === 'hi' ? '1. क्रिएटर्स (यूट्यूब, रील्स, वायरल)' : '1. Creators & Influencers (Go Viral)'}
+            <Youtube className="w-4 h-4 shrink-0 text-rose-300" />
+            <span className="truncate">
+              {lang === 'ne' ? '१. युट्युबर र क्रिएटर' : lang === 'hi' ? '1. क्रिएटर्स (यूट्यूब)' : '1. Creators & Influencers'}
             </span>
           </button>
 
           <button
             onClick={() => setActivePersona('business')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border ${
+            className={`px-4 py-3 rounded-2xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center justify-center sm:justify-start gap-2.5 border min-h-[48px] ${
               activePersona === 'business'
-                ? 'bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-950/40'
+                ? 'bg-amber-600 border-amber-500 text-slate-950 font-black shadow-lg shadow-amber-950/40'
                 : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            <Store className="w-4 h-4" />
-            <span>
-              {lang === 'ne' ? '२. विजनेस र पसल (बिना एजेन्सी बिक्री)' : lang === 'hi' ? '2. बिज़नेस (बिना एजेंसी ग्रोथ)' : '2. Businesses & Retailers (No Agency Needed)'}
+            <Store className="w-4 h-4 shrink-0 text-amber-400" />
+            <span className="truncate">
+              {lang === 'ne' ? '२. विजनेस र पसल' : lang === 'hi' ? '2. बिज़नेस व दुकान' : '2. Businesses & Retail'}
             </span>
           </button>
 
           <button
             onClick={() => setActivePersona('company')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border ${
+            className={`px-4 py-3 rounded-2xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center justify-center sm:justify-start gap-2.5 border min-h-[48px] ${
               activePersona === 'company'
                 ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-950/40'
                 : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            <Building2 className="w-4 h-4" />
-            <span>
-              {lang === 'ne' ? '३. कम्पनी र संस्था (ब्राण्ड बिस्तार)' : lang === 'hi' ? '3. कंपनियाँ (ब्रांड स्केलिंग)' : '3. Companies & Brands (Corporate Scale)'}
+            <Building2 className="w-4 h-4 shrink-0 text-indigo-300" />
+            <span className="truncate">
+              {lang === 'ne' ? '३. कम्पनी र ब्राण्ड' : lang === 'hi' ? '3. कंपनियाँ व ब्रांड' : '3. Companies & Brands'}
             </span>
           </button>
 
           <button
             onClick={() => setActivePersona('freelancer')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center gap-2 border ${
+            className={`px-4 py-3 rounded-2xl font-bold text-xs sm:text-sm transition cursor-pointer flex items-center justify-center sm:justify-start gap-2.5 border min-h-[48px] ${
               activePersona === 'freelancer'
-                ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-950/40'
+                ? 'bg-emerald-600 border-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-950/40'
                 : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            <DollarSign className="w-4 h-4" />
-            <span>
-              {lang === 'ne' ? '४. फ्रिलान्सर (अनलाइन कमाई अफिस)' : lang === 'hi' ? '4. फ्रीलांसर्स (घर बैठे कमाई हब)' : '4. Freelancers (Your Earning Studio)'}
+            <DollarSign className="w-4 h-4 shrink-0 text-emerald-400" />
+            <span className="truncate">
+              {lang === 'ne' ? '४. फ्रिलान्सर अफिस' : lang === 'hi' ? '4. फ्रीलांसर्स हब' : '4. Freelancers & Agencies'}
             </span>
           </button>
         </div>
@@ -496,13 +514,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               <div className="lg:col-span-5 relative">
                 <div className="bg-slate-950 rounded-2xl border border-slate-800 p-3 shadow-2xl space-y-3">
-                  <div className="aspect-[9/16] max-w-[260px] mx-auto rounded-xl overflow-hidden relative border border-slate-800 group shadow-inner">
+                  <div className="aspect-[9/16] max-w-[260px] mx-auto rounded-xl overflow-hidden relative border border-slate-800 group shadow-inner bg-gradient-to-b from-indigo-950 via-slate-900 to-black">
                     <img
                       src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&auto=format&fit=crop&q=80"
                       alt="Shorts Preview"
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500 relative z-10"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-15" />
                     
                     {/* Floating simulated badges */}
                     <div className="absolute top-3 left-3 bg-red-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
@@ -610,13 +629,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               <div className="lg:col-span-5 relative">
                 <div className="bg-slate-950 rounded-2xl border border-amber-500/30 p-4 shadow-2xl space-y-3">
-                  <div className="aspect-video rounded-xl overflow-hidden relative border border-slate-800">
+                  <div className="aspect-video rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-br from-amber-950/60 via-slate-900 to-slate-950">
                     <img
                       src="https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=800&auto=format&fit=crop&q=80"
                       alt="Business Ad Preview"
-                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                      className="w-full h-full object-cover relative z-10"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-15" />
                     <div className="absolute top-3 right-3 bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded shadow">
                       बिक्री धमाका • 40% OFF
                     </div>
@@ -714,13 +734,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               <div className="lg:col-span-5 relative">
                 <div className="bg-slate-950 rounded-2xl border border-indigo-500/30 p-4 shadow-2xl space-y-3">
-                  <div className="aspect-video rounded-xl overflow-hidden relative border border-slate-800">
+                  <div className="aspect-video rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-950">
                     <img
                       src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&auto=format&fit=crop&q=80"
                       alt="Corporate Enterprise Video"
-                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                      className="w-full h-full object-cover relative z-10"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent z-15" />
                     <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded shadow">
                       ENTERPRISE 4K SUITE
                     </div>
@@ -819,13 +840,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               <div className="lg:col-span-5 relative">
                 <div className="bg-slate-950 rounded-2xl border border-emerald-500/30 p-4 shadow-2xl space-y-3">
-                  <div className="aspect-video rounded-xl overflow-hidden relative border border-slate-800">
+                  <div className="aspect-video rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950">
                     <img
                       src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80"
                       alt="Freelancer Desk Preview"
-                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                      className="w-full h-full object-cover relative z-10"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent z-15" />
                     <div className="absolute top-3 left-3 bg-emerald-600 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded shadow">
                       ORDER COMPLETED: $120.00
                     </div>
@@ -936,6 +958,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* VIRAL STORYBOARD TEMPLATES LIBRARY */}
+      <ViralTemplatesSection onSelectTemplate={onSelectTemplate} />
 
       {/* INTERACTIVE REVENUE & AGENCY SAVINGS CALCULATOR */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-900">
@@ -1054,186 +1079,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </section>
 
-      {/* MULTI-FORMAT LIVE INTERACTIVE PREVIEW DOCK */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-900">
-        <div className="text-center max-w-3xl mx-auto space-y-3 mb-10">
-          <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Real Studio Quality</span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
+      {/* MULTI-FORMAT LIVE INTERACTIVE PREVIEW DOCK (100% NON-BLANK & MOBILE RESPONSIVE) */}
+      <section className="py-12 sm:py-16 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-900">
+        <div className="text-center max-w-3xl mx-auto space-y-3 mb-8 sm:mb-10">
+          <span className="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-rose-500" />
+            Live AI Studio Player • 100% Interactive Demo
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
             {lang === 'ne'
               ? 'एउटै स्टुडियोबाट सबै फर्म्याटका भिडियोहरू'
               : lang === 'hi'
               ? 'एक ही स्टूडियो से सभी फॉर्मेट के वीडियो'
               : 'One Unified Studio for All Video Dimensions & Formats'}
           </h2>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
+            {lang === 'ne'
+              ? 'अन्तर्राष्ट्रिय सोरा-२ भिडियो, ९:१६ सर्ट्स, पसल विज्ञापन र न्युरल आवाज प्रत्यक्ष चलाएर हेर्नुहोस्।'
+              : lang === 'hi'
+              ? 'इंटरनेशनल सोरा-2 वीडियो, 9:16 रील्स, दुकान विज्ञापन और नेचुरल वॉइसओवर लाइव टेस्ट करें।'
+              : 'Interact directly with real 4K Sora-2 motion, vertical 9:16 reels, customizable shop ads, and acoustic speech.'}
+          </p>
         </div>
 
-        <div className="max-w-5xl mx-auto bg-slate-900/80 border border-slate-800/80 rounded-3xl p-3 sm:p-4 shadow-2xl backdrop-blur-xl">
-          {/* Dock Switcher */}
-          <div className="flex flex-wrap items-center justify-between border-b border-slate-800/80 px-4 py-3 gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-              </div>
-              <span className="text-xs text-slate-400 font-mono ml-2">studio.nepalai.tech / interactive-player</span>
-            </div>
-
-            <div className="flex flex-wrap items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs gap-1">
-              <button
-                onClick={() => setActiveDemo('shorts')}
-                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer flex items-center gap-1.5 ${
-                  activeDemo === 'shorts' ? 'bg-rose-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Shorts & Reels (9:16)</span>
-              </button>
-              <button
-                onClick={() => setActiveDemo('video')}
-                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer flex items-center gap-1.5 ${
-                  activeDemo === 'video' ? 'bg-rose-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Tv className="w-3.5 h-3.5" />
-                <span>YouTube 16:9 Cinematic</span>
-              </button>
-              <button
-                onClick={() => setActiveDemo('business')}
-                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer flex items-center gap-1.5 ${
-                  activeDemo === 'business' ? 'bg-rose-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Store className="w-3.5 h-3.5" />
-                <span>Business Commercial</span>
-              </button>
-              <button
-                onClick={() => setActiveDemo('voice')}
-                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer flex items-center gap-1.5 ${
-                  activeDemo === 'voice' ? 'bg-rose-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Mic className="w-3.5 h-3.5" />
-                <span>Nepali & Hindi Voice</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Interactive Player Canvas */}
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-black flex items-center justify-center group mt-2">
-            {activeDemo === 'shorts' && (
-              <>
-                <img
-                  src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=80"
-                  alt="YouTube Shorts Preview"
-                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6 text-left flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-                  <div>
-                    <span className="px-2.5 py-1 rounded bg-red-600 text-white text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 w-fit">
-                      <Youtube className="w-3.5 h-3.5" /> 9:16 Shorts & TikTok Pipeline
-                    </span>
-                    <h3 className="text-xl font-bold text-white mt-2">Everest Basecamp Sunrise Timelapse</h3>
-                    <p className="text-xs text-slate-300 mt-1 max-w-md">
-                      Built for high retention. Auto-generated captions, dynamic zoom, and trending sound effects.
-                    </p>
-                  </div>
-                  <button
-                    onClick={onLaunchStudio}
-                    className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold backdrop-blur-md border border-white/20 transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <Play className="w-4 h-4 fill-white" />
-                    <span>Open in Studio Timeline</span>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {activeDemo === 'video' && (
-              <>
-                <img
-                  src="https://images.unsplash.com/photo-1582650625119-3a31f8418b7d?w=1200&auto=format&fit=crop&q=80"
-                  alt="YouTube 16:9 Preview"
-                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6 text-left flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-                  <div>
-                    <span className="px-2.5 py-1 rounded bg-rose-600 text-white text-[11px] font-bold uppercase tracking-wider w-fit">
-                      16:9 Long-Form 4K Documentary
-                    </span>
-                    <h3 className="text-xl font-bold text-white mt-2">Ancient Boudhanath Twilight Stupa</h3>
-                    <p className="text-xs text-slate-300 mt-1 max-w-md">
-                      Cinematic Sora-2 motion, 48kHz audio balance, and scene-to-scene transition dissolves.
-                    </p>
-                  </div>
-                  <button
-                    onClick={onLaunchStudio}
-                    className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold backdrop-blur-md border border-white/20 transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <Play className="w-4 h-4 fill-white" />
-                    <span>Open in Studio Timeline</span>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {activeDemo === 'business' && (
-              <>
-                <img
-                  src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&auto=format&fit=crop&q=80"
-                  alt="Business Commercial Preview"
-                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6 text-left flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-                  <div>
-                    <span className="px-2.5 py-1 rounded bg-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider w-fit">
-                      No Agency Needed • Commercial Ad
-                    </span>
-                    <h3 className="text-xl font-bold text-white mt-2">Retail Promo & Festival Flash Sale</h3>
-                    <p className="text-xs text-slate-300 mt-1 max-w-md">
-                      Branded with business telephone, address, and FonePay payment QR code.
-                    </p>
-                  </div>
-                  <button
-                    onClick={onLaunchStudio}
-                    className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold backdrop-blur-md border border-white/20 transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <span>Create Your Shop Ad</span>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {activeDemo === 'voice' && (
-              <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-slate-900 text-center space-y-5">
-                <div className="w-16 h-16 rounded-full bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
-                  <Mic className="w-8 h-8 animate-pulse" />
-                </div>
-                <div className="space-y-2 max-w-lg">
-                  <span className="px-3 py-1 rounded-full bg-emerald-600/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                    Bilingual Nepali & Hindi Neural Voices
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-bold text-white">
-                    "नेपालको पहिलो व्यावसायिक एआई भिडियो तथा अडियो स्टुडियो"
-                  </h3>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Speakers: Aakash (Natural Nepali Male), Preeti (Expressive Female), Kabir (Hindi Studio)
-                  </p>
-                </div>
-                <button
-                  onClick={onLaunchStudio}
-                  className="px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-lg shadow-rose-950"
-                >
-                  <Mic className="w-4 h-4" />
-                  <span>Synthesize Voiceover in Studio</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <InteractiveStudioPlayer onLaunchStudio={onLaunchStudio} lang={lang} />
       </section>
 
       {/* MULTILINGUAL TESTIMONIALS & COMMUNITY PROOF */}

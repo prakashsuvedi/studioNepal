@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { StudioTab, UserSession, UserTrialQuota } from '../types';
 import { apiGetHfStatus } from '../lib/api';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { 
   Film, 
   Image as ImageIcon, 
@@ -27,7 +29,10 @@ import {
   Briefcase,
   History,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Gift,
+  HelpCircle,
+  LayoutDashboard
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -41,6 +46,7 @@ interface HeaderProps {
   onOpenShortcuts?: () => void;
   onOpenWorkspaces?: () => void;
   onOpenUsageHistory?: () => void;
+  onOpenTour?: () => void;
   activeWorkspaceName?: string;
 }
 
@@ -55,9 +61,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShortcuts,
   onOpenWorkspaces,
   onOpenUsageHistory,
+  onOpenTour,
   activeWorkspaceName = 'Personal Studio',
 }) => {
   const { theme, toggleTheme, isDark } = useTheme();
+  const { t, language } = useLanguage();
   const isAdmin = user?.role === 'admin';
   const isFreeTrial = user?.tier === 'free_trial';
   const [hfStatus, setHfStatus] = useState<{ connected: boolean; username?: string } | null>(null);
@@ -116,13 +124,28 @@ export const Header: React.FC<HeaderProps> = ({
               <span>HF: {hfStatus?.connected ? `@${hfStatus.username || 'prakash'}` : 'Live'}</span>
             </div>
 
-            {/* Studio Tools: Workspaces, Shortcuts & Theme Toggle */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Studio Tools: Language, Tour, Workspaces, Shortcuts & Theme Toggle */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Floating Language Switcher */}
+              <LanguageSwitcher variant="header" />
+
+              {/* Studio Onboarding Tour Button */}
+              {onOpenTour && (
+                <button
+                  onClick={onOpenTour}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition cursor-pointer shadow-2xs"
+                  title="Interactive Studio Tour & Guide"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                  <span className="hidden md:inline font-bold text-[11px]">{t('nav.tour', 'Tour')}</span>
+                </button>
+              )}
+
               {/* Workspaces Switcher Button */}
               {onOpenWorkspaces && (
                 <button
                   onClick={onOpenWorkspaces}
-                  className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-indigo-400 dark:hover:border-indigo-500 transition cursor-pointer"
+                  className="hidden xl:flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-indigo-400 dark:hover:border-indigo-500 transition cursor-pointer"
                   title="Manage Workspaces & Team Collaboration"
                 >
                   <Briefcase className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -134,7 +157,7 @@ export const Header: React.FC<HeaderProps> = ({
               {onOpenShortcuts && (
                 <button
                   onClick={onOpenShortcuts}
-                  className="p-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer"
+                  className="hidden sm:flex p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer"
                   title="Keyboard Shortcuts Cheatsheet (Press ?)"
                 >
                   <Command className="w-3.5 h-3.5" />
@@ -144,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-amber-500 transition cursor-pointer"
+                className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-amber-500 transition cursor-pointer"
                 title={isDark ? 'Switch to Clean Light Mode' : 'Switch to Dark Mode'}
               >
                 {isDark ? (
@@ -180,31 +203,38 @@ export const Header: React.FC<HeaderProps> = ({
                 {!isAdmin && (
                   <button
                     onClick={onOpenPaywall}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-indigo-600 text-white font-bold text-[11px] shadow-xs transition cursor-pointer shrink-0"
+                    className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-indigo-600 text-white font-bold text-[11px] shadow-xs transition cursor-pointer shrink-0"
                   >
                     <CreditCard className="w-3 h-3" />
-                    <span>Upgrade</span>
+                    <span>{t('btn.upgrade', 'Upgrade')}</span>
                   </button>
                 )}
 
                 {/* User Avatar & Logout */}
-                <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-700 shrink-0">
+                <div 
+                  onClick={() => setActiveTab('dashboard')}
+                  className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-700 shrink-0 cursor-pointer group"
+                  title="Open Dashboard & Refer & Earn"
+                >
                   {user.avatar ? (
                     <img
                       src={user.avatar}
                       alt={user.name}
-                      className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                      className="w-7 h-7 rounded-full object-cover border border-slate-200 group-hover:ring-2 ring-rose-500 transition"
                     />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold border border-slate-200">
+                    <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold border border-slate-200 group-hover:ring-2 ring-rose-500 transition">
                       {user.name?.charAt(0) || 'U'}
                     </div>
                   )}
                   <div className="hidden xl:block text-left">
-                    <div className="text-[11px] font-bold text-slate-900 dark:text-slate-100 leading-tight max-w-[100px] truncate">{user.name}</div>
+                    <div className="text-[11px] font-bold text-slate-900 dark:text-slate-100 leading-tight max-w-[100px] truncate group-hover:text-rose-600 transition">{user.name}</div>
                   </div>
                   <button
-                    onClick={onLogout}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLogout();
+                    }}
                     title="Sign Out"
                     className="p-1 rounded-lg text-slate-400 hover:text-rose-600 transition cursor-pointer"
                   >
@@ -243,7 +273,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Home className="w-3.5 h-3.5" />
-            <span>Landing</span>
+            <span>{t('nav.landing', 'Landing')}</span>
           </button>
 
           <button
@@ -262,7 +292,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Bot className={`w-3.5 h-3.5 ${activeTab === 'hamro_ai' ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} />
-            <span className="font-bold">HamroAI</span>
+            <span className="font-bold">{t('nav.hamro_ai', 'HamroAI')}</span>
             <span className={`text-[9px] px-1 py-0.2 rounded font-bold ${
               activeTab === 'hamro_ai' ? 'bg-amber-400 text-zinc-950' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
             }`}>
@@ -287,7 +317,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Film className="w-3.5 h-3.5" />
-            <span>Video Studio</span>
+            <span>{t('nav.video_studio', 'Video Studio')}</span>
             {!user && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
 
@@ -307,7 +337,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>Image Engine</span>
+            <span>{t('nav.image_studio', 'Image Engine')}</span>
             {!user && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
 
@@ -327,7 +357,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Video className="w-3.5 h-3.5" />
-            <span>Sora-2 Video</span>
+            <span>{t('nav.sora_studio', 'Sora-2 Video')}</span>
             {!user && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
 
@@ -347,7 +377,32 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Mic className="w-3.5 h-3.5" />
-            <span>Nepali Voiceover</span>
+            <span>{t('nav.tts_studio', 'Nepali Voiceover')}</span>
+            {!user && <Lock className="w-3 h-3 text-slate-400" />}
+          </button>
+
+          {/* User Dashboard / Refer & Earn Tab */}
+          <button
+            onClick={() => {
+              if (!user) {
+                onOpenAuth('user');
+              } else {
+                setActiveTab('dashboard');
+              }
+            }}
+            title={!user ? 'Sign in to access Referral Rewards & Dashboard' : 'User Dashboard & Refer & Earn'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'dashboard'
+                ? 'bg-gradient-to-r from-rose-600 to-indigo-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span>{t('nav.dashboard', 'Dashboard')}</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-0.5">
+              <Gift className="w-2.5 h-2.5 text-amber-600" />
+              <span>{t('nav.refer_earn', 'Refer & Earn')}</span>
+            </span>
             {!user && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
 

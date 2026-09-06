@@ -22,6 +22,7 @@ import {
   serverRenderVideoProject,
   serverHamroAiChat,
   getHuggingFaceStatus,
+  getAzureOpenAIKey,
 } from './src/server/aiServices';
 
 // Helper to decode Google OAuth GSI JWT credentials safely
@@ -75,6 +76,24 @@ async function startServer() {
         configured: hasAzureSpeech,
         region: process.env.AZURE_SPEECH_REGION || 'eastus',
         endpoint: 'https://eastus.api.cognitive.microsoft.com/',
+      },
+    });
+  });
+
+  // Diagnostic Endpoint
+  app.get('/api/diagnostic', (req, res) => {
+    res.json({
+      status: 'ok',
+      environment: process.env.NODE_ENV || 'production',
+      nodeVersion: process.version,
+      uptimeSeconds: Math.floor(process.uptime()),
+      database: {
+        connected: postgresDb.isConnected,
+      },
+      services: {
+        azureSora2: Boolean(process.env.AZURE_OPENAI_KEY || process.env.OPENAI_API_KEY),
+        azureSpeech: Boolean(process.env.AZURE_SPEECH || process.env.AZURE_SPEECH_KEY),
+        supabase: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
       },
     });
   });
@@ -483,7 +502,7 @@ async function startServer() {
       }
 
       // Fetch from Azure
-      const azureKey = process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY || process.env.AZURE_API_KEY || '';
+      const azureKey = getAzureOpenAIKey();
       const azureContentUrl = `https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/videos/${encodeURIComponent(videoId)}/content`;
 
       const azureRes = await fetch(azureContentUrl, {
@@ -536,6 +555,134 @@ async function startServer() {
       }
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Video content proxy failed' });
+    }
+  });
+
+  // Dedicated Azure GPT-Image-1.5 Endpoint (/api/images/azure)
+  app.post('/api/images/azure', async (req, res) => {
+    try {
+      const { prompt, size = '1024x1024', quality = 'hd', adminBypass, userId = 'usr_admin_01' } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      console.log('[Azure Image Endpoint] Request prompt:', prompt, 'Quality:', quality, 'AdminBypass:', !!adminBypass);
+      const result = await serverGenerateImage(prompt, 'gpt-image-1.5', quality);
+
+      if (!adminBypass && userId) {
+        db.recordGeneration(userId, 'image', prompt, result.url, 'gpt-image-1.5');
+      }
+
+      return res.json({
+        success: true,
+        url: result.url,
+        model: 'gpt-image-1.5',
+        resolution: result.resolution,
+        engine: result.engine,
+        bypassed: !!adminBypass,
+      });
+    } catch (error: any) {
+      console.error('[Azure Image Endpoint Error]:', error.message);
+      return res.status(error.status || 500).json({
+        success: false,
+        error: error.message || 'Azure image generation failed',
+      });
+    }
+  });
+
+  // Dedicated Azure Sora-2 Video Endpoint (/api/video/azure)
+  app.post('/api/video/azure', async (req, res) => {
+    try {
+      const { prompt, model = 'sora-2', size = '720x1280', seconds = '4', adminBypass, userId = 'usr_admin_01' } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      const duration = parseInt(seconds, 10) || 4;
+      console.log('[Azure Sora Endpoint] Request prompt:', prompt, 'Duration:', duration, 'AdminBypass:', !!adminBypass);
+      const result = await serverGenerateVideo(prompt, duration, 'sora-2');
+
+      if (!adminBypass && userId) {
+        db.recordGeneration(userId, 'video', prompt, result.url, 'sora-2', duration);
+      }
+
+      return res.json({
+        success: true,
+        jobId: result.jobId || 'sora-' + Date.now(),
+        status: result.status || 'in_progress',
+        progress: result.progress || 15,
+        videoUrl: result.url,
+        model: 'sora-2',
+        duration: result.duration,
+        resolution: result.resolution,
+        engine: result.engine,
+      });
+    } catch (error: any) {
+      console.error('[Azure Sora Endpoint Error]:', error.message);
+      return res.status(error.status || 500).json({
+        success: false,
+        error: error.message || 'Azure video generation failed',
+      });
+    }
+  });
+
+  // Diagnostic Endpoint: Live Check AI Endpoints & API Keys
+  app.get('/api/diagnostic/ai-credentials', async (req, res) => {
+    try {
+      const azureKey = getAzureOpenAIKey();
+      const hasKey = Boolean(azureKey && azureKey.length > 5);
+      const keyPrefix = hasKey ? azureKey.slice(0, 7) + '...' : 'none';
+
+      let soraEndpointStatus = 'untested';
+      let soraModelAvailable = false;
+      let gptImageModelAvailable = false;
+      let modelsList: string[] = [];
+
+      if (hasKey) {
+        try {
+          const modelsRes = await fetch(
+            'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/models?api-version=2024-05-01-preview',
+            {
+              headers: {
+                'api-key': azureKey,
+                Authorization: `Bearer ${azureKey}`,
+              },
+              signal: AbortSignal.timeout(6000),
+            }
+          );
+          if (modelsRes.ok) {
+            const data = await modelsRes.json();
+            modelsList = (data.data || []).map((m: any) => m.id);
+            soraModelAvailable = modelsList.some((id: string) => id.includes('sora'));
+            gptImageModelAvailable = modelsList.some((id: string) => id.includes('gpt-image'));
+            soraEndpointStatus = 'connected_200_ok';
+          } else {
+            soraEndpointStatus = `http_${modelsRes.status}`;
+          }
+        } catch (e: any) {
+          soraEndpointStatus = `error: ${e.message}`;
+        }
+      }
+
+      res.json({
+        timestamp: new Date().toISOString(),
+        azureFoundry: {
+          resourceEndpoint: 'https://prakashsuvedi-7749-resource.services.ai.azure.com',
+          keyConfigured: hasKey,
+          keyPrefix,
+          connectionStatus: soraEndpointStatus,
+          modelsFound: modelsList,
+          sora2Operational: soraModelAvailable,
+          gptImage15Operational: gptImageModelAvailable,
+        },
+        azureSpeech: {
+          configured: Boolean(process.env.AZURE_SPEECH || process.env.AZURE_SPEECH_KEY),
+          region: process.env.AZURE_SPEECH_REGION || 'eastus',
+        },
+        huggingFace: await getHuggingFaceStatus(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

@@ -77,8 +77,8 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
 }) => {
   const [promptEn, setPromptEn] = useState(SAMPLE_NEPALI_PROMPTS[0].en);
   const [promptNe, setPromptNe] = useState(SAMPLE_NEPALI_PROMPTS[0].ne);
-  const [model, setModel] = useState<'flux-schnell' | 'pollinations-free'>('flux-schnell');
-  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:5'>('16:9');
+  const [model, setModel] = useState<'gpt-image-1.5' | 'flux-schnell' | 'pollinations-free'>('gpt-image-1.5');
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:5'>('1:1');
   const [quality, setQuality] = useState<'standard' | 'hd'>('hd');
   const [negativePrompt, setNegativePrompt] = useState('blurry, low quality, distorted, extra limbs, watermark, text');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -114,11 +114,18 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
     setAddedSuccess(false);
     setGenError(null);
 
+    const modelDisplayName =
+      model === 'gpt-image-1.5'
+        ? 'OpenAI GPT-Image-1.5 (Azure Foundry)'
+        : model === 'flux-schnell'
+        ? 'FLUX.1 Schnell'
+        : 'Pollinations Turbo';
+
     if (onStartGlobalLoading) {
       onStartGlobalLoading({
         type: 'image',
         title: 'Synthesizing Neural Art Canvas...',
-        subtitle: `Generating high-precision ${quality.toUpperCase()} photorealistic image (${aspectRatio}) with FLUX.1 pipeline`,
+        subtitle: `Generating photorealistic image with ${modelDisplayName}...`,
         progress: 25,
       });
     }
@@ -127,10 +134,17 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
       const activeUserId = user?.id || 'usr_admin_01';
       const promptText = promptEn || promptNe || 'Nepal scenic Himalaya landscape';
       
+      const apiModel =
+        model === 'gpt-image-1.5'
+          ? 'gpt-image-1.5'
+          : model === 'flux-schnell'
+          ? 'black-forest-labs/FLUX.1-schnell'
+          : 'pollinations-free';
+
       const data = await apiGenerateImage(
         activeUserId,
         promptText,
-        'black-forest-labs/FLUX.1-schnell',
+        apiModel,
         quality === 'hd' ? 'hd' : 'standard'
       );
       
@@ -232,8 +246,27 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                 <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Admin Bypass Enabled</span>
               )}
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
+                id="btn-model-gpt-image"
+                type="button"
+                onClick={() => setModel('gpt-image-1.5')}
+                className={`p-3 rounded-xl border text-left transition ${
+                  model === 'gpt-image-1.5'
+                    ? 'bg-rose-50/60 border-rose-500 text-slate-900 ring-1 ring-rose-500/30'
+                    : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-xs text-slate-900">GPT-Image-1.5</div>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">AZURE</span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Azure AI Foundry • 1024px Photorealistic</div>
+              </button>
+
+              <button
+                id="btn-model-flux"
+                type="button"
                 onClick={() => setModel('flux-schnell')}
                 className={`p-3 rounded-xl border text-left transition ${
                   model === 'flux-schnell'
@@ -242,10 +275,12 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                 }`}
               >
                 <div className="font-semibold text-xs text-slate-900">FLUX.1 Schnell</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Hugging Face • Neural Turbo Pipeline</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Hugging Face • Neural Turbo</div>
               </button>
 
               <button
+                id="btn-model-pollinations"
+                type="button"
                 onClick={() => setModel('pollinations-free')}
                 className={`p-3 rounded-xl border text-left transition ${
                   model === 'pollinations-free'

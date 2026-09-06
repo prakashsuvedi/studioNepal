@@ -9,6 +9,8 @@
     "start": "node dist/server.cjs",
     "worker": "tsx src/server/worker.ts",
     "test:preemption": "tsx scripts/stress-test-renders.ts",
+    "test:smoke": "tsx scripts/smoke_test_suite.ts",
+    "test:practical": "tsx scripts/live_practical_smoke_test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"

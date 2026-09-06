@@ -65,68 +65,87 @@
       "credits": 0,
       "createdAt": "2026-09-04T07:45:20.932Z",
       "updatedAt": "2026-09-04T07:45:20.932Z"
+    },
+    {
+      "id": "usr_1788664974375_fa6my",
+      "email": "creator_usr_smoke_test_prakash@nepalai.tech",
+      "name": "Creator User",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "free_trial",
+      "credits": 500,
+      "createdAt": "2026-09-06T03:22:54.375Z",
+      "updatedAt": "2026-09-06T03:22:54.375Z"
     }
   ],
   "trialUsage": {
     "usr_admin_01": {
       "userId": "usr_admin_01",
-      "imagesCount": 24,
+      "imagesCount": 0,
       "maxImages": 99999,
-      "videoCount": 15,
+      "videoCount": 0,
       "maxVideo": 99999,
-      "videoDurationSeconds": 1800,
-      "audioCount": 30,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
       "maxAudio": 99999,
-      "audioDurationSeconds": 3600,
-      "rendersCount": 12,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
       "maxRenders": 99999,
-      "totalTokensUsed": 181950,
-      "lastUsedAt": "2026-09-04T13:37:53.701Z"
+      "totalTokensUsed": 182300,
+      "lastUsedAt": "2026-09-06T03:38:55.023Z",
+      "lastResetDate": "2026-09-06",
+      "lastResetAt": "2026-09-06T03:16:55.408Z"
     },
     "usr_client_02": {
       "userId": "usr_client_02",
-      "imagesCount": 45,
+      "imagesCount": 0,
       "maxImages": 500,
-      "videoCount": 8,
+      "videoCount": 0,
       "maxVideo": 60,
-      "videoDurationSeconds": 720,
-      "audioCount": 14,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
       "maxAudio": 120,
-      "audioDurationSeconds": 1400,
-      "rendersCount": 6,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
       "maxRenders": 50,
       "totalTokensUsed": 52400,
-      "lastUsedAt": "2026-09-02T14:15:00.000Z"
+      "lastUsedAt": "2026-09-02T14:15:00.000Z",
+      "lastResetDate": "2026-09-06",
+      "lastResetAt": "2026-09-06T03:16:55.470Z"
     },
     "usr_client_03": {
       "userId": "usr_client_03",
-      "imagesCount": 3,
+      "imagesCount": 0,
       "maxImages": 3,
-      "videoCount": 1,
+      "videoCount": 0,
       "maxVideo": 1,
-      "videoDurationSeconds": 65,
-      "audioCount": 1,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
       "maxAudio": 1,
-      "audioDurationSeconds": 110,
+      "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 1,
       "totalTokensUsed": 4200,
-      "lastUsedAt": "2026-09-03T11:20:00.000Z"
+      "lastUsedAt": "2026-09-03T11:20:00.000Z",
+      "lastResetDate": "2026-09-06",
+      "lastResetAt": "2026-09-06T03:16:55.514Z"
     },
     "usr_client_04": {
       "userId": "usr_client_04",
-      "imagesCount": 18,
+      "imagesCount": 0,
       "maxImages": 100,
-      "videoCount": 3,
+      "videoCount": 0,
       "maxVideo": 10,
-      "videoDurationSeconds": 240,
-      "audioCount": 5,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
       "maxAudio": 20,
-      "audioDurationSeconds": 450,
-      "rendersCount": 2,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
       "maxRenders": 10,
       "totalTokensUsed": 21800,
-      "lastUsedAt": "2026-09-03T08:10:00.000Z"
+      "lastUsedAt": "2026-09-03T08:10:00.000Z",
+      "lastResetDate": "2026-09-06",
+      "lastResetAt": "2026-09-06T03:16:55.557Z"
     },
     "usr-google-prakash": {
       "userId": "usr-google-prakash",
@@ -156,11 +175,13 @@
       "rendersCount": 0,
       "maxRenders": 1,
       "totalTokensUsed": 0,
-      "lastUsedAt": "2026-09-04T07:43:50.345Z"
+      "lastUsedAt": "2026-09-04T07:43:50.345Z",
+      "lastResetDate": "2026-09-06",
+      "lastResetAt": "2026-09-06T03:16:55.600Z"
     },
     "usr_1788507920932_feh9u": {
       "userId": "usr_1788507920932_feh9u",
-      "imagesCount": 2,
+      "imagesCount": 0,
       "maxImages": 3,
       "videoCount": 0,
       "maxVideo": 1,
@@ -171,7 +192,41 @@
       "rendersCount": 0,
       "maxRenders": 1,
       "totalTokensUsed": 700,
-      "lastUsedAt": "2026-09-04T07:48:58.626Z"
+      "lastUsedAt": "2026-09-04T07:48:58.626Z",
+      "lastResetDate": "2026-09-06",
+      "lastResetAt": "2026-09-06T03:16:55.644Z"
+    },
+    "usr_1788664974375_fa6my": {
+      "userId": "usr_1788664974375_fa6my",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-06T03:22:54.375Z"
+    },
+    "usr_smoke_test_prakash": {
+      "userId": "usr_smoke_test_prakash",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-06T03:22:54.440Z",
+      "lastResetDate": "2026-09-06",
+      "lastResetAt": "2026-09-06T03:22:54.440Z"
     }
   },
   "transactions": [
@@ -203,6 +258,18 @@
     }
   ],
   "generationLogs": [
+    {
+      "id": "gen_1788665935023_cc55",
+      "userId": "usr_admin_01",
+      "type": "image",
+      "model": "gpt-image-1.5 (High-Res Photorealistic)",
+      "prompt": "Traditional Nepalese Newari wood carving window art",
+      "resultUrl": "/api/storage/file/gpt_image_1788665935004_m0n8.png",
+      "tokensCost": 350,
+      "creditsCost": 5,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-06T03:38:55.023Z"
+    },
     {
       "id": "gen_1788529073701_srx2",
       "userId": "usr_admin_01",
@@ -533,5 +600,19 @@
       "creditsCost": 5,
       "createdAt": "2026-09-02T14:15:00.000Z"
     }
-  ]
+  ],
+  "pricingConfig": {
+    "nprExchangeRate": 135,
+    "starterNpr": 2500,
+    "creatorNpr": 6500,
+    "proStudioNpr": 16500,
+    "fonepayMerchantCode": "NEPALAI01",
+    "fonepaySecretKey": "fonepay_secret_key_nepalai_2026",
+    "youtubeClientId": "",
+    "youtubeClientSecret": "",
+    "storageProvider": "local",
+    "supabaseUrl": "",
+    "supabaseAnonKey": "",
+    "supabaseBucket": "nepalai-media"
+  }
 }

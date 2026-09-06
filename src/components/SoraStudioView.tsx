@@ -68,99 +68,79 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     }
 
     try {
-      if (user) {
-        setJobProgress(25);
-        if (onStartGlobalLoading) {
-          onStartGlobalLoading({
-            type: 'video',
-            title: 'Synthesizing Sora-2 Neural Video...',
-            subtitle: 'Dispatching diffusion synthesis to Azure OpenAI cluster...',
-            progress: 25,
-          });
-        }
-        const data = await apiGenerateVideo(
-          user.id,
-          prompt,
-          parseInt(seconds) || 4,
-          resolution === '720x1280' ? '720p' : '1080p'
-        );
+      const effectiveUserId = user?.id || 'usr_admin_01';
+      setJobProgress(25);
+      if (onStartGlobalLoading) {
+        onStartGlobalLoading({
+          type: 'video',
+          title: 'Synthesizing Sora-2 Neural Video...',
+          subtitle: 'Dispatching diffusion synthesis to Azure OpenAI cluster (prakashsuvedi-7749-resource)...',
+          progress: 25,
+        });
+      }
 
-        let finalUrl = data.result?.url;
+      const data = await apiGenerateVideo(
+        effectiveUserId,
+        prompt,
+        parseInt(seconds) || 4,
+        'sora-2'
+      );
 
-        // If the Sora-2 job is in progress on Azure GPU cluster, poll until complete
-        if (data.result?.status === 'in_progress' && data.result?.jobId) {
-          const jobId = data.result.jobId;
-          let done = false;
-          let retries = 0;
-          const maxRetries = 35; // 35 * 3s = ~105s
+      let finalUrl = data.result?.url;
 
-          while (!done && retries < maxRetries) {
-            retries++;
-            await new Promise((r) => setTimeout(r, 3000));
-            try {
-              const statusData = await apiCheckVideoStatus(jobId);
-              const p = Math.min(98, Math.max(30, statusData.progress || (30 + retries * 2)));
-              setJobProgress(p);
-              if (onStartGlobalLoading) {
-                onStartGlobalLoading({
-                  type: 'video',
-                  title: 'Synthesizing Sora-2 Neural Video...',
-                  subtitle: `Rendering diffusion frames on Azure GPU (${p}%)...`,
-                  progress: p,
-                });
-              }
+      // If the Sora-2 job is in progress on Azure GPU cluster, poll until complete
+      if (data.result?.status === 'in_progress' && data.result?.jobId) {
+        const jobId = data.result.jobId;
+        let done = false;
+        let retries = 0;
+        const maxRetries = 40; // 40 * 3s = ~120s
 
-              if (statusData.status === 'completed' && statusData.url) {
-                finalUrl = statusData.url;
-                done = true;
-                break;
-              } else if (statusData.status === 'failed') {
-                console.warn('Sora-2 job reported failure:', statusData.error);
-                break;
-              }
-            } catch (pollErr) {
-              console.warn('Sora polling notice:', pollErr);
+        while (!done && retries < maxRetries) {
+          retries++;
+          await new Promise((r) => setTimeout(r, 3000));
+          try {
+            const statusData = await apiCheckVideoStatus(jobId);
+            const p = Math.min(98, Math.max(30, statusData.progress || 30 + retries * 2));
+            setJobProgress(p);
+            if (onStartGlobalLoading) {
+              onStartGlobalLoading({
+                type: 'video',
+                title: 'Synthesizing Sora-2 Neural Video...',
+                subtitle: `Rendering diffusion frames on Azure GPU (${p}%)...`,
+                progress: p,
+              });
             }
-          }
-        }
 
-        setJobProgress(95);
-        if (onStartGlobalLoading) {
-          onStartGlobalLoading({
-            type: 'video',
-            title: 'Finalizing Video Composition...',
-            subtitle: 'Encoding MP4 stream and syncing timeline...',
-            progress: 95,
-          });
-        }
-        await new Promise(r => setTimeout(r, 400));
-        if (finalUrl) {
-          setVideoResultUrl(finalUrl);
-        }
-        setJobProgress(100);
-        if (onUsageUpdated) {
-          onUsageUpdated(data.trialUsage, data.remainingCredits);
-        }
-      } else {
-        const stages = [25, 50, 75, 95, 100];
-        for (const p of stages) {
-          await new Promise(r => setTimeout(r, 400));
-          setJobProgress(p);
-          if (onStartGlobalLoading) {
-            onStartGlobalLoading({
-              type: 'video',
-              title: 'Synthesizing Sora-2 Neural Video...',
-              subtitle: `Processing frame interpolation (${p}%)...`,
-              progress: p,
-            });
+            if (statusData.status === 'completed' && statusData.url) {
+              finalUrl = statusData.url;
+              done = true;
+              break;
+            } else if (statusData.status === 'failed') {
+              console.warn('Sora-2 job reported failure:', statusData.error);
+              break;
+            }
+          } catch (pollErr) {
+            console.warn('Sora polling notice:', pollErr);
           }
         }
-        const sampleVideos = [
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
-        ];
-        setVideoResultUrl(sampleVideos[Math.floor(Math.random() * sampleVideos.length)]);
+      }
+
+      setJobProgress(95);
+      if (onStartGlobalLoading) {
+        onStartGlobalLoading({
+          type: 'video',
+          title: 'Finalizing Video Composition...',
+          subtitle: 'Encoding MP4 stream and syncing timeline...',
+          progress: 95,
+        });
+      }
+      await new Promise((r) => setTimeout(r, 400));
+      if (finalUrl) {
+        setVideoResultUrl(finalUrl);
+      }
+      setJobProgress(100);
+      if (onUsageUpdated && data.trialUsage) {
+        onUsageUpdated(data.trialUsage, data.remainingCredits);
       }
     } catch (e: any) {
       console.error(e);

@@ -80,16 +80,101 @@ export async function getHuggingFaceStatus(): Promise<{
   return cachedHfStatus;
 }
 
+export function getAzureOpenAIKey(): string {
+  const candidateKeys = [
+    process.env.OPENAI_API_KEY,
+    process.env.AZURE_OPENAI_KEY,
+    process.env.AZURE_API_KEY,
+  ].filter((k): k is string => Boolean(k && k.trim().length > 5));
+
+  // The key starting with 2ESX has been verified to be valid on prakashsuvedi-7749-resource
+  const workingKey = candidateKeys.find((k) => k.startsWith('2ESX'));
+  if (workingKey) return workingKey;
+
+  return candidateKeys[0] || '';
+}
+
 export async function serverGenerateImage(
   prompt: string,
   model = 'gpt-image-1.5',
   quality: 'standard' | 'hd' | 'ultra' = 'standard'
 ): Promise<{ url: string; model: string; resolution: string; engine: string; hfUser?: string }> {
-  const hfStatus = await getHuggingFaceStatus();
+  const azureKey = getAzureOpenAIKey();
   const width = quality === 'ultra' ? 1280 : quality === 'hd' ? 1024 : 768;
   const height = quality === 'ultra' ? 720 : quality === 'hd' ? 576 : 432;
 
-  // 1. High-speed Neural Image Generation (Pollinations Turbo / FLUX cluster)
+  // 1. Real Azure OpenAI GPT-Image-1.5 Generation (prakashsuvedi-7749-resource)
+  if (
+    azureKey &&
+    (model.includes('gpt-image') ||
+      model.includes('openai') ||
+      model === 'gpt-image-1.5' ||
+      !model.includes('flux'))
+  ) {
+    try {
+      console.log(
+        `[Azure Image] Generating real gpt-image-1.5 image for: "${prompt.slice(0, 60)}..."`
+      );
+      const azureImgUrl =
+        'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/images/generations';
+      const imgRes = await fetch(azureImgUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': azureKey,
+          Authorization: `Bearer ${azureKey}`,
+        },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          model: 'gpt-image-1.5',
+          size: '1024x1024',
+          quality: quality === 'ultra' || quality === 'hd' ? 'high' : 'medium',
+        }),
+        signal: AbortSignal.timeout(45000),
+      });
+
+      if (imgRes.ok) {
+        const data = await imgRes.json();
+        if (data.data && data.data[0]) {
+          const b64 = data.data[0].b64_json;
+          const directUrl = data.data[0].url;
+
+          if (b64) {
+            const buf = Buffer.from(b64, 'base64');
+            const filename = `gpt_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
+            const saved = await storageBucket.saveMedia(filename, buf, 'image/png');
+            console.log(
+              `[Azure Image] Successfully generated & stored gpt-image-1.5 (${buf.length} bytes): ${saved.url}`
+            );
+            return {
+              url: saved.url,
+              model: 'gpt-image-1.5 (High-Res Photorealistic)',
+              resolution: '1024x1024 (HD Photorealistic)',
+              engine:
+                'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
+              hfUser: 'prakashsuvedi',
+            };
+          } else if (directUrl) {
+            return {
+              url: directUrl,
+              model: 'gpt-image-1.5 (High-Res Photorealistic)',
+              resolution: '1024x1024 (HD Photorealistic)',
+              engine:
+                'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
+              hfUser: 'prakashsuvedi',
+            };
+          }
+        }
+      } else {
+        const errText = await imgRes.text().catch(() => '');
+        console.warn(`[Azure Image] Request returned ${imgRes.status}:`, errText);
+      }
+    } catch (azureImgErr) {
+      console.warn('[Azure Image] Error generating gpt-image-1.5 image:', azureImgErr);
+    }
+  }
+
+  // 2. High-speed Neural Image Generation (Pollinations Turbo / FLUX cluster)
   try {
     const cleanPrompt = encodeURIComponent(prompt.trim().slice(0, 300));
     const seed = Math.floor(Math.random() * 1000000);
@@ -104,10 +189,8 @@ export async function serverGenerateImage(
           url: `data:image/jpeg;base64,${base64}`,
           model: 'FLUX.1 / Turbo Neural Pipeline',
           resolution: `${width}x${height}`,
-          engine: hfStatus.connected
-            ? `Hugging Face Pro Hub (@${hfStatus.username || 'prakashsuvedi'}) + FLUX Pipeline`
-            : 'NepalAI Neural Accelerated Image Studio',
-          hfUser: hfStatus.username || 'prakashsuvedi',
+          engine: 'NepalAI Neural Accelerated Image Studio',
+          hfUser: 'prakashsuvedi',
         };
       }
     }
@@ -115,7 +198,7 @@ export async function serverGenerateImage(
     console.warn('Fast neural generation notice, proceeding to high-res thematic library:', err);
   }
 
-  // 2. High-Resolution Contextual Visual Matching Fallback
+  // 3. High-Resolution Contextual Visual Matching Fallback
   const lower = prompt.toLowerCase();
   let selected = SAMPLE_IMAGE_BANK.default;
   if (lower.includes('everest') || lower.includes('mountain') || lower.includes('snow') || lower.includes('himalaya')) {
@@ -134,10 +217,8 @@ export async function serverGenerateImage(
     url: selected,
     model: 'gpt-image-1.5 (High-Res Photorealistic)',
     resolution: quality === 'ultra' ? '2048x1152' : '1024x576',
-    engine: hfStatus.connected
-      ? `Azure AI Foundry via NepalAI Hub (@${hfStatus.username || 'prakashsuvedi'})`
-      : 'NepalAI High-Precision Visual Studio',
-    hfUser: hfStatus.username || 'prakashsuvedi',
+    engine: 'NepalAI High-Precision Visual Studio',
+    hfUser: 'prakashsuvedi',
   };
 }
 
@@ -147,7 +228,7 @@ export async function serverCheckVideoJob(jobId: string): Promise<{
   url?: string;
   error?: string;
 }> {
-  const azureKey = process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY || process.env.AZURE_API_KEY;
+  const azureKey = getAzureOpenAIKey();
   if (!azureKey) {
     return { status: 'failed', progress: 0, error: 'Azure credentials not configured' };
   }
@@ -237,7 +318,7 @@ export async function serverGenerateVideo(
   status?: string;
   progress?: number;
 }> {
-  const azureKey = process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY || process.env.AZURE_API_KEY;
+  const azureKey = getAzureOpenAIKey();
   const clampedDuration = Math.min(20, Math.max(1, durationSeconds || 4));
 
   // 1. Direct Azure OpenAI Sora-2 Endpoint (prakashsuvedi-7749-resource.services.ai.azure.com)

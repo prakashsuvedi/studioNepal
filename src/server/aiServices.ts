@@ -61,7 +61,7 @@ export async function getHuggingFaceStatus(): Promise<{
         connected: true,
         username: data.name || 'prakashsuvedi',
         email: data.email || 'prakashsuvedi@gmail.com',
-        tokenPrefix: `${hfKey.trim().slice(0, 6)}...`,
+        tokenPrefix: 'hf_••••••••',
         plan: data.type || 'user',
       };
       return cachedHfStatus;
@@ -465,25 +465,124 @@ function parseAudioMarkupTags(escapedText: string): string {
   
   // Replace pauses: [Pause: 1s] -> <break time="1s"/>
   parsed = parsed.replace(/\[Pause:\s*([0-9\.]+(?:s|ms))\]/gi, (match, p1) => {
-    return `<break time="${p1}"/>`;
+    return `<break time="${p1.toLowerCase()}"/>`;
   });
   
   // Replace Speed wraps: [Speed: Fast] ... [/Speed]
   parsed = parsed.replace(/\[Speed:\s*(fast|slow|medium|x-fast|x-slow)\]([\s\S]*?)\[\/Speed\]/gi, (match, rate, content) => {
-    return `<prosody rate="${rate}">${content}</prosody>`;
+    return `<prosody rate="${rate.toLowerCase()}">${content}</prosody>`;
   });
   
   // Replace Volume wraps: [Volume: Loud] ... [/Volume]
   parsed = parsed.replace(/\[Volume:\s*(loud|soft|medium|x-loud|x-soft)\]([\s\S]*?)\[\/Volume\]/gi, (match, vol, content) => {
-    return `<prosody volume="${vol}">${content}</prosody>`;
+    return `<prosody volume="${vol.toLowerCase()}">${content}</prosody>`;
   });
 
   // Replace Emphasis wraps: [Emphasis: Strong] ... [/Emphasis]
   parsed = parsed.replace(/\[Emphasis:\s*(strong|moderate|reduced)\]([\s\S]*?)\[\/Emphasis\]/gi, (match, level, content) => {
-    return `<emphasis level="${level}">${content}</emphasis>`;
+    return `<emphasis level="${level.toLowerCase()}">${content}</emphasis>`;
   });
 
+  // Replace Pitch wraps: [Pitch: X] ... [/Pitch]
+  parsed = parsed.replace(/\[Pitch:\s*([+\-]?[0-9\.]+%|low|high|medium|x-low|x-high|default)\]([\s\S]*?)\[\/Pitch\]/gi, (match, pitch, content) => {
+    return `<prosody pitch="${pitch.toLowerCase()}">${content}</prosody>`;
+  });
+
+  // Support unclosed / prefix tags for Speed
+  let speedOpenCount = 0;
+  parsed = parsed.replace(/\[Speed:\s*(fast|slow|medium|x-fast|x-slow)\]/gi, (match, rate) => {
+    speedOpenCount++;
+    return `<prosody rate="${rate.toLowerCase()}">`;
+  });
+
+  // Support unclosed / prefix tags for Volume
+  let volumeOpenCount = 0;
+  parsed = parsed.replace(/\[Volume:\s*(loud|soft|medium|x-loud|x-soft)\]/gi, (match, vol) => {
+    volumeOpenCount++;
+    return `<prosody volume="${vol.toLowerCase()}">`;
+  });
+
+  // Support unclosed / prefix tags for Emphasis
+  let emphasisOpenCount = 0;
+  parsed = parsed.replace(/\[Emphasis:\s*(strong|moderate|reduced)\]/gi, (match, level) => {
+    emphasisOpenCount++;
+    return `<emphasis level="${level.toLowerCase()}">`;
+  });
+
+  // Support unclosed / prefix tags for Pitch
+  let pitchOpenCount = 0;
+  parsed = parsed.replace(/\[Pitch:\s*([+\-]?[0-9\.]+%|low|high|medium|x-low|x-high|default)\]/gi, (match, pitch) => {
+    pitchOpenCount++;
+    return `<prosody pitch="${pitch.toLowerCase()}">`;
+  });
+
+  // Close any unclosed tags at the end of the text in correct nested order
+  for (let i = 0; i < pitchOpenCount; i++) {
+    parsed += '</prosody>';
+  }
+  for (let i = 0; i < emphasisOpenCount; i++) {
+    parsed += '</emphasis>';
+  }
+  for (let i = 0; i < volumeOpenCount; i++) {
+    parsed += '</prosody>';
+  }
+  for (let i = 0; i < speedOpenCount; i++) {
+    parsed += '</prosody>';
+  }
+
+  // Strip unmatched closing tags
+  parsed = parsed.replace(/\[\/(Speed|Volume|Emphasis|Pitch)\]/gi, '');
+
+  // Strip any remaining brackets / instructions entirely so they are NEVER spoken
+  parsed = parsed.replace(/\[[^\]]*\]/g, '');
+
   return parsed;
+}
+
+function applyPhoneticRules(text: string, phoneticDict: string, language: string): string {
+  if (!text) return text;
+  
+  let processed = text;
+  
+  if (phoneticDict === 'en-ipa' || phoneticDict === 'ipa') {
+    // If the user selected English (IPA), we can map key Nepali/common words in the script to high-quality IPA phonemes
+    // using SSML <phoneme alphabet="ipa" ph="..."> so Azure TTS outputs highly accurate English-phonetic pronunciation.
+    const ipaMappings: Record<string, string> = {
+      'नेपाल': 'neˈpal',
+      'नमस्ते': 'nʌˈmʌste',
+      'स्टुडियो': 'ˈstudijo',
+      'कान्ति': 'ˈkɑːnti',
+      'संजोग': 'sʌnValues',
+      'सिर्जना': 'sirˈdzʌnɑː',
+      'प्रविधि': 'prʌˈwidʰi',
+    };
+    
+    for (const [word, ipa] of Object.entries(ipaMappings)) {
+      const regex = new RegExp(word, 'g');
+      processed = processed.replace(regex, `<phoneme alphabet="ipa" ph="${ipa}">${word}</phoneme>`);
+    }
+  } else if (phoneticDict === 'ne-deva' || phoneticDict === 'devanagari') {
+    // If the user selected Nepali (Devanagari), we can transliterate or replace key English words with their Devanagari phonology equivalents
+    // so the Devanagari TTS engine pronounces them correctly instead of trying to spell them out or mispronounce them.
+    const devaMappings: Record<string, string> = {
+      'nepalai': 'नेपाल एआई',
+      'nepal ai': 'नेपाल एआई',
+      'studio': 'स्टुडियो',
+      'ai': 'एआई',
+      'voice': 'भोइस',
+      'audio': 'अडियो',
+      'video': 'भिडियो',
+      'creator': 'क्रिएटर',
+      'system': 'सिस्टम',
+    };
+    
+    for (const [word, deva] of Object.entries(devaMappings)) {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      processed = processed.replace(regex, deva);
+    }
+  }
+  
+  return processed;
 }
 
 export async function serverGenerateAudio(
@@ -491,7 +590,11 @@ export async function serverGenerateAudio(
   voiceId = 'aakash_ne',
   language: 'ne-NP' | 'en-US' = 'ne-NP',
   emotion = 'neutral',
-  deliveryStyle = 'general'
+  deliveryStyle = 'general',
+  speed?: string,
+  volume?: string,
+  pitch?: string,
+  phoneticDict?: string
 ): Promise<{ url: string; storageUrl?: string; filename?: string; duration: number; voice: string; language: string; format: string }> {
   // Check Azure Speech Subscription Key in environment variables
   const speechKey =
@@ -528,46 +631,46 @@ export async function serverGenerateAudio(
 
   // Calculate default prosody modifiers based on demographic selection
   let defaultPitch = "0%";
-  let defaultRate = "1.0";
+  let defaultRate = "0%";
   
   if (voiceId.includes('kanti') || voiceId.includes('sanjok') || voiceId.includes('child')) {
     defaultPitch = "+30%";
-    defaultRate = "1.06";
+    defaultRate = "+6%";
   } else if (voiceId.includes('rohan') || voiceId.includes('emily') || voiceId.includes('teen')) {
     defaultPitch = "+12%";
-    defaultRate = "1.03";
+    defaultRate = "+3%";
   } else if (voiceId.includes('guru') || voiceId.includes('aama') || voiceId.includes('old') || voiceId.includes('arthur')) {
     defaultPitch = "-18%";
-    defaultRate = "0.86";
+    defaultRate = "-14%";
   } else if (voiceId.includes('ambient') || voiceId.includes('background')) {
     // Soft ambient low hum background
     defaultPitch = "-8%";
-    defaultRate = "0.95";
+    defaultRate = "-5%";
   }
 
   // Adjust for emotional state properties
   if (emotion === 'happy') {
     defaultPitch = defaultPitch === "0%" ? "+8%" : defaultPitch;
-    defaultRate = defaultRate === "1.0" ? "1.08" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "+8%" : defaultRate;
   } else if (emotion === 'sad') {
     defaultPitch = defaultPitch === "0%" ? "-10%" : defaultPitch;
-    defaultRate = defaultRate === "1.0" ? "0.88" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-12%" : defaultRate;
   } else if (emotion === 'energetic') {
     defaultPitch = defaultPitch === "0%" ? "+12%" : defaultPitch;
-    defaultRate = defaultRate === "1.0" ? "1.16" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "+16%" : defaultRate;
   } else if (emotion === 'horror') {
     defaultPitch = defaultPitch === "0%" ? "-22%" : defaultPitch;
-    defaultRate = defaultRate === "1.0" ? "0.82" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-18%" : defaultRate;
   }
 
   // Adjust for genre formats
   if (deliveryStyle === 'documentary') {
     defaultPitch = defaultPitch === "0%" ? "-5%" : defaultPitch;
-    defaultRate = defaultRate === "1.0" ? "0.90" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-10%" : defaultRate;
   } else if (deliveryStyle === 'drama') {
-    defaultRate = defaultRate === "1.0" ? "0.92" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-8%" : defaultRate;
   } else if (deliveryStyle === 'quick_talk' || deliveryStyle === 'quick') {
-    defaultRate = defaultRate === "1.0" ? "1.32" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "+32%" : defaultRate;
   }
 
   // 1. Azure Cognitive Services Text-to-Speech REST API (eastus region)
@@ -583,12 +686,90 @@ export async function serverGenerateAudio(
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 
-      // Parse custom directional bracket tags into XML-compliant prosody and breaks
-      let innerText = parseAudioMarkupTags(escapedText);
+      // Apply phonetic dictionary rules
+      let phoneticProcessed = escapedText;
+      if (phoneticDict) {
+        phoneticProcessed = applyPhoneticRules(escapedText, phoneticDict, language);
+      }
 
-      // Wrap in dynamic prosody properties
-      if (defaultPitch !== "0%" || defaultRate !== "1.0") {
-        innerText = `<prosody pitch="${defaultPitch}" rate="${defaultRate}">${innerText}</prosody>`;
+      // Parse custom directional bracket tags into XML-compliant prosody and breaks
+      let innerText = parseAudioMarkupTags(phoneticProcessed);
+
+      // Wrap in dynamic prosody properties based on extracted speed/volume if passed
+      let overridePitch = pitch || defaultPitch;
+      let overrideRate = defaultRate;
+      let overrideVolume = "0dB";
+      let hasOverride = false;
+
+      if (pitch) {
+        hasOverride = true;
+      }
+
+      if (speed) {
+        const spdLc = speed.toLowerCase();
+        if (spdLc === 'slow') {
+          overrideRate = '-15%';
+          hasOverride = true;
+        } else if (spdLc === 'fast') {
+          overrideRate = '+20%';
+          hasOverride = true;
+        } else if (spdLc === 'medium') {
+          overrideRate = '0%';
+          hasOverride = true;
+        } else if (spdLc === 'x-slow') {
+          overrideRate = '-35%';
+          hasOverride = true;
+        } else if (spdLc === 'x-fast') {
+          overrideRate = '+40%';
+          hasOverride = true;
+        } else if (spdLc.startsWith('+') || spdLc.startsWith('-') || spdLc.endsWith('%')) {
+          overrideRate = speed;
+          hasOverride = true;
+        }
+      }
+
+      if (volume) {
+        const volLc = volume.toLowerCase();
+        if (volLc === 'soft') {
+          overrideVolume = '-6dB';
+          hasOverride = true;
+        } else if (volLc === 'loud') {
+          overrideVolume = '+6dB';
+          hasOverride = true;
+        } else if (volLc === 'medium') {
+          overrideVolume = '0dB';
+          hasOverride = true;
+        } else if (volLc === 'x-soft') {
+          overrideVolume = '-12dB';
+          hasOverride = true;
+        } else if (volLc === 'x-loud') {
+          overrideVolume = '+12dB';
+          hasOverride = true;
+        } else if (volLc.startsWith('+') || volLc.startsWith('-') || volLc.endsWith('db')) {
+          overrideVolume = volume;
+          hasOverride = true;
+        }
+      }
+
+      if (hasOverride) {
+        let prosodyAttributes = '';
+        if (overrideRate && overrideRate !== '0%') {
+          const rateAttr = overrideRate.startsWith('+') || overrideRate.startsWith('-') ? overrideRate : `+${overrideRate}`;
+          prosodyAttributes += ` rate="${rateAttr.toLowerCase()}"`;
+        }
+        if (overrideVolume && overrideVolume !== '0dB') {
+          prosodyAttributes += ` volume="${overrideVolume.toLowerCase()}"`;
+        }
+        if (overridePitch && overridePitch !== '0%') {
+          prosodyAttributes += ` pitch="${overridePitch}"`;
+        }
+
+        if (prosodyAttributes) {
+          innerText = `<prosody${prosodyAttributes}>${innerText}</prosody>`;
+        }
+      } else if (defaultPitch !== "0%" || defaultRate !== "0%") {
+        const rateAttr = defaultRate.startsWith('+') || defaultRate.startsWith('-') ? defaultRate : `+${defaultRate}`;
+        innerText = `<prosody pitch="${defaultPitch}" rate="${rateAttr}">${innerText}</prosody>`;
       }
 
       const ssml = `<speak version='1.0' xml:lang='${language}' xmlns="http://www.w3.org/2001/10/synthesis">
@@ -639,7 +820,8 @@ export async function serverGenerateAudio(
   // 2. High-Fidelity Neural Fallback: Google Translate Neural TTS (Authentic Nepali & English)
   try {
     const langCode = language === 'ne-NP' ? 'ne' : 'en';
-    const cleanText = encodeURIComponent(text.slice(0, 250));
+    const textWithoutBrackets = text.replace(/\[[^\]]*\]/g, '').trim();
+    const cleanText = encodeURIComponent(textWithoutBrackets.slice(0, 250));
     const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langCode}&client=tw-ob&q=${cleanText}`;
 
     const gRes = await fetch(googleTtsUrl, {

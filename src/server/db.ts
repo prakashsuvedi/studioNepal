@@ -584,7 +584,7 @@ class Database {
         creatorNpr: 6500,
         proStudioNpr: 16500,
         fonepayMerchantCode: 'NEPALAI01',
-        fonepaySecretKey: 'fonepay_secret_key_nepalai_2026',
+        fonepaySecretKey: process.env.FONEPAY_SECRET_KEY || '',
         youtubeClientId: process.env.YOUTUBE_CLIENT_ID || '',
         youtubeClientSecret: process.env.YOUTUBE_CLIENT_SECRET || '',
         storageProvider: (process.env.STORAGE_PROVIDER as any) || 'local',

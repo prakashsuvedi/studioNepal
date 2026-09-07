@@ -10,7 +10,10 @@ export const PostgresDiagnosticPanel: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/postgres/verify');
+      const savedUserId = localStorage.getItem('nepalai_user_id') || '';
+      const res = await fetch('/api/admin/postgres/verify', {
+        headers: { 'x-user-id': savedUserId },
+      });
       const data = await res.json();
       if (data.success) {
         setReport(data.report);

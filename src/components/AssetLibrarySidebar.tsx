@@ -25,6 +25,13 @@ import {
 
 export const DEFAULT_BRAND_ASSETS: BrandAsset[] = [
   {
+    id: 'asset_bug_hamro_ai',
+    name: 'HamroAI Spire Core',
+    category: 'watermark',
+    url: '/logo.jpg',
+    defaultPosition: 'top-right',
+  },
+  {
     id: 'asset_bug_nepalai',
     name: 'NepalAI Studio Bug',
     category: 'watermark',

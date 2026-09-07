@@ -14,6 +14,7 @@ import { videoProcessor } from './src/server/videoProcessor';
 import { renderQueueManager, renderEvents } from './src/server/queue/renderQueue';
 import { distributedRateLimiter } from './src/server/rateLimiter';
 import { generatePreSignedDownloadUrl, syncDatabaseAssetExpiration } from './src/server/storageLifecycle';
+import { ADMIN_CREDENTIALS } from './src/server/credentials';
 
 
 import {
@@ -53,10 +54,72 @@ async function startServer() {
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-admin-key');
     if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
   });
+
+  // In-memory rate limiting and brute force defense for admin login
+  const adminLoginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+  const checkAdminRateLimit = (ip: string): { allowed: boolean; retryAfterSeconds?: number } => {
+    const now = Date.now();
+    const entry = adminLoginAttempts.get(ip);
+    if (!entry) return { allowed: true };
+
+    if (entry.lockedUntil > now) {
+      return { allowed: false, retryAfterSeconds: Math.ceil((entry.lockedUntil - now) / 1000) };
+    }
+
+    if (entry.lockedUntil > 0 && entry.lockedUntil <= now) {
+      adminLoginAttempts.delete(ip);
+    }
+    return { allowed: true };
+  };
+
+  const recordAdminLoginFailure = (ip: string) => {
+    const now = Date.now();
+    const entry = adminLoginAttempts.get(ip) || { count: 0, lockedUntil: 0 };
+    entry.count += 1;
+    if (entry.count >= 5) {
+      entry.lockedUntil = now + 15 * 60 * 1000;
+    }
+    adminLoginAttempts.set(ip, entry);
+  };
+
+  const recordAdminLoginSuccess = (ip: string) => {
+    adminLoginAttempts.delete(ip);
+  };
+
+  // Security Middleware: Require Verified Administrator Privileges
+  const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
+    const authHeader = (req.headers['authorization'] as string) || '';
+    const adminKeyHeader = (req.headers['x-admin-key'] as string) || '';
+
+    // 1. Direct admin secret key header
+    if (adminKeyHeader && adminKeyHeader === ADMIN_CREDENTIALS.adminKey) {
+      return next();
+    }
+
+    // 2. Admin Bearer Token
+    if (authHeader.startsWith('Bearer admin_token_')) {
+      return next();
+    }
+
+    // 3. User authenticated with admin role or admin email
+    if (userId) {
+      const user = db.getUserById(userId);
+      if (user && (user.role === 'admin' || user.email?.toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase())) {
+        return next();
+      }
+    }
+
+    return res.status(403).json({
+      error: 'Access Denied: Administrator authentication required.',
+      code: 'FORBIDDEN_ADMIN_ACCESS',
+    });
+  };
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -103,8 +166,8 @@ async function startServer() {
     });
   });
 
-  // Supabase PostgreSQL Diagnostic Verification Endpoint
-  app.get('/api/admin/postgres/verify', async (req, res) => {
+  // Supabase PostgreSQL Diagnostic Verification Endpoint (Admin Only)
+  app.get('/api/admin/postgres/verify', requireAdmin, async (req, res) => {
     try {
       const report = await postgresDb.getDiagnosticReport();
       res.json({
@@ -243,16 +306,26 @@ async function startServer() {
   // Admin Specific Role-Based Login
   app.post('/api/auth/admin-login', (req, res) => {
     try {
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+      const rateLimit = checkAdminRateLimit(clientIp);
+      if (!rateLimit.allowed) {
+        return res.status(429).json({
+          error: `Too many failed admin attempts. Account locked for security. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+        });
+      }
+
       const { email, password, adminKey } = req.body;
-      const validAdminEmail = 'prakashsuvedi.backup@gmail.com';
-      const defaultPass = 'admin123';
+      const validAdminEmail = ADMIN_CREDENTIALS.email;
 
-      const isPassValid = password === defaultPass || adminKey === 'nepalai-admin-key';
-      const isEmailValid = email?.toLowerCase() === validAdminEmail || email?.toLowerCase().includes('admin');
+      const isPassValid = (password && password === ADMIN_CREDENTIALS.password) || (adminKey && adminKey === ADMIN_CREDENTIALS.adminKey);
+      const isEmailValid = email?.toLowerCase() === validAdminEmail.toLowerCase() || email?.toLowerCase().includes('admin');
 
-      if (!isPassValid && !isEmailValid) {
+      if (!isPassValid || !isEmailValid) {
+        recordAdminLoginFailure(clientIp);
         return res.status(401).json({ error: 'Invalid admin credentials or secret key' });
       }
+
+      recordAdminLoginSuccess(clientIp);
 
       // Elevate or retrieve admin account
       const adminUser = db.findOrCreateUser(validAdminEmail, 'Prakash Suvedi (Admin)', undefined);
@@ -675,7 +748,7 @@ async function startServer() {
     try {
       const azureKey = getAzureOpenAIKey();
       const hasKey = Boolean(azureKey && azureKey.length > 5);
-      const keyPrefix = hasKey ? azureKey.slice(0, 7) + '...' : 'none';
+      const keyPrefix = hasKey ? 'azure_••••••••' : 'none';
 
       let soraEndpointStatus = 'untested';
       let soraModelAvailable = false;
@@ -733,7 +806,7 @@ async function startServer() {
   // Audio / TTS Synthesis Endpoint (Hugging Face / SpeechT5)
   app.post('/api/generate/audio', async (req, res) => {
     try {
-      const { userId, text, voiceId, language, emotion, deliveryStyle } = req.body;
+      const { userId, text, voiceId, language, emotion, deliveryStyle, speed, volume, pitch, phoneticDict } = req.body;
       if (!userId || !text) {
         return res.status(400).json({ error: 'User ID and text are required' });
       }
@@ -749,7 +822,7 @@ async function startServer() {
         });
       }
 
-      const result = await serverGenerateAudio(text, voiceId, language, emotion || 'neutral', deliveryStyle || 'general');
+      const result = await serverGenerateAudio(text, voiceId, language, emotion || 'neutral', deliveryStyle || 'general', speed, volume, pitch, phoneticDict);
       db.recordGeneration(userId, 'audio', text, result.url, result.voice, duration);
 
       const user = db.getUserById(userId);
@@ -1016,6 +1089,13 @@ async function startServer() {
           proStudioNpr: config.proStudioNpr,
           fonepayMerchantCode: config.fonepayMerchantCode,
           storageProvider: config.storageProvider || 'local',
+          supabaseUrl: config.supabaseUrl || '',
+          supabaseBucket: config.supabaseBucket || '',
+          youtubeClientId: config.youtubeClientId ? `${config.youtubeClientId.substring(0, 10)}...` : '',
+          // Mask secret keys securely - never send them in plain text!
+          fonepaySecretKey: config.fonepaySecretKey ? '••••••••••••••••' : '',
+          youtubeClientSecret: config.youtubeClientSecret ? '••••••••••••••••' : '',
+          supabaseAnonKey: config.supabaseAnonKey ? '••••••••••••••••' : '',
         },
       });
     } catch (err: any) {
@@ -1097,8 +1177,8 @@ async function startServer() {
     }
   });
 
-  // Automated Daily Reset Audit Service Endpoint
-  app.get('/api/admin/daily-reset-audit', (req, res) => {
+  // Automated Daily Reset Audit Service Endpoint (Admin Only)
+  app.get('/api/admin/daily-reset-audit', requireAdmin, (req, res) => {
     try {
       const auditResult = db.runDailyResetAuditService();
       res.json({
@@ -1135,8 +1215,8 @@ async function startServer() {
     }
   });
 
-  // Update Admin Pricing & FonePay Merchant Settings
-  app.post('/api/admin/pricing', (req, res) => {
+  // Update Admin Pricing & FonePay Merchant Settings (Admin Only)
+  app.post('/api/admin/pricing', requireAdmin, (req, res) => {
     try {
       const {
         nprExchangeRate,
@@ -1153,19 +1233,26 @@ async function startServer() {
         supabaseBucket,
       } = req.body;
 
+      const isNewSecret = (val: any) => {
+        if (!val || typeof val !== 'string') return false;
+        const trimmed = val.trim();
+        if (trimmed === '' || trimmed.includes('••') || trimmed.includes('***') || trimmed === '[MASKED]') return false;
+        return true;
+      };
+
       const updated = db.updatePricingConfig({
         ...(typeof nprExchangeRate === 'number' ? { nprExchangeRate } : {}),
         ...(typeof starterNpr === 'number' ? { starterNpr } : {}),
         ...(typeof creatorNpr === 'number' ? { creatorNpr } : {}),
         ...(typeof proStudioNpr === 'number' ? { proStudioNpr } : {}),
         ...(fonepayMerchantCode ? { fonepayMerchantCode } : {}),
-        ...(fonepaySecretKey ? { fonepaySecretKey } : {}),
-        ...(youtubeClientId ? { youtubeClientId } : {}),
-        ...(youtubeClientSecret ? { youtubeClientSecret } : {}),
+        ...(isNewSecret(fonepaySecretKey) ? { fonepaySecretKey: fonepaySecretKey.trim() } : {}),
+        ...(youtubeClientId ? { youtubeClientId: youtubeClientId.trim() } : {}),
+        ...(isNewSecret(youtubeClientSecret) ? { youtubeClientSecret: youtubeClientSecret.trim() } : {}),
         ...(storageProvider ? { storageProvider } : {}),
-        ...(supabaseUrl ? { supabaseUrl } : {}),
-        ...(supabaseAnonKey ? { supabaseAnonKey } : {}),
-        ...(supabaseBucket ? { supabaseBucket } : {}),
+        ...(supabaseUrl ? { supabaseUrl: supabaseUrl.trim() } : {}),
+        ...(isNewSecret(supabaseAnonKey) ? { supabaseAnonKey: supabaseAnonKey.trim() } : {}),
+        ...(supabaseBucket ? { supabaseBucket: supabaseBucket.trim() } : {}),
       });
 
       storageBucket.updateConfig({
@@ -1175,9 +1262,26 @@ async function startServer() {
         supabaseBucket: updated.supabaseBucket,
       });
 
+      // Securely sanitize & mask pricing config returned to client
+      const sanitizedConfig = {
+        nprExchangeRate: updated.nprExchangeRate,
+        starterNpr: updated.starterNpr,
+        creatorNpr: updated.creatorNpr,
+        proStudioNpr: updated.proStudioNpr,
+        fonepayMerchantCode: updated.fonepayMerchantCode,
+        storageProvider: updated.storageProvider || 'local',
+        supabaseUrl: updated.supabaseUrl || '',
+        supabaseBucket: updated.supabaseBucket || '',
+        youtubeClientId: updated.youtubeClientId ? `${updated.youtubeClientId.substring(0, 10)}...` : '',
+        // Mask secret keys securely - never send them in plain text!
+        fonepaySecretKey: updated.fonepaySecretKey ? '••••••••••••••••' : '',
+        youtubeClientSecret: updated.youtubeClientSecret ? '••••••••••••••••' : '',
+        supabaseAnonKey: updated.supabaseAnonKey ? '••••••••••••••••' : '',
+      };
+
       res.json({
         success: true,
-        config: updated,
+        config: sanitizedConfig,
         message: 'Admin pricing & gateway credentials updated successfully.',
       });
     } catch (err: any) {
@@ -1437,13 +1541,17 @@ async function startServer() {
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
 
+    const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
+    const user = userId ? db.getUserById(userId) : null;
+    const isAdmin = user?.role === 'admin';
+
     res.json({
       success: true,
       authUrl,
       redirectUri,
       configured: Boolean(clientId && clientId.length > 5),
       hasClientSecret: hasSecret,
-      rawClientId: clientId,
+      rawClientId: isAdmin ? clientId : undefined,
       clientIdMasked: clientId ? `${clientId.substring(0, 10)}...apps.googleusercontent.com` : '',
     });
   });
@@ -1472,6 +1580,32 @@ async function startServer() {
       configured: Boolean(updated.youtubeClientId && updated.youtubeClientId.length > 5),
       message: 'YouTube OAuth credentials configured successfully',
     });
+  });
+
+  // Verify manual YouTube access token server-side to avoid CORS blocks
+  app.post('/api/youtube/verify-token', async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: 'Token is required' });
+      }
+
+      const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!channelRes.ok) {
+        const errData = await channelRes.json().catch(() => ({}));
+        return res.status(channelRes.status).json({
+          error: errData.error?.message || `Access token rejected by YouTube API (HTTP ${channelRes.status})`
+        });
+      }
+
+      const data = await channelRes.json();
+      return res.json(data);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Token verification failed' });
+    }
   });
 
   // YouTube OAuth Popup Callback (GET - Redirected by Google OAuth)
@@ -1902,9 +2036,9 @@ async function startServer() {
   });
 
   // ==========================================
-  // COMPREHENSIVE STUDIO SUITE VERIFICATION ENDPOINT
+  // COMPREHENSIVE STUDIO SUITE VERIFICATION ENDPOINT (Admin Only)
   // ==========================================
-  app.get('/api/admin/verify-studio-suite', async (req, res) => {
+  app.get('/api/admin/verify-studio-suite', requireAdmin, async (req, res) => {
     const report: any = {
       timestamp: new Date().toISOString(),
       testsPassed: 0,
@@ -2004,8 +2138,8 @@ async function startServer() {
 
 
 
-  // Get all users, token usage, and client transactions
-  app.get('/api/admin/users', (req, res) => {
+  // Get all users, token usage, and client transactions (Admin Only)
+  app.get('/api/admin/users', requireAdmin, (req, res) => {
     try {
       const usersWithStats = db.getAllUsersWithStats();
       const transactions = db.getAllTransactions();
@@ -2029,8 +2163,8 @@ async function startServer() {
     }
   });
 
-  // Admin user adjustment (add credits, change tier, reset trial)
-  app.post('/api/admin/user/:id/update', (req, res) => {
+  // Admin user adjustment (add credits, change tier, reset trial) (Admin Only)
+  app.post('/api/admin/user/:id/update', requireAdmin, (req, res) => {
     try {
       const { id } = req.params;
       const { credits, tier, resetTrial } = req.body;

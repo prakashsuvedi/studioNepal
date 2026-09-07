@@ -184,13 +184,39 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
       );
       
       if (data && data.result && data.result.url) {
-        setGeneratedImageUrl(data.result.url);
+        const generatedUrl = data.result.url;
+        setGeneratedImageUrl(generatedUrl);
         setGenerationMetadata({
           engine: data.result.engine,
           resolution: data.result.resolution || (aspectRatio === '16:9' ? '1024x576' : aspectRatio === '9:16' ? '576x1024' : aspectRatio === '4:5' ? '800x1000' : '1024x1024'),
         });
         if (onUsageUpdated && data.trialUsage) {
           onUsageUpdated(data.trialUsage, data.remainingCredits);
+        }
+
+        // Auto-add directly to Video Studio timeline & navigate to video studio
+        const newScene: Scene = {
+          id: 'scene-' + Math.random().toString(36).substring(2, 9),
+          title: promptText.slice(0, 24) || 'Generated Image Scene',
+          duration: 4,
+          prompt: promptText,
+          promptNepali: hasDevanagari ? promptText : canvasSubtitle || promptText,
+          mediaUrl: generatedUrl,
+          mediaType: 'image',
+          aspectRatio,
+          motion: 'pan_right',
+          transition: 'fade',
+          textOverlay: (canvasSubtitle || promptText).slice(0, 32),
+          textNepali: (hasDevanagari ? promptText : canvasSubtitle).slice(0, 32),
+          textPosition: 'lower_third',
+          textColor: '#ffffff',
+          textFont: 'devanagari',
+          filter: 'cinematic',
+          volume: 80
+        };
+        onAddSceneToVideo(newScene);
+        if (onNavigateToTimeline) {
+          onNavigateToTimeline();
         }
       } else {
         throw new Error('No image returned from generation pipeline');

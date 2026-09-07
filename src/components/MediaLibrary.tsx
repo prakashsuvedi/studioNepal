@@ -89,6 +89,13 @@ const PREDEFINED_PRODUCTION_ASSETS: MediaAssetItem[] = [
   },
   // Watermarks
   {
+    id: 'wm-hamroai-spire',
+    title: 'HamroAI Spire Core',
+    category: 'watermark',
+    url: '/logo.jpg',
+    tags: ['watermark', 'logo', 'hamroai', 'spire']
+  },
+  {
     id: 'wm-nepalai-gold',
     title: 'NepalAI Gold Emblem',
     category: 'watermark',

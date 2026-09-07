@@ -50,7 +50,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const fetchDailyResetAudit = async () => {
     setResetAuditLoading(true);
     try {
-      const res = await fetch('/api/admin/daily-reset-audit');
+      const savedUserId = localStorage.getItem('nepalai_user_id') || '';
+      const res = await fetch('/api/admin/daily-reset-audit', {
+        headers: { 'x-user-id': savedUserId },
+      });
       const data = await res.json();
       if (data.success) {
         setResetAuditData(data.audit);
@@ -73,7 +76,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     creatorNpr: 6500,
     proStudioNpr: 16500,
     fonepayMerchantCode: 'NEPALAI01',
-    fonepaySecretKey: 'fonepay_secret_key_nepalai_2026',
+    fonepaySecretKey: '',
     youtubeClientId: '',
     youtubeClientSecret: '',
     storageProvider: 'local',
@@ -97,9 +100,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     e.preventDefault();
     setSavingPricing(true);
     try {
+      const savedUserId = localStorage.getItem('nepalai_user_id') || '';
       const res = await fetch('/api/admin/pricing', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': savedUserId,
+        },
         body: JSON.stringify(pricingForm),
       });
       const data = await res.json();

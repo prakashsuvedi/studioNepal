@@ -76,7 +76,12 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
     setIsLoadingConfig(true);
     setAuthError(null);
     try {
-      const res = await fetch('/api/youtube/auth-url');
+      const savedUserId = localStorage.getItem('nepalai_user_id') || '';
+      const res = await fetch('/api/youtube/auth-url', {
+        headers: {
+          'x-user-id': savedUserId,
+        },
+      });
       const data = await res.json();
       if (data.success) {
         setAuthConfig({
@@ -172,14 +177,16 @@ export const YouTubeConnectModal: React.FC<YouTubeConnectModalProps> = ({
     setAuthError(null);
 
     try {
-      // Query YouTube Channels API with the token to verify permissions and fetch channel identity
-      const res = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true', {
-        headers: { Authorization: `Bearer ${token}` }
+      // Query YouTube Channels API through our secure server proxy to bypass CORS
+      const res = await fetch('/api/youtube/verify-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `Access token rejected by YouTube API (HTTP ${res.status})`);
+        throw new Error(errData.error || `Access token rejected by YouTube API (HTTP ${res.status})`);
       }
 
       const data = await res.json();

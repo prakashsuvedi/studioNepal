@@ -168,6 +168,14 @@ export const PREDEFINED_STOCK_ASSETS = [
 
 export const PREDEFINED_WATERMARKS: SceneWatermark[] = [
   {
+    assetId: 'wm-hamro-ai',
+    name: 'HamroAI Spire Core Seal',
+    url: '/logo.jpg',
+    position: 'bottom-right',
+    opacity: 0.9,
+    scale: 0.25,
+  },
+  {
     assetId: 'wm-nepal-ai',
     name: 'NepalAI Official Gold Seal',
     url: 'https://api.dicebear.com/7.x/identicon/svg?seed=NepalAIStudioGold',

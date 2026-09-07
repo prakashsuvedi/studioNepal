@@ -7,6 +7,7 @@ interface VoiceWaveformVisualizerProps {
   isPlaying?: boolean;
   onPlayToggle?: () => void;
   sceneMarkers?: { title: string; time: number; duration: number }[];
+  scriptText?: string;
 }
 
 export const VoiceWaveformVisualizer: React.FC<VoiceWaveformVisualizerProps> = ({
@@ -19,6 +20,7 @@ export const VoiceWaveformVisualizer: React.FC<VoiceWaveformVisualizerProps> = (
     { title: 'Scene 2: Himalayan Peaks', time: 4, duration: 4.5 },
     { title: 'Scene 3: Pokhara Sunrise', time: 8.5, duration: 3.5 },
   ],
+  scriptText = '',
 }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -27,14 +29,74 @@ export const VoiceWaveformVisualizer: React.FC<VoiceWaveformVisualizerProps> = (
 
   // Generate deterministic waveform peaks
   const numBars = Math.floor(64 * zoomLevel);
-  const peaks = useRef<number[]>([]);
-  if (peaks.current.length !== numBars) {
-    peaks.current = Array.from({ length: numBars }, (_, i) => {
-      const base = Math.sin(i * 0.25) * 0.4 + 0.5;
-      const noise = (Math.sin(i * 1.7) + Math.cos(i * 0.9)) * 0.2;
-      return Math.min(1, Math.max(0.15, base + noise));
+  
+  const computedPeaks = React.useMemo(() => {
+    if (!scriptText) {
+      // Default deterministic speech wave
+      return Array.from({ length: numBars }, (_, i) => {
+        const base = Math.sin(i * 0.25) * 0.4 + 0.5;
+        const noise = (Math.sin(i * 1.7) + Math.cos(i * 0.9)) * 0.2;
+        return Math.min(1, Math.max(0.15, base + noise));
+      });
+    }
+
+    // Tokenize scriptText into text segments and pause segments
+    const tokens: { type: 'text' | 'pause'; durationWeight: number; val?: string }[] = [];
+    const regex = /\[Pause:\s*([0-9\.]+(s|ms))\]/gi;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(scriptText)) !== null) {
+      const textSegment = scriptText.substring(lastIndex, match.index);
+      if (textSegment.trim()) {
+        tokens.push({ type: 'text', durationWeight: Math.max(1, textSegment.length), val: textSegment });
+      }
+      const pauseDurationStr = match[1].toLowerCase();
+      let seconds = 1.0;
+      if (pauseDurationStr.endsWith('ms')) {
+        seconds = parseFloat(pauseDurationStr) / 1000;
+      } else if (pauseDurationStr.endsWith('s')) {
+        seconds = parseFloat(pauseDurationStr);
+      }
+      tokens.push({ type: 'pause', durationWeight: seconds * 15 }); // scaling factor for pauses
+      lastIndex = regex.lastIndex;
+    }
+
+    const remainingText = scriptText.substring(lastIndex);
+    if (remainingText.trim()) {
+      tokens.push({ type: 'text', durationWeight: Math.max(1, remainingText.length), val: remainingText });
+    }
+
+    // Total weight to distribute across numBars
+    const totalWeight = tokens.reduce((sum, t) => sum + t.durationWeight, 0);
+    const bars: number[] = [];
+
+    if (totalWeight === 0) {
+      return Array.from({ length: numBars }, () => 0.15);
+    }
+
+    tokens.forEach((token) => {
+      const share = Math.round((token.durationWeight / totalWeight) * numBars);
+      for (let k = 0; k < share; k++) {
+        if (token.type === 'pause') {
+          // Flatline silence block
+          bars.push(0.04);
+        } else {
+          // Speech wavy amplitude peaks
+          const idx = bars.length;
+          const base = Math.sin(idx * 0.4) * 0.35 + 0.55;
+          const noise = (Math.sin(idx * 2.1) + Math.cos(idx * 1.1)) * 0.15;
+          bars.push(Math.min(0.95, Math.max(0.2, base + noise)));
+        }
+      }
     });
-  }
+
+    // Pad or trim to match numBars
+    while (bars.length < numBars) {
+      bars.push(0.15);
+    }
+    return bars.slice(0, numBars);
+  }, [scriptText, numBars]);
 
   // Animation loop when playing
   useEffect(() => {
@@ -152,7 +214,7 @@ export const VoiceWaveformVisualizer: React.FC<VoiceWaveformVisualizerProps> = (
 
           {/* Waveform Amplitude Bars */}
           <div className="flex items-center justify-between w-full h-full gap-0.5 z-10 py-3">
-            {peaks.current.map((peak, idx) => {
+            {computedPeaks.map((peak, idx) => {
               const barTime = (idx / numBars) * duration;
               const isPlayed = barTime <= currentTime;
 

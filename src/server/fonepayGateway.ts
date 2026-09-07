@@ -45,8 +45,8 @@ export class FonePayGatewayService {
 
   constructor() {
     this.config = {
-      merchantPid: process.env.FONEPAY_MERCHANT_PID || 'NEPALAI_STUDIO_TEST',
-      secretKey: process.env.FONEPAY_SECRET_KEY || 'nepalai_fonepay_secret_key_2026',
+      merchantPid: process.env.FONEPAY_MERCHANT_PID || 'NEPALAI_STUDIO_MERCHANT',
+      secretKey: process.env.FONEPAY_SECRET_KEY || '',
       usdToNprRate: Number(process.env.NPR_EXCHANGE_RATE) || 135,
       environment: (process.env.FONEPAY_ENV as any) || 'LIVE',
       qrBaseUrl: 'https://dev-fonepay.veriskft.com.np/api/merchantRequest',

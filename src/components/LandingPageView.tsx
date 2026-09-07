@@ -36,13 +36,19 @@ import {
   Clock,
   Tv,
   HelpCircle,
-  HeartHandshake
+  HeartHandshake,
+  Megaphone,
+  Target,
+  Laptop,
+  Wand2,
+  Camera
 } from 'lucide-react';
 import { UserSession } from '../types';
 import { InteractiveStudioPlayer } from './InteractiveStudioPlayer';
 import { ViralTemplatesSection } from './ViralTemplatesSection';
 import { ViralTemplate } from '../data/viralTemplates';
 import { useLanguage } from '../context/LanguageContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface LandingPageViewProps {
   user: UserSession | null;
@@ -64,19 +70,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onSelectPlan,
   onSelectTemplate,
 }) => {
-  const { language: globalLang, setLanguage: setGlobalLanguage } = useLanguage();
-  const [lang, setLang] = useState<LangMode>(() => {
-    if (globalLang === 'ne' || globalLang === 'hi' || globalLang === 'en') {
-      return globalLang;
-    }
-    return 'en';
-  });
-
-  useEffect(() => {
-    if (globalLang === 'ne' || globalLang === 'hi' || globalLang === 'en') {
-      setLang(globalLang);
-    }
-  }, [globalLang]);
+  const { language, setLanguage } = useLanguage();
+  const lang: LangMode = (language === 'ne' || language === 'hi' || language === 'en') ? language : 'en';
   const [activePersona, setActivePersona] = useState<PersonaType>('creators');
   const [activeDemo, setActiveDemo] = useState<'video' | 'shorts' | 'business' | 'voice'>('video');
   const [videoCount, setVideoCount] = useState<number>(15);
@@ -108,13 +103,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   // Multi-lingual Text Matrix for Global, Nepali and Hindi visitors
   const t = {
     en: {
-      badge: "Viral Content & Business Studio • Monetize Everywhere",
-      heroTitle1: "Make Viral YouTube Videos, Reels & TikToks.",
-      heroTitleHighlight: "Monetize & Earn.",
-      heroTitle2: "Scale Your Business Without An Agency.",
-      heroSubtitle: "Turn ideas into high-converting videos, YouTube Shorts, and cinematic reels in seconds. For creators who want to get monetized, businesses who want to save lakhs on agencies, and freelancers building an online earning studio.",
+      badge: "The Platform You Know. Enhanced for the Creators of Tomorrow.",
+      heroTitle1: "REDEFINING",
+      heroTitleHighlight: "YOUR DIGITAL",
+      heroTitle2: "DOMINANCE",
+      heroSubtitle: "THE ULTIMATE ECOSYSTEM FOR CREATORS, BRANDS, & FREELANCERS",
       sastaCta: "Buy Micro-Credits Pass (रू 50)",
-      freeTrialCta: "Start Free Trial (No Card Needed)",
+      freeTrialCta: "START FOR FREE",
       launchStudioCta: "Launch Video Studio",
       hamroAiCta: "HamroAI Multi-lingual Assistant",
       viralStat: "1,250,000+ views generated on YouTube, Reels & TikTok",
@@ -127,13 +122,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       calcSubtitle: "See how creating consistent videos with NepalAI studio unlocks real revenue.",
     },
     ne: {
-      badge: "युट्युब, रील्स र भाइरल भिडियो स्टुडियो • आजै कमाउन सुरु गर्नुहोस्",
-      heroTitle1: "युट्युब भिडियो, रील्स र टिकटक बनाउनुहोस्,",
-      heroTitleHighlight: "भाइरल बन्नुहोस् र कमाउनुहोस्!",
-      heroTitle2: "विजनेसका लागि कुनै डिजिटल एजेन्सी चाहिँदैन।",
-      heroSubtitle: "आफ्नै हातले सिनेमा-स्तरका भिडियोहरू, युट्युब सर्ट्स र इन्स्टा रील्स मिनेटमै बनाउनुहोस्। युट्युबर बन्न, विजनेसको बिक्री १० गुणा बढाउन, र फ्रिलान्सरहरूलाई घरमै बसी डलर कमाउन नेपालको पहिलो सम्पूर्ण एआई स्टुडियो!",
+      badge: "तपाईंले चिनेको स्टुडियो • अब नयाँ डिजिटल शक्तिका साथ!",
+      heroTitle1: "डिजिटल प्रगतिको",
+      heroTitleHighlight: "नयाँ शक्ति र",
+      heroTitle2: "आधुनिक पहिचान",
+      heroSubtitle: "क्रिएटर, विजनेस र फ्रिलान्सरहरूको लागि सम्पूर्ण एआई इकोसिस्टम",
       sastaCta: "सस्तो पास लिनुहोस् (रू ५० मात्र)",
-      freeTrialCta: "निःशुल्क सुरु गर्नुहोस् (कार्ड चाहिँदैन)",
+      freeTrialCta: "निःशुल्क सुरु गर्नुहोस् (START FOR FREE)",
       launchStudioCta: "भिडियो स्टुडियो खोल्नुहोस्",
       hamroAiCta: "हाम्रो एआई च्याट",
       viralStat: "१२ लाख ५० हजार भन्दा बढी युट्युब र रील्स भ्युज",
@@ -146,13 +141,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       calcSubtitle: "हेर्नुहोस् नियमित भिडियो बनाउँदा कति आम्दानी र एजेन्सी खर्च बचत हुन्छ।",
     },
     hi: {
-      badge: "यूट्यूब, रील्स और टिकटॉक वायरल स्टूडियो • आज ही कमाई शुरू करें",
-      heroTitle1: "यूट्यूब वीडियो, रील्स और टिकटॉक बनाएं,",
-      heroTitleHighlight: "वायरल हों और कमाई करें!",
-      heroTitle2: "बिज़नेस के लिए किसी डिजिटल एजेंसी की ज़रूरत नहीं।",
-      heroSubtitle: "आसानी से 4K सिनेमा-ग्रेड वीडियो, यूट्यूब शॉर्ट्स और वायरल रील्स बनाएं। यूट्यूबर्स के लिए मोनेटाइजेशन, बिज़नेस के लिए लाखों की बचत, और फ्रीलांसर्स के लिए घर बैठे डॉलर कमाने का सबसे पावरफुल एआई स्टूडियो!",
+      badge: "आपका जाना-पहचाना प्लेटफ़ॉर्म • अब और भी पावरफुल!",
+      heroTitle1: "डिजिटल डॉमिनेंस",
+      heroTitleHighlight: "की नई शुरुआत और",
+      heroTitle2: "अल्टीमेट ग्रोथ",
+      heroSubtitle: "क्रिएटर्स, ब्रांड्स और फ्रीलांसर्स के लिए संपूर्ण एआई इकोसिस्टम",
       sastaCta: "सस्ता पास खरीदें (मात्र रू 50)",
-      freeTrialCta: "फ्री में शुरू करें (कोई कार्ड नहीं चाहिए)",
+      freeTrialCta: "मुफ़्त शुरू करें (START FOR FREE)",
       launchStudioCta: "वीडियो स्टूडियो खोलें",
       hamroAiCta: "हाम्रो एआई चैट",
       viralStat: "12,50,000+ से अधिक यूट्यूब और रील्स व्यूज",
@@ -184,13 +179,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <div className="absolute top-48 left-1/3 w-80 h-80 bg-amber-500/25 rounded-full mix-blend-screen" />
       </div>
 
-      {/* Language Bar & Trust Pill Header */}
-      <div className="border-b border-slate-900/80 bg-slate-950/70 backdrop-blur-md sticky top-0 z-30 px-4 py-2.5">
+      {/* Trust & Live Engine Status Header Ticker */}
+      <div className="border-b border-slate-900/90 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30 px-4 py-2">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Tagline ticker */}
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="font-semibold text-white hidden sm:inline">NepalAI Studio:</span>
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <span className="font-bold text-white hidden sm:inline">NepalAI Studio:</span>
             <span className="text-slate-300 truncate">
               {lang === 'ne' 
                 ? 'युट्युब, रील्स, विजनेस र फ्रिलान्सिङका लागि नेपालको अग्रणी एआई स्टुडियो'
@@ -200,77 +195,330 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </span>
           </div>
 
-          {/* Interactive Language Selector Toggle */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-0.5 text-xs shadow-inner">
-            <button
-              onClick={() => setLang('en')}
-              className={`px-3 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                lang === 'en' ? 'bg-rose-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>English</span>
-            </button>
-            <button
-              onClick={() => setLang('ne')}
-              className={`px-3 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                lang === 'ne' ? 'bg-rose-600 text-white font-bold shadow font-nepali' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>नेपाली</span>
-            </button>
-            <button
-              onClick={() => setLang('hi')}
-              className={`px-3 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                lang === 'hi' ? 'bg-rose-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>हिन्दी</span>
-            </button>
+          {/* Language Switcher & Real-Time Live Status Pill */}
+          <div className="flex items-center flex-wrap gap-2 text-[11px] font-semibold text-slate-300">
+            <LanguageSwitcher variant="landing" />
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-cyan-300 shadow-inner">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+              <span>Azure gpt-image-1.5 + Sora-2</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-800/50 text-amber-300">
+              <span>🇳🇵 NPR Ready</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-12 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8">
-        {/* Top announcement pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-rose-500/30 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-rose-950/20">
-          <Flame className="w-4 h-4 text-rose-500 fill-rose-500 shrink-0" />
+      <section className="relative pt-6 sm:pt-10 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8 overflow-hidden">
+        {/* Top Upgrade Announcement Pill */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/40 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-cyan-950/40 animate-float-pulse">
+          <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400/20 shrink-0" />
           <span className="font-semibold text-white">{t.badge}</span>
-          <span className="text-slate-600">•</span>
-          <span className="text-amber-400 font-bold hidden md:inline">Sora-2 + FLUX.1 + HamroAI Multi-lingual</span>
+          <span className="text-slate-600 hidden sm:inline">•</span>
+          <span className="text-cyan-400 font-bold hidden sm:inline">NepalAI Studio 2.0</span>
         </div>
 
-        {/* Display Headline */}
-        <div className="max-w-4xl mx-auto space-y-4">
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.15]">
-            <span>{t.heroTitle1} </span>
-            <span className="bg-gradient-to-r from-rose-500 via-amber-400 to-indigo-400 bg-clip-text text-transparent underline decoration-rose-500/40 decoration-4">
-              {t.heroTitleHighlight}
-            </span>
-            <span className="block mt-2 text-2xl sm:text-4xl lg:text-5xl text-slate-200 font-extrabold">
-              {t.heroTitle2}
-            </span>
-          </h1>
-          
-          <p className="text-base sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed pt-2">
-            {t.heroSubtitle}
-          </p>
+        {/* Hero Central Area with 3D Orbital Constellation */}
+        <div className="relative max-w-6xl mx-auto py-6 sm:py-10 min-h-[480px] lg:min-h-[540px] flex items-center justify-center">
+          {/* Glowing Elliptical Orbital Light Trails SVG */}
+          <div className="absolute inset-0 w-full h-full pointer-events-none select-none flex items-center justify-center -z-10">
+            <svg
+              viewBox="0 0 1000 600"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-full h-full max-w-5xl opacity-75 animate-orbit-glow"
+            >
+              <defs>
+                <linearGradient id="orbitGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
+                  <stop offset="40%" stopColor="#3b82f6" stopOpacity="0.4" />
+                  <stop offset="70%" stopColor="#a855f7" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#ec4899" stopOpacity="0.7" />
+                </linearGradient>
+                <linearGradient id="orbitGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
+                  <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0.5" />
+                </linearGradient>
+                <filter id="glowFilter" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="8" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
 
-          {/* Quick Trilingual Key Highlights Pill Box */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs font-semibold">
-            <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-rose-300 flex items-center gap-1.5">
-              <Youtube className="w-3.5 h-3.5 text-red-500" /> YouTube 16:9 & Shorts
-            </span>
-            <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-indigo-300 flex items-center gap-1.5">
-              <Instagram className="w-3.5 h-3.5 text-pink-500" /> Instagram Reels & TikTok
-            </span>
-            <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-amber-300 flex items-center gap-1.5">
-              <Store className="w-3.5 h-3.5 text-amber-400" /> No Digital Agency Needed
-            </span>
-            <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-emerald-300 flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-emerald-400" /> Freelancer Earning Studio
-            </span>
+              {/* Main Outer Orbital Ellipse */}
+              <ellipse
+                cx="500"
+                cy="300"
+                rx="440"
+                ry="210"
+                stroke="url(#orbitGrad1)"
+                strokeWidth="2.5"
+                strokeDasharray="8 6"
+                filter="url(#glowFilter)"
+              />
+
+              {/* Inner Secondary Sweeping Light Ring */}
+              <ellipse
+                cx="500"
+                cy="300"
+                rx="390"
+                ry="170"
+                stroke="url(#orbitGrad2)"
+                strokeWidth="1.8"
+                opacity="0.65"
+              />
+
+              {/* Ambient Glow Circles & Starbursts */}
+              <circle cx="160" cy="190" r="3" fill="#38bdf8" filter="url(#glowFilter)" />
+              <circle cx="210" cy="420" r="4" fill="#a855f7" filter="url(#glowFilter)" />
+              <circle cx="820" cy="180" r="3.5" fill="#34d399" filter="url(#glowFilter)" />
+              <circle cx="780" cy="440" r="4" fill="#f43f5e" filter="url(#glowFilter)" />
+              <circle cx="500" cy="90" r="2.5" fill="#fbbf24" filter="url(#glowFilter)" />
+              <circle cx="500" cy="510" r="3" fill="#38bdf8" filter="url(#glowFilter)" />
+            </svg>
+          </div>
+
+          {/* LEFT ORBITAL FLANK: 3D Platform Badges */}
+          {/* Left Element 1: 3D YouTube Icon + ENGAGE pill */}
+          <div className="hidden lg:flex absolute top-6 left-0 xl:-left-6 z-20 items-center gap-2 animate-float-slow transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="relative w-16 h-12 sm:w-20 sm:h-14 rounded-2xl bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-0.5 shadow-2xl shadow-red-950/60 card-3d-glow border-t border-red-300/40 flex items-center justify-center">
+              {/* 3D Play Button */}
+              <div className="w-0 h-0 border-y-8 border-y-transparent border-l-[14px] border-l-white drop-shadow-md ml-1" />
+              {/* Glossy overlay */}
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
+            </div>
+            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-slate-200 uppercase shadow-md backdrop-blur-md">
+              ENGAGE
+            </div>
+          </div>
+
+          {/* Left Element 2: 3D TikTok Icon */}
+          <div className="hidden lg:flex absolute top-1/3 -left-4 xl:-left-12 z-20 items-center gap-2 animate-float-reverse transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-black p-0.5 shadow-2xl shadow-cyan-950/50 card-3d-glow border border-slate-700/60 flex items-center justify-center">
+              {/* Neon TikTok Glyph */}
+              <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
+                <path
+                  d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-2.887 2.887 2.896 2.896 0 0 1-2.887-2.887 2.896 2.896 0 0 1 2.887-2.887c.307 0 .604.05.882.141v-3.52a6.34 6.34 0 0 0-.882-.061C5.973 9.345 3.125 12.193 3.125 15.686S5.973 22.027 9.487 22.027c3.514 0 6.362-2.848 6.362-6.341V8.653a8.163 8.163 0 0 0 4.74 1.488V6.697a4.8 4.8 0 0 1-1-.011z"
+                  fill="#00F2FE"
+                />
+                <path
+                  d="M18.589 5.686a4.793 4.793 0 0 1-3.77-4.245V1h-2.445v13.672a2.896 2.896 0 0 1-2.887 2.887 2.896 2.896 0 0 1-2.887-2.887 2.896 2.896 0 0 1 2.887-2.887c.307 0 .604.05.882.141v-2.52a6.34 6.34 0 0 0-.882-.061C6.973 9.345 5.125 12.193 5.125 15.686S6.973 22.027 9.487 22.027c3.514 0 6.362-2.848 6.362-6.341V7.653a8.163 8.163 0 0 0 4.74 1.488V5.697a4.8 4.8 0 0 1-2-.011z"
+                  fill="#FE2C55"
+                  opacity="0.85"
+                />
+              </svg>
+              {/* Glossy top sheen */}
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-2xl pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Left Element 3: 3D Instagram Reels Icon + REELS pill */}
+          <div className="hidden lg:flex absolute bottom-24 -left-6 xl:-left-14 z-20 items-center gap-2 animate-float-pulse transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shadow-2xl shadow-rose-950/60 card-3d-glow border-t border-amber-200/40 flex items-center justify-center">
+              <Instagram className="w-8 h-8 text-white drop-shadow-md" />
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
+            </div>
+            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-pink-300 uppercase shadow-md backdrop-blur-md">
+              REELS
+            </div>
+          </div>
+
+          {/* Left Element 4: 3D Facebook Sphere + CONNECT pill */}
+          <div className="hidden lg:flex absolute -bottom-4 left-4 xl:-left-2 z-20 items-center gap-2 animate-float-drift transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-400 via-blue-600 to-indigo-800 p-0.5 shadow-2xl shadow-blue-950/70 card-3d-glow border-t border-blue-200/50 flex items-center justify-center">
+              <span className="text-2xl font-black text-white drop-shadow leading-none ml-0.5 mt-1 font-sans">
+                f
+              </span>
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent rounded-t-full pointer-events-none" />
+            </div>
+            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-blue-300 uppercase shadow-md backdrop-blur-md">
+              CONNECT
+            </div>
+          </div>
+
+          {/* RIGHT ORBITAL FLANK: 3D Growth, Business & Creators */}
+          {/* Right Element 1: 3D Megaphone Audio Blast + COMPANY GROWING pill */}
+          <div className="hidden lg:flex absolute top-4 right-0 xl:-right-6 z-20 items-center gap-2 animate-float-slow transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-amber-300 uppercase shadow-md backdrop-blur-md">
+              COMPANY GROWING
+            </div>
+            <div className="relative w-16 h-14 sm:w-18 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-blue-600 to-amber-500 p-0.5 shadow-2xl shadow-indigo-950/60 card-3d-glow border-t border-cyan-200/40 flex items-center justify-center">
+              <Megaphone className="w-8 h-8 text-white drop-shadow-lg transform -rotate-12" />
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Right Element 2: 3D Rising Growth Chart & Coins + GROW pill */}
+          <div className="hidden lg:flex absolute top-1/3 -right-6 xl:-right-14 z-20 items-center gap-2 animate-float-reverse transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-emerald-300 uppercase shadow-md backdrop-blur-md">
+              GROW
+            </div>
+            <div className="relative w-16 h-14 sm:w-18 sm:h-16 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-1.5 shadow-2xl shadow-purple-950/60 card-3d-glow border border-purple-500/40 flex flex-col items-center justify-center">
+              {/* 3D Mini Bar Chart with Trending Arrow */}
+              <div className="flex items-end gap-1.5 h-7">
+                <div className="w-2 h-3 bg-amber-400 rounded-t-sm shadow" />
+                <div className="w-2 h-5 bg-rose-500 rounded-t-sm shadow" />
+                <div className="w-2 h-7 bg-cyan-400 rounded-t-sm shadow" />
+              </div>
+              <div className="flex items-center gap-1 mt-0.5 text-[9px] font-extrabold text-emerald-400">
+                <TrendingUp className="w-3 h-3 text-emerald-400" />
+                <span>+480%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Element 3: 3D Camera & Mic + CREATORS pill */}
+          <div className="hidden lg:flex absolute bottom-24 -right-4 xl:-right-12 z-20 items-center gap-2 animate-float-pulse transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-rose-300 uppercase shadow-md backdrop-blur-md">
+              CREATORS
+            </div>
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-700 p-0.5 shadow-2xl shadow-purple-950/60 card-3d-glow border-t border-purple-200/40 flex items-center justify-center">
+              <Camera className="w-7 h-7 text-white drop-shadow-md" />
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Right Element 4: 3D Laptop Deal + FREELANCERS pill */}
+          <div className="hidden lg:flex absolute -bottom-4 right-4 xl:-right-2 z-20 items-center gap-2 animate-float-drift transform hover:scale-105 transition-transform select-none cursor-default group">
+            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-cyan-300 uppercase shadow-md backdrop-blur-md">
+              FREELANCERS
+            </div>
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-0.5 shadow-2xl shadow-indigo-950/70 card-3d-glow border-t border-indigo-200/40 flex items-center justify-center">
+              <Laptop className="w-7 h-7 text-white drop-shadow-md" />
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
+            </div>
+          </div>
+
+          {/* CENTRAL DISPLAY TYPOGRAPHY & HEADLINE (Crisp, Understood, Direct from Reference) */}
+          <div className="max-w-3xl mx-auto space-y-6 px-4 z-10">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white">
+              <span className="block text-slate-100 uppercase text-glow-cyan drop-shadow-2xl">
+                {t.heroTitle1}
+              </span>
+              <span className="block bg-gradient-to-r from-cyan-300 via-sky-200 to-indigo-200 bg-clip-text text-transparent uppercase drop-shadow-[0_4px_30px_rgba(6,182,212,0.4)]">
+                {t.heroTitleHighlight}
+              </span>
+              <span className="block bg-gradient-to-r from-indigo-300 via-purple-200 to-rose-300 bg-clip-text text-transparent uppercase drop-shadow-[0_4px_30px_rgba(168,85,247,0.4)]">
+                {t.heroTitle2}
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-sm md:text-base font-bold tracking-widest text-cyan-300/90 uppercase max-w-2xl mx-auto leading-relaxed border-t border-b border-cyan-500/20 py-2.5">
+              {t.heroSubtitle}
+            </p>
+
+            {/* Prominent Glowing Pill CTA Button: START FOR FREE */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+              {user ? (
+                <button
+                  onClick={onLaunchStudio}
+                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-sm sm:text-base shadow-[0_0_35px_rgba(6,182,212,0.5)] transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-cyan-400/50"
+                >
+                  <Film className="w-5 h-5 text-cyan-200" />
+                  <span>{t.launchStudioCta}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => onSelectPlan('free')}
+                  className="w-full sm:w-auto px-10 py-4 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-base sm:text-lg shadow-[0_0_35px_rgba(6,182,212,0.5)] transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-cyan-300/60 uppercase tracking-wider"
+                >
+                  <Sparkles className="w-5 h-5 text-cyan-200 fill-cyan-200" />
+                  <span>{t.freeTrialCta}</span>
+                  <ArrowRight className="w-5 h-5 text-cyan-200" />
+                </button>
+              )}
+
+              {/* Micro-Credits NPR 50 Quick Entry Pass */}
+              <button
+                onClick={() => onSelectPlan('sasta_50_npr')}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-slate-900/95 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm border border-amber-500/40 shadow-lg shadow-amber-950/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Zap className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
+                <span>{t.sastaCta}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-extrabold uppercase tracking-wider border border-amber-400/40">
+                  FonePay / eSewa
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 8-Pill Ecosystem Grid (Responsive for Mobile, Tablet & Desktop) */}
+        <div className="pt-2 max-w-4xl mx-auto">
+          <div className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mb-2.5 flex items-center justify-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Integrated Content & Monetization Platforms</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-semibold">
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-rose-300 flex items-center gap-2.5 hover:border-red-500/40 transition">
+              <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">YouTube</span>
+                <span className="text-[10px] text-slate-400">Engage & Shorts</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-cyan-300 flex items-center gap-2.5 hover:border-cyan-500/40 transition">
+              <Smartphone className="w-4 h-4 text-cyan-400 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">TikTok</span>
+                <span className="text-[10px] text-slate-400">Viral 9:16</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-pink-300 flex items-center gap-2.5 hover:border-pink-500/40 transition">
+              <Instagram className="w-4 h-4 text-pink-500 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">Instagram</span>
+                <span className="text-[10px] text-slate-400">Reels & Reach</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-blue-300 flex items-center gap-2.5 hover:border-blue-500/40 transition">
+              <Share2 className="w-4 h-4 text-blue-400 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">Facebook</span>
+                <span className="text-[10px] text-slate-400">Connect & Groups</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-amber-300 flex items-center gap-2.5 hover:border-amber-500/40 transition">
+              <Megaphone className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">Company Ads</span>
+                <span className="text-[10px] text-slate-400">High ROAS Ads</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-indigo-300 flex items-center gap-2.5 hover:border-indigo-500/40 transition">
+              <TrendingUp className="w-4 h-4 text-indigo-400 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">Scale & Grow</span>
+                <span className="text-[10px] text-slate-400">Zero Agency Cost</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-rose-300 flex items-center gap-2.5 hover:border-rose-500/40 transition">
+              <Camera className="w-4 h-4 text-rose-400 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">Creators</span>
+                <span className="text-[10px] text-slate-400">Monetize Studio</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-emerald-300 flex items-center gap-2.5 hover:border-emerald-500/40 transition">
+              <Briefcase className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="truncate text-left">
+                <span className="text-white block font-bold leading-tight">Freelance</span>
+                <span className="text-[10px] text-slate-400">Earn $ & रू</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1517,8 +1765,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <a href="#pricing" className="hover:text-white transition">
               Pricing Plans
             </a>
-            <button onClick={() => setLang(lang === 'en' ? 'ne' : lang === 'ne' ? 'hi' : 'en')} className="hover:text-white transition cursor-pointer flex items-center gap-1">
-              <Globe className="w-3 h-3" />
+            <button onClick={() => setLanguage(lang === 'en' ? 'ne' : lang === 'ne' ? 'hi' : 'en')} className="hover:text-white transition cursor-pointer flex items-center gap-1">
+              <Globe className="w-3 h-3 text-cyan-400" />
               <span>{lang === 'en' ? 'नेपालीमा हेर्नुहोस्' : lang === 'ne' ? 'हिन्दी में देखें' : 'View in English'}</span>
             </button>
           </div>

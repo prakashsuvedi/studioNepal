@@ -13,8 +13,11 @@ export class PostgresService {
       const host = process.env.SUPABASE_PG_HOST || 'aws-0-ap-northeast-2.pooler.supabase.com';
       const port = Number(process.env.SUPABASE_PG_PORT) || 5432;
       const database = process.env.SUPABASE_PG_DATABASE || 'postgres';
-      const user = process.env.SUPABASE_PG_USER || 'postgres.pnqahzcztfvpyfbogrel';
-      const password = process.env.SUPABASE_PG_PASSWORD || 'Pr@9851312299';
+      const rawUser = process.env.SUPABASE_PG_USER || 'postgres.pnqahzcztfvpyfbogrel';
+      const user = rawUser.startsWith('postgrespostgres.')
+        ? rawUser.replace('postgrespostgres.', 'postgres.')
+        : rawUser;
+      const password = process.env.SUPABASE_PG_PASSWORD || '';
 
       this.pool = new pg.Pool({
         host,
@@ -113,7 +116,10 @@ export class PostgresService {
     const host = process.env.SUPABASE_PG_HOST || 'aws-0-ap-northeast-2.pooler.supabase.com';
     const port = Number(process.env.SUPABASE_PG_PORT) || 5432;
     const database = process.env.SUPABASE_PG_DATABASE || 'postgres';
-    const user = process.env.SUPABASE_PG_USER || 'postgres.pnqahzcztfvpyfbogrel';
+    const rawUser = process.env.SUPABASE_PG_USER || 'postgres.pnqahzcztfvpyfbogrel';
+    const user = rawUser.startsWith('postgrespostgres.')
+      ? rawUser.replace('postgrespostgres.', 'postgres.')
+      : rawUser;
 
     if (!this.pool) {
       return {
@@ -122,7 +128,7 @@ export class PostgresService {
         port,
         database,
         user,
-        connectionStringRedacted: `postgresql://${user}:Pr***@${host}:${port}/${database}`,
+        connectionStringRedacted: `postgresql://${user}:••••••@${host}:${port}/${database}`,
         error: 'Pool not initialized',
         latencyMs: 0,
       };
@@ -145,7 +151,7 @@ export class PostgresService {
         port,
         database,
         user,
-        connectionStringRedacted: `postgresql://${user}:Pr***@${host}:${port}/${database}`,
+        connectionStringRedacted: `postgresql://${user}:••••••@${host}:${port}/${database}`,
         serverTime: timeRes.rows[0].now,
         version: timeRes.rows[0].version,
         latencyMs,
@@ -163,7 +169,7 @@ export class PostgresService {
         port,
         database,
         user,
-        connectionStringRedacted: `postgresql://${user}:Pr***@${host}:${port}/${database}`,
+        connectionStringRedacted: `postgresql://${user}:••••••@${host}:${port}/${database}`,
         error: err?.message || 'Database connection error',
         latencyMs: Date.now() - startTime,
       };

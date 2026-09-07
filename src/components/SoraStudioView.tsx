@@ -208,6 +208,31 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       await new Promise((r) => setTimeout(r, 400));
       if (finalUrl) {
         setVideoResultUrl(finalUrl);
+
+        // Auto-add directly to Video Studio timeline & navigate to video studio
+        const newScene: Scene = {
+          id: 'scene-sora-' + Math.random().toString(36).substring(2, 9),
+          title: 'Sora-2: ' + prompt.slice(0, 20),
+          duration: parseInt(seconds) || 4,
+          prompt,
+          promptNepali: hasDevanagari ? prompt : videoSubtitle || prompt,
+          mediaUrl: finalUrl,
+          mediaType: finalUrl.includes('.mp4') || finalUrl.includes('.webm') || finalUrl.includes('video') ? 'video' : 'image',
+          aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+          motion: 'zoom_in',
+          transition: 'dissolve',
+          textOverlay: (videoSubtitle || prompt).slice(0, 32),
+          textNepali: (hasDevanagari ? prompt : videoSubtitle).slice(0, 32),
+          textPosition: 'lower_third',
+          textColor: '#ffffff',
+          textFont: 'devanagari',
+          filter: 'cinematic',
+          volume: 85
+        };
+        onAddSceneToVideo(newScene);
+        if (onNavigateToTimeline) {
+          onNavigateToTimeline();
+        }
       }
       setJobProgress(100);
       if (onUsageUpdated && data.trialUsage) {

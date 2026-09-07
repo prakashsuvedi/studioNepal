@@ -27,6 +27,12 @@ export interface BrandOverlayConfig {
 
 export const WATERMARK_PRESETS = [
   {
+    id: 'hamroai_spire_core',
+    name: 'HamroAI Spire Core Logo',
+    url: '/logo.jpg',
+    text: 'हाम्रोAI Studio'
+  },
+  {
     id: 'nepalai_gold',
     name: 'NepalAI Gold Studio Emblem',
     url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=160&auto=format&fit=crop&q=80',

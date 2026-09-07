@@ -79,6 +79,7 @@ async function startSuite() {
 
   await runTest('Storage', 'HTTP Range Byte Streaming (206 Partial Content)', async () => {
     const testFile = 'sora_video_6a9cd5492de48190bae531eb25e8892e.mp4';
+    await storageBucket.saveMedia(testFile, Buffer.from('dummy video data for range test'), 'video/mp4');
     const res = await fetch(`http://localhost:3000/api/storage/file/${testFile}`, {
       headers: { Range: 'bytes=0-1024' },
     });

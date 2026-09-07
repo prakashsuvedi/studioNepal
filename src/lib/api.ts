@@ -233,7 +233,11 @@ export async function apiGenerateAudio(
   voiceId = 'aakash_ne',
   language: 'ne-NP' | 'en-US' = 'ne-NP',
   emotion = 'neutral',
-  deliveryStyle = 'general'
+  deliveryStyle = 'general',
+  speed?: string,
+  volume?: string,
+  pitch?: string,
+  phoneticDict?: string
 ): Promise<{
   success: boolean;
   result: { url: string; duration: number; voice: string; language: string; format: string };
@@ -243,7 +247,7 @@ export async function apiGenerateAudio(
   const res = await fetch('/api/generate/audio', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-    body: JSON.stringify({ userId, text, voiceId, language, emotion, deliveryStyle }),
+    body: JSON.stringify({ userId, text, voiceId, language, emotion, deliveryStyle, speed, volume, pitch, phoneticDict }),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -319,7 +323,10 @@ export async function apiCheckoutStripe(
 }
 
 export async function apiGetAdminUsers(): Promise<AdminUsersResponse> {
-  const res = await fetch('/api/admin/users');
+  const adminId = localStorage.getItem('nepalai_user_id') || '';
+  const res = await fetch('/api/admin/users', {
+    headers: { 'x-user-id': adminId },
+  });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.error || 'Failed to fetch admin users');
@@ -331,9 +338,13 @@ export async function apiAdminUpdateUser(
   userId: string,
   updates: { credits?: number; tier?: string; resetTrial?: boolean }
 ): Promise<{ success: boolean; user: UserSession; trialUsage: UserTrialQuota }> {
+  const adminId = localStorage.getItem('nepalai_user_id') || '';
   const res = await fetch(`/api/admin/user/${encodeURIComponent(userId)}/update`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': adminId,
+    },
     body: JSON.stringify(updates),
   });
   const data = await res.json();

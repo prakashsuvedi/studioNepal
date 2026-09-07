@@ -19,8 +19,8 @@ export class StorageBucketService {
   constructor(config?: Partial<StorageConfig>) {
     this.config = {
       provider: (process.env.STORAGE_PROVIDER as any) || 'local',
-      supabaseUrl: process.env.SUPABASE_URL || 'https://pnqahzcztfvpyfbogrel.supabase.co',
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      supabaseUrl: process.env.SUPABASE_URL || '',
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
       supabaseBucket: process.env.SUPABASE_BUCKET || 'nepalai-media',
       publicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL || '',
       ...config,

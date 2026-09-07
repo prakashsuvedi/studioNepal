@@ -179,44 +179,23 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <div className="absolute top-48 left-1/3 w-80 h-80 bg-amber-500/25 rounded-full mix-blend-screen" />
       </div>
 
-      {/* Trust & Live Engine Status Header Ticker */}
-      <div className="border-b border-slate-900/90 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30 px-4 py-2">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Tagline ticker */}
-          <div className="flex items-center gap-2 text-xs text-slate-300">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            <span className="font-bold text-white hidden sm:inline">NepalAI Studio:</span>
-            <span className="text-slate-300 truncate">
-              {lang === 'ne' 
-                ? 'युट्युब, रील्स, विजनेस र फ्रिलान्सिङका लागि नेपालको अग्रणी एआई स्टुडियो'
-                : lang === 'hi'
-                ? 'यूट्यूब, रील्स, बिज़नेस और फ्रीलांसिंग के लिए ऑल-इन-वन एआई स्टूडियो'
-                : 'Create, Monetize, and Scale: YouTube • Reels • TikTok • Business • Freelance'}
-            </span>
-          </div>
-
-          {/* Language Switcher & Real-Time Live Status Pill */}
-          <div className="flex items-center flex-wrap gap-2 text-[11px] font-semibold text-slate-300">
-            <LanguageSwitcher variant="landing" />
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-cyan-300 shadow-inner">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-              <span>Azure gpt-image-1.5 + Sora-2</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-800/50 text-amber-300">
-              <span>🇳🇵 NPR Ready</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Hero Section */}
-      <section className="relative pt-6 sm:pt-10 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8 overflow-hidden">
-        {/* Top Upgrade Announcement Pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/40 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-cyan-950/40 animate-float-pulse">
-          <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400/20 shrink-0" />
-          <span className="font-semibold text-white">{t.badge}</span>
-          <span className="text-slate-600 hidden sm:inline">•</span>
-          <span className="text-cyan-400 font-bold hidden sm:inline">NepalAI Studio 2.0</span>
+      <section className="relative pt-6 sm:pt-10 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-6 overflow-hidden">
+        {/* Top Upgrade Announcement & Engine Status Pill */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/40 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-cyan-950/40">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
+            <span className="font-semibold text-white">{t.badge}</span>
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <span className="text-cyan-400 font-bold hidden sm:inline">NepalAI Studio 2.0</span>
+          </div>
+
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs text-slate-300 backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span className="text-cyan-300 font-medium">Azure gpt-image-1.5 + Sora-2</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-amber-300 font-semibold">🇳🇵 NPR Ready</span>
+          </div>
         </div>
 
         {/* Hero Central Area with 3D Orbital Constellation */}

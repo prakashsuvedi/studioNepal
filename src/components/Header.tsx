@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StudioTab, UserSession, UserTrialQuota } from '../types';
 import { apiGetHfStatus } from '../lib/api';
 import { useTheme } from '../context/ThemeContext';
@@ -15,26 +15,24 @@ import {
   Sparkles,
   Zap,
   Lock,
-  Unlock,
   CreditCard,
-  User as UserIcon,
   LogOut,
   Home,
   Cpu,
   Bot,
-  MessageSquare,
   Sun,
   Moon,
   Command,
   Briefcase,
   History,
-  AlertTriangle,
-  TrendingUp,
   Gift,
-  HelpCircle,
   LayoutDashboard,
   Megaphone,
-  UserCheck
+  UserCheck,
+  ChevronDown,
+  MoreHorizontal,
+  Wand2,
+  Check
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -66,154 +64,505 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTour,
   activeWorkspaceName = 'Personal Studio',
 }) => {
-  const { theme, toggleTheme, isDark } = useTheme();
-  const { t, language } = useLanguage();
+  const { toggleTheme, isDark } = useTheme();
+  const { t } = useLanguage();
   const isAdmin = user?.role === 'admin';
-  const isFreeTrial = user?.tier === 'free_trial';
   const [hfStatus, setHfStatus] = useState<{ connected: boolean; username?: string } | null>(null);
 
-  // Daily Free Quota Calculations
-  const maxFreeItems = trialUsage ? (trialUsage.maxImages + trialUsage.maxVideo + trialUsage.maxAudio + trialUsage.maxRenders) : 6;
-  const usedFreeItems = trialUsage ? (trialUsage.imagesCount + trialUsage.videoCount + trialUsage.audioCount + trialUsage.rendersCount) : 0;
-  const remainingFreeItems = Math.max(0, maxFreeItems - usedFreeItems);
-  const dailyFreePercent = Math.min(100, Math.max(0, Math.round((remainingFreeItems / maxFreeItems) * 100)));
+  // Dropdown states
+  const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isUtilitiesMenuOpen, setIsUtilitiesMenuOpen] = useState(false);
 
-  // 20% Warning Trigger Rule
-  const show20PercentWarning = !isAdmin && dailyFreePercent <= 20;
-
-  // Purchased Package Credits Calculations
-  const tierMaxCredits = user?.tier === 'starter' ? 500 : user?.tier === 'creator' ? 1800 : user?.tier === 'pro_studio' ? 5000 : 60;
-  const packageCreditsPercent = user ? Math.min(100, Math.max(0, Math.round((user.credits / tierMaxCredits) * 100))) : 0;
+  const studioMenuRef = useRef<HTMLDivElement>(null);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const utilitiesMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiGetHfStatus().then(st => setHfStatus(st)).catch(() => {});
   }, []);
 
+  // Close dropdowns on click outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (studioMenuRef.current && !studioMenuRef.current.contains(target)) {
+        setIsStudioMenuOpen(false);
+      }
+      if (adminMenuRef.current && !adminMenuRef.current.contains(target)) {
+        setIsAdminMenuOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setIsUserMenuOpen(false);
+      }
+      if (utilitiesMenuRef.current && !utilitiesMenuRef.current.contains(target)) {
+        setIsUtilitiesMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Check if current active tab is one of the Studio tools
+  const studioTabs: StudioTab[] = [
+    'video_studio',
+    'sora_studio',
+    'image_studio',
+    'character_studio',
+    'ad_builder',
+    'tts_studio'
+  ];
+  const isStudioTabActive = studioTabs.includes(activeTab);
+
+  // Check if current active tab is an Admin tool
+  const adminTabs: StudioTab[] = ['admin', 'audit', 'hf_deployment_kit'];
+  const isAdminTabActive = adminTabs.includes(activeTab);
+
+  const handleTabClick = (tab: StudioTab) => {
+    if (!user && tab !== 'landing') {
+      onOpenAuth('user');
+      return;
+    }
+    setActiveTab(tab);
+    setIsStudioMenuOpen(false);
+    setIsAdminMenuOpen(false);
+  };
+
+  const getStudioTabLabel = () => {
+    switch (activeTab) {
+      case 'video_studio': return 'Video Studio';
+      case 'sora_studio': return 'Sora-2 Video';
+      case 'image_studio': return 'Image Engine';
+      case 'character_studio': return 'Character Studio';
+      case 'ad_builder': return 'Ad Builder';
+      case 'tts_studio': return 'Voiceover';
+      default: return 'Creation Studio';
+    }
+  };
+
   return (
-    <header className="bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/90 sticky top-0 z-40 text-slate-100 shadow-xl select-none">
-      {/* Top Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between min-h-[56px] py-1.5 gap-2">
-          {/* Logo & Platform Name */}
-          <div 
-            onClick={() => setActiveTab('landing')}
-            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
-          >
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-slate-950 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-hover:scale-105 group-hover:border-cyan-400/60 transition duration-200 shrink-0">
-              <img 
-                src="/logo.jpg" 
-                alt="NepalAI Logo" 
-                className="w-full h-full object-cover" 
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent && !parent.querySelector('.logo-fallback')) {
-                    const fallbackEl = document.createElement('div');
-                    fallbackEl.className = 'logo-fallback w-full h-full bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white';
-                    fallbackEl.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>`;
-                    parent.appendChild(fallbackEl);
-                  }
-                }}
-              />
-            </div>
-            <div>
+    <header className="bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/80 sticky top-0 z-40 text-slate-100 shadow-md select-none transition-all">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6">
+        <div className="flex items-center justify-between h-13 gap-2">
+          
+          {/* Left: Brand Logo & Main Navigation */}
+          <div className="flex items-center gap-4 sm:gap-6">
+            {/* Logo & Platform Name */}
+            <div 
+              onClick={() => setActiveTab('landing')}
+              className="flex items-center gap-2 cursor-pointer group shrink-0"
+              title="NepalAI Studio - Home"
+            >
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-slate-900 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.2)] group-hover:border-cyan-400/60 group-hover:scale-105 transition duration-150 shrink-0">
+                <img 
+                  src="/logo.jpg" 
+                  alt="NepalAI Logo" 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent && !parent.querySelector('.logo-fallback')) {
+                      const fallbackEl = document.createElement('div');
+                      fallbackEl.className = 'logo-fallback w-full h-full bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black';
+                      fallbackEl.innerText = 'NAI';
+                      parent.appendChild(fallbackEl);
+                    }
+                  }}
+                />
+              </div>
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-base tracking-tight text-white group-hover:text-cyan-300 transition">
+                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white group-hover:text-cyan-300 transition">
                   NepalAI
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 hidden sm:inline shadow-xs">
-                  studio.nepalai.tech
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 hidden md:inline">
+                  Studio 2.0
                 </span>
               </div>
             </div>
+
+            {/* Primary Navigation Menus */}
+            <nav className="flex items-center gap-1 sm:gap-1.5">
+              {/* Home */}
+              <button
+                onClick={() => setActiveTab('landing')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                  activeTab === 'landing'
+                    ? 'bg-slate-900 text-cyan-300 border border-cyan-500/40 font-semibold shadow-xs'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                }`}
+              >
+                <Home className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t('nav.landing', 'Home')}</span>
+              </button>
+
+              {/* HamroAI (Nepali/Hindi Multi-lingual AI) */}
+              <button
+                onClick={() => handleTabClick('hamro_ai')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                  activeTab === 'hamro_ai'
+                    ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/50 font-bold shadow-xs'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                }`}
+                title="HamroAI - Culturally Aware Multi-lingual Assistant (Nepali, Hindi, English)"
+              >
+                <Bot className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-semibold">{t('nav.hamro_ai', 'HamroAI')}</span>
+                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800/60 hidden lg:inline font-bold">
+                  NP/HI
+                </span>
+                {!user && <Lock className="w-3 h-3 text-slate-500" />}
+              </button>
+
+              {/* Creation Studio Dropdown Submenu */}
+              <div className="relative" ref={studioMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsStudioMenuOpen(!isStudioMenuOpen)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                    isStudioTabActive
+                      ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/50 font-semibold shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                  }`}
+                  title="Studio Creation Tools (Video, Sora-2, Image, Characters, Ad Builder, Voiceover)"
+                >
+                  <Wand2 className={`w-3.5 h-3.5 ${isStudioTabActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <span className="font-semibold">
+                    {isStudioTabActive ? getStudioTabLabel() : 'Studio Tools'}
+                  </span>
+                  <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-150 ${isStudioMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Submenu Dropdown Panel */}
+                {isStudioMenuOpen && (
+                  <div className="absolute left-0 mt-1.5 w-64 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800/80 mb-1 flex items-center justify-between">
+                      <span>AI Creation Tools</span>
+                      <span className="text-[9px] text-cyan-400 font-mono">6 Engines</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      {/* Video Studio */}
+                      <button
+                        onClick={() => handleTabClick('video_studio')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                          activeTab === 'video_studio'
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Film className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <div>
+                            <div className="text-xs font-semibold leading-tight">Video Studio</div>
+                            <div className="text-[10px] text-slate-400">Multi-track timeline & scenes</div>
+                          </div>
+                        </div>
+                        {activeTab === 'video_studio' && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                      </button>
+
+                      {/* Sora-2 Video */}
+                      <button
+                        onClick={() => handleTabClick('sora_studio')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                          activeTab === 'sora_studio'
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Video className="w-4 h-4 text-indigo-400 shrink-0" />
+                          <div>
+                            <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
+                              <span>Sora-2 Video</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">Azure</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">Cinematic text-to-video AI</div>
+                          </div>
+                        </div>
+                        {activeTab === 'sora_studio' && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                      </button>
+
+                      {/* Image Engine */}
+                      <button
+                        onClick={() => handleTabClick('image_studio')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                          activeTab === 'image_studio'
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ImageIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div>
+                            <div className="text-xs font-semibold leading-tight">Image Engine</div>
+                            <div className="text-[10px] text-slate-400">Azure gpt-image-1.5 & FLUX</div>
+                          </div>
+                        </div>
+                        {activeTab === 'image_studio' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      </button>
+
+                      {/* Character Studio */}
+                      <button
+                        onClick={() => handleTabClick('character_studio')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                          activeTab === 'character_studio'
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <UserCheck className="w-4 h-4 text-purple-400 shrink-0" />
+                          <div>
+                            <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
+                              <span>Character Studio</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-800">FaceID</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">Consistent characters & avatars</div>
+                          </div>
+                        </div>
+                        {activeTab === 'character_studio' && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                      </button>
+
+                      {/* Ad Builder */}
+                      <button
+                        onClick={() => handleTabClick('ad_builder')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                          activeTab === 'ad_builder'
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Megaphone className="w-4 h-4 text-amber-400 shrink-0" />
+                          <div>
+                            <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
+                              <span>Ad Builder</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800">Templates</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">High-converting viral ads</div>
+                          </div>
+                        </div>
+                        {activeTab === 'ad_builder' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                      </button>
+
+                      {/* Nepali Voiceover */}
+                      <button
+                        onClick={() => handleTabClick('tts_studio')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                          activeTab === 'tts_studio'
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Mic className="w-4 h-4 text-rose-400 shrink-0" />
+                          <div>
+                            <div className="text-xs font-semibold leading-tight">Nepali Voiceover</div>
+                            <div className="text-[10px] text-slate-400">SpeechT5 & Azure neural TTS</div>
+                          </div>
+                        </div>
+                        {activeTab === 'tts_studio' && <Check className="w-3.5 h-3.5 text-rose-400" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Dashboard & Refer & Earn */}
+              {user && (
+                <button
+                  onClick={() => handleTabClick('dashboard')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                    activeTab === 'dashboard'
+                      ? 'bg-slate-900 text-cyan-300 border border-cyan-500/40 font-semibold shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                  }`}
+                  title="Dashboard & Refer & Earn"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="hidden md:inline font-semibold">{t('nav.dashboard', 'Dashboard')}</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700/60 hidden xl:flex items-center gap-0.5 font-bold">
+                    <Gift className="w-2.5 h-2.5 text-amber-400" />
+                    <span>Earn</span>
+                  </span>
+                </button>
+              )}
+
+              {/* Admin Hub (For Admins Only) */}
+              {isAdmin && (
+                <div className="relative" ref={adminMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                      isAdminTabActive
+                        ? 'bg-amber-950/60 text-amber-300 border border-amber-500/60 font-semibold'
+                        : 'text-amber-400/90 hover:text-amber-200 hover:bg-amber-950/40'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="font-semibold hidden lg:inline">Admin Hub</span>
+                    <ChevronDown className={`w-3 h-3 text-amber-400/80 transition-transform duration-150 ${isAdminMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isAdminMenuOpen && (
+                    <div className="absolute left-0 mt-1.5 w-56 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400/80 border-b border-slate-800/80 mb-1">
+                        Superadmin Controls
+                      </div>
+                      <div className="space-y-0.5">
+                        <button
+                          onClick={() => handleTabClick('admin')}
+                          className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                            activeTab === 'admin' ? 'bg-amber-500/15 text-amber-300 font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Admin Center</span>
+                          </div>
+                          {activeTab === 'admin' && <Check className="w-3 h-3 text-amber-400" />}
+                        </button>
+                        <button
+                          onClick={() => handleTabClick('audit')}
+                          className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                            activeTab === 'audit' ? 'bg-amber-500/15 text-amber-300 font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Audit & Diagnostics</span>
+                          </div>
+                          {activeTab === 'audit' && <Check className="w-3 h-3 text-cyan-400" />}
+                        </button>
+                        <button
+                          onClick={() => handleTabClick('hf_deployment_kit')}
+                          className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                            activeTab === 'hf_deployment_kit' ? 'bg-amber-500/15 text-amber-300 font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Code2 className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>HF Deployment Kit</span>
+                          </div>
+                          {activeTab === 'hf_deployment_kit' && <Check className="w-3 h-3 text-indigo-400" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
           </div>
 
-          {/* Right Controls: Quotas, User Profile & Upgrade */}
-          <div className="flex items-center gap-2 overflow-visible">
-            {/* Live HF Connection Indicator */}
+          {/* Right Controls: Engine Health, Language Dropdown, Utilities, & Profile */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            
+            {/* Live HF Connection Indicator (Compact) */}
             <div 
               title={hfStatus?.connected ? `Hugging Face API connected for @${hfStatus.username || 'prakashsuvedi'}` : 'Hugging Face API initializing'}
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[10px] text-slate-300 font-medium shrink-0 shadow-inner"
+              className="hidden 2xl:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px] text-slate-300 font-medium shrink-0"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               <Cpu className="w-3 h-3 text-cyan-400" />
               <span>HF: {hfStatus?.connected ? `@${hfStatus.username || 'prakash'}` : 'Live'}</span>
             </div>
 
-            {/* Studio Tools: Language, Tour, Workspaces, Shortcuts & Theme Toggle */}
-            <div className="flex items-center gap-1.5 shrink-0 overflow-visible">
-              {/* Visible Segmented Language Switcher */}
-              <LanguageSwitcher variant="header" />
+            {/* Compact Language Selector Dropdown */}
+            <LanguageSwitcher variant="dropdown" />
 
-              {/* Studio Onboarding Tour Button */}
-              {onOpenTour && (
-                <button
-                  onClick={onOpenTour}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-950/60 border border-indigo-700/60 text-xs font-semibold text-indigo-200 hover:bg-indigo-900/80 hover:border-indigo-500 transition cursor-pointer shadow-2xs"
-                  title="Interactive Studio Tour & Guide"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span className="hidden md:inline font-bold text-[11px]">{t('nav.tour', 'Tour')}</span>
-                </button>
-              )}
-
-              {/* Workspaces Switcher Button */}
-              {onOpenWorkspaces && (
-                <button
-                  onClick={onOpenWorkspaces}
-                  className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-semibold text-slate-200 hover:border-cyan-500/50 hover:text-cyan-300 transition cursor-pointer"
-                  title="Manage Workspaces & Team Collaboration"
-                >
-                  <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="max-w-[90px] truncate text-[11px]">{activeWorkspaceName}</span>
-                </button>
-              )}
-
-              {/* Keyboard Shortcuts Trigger */}
-              {onOpenShortcuts && (
-                <button
-                  onClick={onOpenShortcuts}
-                  className="hidden sm:flex p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition cursor-pointer"
-                  title="Keyboard Shortcuts Cheatsheet (Press ?)"
-                >
-                  <Command className="w-3.5 h-3.5" />
-                </button>
-              )}
-
-              {/* Theme Toggle */}
+            {/* Utilities Submenu (Tour, Workspace, Shortcuts, Theme) */}
+            <div className="relative" ref={utilitiesMenuRef}>
               <button
-                onClick={toggleTheme}
-                className="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-300 hover:text-amber-400 hover:border-amber-500/40 transition cursor-pointer"
-                title={isDark ? 'Switch to Clean Light Mode' : 'Switch to Dark Mode'}
+                type="button"
+                onClick={() => setIsUtilitiesMenuOpen(!isUtilitiesMenuOpen)}
+                className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+                title="Studio Preferences & Tools"
               >
-                {isDark ? (
-                  <Sun className="w-3.5 h-3.5 text-amber-400" />
-                ) : (
-                  <Moon className="w-3.5 h-3.5 text-slate-300" />
-                )}
+                <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
+
+              {isUtilitiesMenuOpen && (
+                <div className="absolute right-0 mt-1.5 w-48 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800/80 mb-0.5">
+                    Studio Utilities
+                  </div>
+                  {onOpenTour && (
+                    <button
+                      onClick={() => {
+                        onOpenTour();
+                        setIsUtilitiesMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Studio Tour & Guide</span>
+                    </button>
+                  )}
+                  {onOpenWorkspaces && (
+                    <button
+                      onClick={() => {
+                        onOpenWorkspaces();
+                        setIsUtilitiesMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                    >
+                      <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="truncate">Workspace: {activeWorkspaceName}</span>
+                    </button>
+                  )}
+                  {onOpenShortcuts && (
+                    <button
+                      onClick={() => {
+                        onOpenShortcuts();
+                        setIsUtilitiesMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Command className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Shortcuts</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-500">?</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                      setIsUtilitiesMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer border-t border-slate-800/60 mt-0.5 pt-1.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
+                      <span>{isDark ? 'Light Theme' : 'Dark Theme'}</span>
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Quota & Credits Indicator */}
+            {/* Quota & User Authentication Section */}
             {user ? (
-              <>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Admin Mode Badge or User Credits Pill */}
                 {isAdmin ? (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/50 border border-amber-600/60 text-[11px] font-bold text-amber-300 shrink-0 shadow-inner">
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-600/60 text-[11px] font-bold text-amber-300 shrink-0 shadow-inner">
                     <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Admin Mode (∞)</span>
+                    <span className="hidden sm:inline">Admin Mode (∞)</span>
+                    <span className="sm:hidden font-mono">∞</span>
                   </div>
                 ) : (
                   <div 
                     onClick={onOpenPaywall}
-                    className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 transition cursor-pointer shrink-0"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 transition cursor-pointer shrink-0"
                     title="Click to view quota or top up credits"
                   >
-                    <div className="flex items-center gap-1 text-[11px] font-bold">
-                      <Zap className="w-3 h-3 text-amber-400" />
-                      <span className="font-mono text-cyan-300">{user.credits} CR</span>
-                    </div>
+                    <Zap className="w-3 h-3 text-amber-400" />
+                    <span className="font-mono text-xs font-bold text-cyan-300">{user.credits} CR</span>
                   </div>
                 )}
 
@@ -221,302 +570,120 @@ export const Header: React.FC<HeaderProps> = ({
                 {!isAdmin && (
                   <button
                     onClick={onOpenPaywall}
-                    className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold text-[11px] shadow-[0_0_15px_rgba(6,182,212,0.3)] transition cursor-pointer shrink-0"
+                    className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-[0_0_12px_rgba(6,182,212,0.3)] transition cursor-pointer shrink-0"
                   >
                     <CreditCard className="w-3 h-3" />
                     <span>{t('btn.upgrade', 'Upgrade')}</span>
                   </button>
                 )}
 
-                {/* User Avatar & Logout */}
-                <div 
-                  onClick={() => setActiveTab('dashboard')}
-                  className="flex items-center gap-2 pl-1.5 border-l border-slate-800 shrink-0 cursor-pointer group"
-                  title="Open Dashboard & Refer & Earn"
-                >
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-7 h-7 rounded-full object-cover border border-slate-700 group-hover:ring-2 ring-cyan-400 transition"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-[10px] font-bold border border-slate-700 group-hover:ring-2 ring-cyan-400 transition">
-                      {user.name?.charAt(0) || 'U'}
+                {/* User Avatar with Profile Dropdown Menu */}
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-1.5 p-0.5 rounded-full hover:ring-2 ring-cyan-400/60 transition cursor-pointer"
+                  >
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-7 h-7 rounded-full object-cover border border-slate-700"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-[11px] font-bold border border-slate-700">
+                        {user.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Profile Dropdown */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-1.5 w-56 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
+                      <div className="px-2.5 py-2 border-b border-slate-800/80 mb-1">
+                        <div className="font-bold text-white text-xs truncate">{user.name}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{user.email}</div>
+                        <div className="mt-1 flex items-center gap-1 text-[10px] font-mono text-cyan-400">
+                          <span className="capitalize">{user.tier.replace('_', ' ')}</span>
+                          <span>•</span>
+                          <span>{user.credits} credits</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <button
+                          onClick={() => {
+                            setActiveTab('dashboard');
+                            setIsUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                        >
+                          <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Dashboard & Analytics</span>
+                        </button>
+
+                        {onOpenUsageHistory && (
+                          <button
+                            onClick={() => {
+                              onOpenUsageHistory();
+                              setIsUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                          >
+                            <History className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Usage History & Audit</span>
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            onOpenPaywall();
+                            setIsUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                        >
+                          <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Pricing & Credit Top-up</span>
+                        </button>
+
+                        <div className="border-t border-slate-800/80 my-1"></div>
+
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onLogout();
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition cursor-pointer font-medium"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
                     </div>
                   )}
-                  <div className="hidden xl:block text-left">
-                    <div className="text-[11px] font-bold text-slate-100 leading-tight max-w-[100px] truncate group-hover:text-cyan-300 transition">{user.name}</div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onLogout();
-                    }}
-                    title="Sign Out"
-                    className="p-1 rounded-lg text-slate-400 hover:text-rose-400 transition cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => onOpenAuth('user')}
-                  className="px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(6,182,212,0.4)] transition cursor-pointer flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(6,182,212,0.35)] transition cursor-pointer flex items-center gap-1.5"
                 >
                   <span>Sign In</span>
                 </button>
                 <button
                   onClick={() => onOpenAuth('admin')}
-                  className="p-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition cursor-pointer"
+                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition cursor-pointer"
                   title="Admin Gateway"
                 >
                   <Lock className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
+
           </div>
+
         </div>
-
-        {/* Studio Navigation Tabs */}
-        <nav className="flex space-x-1.5 overflow-x-auto pb-2 scrollbar-none border-t border-slate-800/80 pt-1.5">
-          <button
-            onClick={() => setActiveTab('landing')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'landing'
-                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>{t('nav.landing', 'Landing')}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('hamro_ai');
-              }
-            }}
-            title={!user ? 'Sign in with Google to unlock HamroAI' : 'HamroAI (Multilingual GPT-4o & GPT-5-mini)'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'hamro_ai'
-                ? 'bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.35)] font-bold border border-amber-400/60'
-                : 'text-amber-300 hover:text-white hover:bg-amber-950/50 border border-amber-500/40 bg-amber-950/20'
-            }`}
-          >
-            <Bot className={`w-3.5 h-3.5 ${activeTab === 'hamro_ai' ? 'text-white' : 'text-amber-400'}`} />
-            <span className="font-bold">{t('nav.hamro_ai', 'HamroAI')}</span>
-            <span className={`text-[9px] px-1 py-0.2 rounded font-bold ${
-              activeTab === 'hamro_ai' ? 'bg-amber-400 text-zinc-950' : 'bg-amber-900/60 text-amber-200 border border-amber-700/60'
-            }`}>
-              Nepali/Hindi
-            </span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('video_studio');
-              }
-            }}
-            title={!user ? 'Sign in with Google to unlock Video Studio' : 'Video Studio'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'video_studio'
-                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <Film className="w-3.5 h-3.5" />
-            <span>{t('nav.video_studio', 'Video Studio')}</span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('image_studio');
-              }
-            }}
-            title={!user ? 'Sign in with Google to unlock Image Engine' : 'Image Engine'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'image_studio'
-                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            <span>{t('nav.image_studio', 'Image Engine')}</span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('sora_studio');
-              }
-            }}
-            title={!user ? 'Sign in with Google to unlock Sora-2 Video' : 'Sora-2 Video'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'sora_studio'
-                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <Video className="w-3.5 h-3.5" />
-            <span>{t('nav.sora_studio', 'Sora-2 Video')}</span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('character_studio');
-              }
-            }}
-            title={!user ? 'Sign in with Google to unlock Character Studio' : 'Character Consistency Studio'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'character_studio'
-                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Character Studio</span>
-            <span className="text-[9px] px-1 py-0.2 rounded font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
-              FaceID
-            </span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('ad_builder');
-              }
-            }}
-            title={!user ? 'Sign in with Google to unlock Automated Ad Builder' : 'Automated Ad & Template Builder'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'ad_builder'
-                ? 'bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 text-amber-300 border border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <Megaphone className="w-3.5 h-3.5 text-amber-400" />
-            <span>Ad Builder</span>
-            <span className="text-[9px] px-1 py-0.2 rounded font-bold bg-amber-950 text-amber-300 border border-amber-800">
-              Templates
-            </span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('tts_studio');
-              }
-            }}
-            title={!user ? 'Sign in with Google to unlock Nepali Voiceover' : 'Nepali Voiceover'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'tts_studio'
-                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <Mic className="w-3.5 h-3.5" />
-            <span>{t('nav.tts_studio', 'Nepali Voiceover')}</span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          {/* User Dashboard / Refer & Earn Tab */}
-          <button
-            onClick={() => {
-              if (!user) {
-                onOpenAuth('user');
-              } else {
-                setActiveTab('dashboard');
-              }
-            }}
-            title={!user ? 'Sign in to access Referral Rewards & Dashboard' : 'User Dashboard & Refer & Earn'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-              activeTab === 'dashboard'
-                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>{t('nav.dashboard', 'Dashboard')}</span>
-            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-950 text-amber-300 border border-amber-700/60 flex items-center gap-0.5">
-              <Gift className="w-2.5 h-2.5 text-amber-400" />
-              <span>{t('nav.refer_earn', 'Refer & Earn')}</span>
-            </span>
-            {!user && <Lock className="w-3 h-3 text-slate-400" />}
-          </button>
-
-          {/* Superadmin Only Tabs */}
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => setActiveTab('admin')}
-                title="Superadmin Control Center"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-                  activeTab === 'admin'
-                    ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                <span>Admin Center</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold border border-emerald-700/60">
-                  PRO
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('audit')}
-                title="System Audit & Preflight Diagnostics (Superadmin Only)"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-                  activeTab === 'audit'
-                    ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Audit & Diagnosis</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('hf_deployment_kit')}
-                title="Hugging Face Deployment Kit & Secrets (Superadmin Only)"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
-                  activeTab === 'hf_deployment_kit'
-                    ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
-                }`}
-              >
-                <Code2 className="w-3.5 h-3.5" />
-                <span>HF Deployment Kit</span>
-              </button>
-            </>
-          )}
-        </nav>
       </div>
     </header>
   );

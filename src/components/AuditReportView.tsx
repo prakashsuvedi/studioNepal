@@ -13,9 +13,13 @@ import {
   ExternalLink,
   Layers,
   Zap,
-  Play
+  Play,
+  Activity,
+  Database
 } from 'lucide-react';
 import { AUDIT_ROUTE_MATRIX } from '../data';
+import { runRenderTestEngine } from '../lib/renderTestEngine';
+import { RenderAuditLogger } from '../lib/renderAuditLogger';
 
 interface AuditReportViewProps {
   onGoToVideoStudio: () => void;
@@ -28,16 +32,23 @@ export const AuditReportView: React.FC<AuditReportViewProps> = ({
   onGoToDeploymentKit,
   onGoToAdmin
 }) => {
-  const [testEndpoint, setTestEndpoint] = useState<'health' | 'video' | 'image' | 'admin' | 'diagnostic'>('health');
+  const [testEndpoint, setTestEndpoint] = useState<'health' | 'video' | 'image' | 'admin' | 'diagnostic' | 'render_engine'>('health');
   const [testResult, setTestResult] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
-  const runSimulation = async (endpoint: 'health' | 'video' | 'image' | 'admin' | 'diagnostic') => {
+  const runSimulation = async (endpoint: 'health' | 'video' | 'image' | 'admin' | 'diagnostic' | 'render_engine') => {
     setIsTesting(true);
     setTestEndpoint(endpoint);
 
     try {
-      if (endpoint === 'health') {
+      if (endpoint === 'render_engine') {
+        const result = await runRenderTestEngine({
+          projectTitle: 'Audit Test Suite Timeline Render',
+          resolution: '1080p',
+          fps: 30,
+        });
+        setTestResult(JSON.stringify(result, null, 2));
+      } else if (endpoint === 'health') {
         const res = await fetch('/api/health');
         const data = await res.json();
         setTestResult(JSON.stringify(data, null, 2));
@@ -375,6 +386,17 @@ export const AuditReportView: React.FC<AuditReportViewProps> = ({
               }`}
             >
               Admin Bypass
+            </button>
+            <button
+              onClick={() => runSimulation('render_engine')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
+                testEndpoint === 'render_engine'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-200'
+                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Render Engine E2E Test</span>
             </button>
           </div>
         </div>

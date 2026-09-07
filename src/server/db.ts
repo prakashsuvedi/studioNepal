@@ -447,18 +447,28 @@ class Database {
     }
 
     const costMap = { image: 5, video: 25, audio: 10, render: 30 };
+    // Guard against multi-megabyte base64 string bloat in persistent DB JSON
+    const sanitizedResultUrl = (typeof resultUrl === 'string' && resultUrl.startsWith('data:') && resultUrl.length > 500)
+      ? `${resultUrl.substring(0, 80)}...[truncated_base64_media]`
+      : resultUrl;
+
     this.store.generationLogs.unshift({
       id: `gen_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId,
       type,
       model,
       prompt,
-      resultUrl,
+      resultUrl: sanitizedResultUrl,
       tokensCost: tokens,
       creditsCost: consumedDailyFree ? 0 : costMap[type],
       deductionSource: consumedDailyFree ? 'daily_free' : 'package_credits',
       createdAt: new Date().toISOString(),
     });
+
+    // Keep generation logs bounded to prevent database bloat
+    if (this.store.generationLogs.length > 150) {
+      this.store.generationLogs = this.store.generationLogs.slice(0, 150);
+    }
 
     this.save(this.store);
   }

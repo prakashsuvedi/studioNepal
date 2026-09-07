@@ -15,3 +15,13 @@ data/storage/*
 *.wav
 *.aac
 *.m4a
+*.png
+*.jpg
+*.jpeg
+
+# Test and scratch logs
+chat_*.txt
+full_chat_history.txt
+test_e2e_results.json
+extracted_*.md
+*.tmp

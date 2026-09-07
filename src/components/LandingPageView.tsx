@@ -1327,268 +1327,141 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
 
         <InteractiveStudioPlayer onLaunchStudio={onLaunchStudio} lang={lang} />
-      </section>
 
-      {/* MULTI-ENGINE ARCHITECTURE & VERIFIED AI PIPELINES */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-900">
-        <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
-          <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <Cpu className="w-4 h-4 text-cyan-400" />
-            {lang === 'ne' ? 'प्रमाणित एआई इन्जिन र प्राविधिक पूर्वाधार' : lang === 'hi' ? 'वेरिफाइड एआई इंजन और टेक्निकल इंफ्रास्ट्रक्चर' : 'Verified AI Engine Infrastructure & Pipelines'}
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-            {lang === 'ne' 
-              ? 'विश्वस्तरीय प्रविधि, नेपाली सिर्जनाशीलता'
-              : lang === 'hi'
-              ? 'ग्लोबल पावर, लोकल क्रिएटिविटी'
-              : 'Global AI Power Tailored for Local & Global Creators'}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
-            {lang === 'ne'
-              ? 'हाम्रा सबै जेनेरेसन पाइपलाइनहरू प्रत्यक्ष प्रमाणित क्लाउड इन्फ्रास्ट्रक्चर र न्युरल मोडलहरूमा आधारित छन्।'
-              : lang === 'hi'
-              ? 'हमारे सभी जनरेशन पाइपलाइन रियल टाइम क्लाउड इन्फ्रास्ट्रक्चर और एडवांस्ड न्यूरल मॉडल्स पर काम करते हैं।'
-              : 'Enterprise-grade neural models running on dedicated cloud infrastructure with sub-second streaming.'}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left">
-          {/* Engine 1: Azure OpenAI Sora-2 */}
-          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-cyan-500/50 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                  <Video className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">
-                  4K Sora-2
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">
-                {lang === 'ne' ? 'सोरा-२ भिडियो इन्जिन' : lang === 'hi' ? 'सोरा-2 वीडियो इंजन' : 'Azure Sora-2 Video Engine'}
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {lang === 'ne'
-                  ? 'अन्तर्राष्ट्रिय गुणस्तरको मोसन भिडियो, २४/३० एफपीएस रेन्डर र निर्बाध बाइट-रेन्ज स्ट्रिमिङ।'
-                  : lang === 'hi'
-                  ? 'हाई-क्वालिटी मोशन वीडियो, 24/30 FPS रेंडर और बिना बफरिंग के बाइट-रेंज स्ट्रीमिंग।'
-                  : 'Cinematic temporal motion, 24/30 FPS HD rendering, and low-latency byte-range proxy streaming.'}
-              </p>
+        {/* Compact 4-Pillar Verified Multi-Engine Status Bar */}
+        <div className="mt-6 pt-6 border-t border-slate-900 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-cyan-500/40 transition">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5 text-cyan-400" />
+                Azure Sora-2
+              </span>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
             </div>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Resolution: <strong>1080p / 4K</strong></span>
-              <span className="text-emerald-400 font-bold">● Active</span>
-            </div>
+            <p className="text-[11px] text-slate-400 leading-tight">
+              4K temporal motion • 24/30 FPS • Byte-range low-latency proxy
+            </p>
           </div>
 
-          {/* Engine 2: Azure GPT-Image-1.5 & FLUX */}
-          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-rose-500/50 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                  <ImageIcon className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 text-[10px] font-bold border border-rose-500/30">
-                  gpt-image-1.5
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">
-                {lang === 'ne' ? 'फोटो-रियालिस्टिक इमेज' : lang === 'hi' ? 'फोटो-रियलिस्टिक इमेज' : 'Photorealistic Visual Engine'}
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {lang === 'ne'
-                  ? 'नेपाली संस्कृति, उत्पादन र आधुनिक विज्ञापनको लागि १०२४x१०२४ क्रिस्टल-क्लियर जेनेरेसन।'
-                  : lang === 'hi'
-                  ? 'उत्पाद विज्ञापन, कैरेक्टर डिजाइन और 1024x1024 एचडी इमेज जनरेशन।'
-                  : 'High-detail 1024x1024 visual synthesis with contextual Nepali cultural prompt fidelity.'}
-              </p>
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-rose-500/40 transition">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-rose-400" />
+                GPT-Image-1.5 & FLUX
+              </span>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
             </div>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Output: <strong>1024x1024 PNG</strong></span>
-              <span className="text-emerald-400 font-bold">● Active</span>
-            </div>
+            <p className="text-[11px] text-slate-400 leading-tight">
+              1024x1024 PNG visual generation with authentic cultural prompts
+            </p>
           </div>
 
-          {/* Engine 3: SpeechT5 & Azure Neural TTS */}
-          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                  <Mic className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                  SpeechT5 + Azure
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">
-                {lang === 'ne' ? 'नेपाली न्युरल भोइसओभर' : lang === 'hi' ? 'नेचुरल देवनागरी वॉइस' : 'Neural Voice Synthesis'}
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {lang === 'ne'
-                  ? 'शुद्ध नेपाली र देवनागरी उच्चारण, प्राकृतिक उतार-चढाव र ४८ किलोहर्ज स्टुडियो ध्वनि।'
-                  : lang === 'hi'
-                  ? 'शुद्ध देवनागरी उच्चारण, नेचुरल पिच और 48kHz स्टूडियो-क्वालिटी वॉइस ट्रैक।'
-                  : 'Native Nepali phoneme mapping with emotional cadence and 48kHz WAV timeline export.'}
-              </p>
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-amber-500/40 transition">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Mic className="w-3.5 h-3.5 text-amber-400" />
+                SpeechT5 + Azure
+              </span>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
             </div>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Audio: <strong>48kHz WAV</strong></span>
-              <span className="text-emerald-400 font-bold">● Active</span>
-            </div>
+            <p className="text-[11px] text-slate-400 leading-tight">
+              48kHz neural Nepali & Devanagari acoustic speech synthesis
+            </p>
           </div>
 
-          {/* Engine 4: HamroAI Multi-lingual Assistant */}
-          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-purple-500/50 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 text-[10px] font-bold border border-purple-500/30">
-                  GPT-4o + Gemini
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">
-                {lang === 'ne' ? 'हाम्रो एआई स्टोरीबोर्डिङ' : lang === 'hi' ? 'हाम्रो एआई स्क्रिप्टिंग' : 'HamroAI Storyboard Brain'}
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                {lang === 'ne'
-                  ? 'भाइरल हुक, नेपाली स्क्रिप्ट लेखन, शीर्षक र सबटाइटल स्वतः मिलाउने बुद्धिमान सहायक।'
-                  : lang === 'hi'
-                  ? 'वायरल हुक्स, यूट्यूब स्क्रिप्ट्स, कैप्शन्स और ऑटो-सिंक सबटाइटल जनरेशन।'
-                  : 'Culturally fluent scriptwriting, viral hook generation, and automated Devanagari subtitling.'}
-              </p>
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-purple-500/40 transition">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Bot className="w-3.5 h-3.5 text-purple-400" />
+                HamroAI Brain
+              </span>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
             </div>
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Model: <strong>GPT-4o / Flash</strong></span>
-              <span className="text-emerald-400 font-bold">● Active</span>
-            </div>
+            <p className="text-[11px] text-slate-400 leading-tight">
+              GPT-4o & Flash viral hooks, scripts, and Devanagari subtitles
+            </p>
           </div>
         </div>
       </section>
 
-      {/* TECHNICAL COMPARISON MATRIX: NEPALAI VS TRADITIONAL AGENCY */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-900">
-        <div className="text-center max-w-3xl mx-auto space-y-3 mb-10">
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            {lang === 'ne' ? 'किन नेपालएआई स्टुडियो रोज्ने?' : lang === 'hi' ? 'नेपालएआई स्टूडियो क्यों चुनें?' : 'The Clear Advantage'}
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-            {lang === 'ne'
-              ? 'परम्परागत भिडियो एजेन्सी बनाम नेपालएआई'
-              : lang === 'hi'
-              ? 'ट्रेडिशनल एजेंसी बनाम नेपालएआई'
-              : 'Traditional Production Agencies vs. NepalAI Studio'}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
-            {lang === 'ne'
-              ? 'लाखौं रुपैयाँ र हप्तौं समय खेर फाल्नुको सट्टा केही मिनेटमै व्यावसायिक नतिजा।'
-              : lang === 'hi'
-              ? 'हजारों रुपए और हफ्तों का समय बचाने का सबसे आधुनिक और स्मार्ट तरीका।'
-              : 'Compare the speed, cost, and localization advantages over traditional video creation methods.'}
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <div className="min-w-[640px] bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-            <div className="grid grid-cols-12 bg-slate-950 p-4 border-b border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-400">
-              <div className="col-span-4 text-left">Feature / Capability</div>
-              <div className="col-span-4 text-center text-rose-400 flex items-center justify-center gap-1.5 font-extrabold">
-                <Sparkles className="w-3.5 h-3.5" />
-                NepalAI Studio
-              </div>
-              <div className="col-span-4 text-center text-slate-500">Traditional Agency / Generic AI</div>
-            </div>
-
-            <div className="divide-y divide-slate-800/60 text-xs text-left">
-              {/* Row 1: Cost */}
-              <div className="grid grid-cols-12 p-4 items-center hover:bg-slate-900/40 transition">
-                <div className="col-span-4 font-semibold text-white">Cost per Video / Ad</div>
-                <div className="col-span-4 text-center text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>रू ५० – रू २५० ($0.38 - $1.80)</span>
-                </div>
-                <div className="col-span-4 text-center text-slate-400">रू १५,००० – रू ७५,०००+ ($120 - $600)</div>
-              </div>
-
-              {/* Row 2: Turnaround Time */}
-              <div className="grid grid-cols-12 p-4 items-center hover:bg-slate-900/40 transition">
-                <div className="col-span-4 font-semibold text-white">Turnaround Time</div>
-                <div className="col-span-4 text-center text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>८ – १२ मिनेट (Instant Render)</span>
-                </div>
-                <div className="col-span-4 text-center text-slate-400">३ देखि ७ दिन (3-7 Days)</div>
-              </div>
-
-              {/* Row 3: Payment Access */}
-              <div className="grid grid-cols-12 p-4 items-center hover:bg-slate-900/40 transition">
-                <div className="col-span-4 font-semibold text-white">Local Payment Gateway</div>
-                <div className="col-span-4 text-center text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>FonePay, eSewa, Khalti QR</span>
-                </div>
-                <div className="col-span-4 text-center text-rose-400/80">International USD Cards Only</div>
-              </div>
-
-              {/* Row 4: Voiceover & Language */}
-              <div className="grid grid-cols-12 p-4 items-center hover:bg-slate-900/40 transition">
-                <div className="col-span-4 font-semibold text-white">Native Nepali & Devanagari Voice</div>
-                <div className="col-span-4 text-center text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>SpeechT5 Neural Nepali + Mukta Subtitles</span>
-                </div>
-                <div className="col-span-4 text-center text-slate-400">Robotic English Accents Only</div>
-              </div>
-
-              {/* Row 5: Multi-Track Timeline Control */}
-              <div className="grid grid-cols-12 p-4 items-center hover:bg-slate-900/40 transition">
-                <div className="col-span-4 font-semibold text-white">Interactive Editing Studio</div>
-                <div className="col-span-4 text-center text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Multi-Track Timeline with Custom Overlays</span>
-                </div>
-                <div className="col-span-4 text-center text-slate-400">Heavy Desktop Software Required</div>
-              </div>
-
-              {/* Row 6: Monetization Safety */}
-              <div className="grid grid-cols-12 p-4 items-center hover:bg-slate-900/40 transition">
-                <div className="col-span-4 font-semibold text-white">Commercial Rights & Monetization</div>
-                <div className="col-span-4 text-center text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>१००% Copyright-Safe for YouTube & Ads</span>
-                </div>
-                <div className="col-span-4 text-center text-slate-400">Restricted Commercial Licenses</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FREQUENTLY ASKED QUESTIONS & INFORMATION HUB */}
+      {/* UNIFIED CREATOR & BUSINESS ADVANTAGE & FAQ HUB */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto border-t border-slate-900">
         <div className="text-center space-y-3 mb-10">
-          <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <HelpCircle className="w-4 h-4 text-indigo-400" />
-            {lang === 'ne' ? 'प्रायः सोधिने प्रश्नहरू' : lang === 'hi' ? 'अक्सर पूछे जाने वाले सवाल' : 'Frequently Asked Questions'}
+          <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            {lang === 'ne' ? 'किन नेपालएआई स्टुडियो रोज्ने?' : lang === 'hi' ? 'नेपालएआई स्टूडियो क्यों चुनें?' : 'The Clear Advantage & FAQs'}
           </span>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
             {lang === 'ne'
-              ? 'तपाईंलाई जान्न मन लागेका कुराहरू'
+              ? 'एजेन्सीको झन्झट बिना व्यावसायिक नतिजा'
               : lang === 'hi'
-              ? 'सब कुछ जो आप जानना चाहते हैं'
-              : 'Everything You Need to Know'}
+              ? 'पारदर्शी, तेज और 100% मोनेटाइजेशन रेडी'
+              : 'Direct Advantage: Fast, Transparent & Monetization-Ready'}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
             {lang === 'ne'
-              ? 'आम्दानी, कमर्सियल राइट्स, फोनपे भुक्तानी र भिडियो निर्माण सम्बन्धी स्पष्ट जानकारी।'
+              ? 'लाखौं रुपैयाँ र हप्तौं समय खेर फाल्नुको सट्टा केही मिनेटमै प्रमाणित भिडियो र आम्दानीको अवसर।'
               : lang === 'hi'
-              ? 'कमाई, कमर्शियल राइट्स, पेमेंट और वीडियो निर्माण से जुड़ी पूरी जानकारी।'
-              : 'Clear, transparent answers for creators, local businesses, and freelancers.'}
+              ? 'हजारों रुपए और हफ्तों का समय बचाने का सबसे आधुनिक और पारदर्शी तरीका।'
+              : 'Compare the speed, cost, and commercial advantages over slow, traditional agencies.'}
           </p>
         </div>
 
+        {/* 3 High-Impact Benchmark Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 transition">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-2">
+              <Zap className="w-4 h-4" />
+              <span>{lang === 'ne' ? '१० गुणा द्रुत गति' : lang === 'hi' ? '10x तेज स्पीड' : '8–12 Min Turnaround'}</span>
+            </div>
+            <h3 className="text-lg font-black text-white mb-1">
+              {lang === 'ne' ? '८ देखि १२ मिनेटमै रेडी' : lang === 'hi' ? '8 से 12 मिनट में रेडी' : 'Instant 8–12 Min Delivery'}
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {lang === 'ne'
+                ? 'एजेन्सीले ३ देखि ७ दिन लगाउने काम नेपालएआईले मिनेटमै पूरा गर्छ।'
+                : lang === 'hi'
+                ? 'पारंपरिक एजेंसी के 3 से 7 दिन के बजाय मिनटों में पूरा वीडियो तैयार।'
+                : 'Render 4K motion, subtitles, and studio voiceovers without multi-day agency delays.'}
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/40 transition">
+            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs mb-2">
+              <QrCode className="w-4 h-4" />
+              <span>{lang === 'ne' ? 'सस्तो माइक्रो टप-अप' : lang === 'hi' ? 'सस्ता माइक्रो रिचार्ज' : 'FonePay / eSewa Instant QR'}</span>
+            </div>
+            <h3 className="text-lg font-black text-white mb-1">
+              {lang === 'ne' ? 'मात्र रू ५० बाट सुरु' : lang === 'hi' ? 'सिर्फ रू 50 से शुरू' : 'From रू 50 ($0.38) Per Pass'}
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {lang === 'ne'
+                ? 'कुनै डलर कार्ड नचाहिने—सिधै फोनपे वा इसेवा स्क्यान गरी ६० क्रेडिट पाउनुहोस्।'
+                : lang === 'hi'
+                ? 'बिना किसी डॉलर कार्ड के FonePay या eSewa QR से तुरंत क्रेडिट्स लें।'
+                : 'Zero foreign currency hurdles. Scan with any mobile banking app for instant 60 credits.'}
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-rose-500/40 transition">
+            <div className="flex items-center gap-2 text-rose-400 font-bold text-xs mb-2">
+              <Award className="w-4 h-4" />
+              <span>{lang === 'ne' ? '१००% कपीराइट सुरक्षित' : lang === 'hi' ? '100% कमर्शियल राइट्स' : 'Full Commercial Monetization'}</span>
+            </div>
+            <h3 className="text-lg font-black text-white mb-1">
+              {lang === 'ne' ? 'युट्युब व एड्स मनिटाइज' : lang === 'hi' ? 'यूट्यूब व एड्स कमाई' : '100% Monetization Ready'}
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {lang === 'ne'
+                ? 'ओरिजिनल एआई क्लिप र आवाज—युट्युब, टिकटक र क्लायन्ट डेलिभरीमा कुनै कपीराइट लाग्दैन।'
+                : lang === 'hi'
+                ? 'यूट्यूब, टिकटॉक, इंस्टाग्राम एड्स और फ्रीलांस डिलीवरी के लिए पूर्ण अधिकार।'
+                : 'Fully safe for YouTube Partner Program, TikTok Creator Rewards & Fiverr orders.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Streamlined Interactive FAQ Accordion Hub */}
         <div className="space-y-3 text-left">
           {/* FAQ 1 */}
           <div className="border border-slate-800 rounded-2xl bg-slate-900/60 overflow-hidden">

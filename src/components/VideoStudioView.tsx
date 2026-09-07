@@ -101,6 +101,10 @@ import { RealtimePresence } from './RealtimePresence';
 import { VersionHistoryModal } from './VersionHistoryModal';
 import { AssetAndSoundLibraryModal } from './AssetAndSoundLibraryModal';
 import { PreRenderValidationModal } from './PreRenderValidationModal';
+import { CharacterConsistencyModal } from './CharacterConsistencyModal';
+import { ScriptToSceneModal } from './ScriptToSceneModal';
+import { AiMediaProcessingModal } from './AiMediaProcessingModal';
+import { AutomatedAdBuilderModal } from './AutomatedAdBuilderModal';
 import { TextStylingToolkitModal } from './TextStylingToolkitModal';
 import { MediaLibrary, MediaAssetItem } from './MediaLibrary';
 import { validateTimelineBeforeRender } from '../services/timelineValidationService';
@@ -120,6 +124,7 @@ interface VideoStudioViewProps {
   setAudioTracks?: React.Dispatch<React.SetStateAction<AudioTrack[]>>;
   subtitles?: SubtitleItem[];
   setSubtitles?: React.Dispatch<React.SetStateAction<SubtitleItem[]>>;
+  initialOpenModal?: 'character_studio' | 'ad_builder' | null;
 }
 
 export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
@@ -134,6 +139,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   setAudioTracks: propsSetAudioTracks,
   subtitles: propsSubtitles,
   setSubtitles: propsSetSubtitles,
+  initialOpenModal = null,
 }) => {
   // Workflow state
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('polish');
@@ -218,6 +224,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const audioFileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaFileInputRef = useRef<HTMLInputElement | null>(null);
   const sfxFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 5 Production Studio Modules State
+  const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] = useState(initialOpenModal === 'character_studio');
+  const [showScriptToSceneModal, setShowScriptToSceneModal] = useState(false);
+  const [showAiMediaProcessingModal, setShowAiMediaProcessingModal] = useState(false);
+  const [showAutomatedAdBuilderModal, setShowAutomatedAdBuilderModal] = useState(initialOpenModal === 'ad_builder');
+  const [activeCharacterToken, setActiveCharacterToken] = useState<string>('');
 
   // Asset Modals & Drag State
   const [showVfxModal, setShowVfxModal] = useState(false);
@@ -1473,26 +1486,62 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         </div>
 
         {/* Premium Clustered Studio Toolbar */}
-        <div className="flex items-center gap-2 w-full xl:w-auto justify-end flex-wrap sm:flex-nowrap">
-          {/* AI Storyboard Creator */}
+        <div className="flex items-center gap-2 w-full xl:w-auto justify-end flex-wrap">
+          {/* Module 1: Character Consistency Anchor */}
           <button
-            onClick={() => setShowAiStoryboardModal(true)}
-            className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
-            title="AI Script-to-Storyboard Studio - Decompose script into cinematic multi-scene timeline"
+            onClick={() => setShowCharacterConsistencyModal(true)}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+              activeCharacterToken 
+                ? 'bg-cyan-950/80 border-cyan-500 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+            }`}
+            title="Module 1: Biometric Character Consistency & FaceID Anchor"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-200 animate-pulse" />
-            <span>AI Storyboard</span>
+            <Shield className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Character ID</span>
+            {activeCharacterToken && (
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            )}
           </button>
 
-          {/* Modular Scene Templates */}
+          {/* Module 2: Sora-2 Script to Scene (12s Intervals) */}
           <button
-            onClick={() => setShowSceneTemplatesModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer shrink-0"
-            title="Browse modular scene templates (Intro, Outro, Lower-Thirds, News Banners) - Shortcut: T"
+            onClick={() => setShowScriptToSceneModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
+            title="Module 2: Script-to-Scene 12-Second Sora-2 Frame Generator"
           >
-            <LayoutTemplate className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>Templates</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 text-[10px] font-bold">8</span>
+            <Film className="w-3.5 h-3.5 text-purple-200" />
+            <span>Sora 12s Engine</span>
+          </button>
+
+          {/* Module 4: Automated Ad Builder */}
+          <button
+            onClick={() => setShowAutomatedAdBuilderModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
+            title="Module 4: Automated Ad & Template Builder (Commercials & Brand Storyboards)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+            <span>Ad Builder</span>
+          </button>
+
+          {/* Module 3: AI Media Processing Suite */}
+          <button
+            onClick={() => setShowAiMediaProcessingModal(true)}
+            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+            title="Module 3: AI Background Remover, Intelligent Crop & 4K Super-Resolution"
+          >
+            <Sliders className="w-3.5 h-3.5 text-emerald-500" />
+            <span>AI BG & 4K</span>
+          </button>
+
+          {/* Module 5: Multi-Channel Social Publisher */}
+          <button
+            onClick={() => setShowSocialPublisherModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
+            title="Module 5: Direct Multi-Channel Social Publisher (YouTube, Instagram, Facebook, Pinterest, TikTok, X)"
+          >
+            <Upload className="w-3.5 h-3.5 text-cyan-200" />
+            <span>Publish Social</span>
           </button>
 
           {/* Media Suite: Media & Assets */}
@@ -4134,6 +4183,71 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           setProjectNotice(`Updated kinetic typography and lower-third for scene!`);
           setTimeout(() => setProjectNotice(null), 3000);
         }}
+      />
+
+      {/* Module 1: Character Consistency & FaceID Biometric Modal */}
+      <CharacterConsistencyModal
+        isOpen={showCharacterConsistencyModal}
+        onClose={() => setShowCharacterConsistencyModal(false)}
+        onSaveAvatar={(avatar) => {
+          setActiveCharacterToken(avatar.consistencyToken);
+          setProjectNotice(`Character "${avatar.name}" locked for 100% facial consistency across studio!`);
+          setTimeout(() => setProjectNotice(null), 4000);
+        }}
+      />
+
+      {/* Module 2: Advanced AI Video & Audio Generation (Sora-2 12s Frame Intervals) */}
+      <ScriptToSceneModal
+        isOpen={showScriptToSceneModal}
+        onClose={() => setShowScriptToSceneModal(false)}
+        onAddScenesToTimeline={(newScenes) => {
+          pushToHistory(scenes);
+          setScenes(prev => [...prev, ...newScenes]);
+          if (newScenes[0]) setSelectedSceneId(newScenes[0].id);
+          setProjectNotice(`Sequenced ${newScenes.length} 12-second Sora scenes into NLE timeline!`);
+          setTimeout(() => setProjectNotice(null), 4000);
+        }}
+        lockedCharacterToken={activeCharacterToken}
+      />
+
+      {/* Module 3: Pro-Grade NLE AI Media Processing Suite (BG Remover, Smart Crop, 4K Super-Resolution) */}
+      <AiMediaProcessingModal
+        isOpen={showAiMediaProcessingModal}
+        onClose={() => setShowAiMediaProcessingModal(false)}
+        targetScene={selectedScene || scenes[0] || null}
+        onApplyProcessedMedia={(sceneId, updatedProps) => {
+          pushToHistory(scenes);
+          setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updatedProps } : s));
+          setProjectNotice(`Applied AI processing (BG Cutout / 4K Super-Res) to scene!`);
+          setTimeout(() => setProjectNotice(null), 3000);
+        }}
+      />
+
+      {/* Module 4: Automated Ad & Template Builder */}
+      <AutomatedAdBuilderModal
+        isOpen={showAutomatedAdBuilderModal}
+        onClose={() => setShowAutomatedAdBuilderModal(false)}
+        onDeployAdToTimeline={(adScenes, audioTrack) => {
+          pushToHistory(scenes);
+          setScenes(prev => [...prev, ...adScenes]);
+          if (audioTrack) {
+            setAudioTracks(prev => [...prev, audioTrack]);
+          }
+          if (adScenes[0]) setSelectedSceneId(adScenes[0].id);
+          setProjectNotice(`Deployed 3-scene high-converting brand commercial to timeline!`);
+          setTimeout(() => setProjectNotice(null), 4000);
+        }}
+        lockedCharacterToken={activeCharacterToken}
+      />
+
+      {/* Module 5: Multi-Channel Social Publisher */}
+      <SocialPublisherModal
+        isOpen={showSocialPublisherModal}
+        onClose={() => setShowSocialPublisherModal(false)}
+        projectTitle={projectTitle}
+        scenes={scenes}
+        aspectRatio={aspectRatio}
+        totalDuration={totalDuration}
       />
     </div>
   );

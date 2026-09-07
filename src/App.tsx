@@ -370,7 +370,7 @@ export default function App() {
           />
         )}
 
-        {user && activeTab === 'video_studio' && (
+        {user && (activeTab === 'video_studio' || activeTab === 'character_studio' || activeTab === 'ad_builder') && (
           <VideoStudioView
             scenes={scenes}
             setScenes={setScenes}
@@ -383,6 +383,7 @@ export default function App() {
             setAudioTracks={setAudioTracks}
             subtitles={subtitles}
             setSubtitles={setSubtitles}
+            initialOpenModal={activeTab === 'character_studio' ? 'character_studio' : activeTab === 'ad_builder' ? 'ad_builder' : null}
           />
         )}
 

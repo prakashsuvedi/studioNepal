@@ -5,6 +5,8 @@ export type StudioTab =
   | 'video_studio'
   | 'image_studio'
   | 'sora_studio'
+  | 'character_studio'
+  | 'ad_builder'
   | 'tts_studio'
   | 'admin'
   | 'audit'
@@ -443,3 +445,212 @@ export interface RouteAuditStatus {
   rootCause: string;
   solution: string;
 }
+
+// ==========================================
+// MODULE 1: Character Consistency & Biometrics
+// ==========================================
+export interface BiometricParameters {
+  // Facial Angles
+  pitchAngle: number; // -45 to +45 deg (up/down)
+  yawAngle: number;   // -45 to +45 deg (left/right profile)
+  rollAngle: number;  // -30 to +30 deg (tilt)
+  
+  // Eye Structure
+  eyeShape: 'almond' | 'round' | 'hooded' | 'monolid' | 'deep_set' | 'upturned';
+  eyeColor: 'deep_brown' | 'amber' | 'hazel' | 'emerald_green' | 'ice_blue' | 'charcoal';
+  interpupillaryDistance: number; // 0.8 to 1.3 (spacing ratio)
+  eyebrowArch: 'soft_curve' | 'high_arch' | 'straight' | 'feathered' | 'bold_defined';
+
+  // Nose Structure
+  noseBridgeHeight: number; // 0.7 to 1.4
+  noseTipAngle: 'upturned' | 'straight' | 'button' | 'aquiline' | 'refined';
+  alarBaseWidth: number;   // 0.8 to 1.3 (nostril width ratio)
+
+  // Ears & Cranial Gaps
+  earPlacementRatio: number; // 0.85 to 1.15 (ear-to-nose vertical gap)
+  earLobeType: 'attached' | 'free' | 'prominent';
+
+  // Hair & Facial Contours
+  hairStyle: 'slicked_back' | 'wavy_shoulder' | 'buzz_cut' | 'layered_fringe' | 'classic_part' | 'curly_afro' | 'top_knot' | 'traditional_dhaka_topi';
+  hairColor: 'jet_black' | 'dark_espresso' | 'chestnut_brown' | 'silver_slate' | 'golden_amber';
+  hairlineHeight: number; // 0.8 to 1.2
+  
+  // Jawline, Chin & Cheeks
+  jawlineAngle: number; // 90 to 135 deg (sharp vs soft)
+  chinProminence: 'pointed' | 'square' | 'cleft' | 'rounded' | 'dimpled';
+  cheekboneProminence: number; // 0.8 to 1.4 (high vs flat)
+  neckLengthRatio: number; // 0.85 to 1.2
+
+  // Mouth & Lips
+  lipFullness: 'plump' | 'medium' | 'thin_refined' | 'cupid_bow';
+  philtrumDepth: number; // 0.7 to 1.3 (nose-to-lip gap)
+  expression: 'neutral_calm' | 'confident_smile' | 'thoughtful_focused' | 'charismatic_speaking' | 'heroic_serious';
+}
+
+export interface CharacterAvatar {
+  id: string;
+  name: string;
+  gender: 'male' | 'female' | 'non_binary';
+  ageRange: 'early_20s' | 'mid_20s' | 'early_30s' | 'mid_40s' | 'elder_wise';
+  ethnicityStyle: 'nepali_pahadi' | 'nepali_newari' | 'nepali_madhesi' | 'himalayan_sherpa' | 'south_asian' | 'east_asian' | 'caucasian' | 'global_hybrid';
+  avatarImageUrl: string;
+  referenceImages: string[];
+  biometricAnchorToken: string; // e.g. [FaceID-Lock#0948-Maya]
+  biometricParams: BiometricParameters;
+  promptDescriptor: string;
+  createdAt: string;
+  scenesCountUsed?: number;
+  isLocked: boolean;
+}
+
+// ==========================================
+// MODULE 2: Sora-2 Script-to-Scene 12s Pipeline
+// ==========================================
+export type AudioRoutingOption = 
+  | 'sync_ai_audio'    // Sora-2 Native synchronous neural audio & environment soundscape
+  | 'layered_voiceover' // Silent video + SpeechT5 / Azure Neural Voiceover + BGM track
+  | 'silent_broll';     // Pure visual B-roll for custom editing
+
+export interface ScriptSceneInterval {
+  sceneIndex: number;
+  intervalRange: string; // e.g. "0:00 - 0:12"
+  durationSeconds: 12;   // locked 12s interval
+  synopsis: string;
+  visualPrompt: string;
+  visualPromptNepali?: string;
+  cinematicCamera: CameraMotion;
+  cameraMovementDetail: string; // e.g. "Anamorphic 35mm f/1.8 dolly-in with warm rim lighting"
+  voiceoverDialogue: string;
+  voiceoverNepali?: string;
+  onscreenCaption: string;
+  audioRouting: AudioRoutingOption;
+  bgmGenreSuggested?: string;
+  lightingStyle: 'golden_hour' | 'neon_cyber' | 'himalayan_mist' | 'studio_softbox' | 'dramatic_chiaroscuro';
+  generatedMediaUrl?: string;
+  jobId?: string;
+  status: 'idle' | 'generating' | 'ready' | 'error';
+}
+
+export interface ScriptDecompositionResult {
+  title: string;
+  totalDurationSeconds: number;
+  scenesCount: number;
+  coreHook: string;
+  callToAction: string;
+  scenes: ScriptSceneInterval[];
+}
+
+// ==========================================
+// MODULE 3: Pro-Grade NLE Studio Tools
+// ==========================================
+export interface BackgroundRemovalOptions {
+  mode: 'transparent_png' | 'green_screen' | 'custom_color' | 'ai_depth_blur';
+  customColorHex?: string;
+  featherRadius: number; // 0 to 10
+  edgeSmoothness: number; // 0 to 10
+}
+
+export interface SmartCropConfig {
+  targetAspectRatio: '16:9' | '9:16' | '1:1' | '4:5' | '21:9';
+  focalTracking: 'auto_face' | 'action_center' | 'rule_of_thirds' | 'custom_box';
+  focalPointX: number; // 0 to 100%
+  focalPointY: number; // 0 to 100%
+}
+
+export interface UpscaleQualityConfig {
+  targetResolution: '1080p_hdr' | '2k_super_res' | '4k_ultra_master';
+  sharpening: number; // 0 to 100
+  denoiseStrength: number; // 0 to 100
+  colorVibranceBoost: boolean;
+  frameStabilization: boolean;
+}
+
+// ==========================================
+// MODULE 4: Automated Ad & Template Builder
+// ==========================================
+export type AdCategoryPreset = 
+  | 'tech_product_launch'
+  | 'food_hospitality'
+  | 'ecommerce_flash_sale'
+  | 'podcast_reel_highlight'
+  | 'real_estate_luxury'
+  | 'tourism_himalaya'
+  | 'freelance_agency_pitch'
+  | 'local_business_lead';
+
+export interface BrandAdSpec {
+  companyName: string;
+  logoUrl?: string;
+  primaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+  topicHook: string;
+  coreValueProp: string;
+  callToActionText: string;
+  callToActionUrl?: string;
+  targetPlatform: 'instagram_reels' | 'youtube_shorts' | 'tiktok' | 'facebook_ad' | 'pinterest_pin';
+  categoryPreset: AdCategoryPreset;
+  language: 'en' | 'ne' | 'hi';
+}
+
+export interface BrandAdScene {
+  order: number;
+  sceneTitle: string;
+  durationSeconds: number;
+  visualPrompt: string;
+  scriptVoiceover: string;
+  headlineOverlay: string;
+  captionSubtext: string;
+  brandBadgeStyle: 'floating_pill' | 'corner_stamp' | 'lower_third_bar' | 'full_end_card';
+  suggestedTransition: TransitionType;
+}
+
+export interface BrandAdStoryboard {
+  id: string;
+  brandSpec: BrandAdSpec;
+  totalDurationSeconds: number;
+  aspectRatio: '9:16' | '16:9' | '1:1';
+  musicTrackTitle: string;
+  scenes: BrandAdScene[];
+  createdAt: string;
+}
+
+// ==========================================
+// MODULE 5: Stock Assets & Social Publishing
+// ==========================================
+export interface UnsplashStockPhoto {
+  id: string;
+  title: string;
+  description?: string;
+  thumbUrl: string;
+  fullUrl: string;
+  downloadUrl: string;
+  authorName: string;
+  authorUrl: string;
+  aspectRatio: 'landscape' | 'portrait' | 'square';
+  tags: string[];
+}
+
+export interface SocialPublishPayload {
+  platforms: ('youtube' | 'instagram' | 'facebook' | 'pinterest' | 'tiktok' | 'x')[];
+  title: string;
+  description: string;
+  tags: string[];
+  aspectRatio: '16:9' | '9:16' | '1:1';
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  scheduledTime?: string; // ISO format or 'immediate'
+  pinBoardId?: string;    // Pinterest specific
+  instagramPlacement?: 'reels' | 'feed' | 'story';
+  facebookPageId?: string;
+  youtubePrivacy?: 'public' | 'unlisted' | 'private';
+}
+
+export interface PlatformPostResult {
+  platform: string;
+  status: 'published' | 'scheduled' | 'error';
+  postUrl?: string;
+  postId?: string;
+  message?: string;
+}
+

@@ -1198,5 +1198,132 @@ Return strictly a valid raw JSON object matching this structure without any mark
   };
 }
 
+export async function serverDecomposeScriptToScenes(
+  script: string,
+  totalTargetSeconds: number = 36,
+  cameraMotionPreset: string = 'Cinematic Orbit'
+): Promise<Array<{
+  index: number;
+  duration: number;
+  prompt: string;
+  visualDescription: string;
+  cameraMovement: string;
+  lightingStyle: string;
+  dialogueSubtitle: string;
+}>> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const numScenes = Math.max(1, Math.round(totalTargetSeconds / 12));
+
+  if (geminiKey && geminiKey.trim().length > 5) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
+      const prompt = `Decompose this script into exactly ${numScenes} continuous scenes of exactly 12 seconds each for OpenAI Sora-2 cinematic generation.
+Script: "${script}"
+Camera Motion Preset: "${cameraMotionPreset}"
+
+Return strictly a valid JSON array without any markdown markers:
+[
+  {
+    "index": 1,
+    "duration": 12,
+    "prompt": "high-res photorealistic prompt describing scene 1 with camera movement",
+    "visualDescription": "brief visual summary",
+    "cameraMovement": "camera motion instruction (e.g., slow pan left)",
+    "lightingStyle": "cinematic warm golden hour / neon",
+    "dialogueSubtitle": "dialogue or narration text for this 12s interval"
+  }
+]`;
+
+      const res = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+
+      if (res && res.text) {
+        let cleanText = res.text.trim();
+        if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+        }
+        const parsed = JSON.parse(cleanText);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.warn('Gemini scene decomposition error:', err);
+    }
+  }
+
+  // Fallback programmatic scene splitter
+  const sentences = script.split(/(?<=[.?!।])\s+/).filter(Boolean);
+  const chunkLength = Math.max(1, Math.ceil(sentences.length / numScenes));
+  const scenes = [];
+
+  for (let i = 0; i < numScenes; i++) {
+    const chunk = sentences.slice(i * chunkLength, (i + 1) * chunkLength).join(' ') || script.slice(0, 100);
+    scenes.push({
+      index: i + 1,
+      duration: 12,
+      prompt: `Cinematic 4K Sora video scene ${i + 1}: ${chunk}. Camera: ${cameraMotionPreset}. Ultra-realistic, atmospheric lighting, 8k resolution.`,
+      visualDescription: `Scene ${i + 1} narrative frame`,
+      cameraMovement: cameraMotionPreset,
+      lightingStyle: 'Cinematic High-Dynamic Range (HDR)',
+      dialogueSubtitle: chunk.slice(0, 120),
+    });
+  }
+
+  return scenes;
+}
+
+export async function serverGenerateAdCommercial(
+  brandName: string,
+  productTagline: string,
+  targetAudience: string,
+  primaryColor: string = '#4f46e5'
+): Promise<{
+  brandName: string;
+  palette: { primary: string; secondary: string; accent: string };
+  scenes: Array<{
+    title: string;
+    duration: number;
+    visualPrompt: string;
+    textOverlay: string;
+    voiceoverScript: string;
+    mediaUrl: string;
+  }>;
+}> {
+  return {
+    brandName,
+    palette: { primary: primaryColor, secondary: '#1e1b4b', accent: '#fbbf24' },
+    scenes: [
+      {
+        title: 'Hook - The Problem & Attention Grabber',
+        duration: 4,
+        visualPrompt: `Dynamic high-energy opening shot showcasing problem context for ${brandName}. ${productTagline}. Ultra high-end commercial style.`,
+        textOverlay: `${brandName.toUpperCase()} — REVOLUTIONIZING QUALITY`,
+        voiceoverScript: `Tired of outdated solutions? Meet ${brandName}.`,
+        mediaUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1280&auto=format&fit=crop&q=85',
+      },
+      {
+        title: 'Core Value - Feature & Innovation Showcase',
+        duration: 8,
+        visualPrompt: `Sleek close-up product showcase for ${brandName}, elegant studio lighting, vibrant colors. ${productTagline}`,
+        textOverlay: productTagline || 'ENGINEERED FOR MODERN EXCELLENCE',
+        voiceoverScript: `${productTagline}. Built specifically for ${targetAudience}.`,
+        mediaUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1280&auto=format&fit=crop&q=85',
+      },
+      {
+        title: 'Call to Action - Exclusive Offer & Link',
+        duration: 6,
+        visualPrompt: `High-conversion animated closing splash for ${brandName}, brand logos, golden hour lighting.`,
+        textOverlay: `GET STARTED TODAY WITH ${brandName.toUpperCase()}`,
+        voiceoverScript: `Visit our website or order now to claim your exclusive creator bonus today!`,
+        mediaUrl: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1280&auto=format&fit=crop&q=85',
+      },
+    ],
+  };
+}
+
+
 
 

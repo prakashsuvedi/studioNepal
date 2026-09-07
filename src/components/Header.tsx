@@ -32,7 +32,9 @@ import {
   TrendingUp,
   Gift,
   HelpCircle,
-  LayoutDashboard
+  LayoutDashboard,
+  Megaphone,
+  UserCheck
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -374,6 +376,52 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Video className="w-3.5 h-3.5" />
             <span>{t('nav.sora_studio', 'Sora-2 Video')}</span>
+            {!user && <Lock className="w-3 h-3 text-slate-400" />}
+          </button>
+
+          <button
+            onClick={() => {
+              if (!user) {
+                onOpenAuth('user');
+              } else {
+                setActiveTab('character_studio');
+              }
+            }}
+            title={!user ? 'Sign in with Google to unlock Character Studio' : 'Character Consistency Studio'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'character_studio'
+                ? 'bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-bold'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Character Studio</span>
+            <span className="text-[9px] px-1 py-0.2 rounded font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+              FaceID
+            </span>
+            {!user && <Lock className="w-3 h-3 text-slate-400" />}
+          </button>
+
+          <button
+            onClick={() => {
+              if (!user) {
+                onOpenAuth('user');
+              } else {
+                setActiveTab('ad_builder');
+              }
+            }}
+            title={!user ? 'Sign in with Google to unlock Automated Ad Builder' : 'Automated Ad & Template Builder'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'ad_builder'
+                ? 'bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 text-amber-300 border border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] font-bold'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80 border border-transparent'
+            }`}
+          >
+            <Megaphone className="w-3.5 h-3.5 text-amber-400" />
+            <span>Ad Builder</span>
+            <span className="text-[9px] px-1 py-0.2 rounded font-bold bg-amber-950 text-amber-300 border border-amber-800">
+              Templates
+            </span>
             {!user && <Lock className="w-3 h-3 text-slate-400" />}
           </button>
 

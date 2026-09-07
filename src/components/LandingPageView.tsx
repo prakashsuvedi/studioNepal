@@ -104,15 +104,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   // Multi-lingual Text Matrix for Global, Nepali and Hindi visitors
   const t = {
     en: {
-      badge: "The Platform You Know. Enhanced for the Creators of Tomorrow.",
-      heroTitle1: "REDEFINING",
-      heroTitleHighlight: "YOUR DIGITAL",
-      heroTitle2: "DOMINANCE",
-      heroSubtitle: "THE ULTIMATE ECOSYSTEM FOR CREATORS, BRANDS, & FREELANCERS",
-      sastaCta: "Buy Micro-Credits Pass (रू 50)",
-      freeTrialCta: "START FOR FREE",
+      badge: "Next-Gen AI Video Studio • Azure Sora-2 & Neural Voice",
+      heroTitle1: "Create Viral AI Videos",
+      heroTitleHighlight: "In Seconds, Not Days.",
+      heroTitle2: "",
+      heroSubtitle: "Generate 4K cinematic Sora-2 motion, authentic Nepali neural voiceovers, Devanagari auto-subtitles, and high-converting ads with zero editing skills.",
+      sastaCta: "Micro-Pass (रू 50)",
+      freeTrialCta: "Start Creating Free",
       launchStudioCta: "Launch Video Studio",
-      hamroAiCta: "HamroAI Multi-lingual Assistant",
+      hamroAiCta: "HamroAI Chat",
       viralStat: "1,250,000+ views generated on YouTube, Reels & TikTok",
       agencySavedStat: "$0 Spent on Costly Video Agencies",
       personaTitle: "Who is NepalAI Studio Built For?",
@@ -123,13 +123,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       calcSubtitle: "See how creating consistent videos with NepalAI studio unlocks real revenue.",
     },
     ne: {
-      badge: "तपाईंले चिनेको स्टुडियो • अब नयाँ डिजिटल शक्तिका साथ!",
-      heroTitle1: "डिजिटल प्रगतिको",
-      heroTitleHighlight: "नयाँ शक्ति र",
-      heroTitle2: "आधुनिक पहिचान",
-      heroSubtitle: "क्रिएटर, विजनेस र फ्रिलान्सरहरूको लागि सम्पूर्ण एआई इकोसिस्टम",
-      sastaCta: "सस्तो पास लिनुहोस् (रू ५० मात्र)",
-      freeTrialCta: "निःशुल्क सुरु गर्नुहोस् (START FOR FREE)",
+      badge: "नेपालको #1 एआई भिडियो स्टुडियो • सोरा-२ र न्युरल आवाज",
+      heroTitle1: "भाइरल एआई भिडियो",
+      heroTitleHighlight: "मिनेटमै तयार, सिधै आम्दानी।",
+      heroTitle2: "",
+      heroSubtitle: "सोरा-२ भिडियो, नेपाली न्युरल आवाज, मुक्ता फन्ट सबटाइटल र आकर्षक विज्ञापनहरू १-क्लिकमै बनाउनुहोस्। कुनै क्यामरा वा एडिटिङ ज्ञान चाहिँदैन।",
+      sastaCta: "सस्तो पास (रू ५० मात्र)",
+      freeTrialCta: "निःशुल्क सुरु गर्नुहोस्",
       launchStudioCta: "भिडियो स्टुडियो खोल्नुहोस्",
       hamroAiCta: "हाम्रो एआई च्याट",
       viralStat: "१२ लाख ५० हजार भन्दा बढी युट्युब र रील्स भ्युज",
@@ -142,13 +142,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       calcSubtitle: "हेर्नुहोस् नियमित भिडियो बनाउँदा कति आम्दानी र एजेन्सी खर्च बचत हुन्छ।",
     },
     hi: {
-      badge: "आपका जाना-पहचाना प्लेटफ़ॉर्म • अब और भी पावरफुल!",
-      heroTitle1: "डिजिटल डॉमिनेंस",
-      heroTitleHighlight: "की नई शुरुआत और",
-      heroTitle2: "अल्टीमेट ग्रोथ",
-      heroSubtitle: "क्रिएटर्स, ब्रांड्स और फ्रीलांसर्स के लिए संपूर्ण एआई इकोसिस्टम",
-      sastaCta: "सस्ता पास खरीदें (मात्र रू 50)",
-      freeTrialCta: "मुफ़्त शुरू करें (START FOR FREE)",
+      badge: "नेक्स्ट-जेन एआई वीडियो स्टूडियो • सोरा-2 और नेचुरल वॉइस",
+      heroTitle1: "वायरल एआई वीडियो बनाएं",
+      heroTitleHighlight: "मिनटों में, बिना किसी झंझट के।",
+      heroTitle2: "",
+      heroSubtitle: "4K सोरा-2 वीडियो, नेचुरल वॉइसओवर, एनिमेटेड सबटाइटल्स और हाई-कन्वर्टिंग एड्स अब चुटकियों में। न कैमरा चाहिए, न भारी सॉफ्टवेयर।",
+      sastaCta: "सस्ता पास (मात्र रू 50)",
+      freeTrialCta: "मुफ़्त शुरू करें",
       launchStudioCta: "वीडियो स्टूडियो खोलें",
       hamroAiCta: "हाम्रो एआई चैट",
       viralStat: "12,50,000+ से अधिक यूट्यूब और रील्स व्यूज",
@@ -173,236 +173,112 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
   return (
     <div className="bg-slate-950 text-slate-100 min-h-screen selection:bg-rose-600 selection:text-white font-sans">
-      {/* Background ambient lighting effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[720px] overflow-hidden pointer-events-none opacity-40 blur-3xl -z-10">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-rose-600/35 rounded-full mix-blend-screen animate-pulse" />
-        <div className="absolute top-10 right-1/4 w-[520px] h-[520px] bg-indigo-600/35 rounded-full mix-blend-screen" />
-        <div className="absolute top-48 left-1/3 w-80 h-80 bg-amber-500/25 rounded-full mix-blend-screen" />
+      {/* Background ambient lighting & subtle matrix grid */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[850px] overflow-hidden pointer-events-none opacity-40 blur-3xl -z-10">
+        <div className="absolute top-0 left-1/4 w-[480px] h-[480px] bg-cyan-600/30 rounded-full mix-blend-screen animate-pulse" />
+        <div className="absolute top-16 right-1/4 w-[540px] h-[540px] bg-purple-600/30 rounded-full mix-blend-screen" />
+        <div className="absolute top-48 left-1/3 w-[360px] h-[360px] bg-rose-500/20 rounded-full mix-blend-screen" />
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-6 sm:pt-10 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-6 overflow-hidden">
-        {/* Top Upgrade Announcement & Engine Status Pill */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/40 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-cyan-950/40">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 shrink-0" />
+      <section className="relative pt-6 sm:pt-12 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
+        {/* Top Announcement Badge */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-xs text-slate-300 backdrop-blur-xl shadow-lg shadow-cyan-950/40">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
             <span className="font-semibold text-white">{t.badge}</span>
             <span className="text-slate-600 hidden sm:inline">•</span>
-            <span className="text-cyan-400 font-bold hidden sm:inline">NepalAI Studio 2.0</span>
-          </div>
-
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs text-slate-300 backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span className="text-cyan-300 font-medium">Azure gpt-image-1.5 + Sora-2</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-amber-300 font-semibold">🇳🇵 NPR Ready</span>
+            <span className="text-amber-400 font-bold hidden sm:inline">🇳🇵 NPR FonePay Ready</span>
           </div>
         </div>
 
-        {/* Hero Central Area with 3D Orbital Constellation */}
-        <div className="relative max-w-6xl mx-auto py-6 sm:py-10 min-h-[480px] lg:min-h-[540px] flex items-center justify-center">
-          {/* Glowing Elliptical Orbital Light Trails SVG */}
-          <div className="absolute inset-0 w-full h-full pointer-events-none select-none flex items-center justify-center -z-10">
-            <svg
-              viewBox="0 0 1000 600"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-full h-full max-w-5xl opacity-75 animate-orbit-glow"
-            >
-              <defs>
-                <linearGradient id="orbitGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
-                  <stop offset="40%" stopColor="#3b82f6" stopOpacity="0.4" />
-                  <stop offset="70%" stopColor="#a855f7" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#ec4899" stopOpacity="0.7" />
-                </linearGradient>
-                <linearGradient id="orbitGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
-                  <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0.5" />
-                </linearGradient>
-                <filter id="glowFilter" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="8" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* Main Outer Orbital Ellipse */}
-              <ellipse
-                cx="500"
-                cy="300"
-                rx="440"
-                ry="210"
-                stroke="url(#orbitGrad1)"
-                strokeWidth="2.5"
-                strokeDasharray="8 6"
-                filter="url(#glowFilter)"
-              />
-
-              {/* Inner Secondary Sweeping Light Ring */}
-              <ellipse
-                cx="500"
-                cy="300"
-                rx="390"
-                ry="170"
-                stroke="url(#orbitGrad2)"
-                strokeWidth="1.8"
-                opacity="0.65"
-              />
-
-              {/* Ambient Glow Circles & Starbursts */}
-              <circle cx="160" cy="190" r="3" fill="#38bdf8" filter="url(#glowFilter)" />
-              <circle cx="210" cy="420" r="4" fill="#a855f7" filter="url(#glowFilter)" />
-              <circle cx="820" cy="180" r="3.5" fill="#34d399" filter="url(#glowFilter)" />
-              <circle cx="780" cy="440" r="4" fill="#f43f5e" filter="url(#glowFilter)" />
-              <circle cx="500" cy="90" r="2.5" fill="#fbbf24" filter="url(#glowFilter)" />
-              <circle cx="500" cy="510" r="3" fill="#38bdf8" filter="url(#glowFilter)" />
-            </svg>
-          </div>
-
-          {/* LEFT ORBITAL FLANK: Symmetrical 3D Platform Badges */}
-          {/* Left Element 1: 3D YouTube Icon + ENGAGE pill */}
-          <div className="hidden lg:flex absolute top-4 left-0 xl:-left-4 z-20 items-center gap-2.5 animate-float-slow transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-0.5 shadow-xl shadow-red-950/60 card-3d-glow border-t border-red-300/40 flex items-center justify-center shrink-0">
-              <Youtube className="w-7 h-7 text-white drop-shadow-md" />
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
-            </div>
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-slate-200 uppercase shadow-md backdrop-blur-md">
-              ENGAGE
-            </div>
-          </div>
-
-          {/* Left Element 2: 3D TikTok Icon + VIRAL pill */}
-          <div className="hidden lg:flex absolute top-[32%] -left-2 xl:-left-8 z-20 items-center gap-2.5 animate-float-reverse transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-black p-0.5 shadow-xl shadow-cyan-950/50 card-3d-glow border border-slate-700/60 flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
-                <path
-                  d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-2.887 2.887 2.896 2.896 0 0 1-2.887-2.887 2.896 2.896 0 0 1 2.887-2.887c.307 0 .604.05.882.141v-3.52a6.34 6.34 0 0 0-.882-.061C5.973 9.345 3.125 12.193 3.125 15.686S5.973 22.027 9.487 22.027c3.514 0 6.362-2.848 6.362-6.341V8.653a8.163 8.163 0 0 0 4.74 1.488V6.697a4.8 4.8 0 0 1-1-.011z"
-                  fill="#00F2FE"
-                />
-                <path
-                  d="M18.589 5.686a4.793 4.793 0 0 1-3.77-4.245V1h-2.445v13.672a2.896 2.896 0 0 1-2.887 2.887 2.896 2.896 0 0 1-2.887-2.887 2.896 2.896 0 0 1 2.887-2.887c.307 0 .604.05.882.141v-2.52a6.34 6.34 0 0 0-.882-.061C6.973 9.345 5.125 12.193 5.125 15.686S6.973 22.027 9.487 22.027c3.514 0 6.362-2.848 6.362-6.341V7.653a8.163 8.163 0 0 0 4.74 1.488V5.697a4.8 4.8 0 0 1-2-.011z"
-                  fill="#FE2C55"
-                  opacity="0.85"
-                />
-              </svg>
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-2xl pointer-events-none" />
-            </div>
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-cyan-300 uppercase shadow-md backdrop-blur-md">
-              VIRAL
-            </div>
-          </div>
-
-          {/* Left Element 3: 3D Instagram Reels Icon + REELS pill */}
-          <div className="hidden lg:flex absolute top-[62%] -left-4 xl:-left-10 z-20 items-center gap-2.5 animate-float-pulse transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shadow-xl shadow-rose-950/60 card-3d-glow border-t border-amber-200/40 flex items-center justify-center shrink-0">
-              <Instagram className="w-7 h-7 text-white drop-shadow-md" />
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
-            </div>
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-pink-300 uppercase shadow-md backdrop-blur-md">
-              REELS
-            </div>
-          </div>
-
-          {/* Left Element 4: 3D Facebook Sphere + CONNECT pill */}
-          <div className="hidden lg:flex absolute top-[86%] left-0 xl:-left-4 z-20 items-center gap-2.5 animate-float-drift transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 via-blue-600 to-indigo-800 p-0.5 shadow-xl shadow-blue-950/70 card-3d-glow border-t border-blue-200/50 flex items-center justify-center shrink-0">
-              <Share2 className="w-7 h-7 text-white drop-shadow-md" />
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent rounded-t-2xl pointer-events-none" />
-            </div>
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-blue-300 uppercase shadow-md backdrop-blur-md">
-              CONNECT
-            </div>
-          </div>
-
-          {/* RIGHT ORBITAL FLANK: Symmetrical 3D Growth, Business & Creators */}
-          {/* Right Element 1: 3D Megaphone Audio Blast + ADS pill */}
-          <div className="hidden lg:flex absolute top-4 right-0 xl:-right-4 z-20 items-center gap-2.5 animate-float-slow transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-amber-300 uppercase shadow-md backdrop-blur-md">
-              COMPANY ADS
-            </div>
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-blue-600 to-amber-500 p-0.5 shadow-xl shadow-indigo-950/60 card-3d-glow border-t border-cyan-200/40 flex items-center justify-center shrink-0">
-              <Megaphone className="w-7 h-7 text-white drop-shadow-lg transform -rotate-12" />
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Right Element 2: 3D Rising Growth Chart & Coins + GROW pill */}
-          <div className="hidden lg:flex absolute top-[32%] -right-2 xl:-right-8 z-20 items-center gap-2.5 animate-float-reverse transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-emerald-300 uppercase shadow-md backdrop-blur-md">
-              GROW
-            </div>
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-1.5 shadow-xl shadow-purple-950/60 card-3d-glow border border-purple-500/40 flex flex-col items-center justify-center shrink-0">
-              <div className="flex items-end gap-1 h-5">
-                <div className="w-1.5 h-2.5 bg-amber-400 rounded-t-xs shadow" />
-                <div className="w-1.5 h-4 bg-rose-500 rounded-t-xs shadow" />
-                <div className="w-1.5 h-5 bg-cyan-400 rounded-t-xs shadow" />
+        {/* Symmetrical Master Grid: Left Capsules, Center Typography & CTAs, Right Capsules */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
+          
+          {/* LEFT FLANK: 3 High-End Glassmorphic Capsules */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col gap-4">
+            {/* Capsule 1: YouTube Shorts */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800/80 hover:border-red-500/40 shadow-xl backdrop-blur-xl transition-all duration-300 group text-left cursor-default transform hover:-translate-y-1">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-700 flex items-center justify-center shadow-lg shadow-red-950/50 shrink-0">
+                  <Youtube className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white group-hover:text-red-300 transition">YouTube Shorts</span>
+                    <span className="text-[9px] font-bold text-red-400 bg-red-950/60 px-1.5 py-0.5 rounded border border-red-800/40">VIRAL</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5 truncate">1080x1920 • 60 FPS • High CTR</p>
+                </div>
               </div>
-              <div className="flex items-center gap-0.5 mt-0.5 text-[8px] font-extrabold text-emerald-400">
-                <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />
-                <span>+480%</span>
+            </div>
+
+            {/* Capsule 2: Nepali Neural Voice */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800/80 hover:border-amber-500/40 shadow-xl backdrop-blur-xl transition-all duration-300 group text-left cursor-default transform hover:-translate-y-1">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-950/50 shrink-0">
+                  <Mic className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white group-hover:text-amber-300 transition">Nepali Neural Voice</span>
+                    <span className="text-[9px] font-bold text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40">48kHz</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5 truncate">SpeechT5 & Azure • Natural Flow</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Capsule 3: Azure Sora-2 */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800/80 hover:border-cyan-500/40 shadow-xl backdrop-blur-xl transition-all duration-300 group text-left cursor-default transform hover:-translate-y-1">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-950/50 shrink-0">
+                  <Video className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white group-hover:text-cyan-300 transition">Azure Sora-2 Motion</span>
+                    <span className="text-[9px] font-bold text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">4K CINEMA</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5 truncate">Dynamic Angles & Lighting</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Element 3: 3D Camera & Mic + CREATORS pill */}
-          <div className="hidden lg:flex absolute top-[62%] -right-4 xl:-right-10 z-20 items-center gap-2.5 animate-float-pulse transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-rose-300 uppercase shadow-md backdrop-blur-md">
-              CREATORS
-            </div>
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-700 p-0.5 shadow-xl shadow-purple-950/60 card-3d-glow border-t border-purple-200/40 flex items-center justify-center shrink-0">
-              <Camera className="w-7 h-7 text-white drop-shadow-md" />
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Right Element 4: 3D Laptop Deal + FREELANCERS pill */}
-          <div className="hidden lg:flex absolute top-[86%] right-0 xl:-right-4 z-20 items-center gap-2.5 animate-float-drift transform hover:scale-105 transition-transform select-none cursor-default group">
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[10px] font-black tracking-wider text-cyan-300 uppercase shadow-md backdrop-blur-md">
-              FREELANCE
-            </div>
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-0.5 shadow-xl shadow-indigo-950/70 card-3d-glow border-t border-indigo-200/40 flex items-center justify-center shrink-0">
-              <Laptop className="w-7 h-7 text-white drop-shadow-md" />
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent rounded-t-2xl pointer-events-none" />
-            </div>
-          </div>
-
-          {/* CENTRAL DISPLAY TYPOGRAPHY & HEADLINE (Crisp, Understood, Direct from Reference) */}
-          <div className="max-w-3xl mx-auto space-y-6 px-4 z-10">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white">
-              <span className="block text-slate-100 uppercase text-glow-cyan drop-shadow-2xl">
+          {/* CENTER CORE: High-Impact Typography, Magnetic Subtitle & Glowing CTAs */}
+          <div className="lg:col-span-6 text-center space-y-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white">
+              <span className="block text-white">
                 {t.heroTitle1}
               </span>
-              <span className="block bg-gradient-to-r from-cyan-300 via-sky-200 to-indigo-200 bg-clip-text text-transparent uppercase drop-shadow-[0_4px_30px_rgba(6,182,212,0.4)]">
+              <span className="block mt-1 bg-gradient-to-r from-cyan-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_4px_25px_rgba(6,182,212,0.35)]">
                 {t.heroTitleHighlight}
-              </span>
-              <span className="block bg-gradient-to-r from-indigo-300 via-purple-200 to-rose-300 bg-clip-text text-transparent uppercase drop-shadow-[0_4px_30px_rgba(168,85,247,0.4)]">
-                {t.heroTitle2}
               </span>
             </h1>
 
-            <p className="text-xs sm:text-sm md:text-base font-bold tracking-widest text-cyan-300/90 uppercase max-w-2xl mx-auto leading-relaxed border-t border-b border-cyan-500/20 py-2.5">
+            <p className="text-sm sm:text-base text-slate-300 max-w-xl mx-auto leading-relaxed font-normal">
               {t.heroSubtitle}
             </p>
 
-            {/* Prominent Glowing Pill CTA Button: START FOR FREE */}
+            {/* Glowing CTA Button Pair */}
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
               {user ? (
                 <button
                   onClick={onLaunchStudio}
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-sm sm:text-base shadow-[0_0_35px_rgba(6,182,212,0.5)] transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-cyan-400/50"
+                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-base shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-cyan-400/40"
                 >
                   <Film className="w-5 h-5 text-cyan-200" />
                   <span>{t.launchStudioCta}</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-5 h-5 text-cyan-200" />
                 </button>
               ) : (
                 <button
                   onClick={() => onSelectPlan('free')}
-                  className="w-full sm:w-auto px-10 py-4 rounded-full bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-base sm:text-lg shadow-[0_0_35px_rgba(6,182,212,0.5)] transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-cyan-300/60 uppercase tracking-wider"
+                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-base shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-cyan-400/40"
                 >
                   <Sparkles className="w-5 h-5 text-cyan-200 fill-cyan-200" />
                   <span>{t.freeTrialCta}</span>
@@ -413,168 +289,143 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               {/* Micro-Credits NPR 50 Quick Entry Pass */}
               <button
                 onClick={() => onSelectPlan('sasta_50_npr')}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-slate-900/95 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm border border-amber-500/40 shadow-lg shadow-amber-950/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/95 hover:bg-slate-800/95 text-white font-bold text-sm border border-amber-500/40 shadow-xl shadow-amber-950/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <Zap className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
                 <span>{t.sastaCta}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-extrabold uppercase tracking-wider border border-amber-400/40">
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-extrabold uppercase tracking-wider border border-amber-400/30">
                   FonePay / eSewa
                 </span>
               </button>
             </div>
+
+            {/* Trust & Social Proof Row */}
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
+              <div className="flex items-center gap-1 text-amber-400 font-bold">
+                <span>★★★★★</span>
+                <span className="text-slate-300 font-semibold ml-1">4.9/5 Rating</span>
+              </div>
+              <span className="text-slate-700 hidden sm:inline">•</span>
+              <div className="flex items-center gap-1.5 text-slate-300">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>100% Commercial Monetization Rights</span>
+              </div>
+            </div>
           </div>
+
+          {/* RIGHT FLANK: 3 High-End Glassmorphic Capsules */}
+          <div className="hidden lg:flex lg:col-span-3 flex-col gap-4">
+            {/* Capsule 4: TikTok & Instagram Reels */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800/80 hover:border-pink-500/40 shadow-xl backdrop-blur-xl transition-all duration-300 group text-left cursor-default transform hover:-translate-y-1">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500 via-rose-600 to-purple-600 flex items-center justify-center shadow-lg shadow-pink-950/50 shrink-0">
+                  <Instagram className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white group-hover:text-pink-300 transition">TikTok & Reels</span>
+                    <span className="text-[9px] font-bold text-pink-400 bg-pink-950/60 px-1.5 py-0.5 rounded border border-pink-800/40">9:16</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5 truncate">Auto Subtitles & Audio Sync</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Capsule 5: FonePay / eSewa Instant QR */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800/80 hover:border-emerald-500/40 shadow-xl backdrop-blur-xl transition-all duration-300 group text-left cursor-default transform hover:-translate-y-1">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-950/50 shrink-0">
+                  <QrCode className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white group-hover:text-emerald-300 transition">FonePay & eSewa QR</span>
+                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">रू 50</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5 truncate">Instant Local Top-Up in NPR</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Capsule 6: 100% Monetization Ready */}
+            <div className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900/95 border border-slate-800/80 hover:border-indigo-500/40 shadow-xl backdrop-blur-xl transition-all duration-300 group text-left cursor-default transform hover:-translate-y-1">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-700 flex items-center justify-center shadow-lg shadow-indigo-950/50 shrink-0">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white group-hover:text-indigo-300 transition">100% Monetization</span>
+                    <span className="text-[9px] font-bold text-indigo-400 bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-800/40">EARN $</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5 truncate">YouTube Partner & Client Ready</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        {/* 8-Pill Ecosystem Grid (Responsive for Mobile, Tablet & Desktop) */}
-        <div className="pt-2 max-w-4xl mx-auto">
-          <div className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mb-2.5 flex items-center justify-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Integrated Content & Monetization Platforms</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-semibold">
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-rose-300 flex items-center gap-2.5 hover:border-red-500/40 transition">
-              <Youtube className="w-4 h-4 text-red-500 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">YouTube</span>
-                <span className="text-[10px] text-slate-400">Engage & Shorts</span>
-              </div>
+        {/* Responsive Mobile / Tablet Grid for the 6 Capsules */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:hidden mt-8 text-left">
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-red-600/30 text-red-400 border border-red-500/30 flex items-center justify-center shrink-0">
+              <Youtube className="w-4 h-4" />
             </div>
-
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-cyan-300 flex items-center gap-2.5 hover:border-cyan-500/40 transition">
-              <Smartphone className="w-4 h-4 text-cyan-400 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">TikTok</span>
-                <span className="text-[10px] text-slate-400">Viral 9:16</span>
-              </div>
-            </div>
-
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-pink-300 flex items-center gap-2.5 hover:border-pink-500/40 transition">
-              <Instagram className="w-4 h-4 text-pink-500 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">Instagram</span>
-                <span className="text-[10px] text-slate-400">Reels & Reach</span>
-              </div>
-            </div>
-
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-blue-300 flex items-center gap-2.5 hover:border-blue-500/40 transition">
-              <Share2 className="w-4 h-4 text-blue-400 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">Facebook</span>
-                <span className="text-[10px] text-slate-400">Connect & Groups</span>
-              </div>
-            </div>
-
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-amber-300 flex items-center gap-2.5 hover:border-amber-500/40 transition">
-              <Megaphone className="w-4 h-4 text-amber-400 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">Company Ads</span>
-                <span className="text-[10px] text-slate-400">High ROAS Ads</span>
-              </div>
-            </div>
-
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-indigo-300 flex items-center gap-2.5 hover:border-indigo-500/40 transition">
-              <TrendingUp className="w-4 h-4 text-indigo-400 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">Scale & Grow</span>
-                <span className="text-[10px] text-slate-400">Zero Agency Cost</span>
-              </div>
-            </div>
-
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-rose-300 flex items-center gap-2.5 hover:border-rose-500/40 transition">
-              <Camera className="w-4 h-4 text-rose-400 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">Creators</span>
-                <span className="text-[10px] text-slate-400">Monetize Studio</span>
-              </div>
-            </div>
-
-            <div className="px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-emerald-300 flex items-center gap-2.5 hover:border-emerald-500/40 transition">
-              <Briefcase className="w-4 h-4 text-emerald-400 shrink-0" />
-              <div className="truncate text-left">
-                <span className="text-white block font-bold leading-tight">Freelance</span>
-                <span className="text-[10px] text-slate-400">Earn $ & रू</span>
-              </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-white block truncate">Shorts & Reels</span>
+              <span className="text-[10px] text-slate-400">Viral 9:16</span>
             </div>
           </div>
-        </div>
 
-        {/* CTA Button Group */}
-        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 pt-3">
-          {/* Micro-Credits Entry Point Button */}
-          <button
-            onClick={() => onSelectPlan('sasta_50_npr')}
-            className="w-full sm:w-auto px-6 py-4 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-black text-sm sm:text-base shadow-xl shadow-rose-950/40 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-amber-400/40"
-          >
-            <Zap className="w-5 h-5 text-amber-300 fill-amber-300 shrink-0" />
-            <span>{t.sastaCta}</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-950/80 text-amber-300 font-extrabold uppercase tracking-wider border border-amber-400/30">
-              FonePay / eSewa
-            </span>
-          </button>
-
-          {/* Launch or Free Sign In */}
-          {user ? (
-            <button
-              onClick={onLaunchStudio}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-sm sm:text-base shadow-xl shadow-rose-900/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Film className="w-5 h-5" />
-              <span>{t.launchStudioCta}</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          ) : (
-            <button
-              onClick={() => onOpenAuth('user')}
-              className="w-full sm:w-auto px-7 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/80 font-bold text-sm sm:text-base shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer"
-            >
-              <svg className="w-4 h-4 shrink-0 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.27 21.37 7.37 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.98 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.27 2.63 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-              </svg>
-              <span>{t.freeTrialCta}</span>
-            </button>
-          )}
-
-          {/* HamroAI Chat */}
-          <button
-            onClick={() => {
-              if (onLaunchHamroAi) onLaunchHamroAi();
-              else onLaunchStudio();
-            }}
-            className="w-full sm:w-auto px-6 py-4 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-800 font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Bot className="w-5 h-5 text-amber-400" />
-            <span>{t.hamroAiCta}</span>
-          </button>
-        </div>
-
-        {/* Live Social Proof Stats Strip */}
-        <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto text-left">
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-            <span className="text-xl font-black text-rose-400 block">1.25M+</span>
-            <span className="text-[11px] text-slate-400 block leading-tight mt-0.5">
-              {lang === 'ne' ? 'युट्युब र रील्स भ्युज' : lang === 'hi' ? 'यूट्यूब और रील्स व्यूज' : 'YouTube & Reels Views Generated'}
-            </span>
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-600/30 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <Mic className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-white block truncate">Nepali Voice</span>
+              <span className="text-[10px] text-slate-400">Neural 48kHz</span>
+            </div>
           </div>
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-            <span className="text-xl font-black text-emerald-400 block">100%</span>
-            <span className="text-[11px] text-slate-400 block leading-tight mt-0.5">
-              {lang === 'ne' ? 'एजेन्सी खर्च बचत' : lang === 'hi' ? 'एजेंसी लागत की बचत' : 'Agency Fees Saved for Business'}
-            </span>
+
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0">
+              <Video className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-white block truncate">Azure Sora-2</span>
+              <span className="text-[10px] text-slate-400">4K Motion</span>
+            </div>
           </div>
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-            <span className="text-xl font-black text-amber-400 block">रू ५०</span>
-            <span className="text-[11px] text-slate-400 block leading-tight mt-0.5">
-              {lang === 'ne' ? 'सस्तो माइक्रो टप-अप' : lang === 'hi' ? 'सस्ता माइक्रो रिचार्ज' : 'Micro-Pass (3 Img + Vid + Voice)'}
-            </span>
+
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-pink-600/30 text-pink-400 border border-pink-500/30 flex items-center justify-center shrink-0">
+              <Instagram className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-white block truncate">Auto Subtitles</span>
+              <span className="text-[10px] text-slate-400">Devanagari</span>
+            </div>
           </div>
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-            <span className="text-xl font-black text-indigo-400 block">३ भाषा</span>
-            <span className="text-[11px] text-slate-400 block leading-tight mt-0.5">
-              {lang === 'ne' ? 'नेपाली, हिन्दी र अंग्रेजी' : lang === 'hi' ? 'नेपाली, हिन्दी और इंग्लिश' : 'Nepali, Hindi & Global English'}
-            </span>
+
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <QrCode className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-white block truncate">FonePay QR</span>
+              <span className="text-[10px] text-slate-400">रू ५० Pass</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0">
+              <DollarSign className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-white block truncate">Monetization</span>
+              <span className="text-[10px] text-slate-400">100% Rights</span>
+            </div>
           </div>
         </div>
       </section>
@@ -1327,138 +1178,29 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
 
         <InteractiveStudioPlayer onLaunchStudio={onLaunchStudio} lang={lang} />
-
-        {/* Compact 4-Pillar Verified Multi-Engine Status Bar */}
-        <div className="mt-6 pt-6 border-t border-slate-900 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-cyan-500/40 transition">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Video className="w-3.5 h-3.5 text-cyan-400" />
-                Azure Sora-2
-              </span>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-tight">
-              4K temporal motion • 24/30 FPS • Byte-range low-latency proxy
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-rose-500/40 transition">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-rose-400" />
-                GPT-Image-1.5 & FLUX
-              </span>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-tight">
-              1024x1024 PNG visual generation with authentic cultural prompts
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-amber-500/40 transition">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Mic className="w-3.5 h-3.5 text-amber-400" />
-                SpeechT5 + Azure
-              </span>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-tight">
-              48kHz neural Nepali & Devanagari acoustic speech synthesis
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-purple-500/40 transition">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Bot className="w-3.5 h-3.5 text-purple-400" />
-                HamroAI Brain
-              </span>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/30">● Active</span>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-tight">
-              GPT-4o & Flash viral hooks, scripts, and Devanagari subtitles
-            </p>
-          </div>
-        </div>
       </section>
 
-      {/* UNIFIED CREATOR & BUSINESS ADVANTAGE & FAQ HUB */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto border-t border-slate-900">
+      {/* UNIFIED CREATOR & BUSINESS FAQ HUB */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-slate-900">
         <div className="text-center space-y-3 mb-10">
           <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            {lang === 'ne' ? 'किन नेपालएआई स्टुडियो रोज्ने?' : lang === 'hi' ? 'नेपालएआई स्टूडियो क्यों चुनें?' : 'The Clear Advantage & FAQs'}
+            {lang === 'ne' ? 'प्रायः सोधिने प्रश्नहरू (FAQs)' : lang === 'hi' ? 'अक्सर पूछे जाने वाले सवाल (FAQs)' : 'Frequently Asked Questions'}
           </span>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
             {lang === 'ne'
-              ? 'एजेन्सीको झन्झट बिना व्यावसायिक नतिजा'
+              ? 'सबैभन्दा महत्त्वपूर्ण प्रश्नहरूको स्पष्ट जवाफ'
               : lang === 'hi'
-              ? 'पारदर्शी, तेज और 100% मोनेटाइजेशन रेडी'
-              : 'Direct Advantage: Fast, Transparent & Monetization-Ready'}
+              ? 'मोनेटाइजेशन, पेमेंट्स और कमर्शियल राइट्स'
+              : 'Clear Answers on Monetization, Payments & Commercial Rights'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
             {lang === 'ne'
-              ? 'लाखौं रुपैयाँ र हप्तौं समय खेर फाल्नुको सट्टा केही मिनेटमै प्रमाणित भिडियो र आम्दानीको अवसर।'
+              ? 'नेपालएआई स्टुडियो, सस्तो पास, कपीराइट सुरक्षा र मोनेटाइजेशनका बारेमा सबै कुरा बुझ्नुहोस्।'
               : lang === 'hi'
-              ? 'हजारों रुपए और हफ्तों का समय बचाने का सबसे आधुनिक और पारदर्शी तरीका।'
-              : 'Compare the speed, cost, and commercial advantages over slow, traditional agencies.'}
+              ? 'नेपालएआई स्टूडियो, सस्ता पास, कॉपीराइट सुरक्षा और कमाई के बारे में पूरी जानकारी।'
+              : 'Everything you need to know about NepalAI Studio, Sasta Pass, copyright safety, and earnings.'}
           </p>
-        </div>
-
-        {/* 3 High-Impact Benchmark Metric Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
-          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 transition">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-2">
-              <Zap className="w-4 h-4" />
-              <span>{lang === 'ne' ? '१० गुणा द्रुत गति' : lang === 'hi' ? '10x तेज स्पीड' : '8–12 Min Turnaround'}</span>
-            </div>
-            <h3 className="text-lg font-black text-white mb-1">
-              {lang === 'ne' ? '८ देखि १२ मिनेटमै रेडी' : lang === 'hi' ? '8 से 12 मिनट में रेडी' : 'Instant 8–12 Min Delivery'}
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {lang === 'ne'
-                ? 'एजेन्सीले ३ देखि ७ दिन लगाउने काम नेपालएआईले मिनेटमै पूरा गर्छ।'
-                : lang === 'hi'
-                ? 'पारंपरिक एजेंसी के 3 से 7 दिन के बजाय मिनटों में पूरा वीडियो तैयार।'
-                : 'Render 4K motion, subtitles, and studio voiceovers without multi-day agency delays.'}
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/40 transition">
-            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs mb-2">
-              <QrCode className="w-4 h-4" />
-              <span>{lang === 'ne' ? 'सस्तो माइक्रो टप-अप' : lang === 'hi' ? 'सस्ता माइक्रो रिचार्ज' : 'FonePay / eSewa Instant QR'}</span>
-            </div>
-            <h3 className="text-lg font-black text-white mb-1">
-              {lang === 'ne' ? 'मात्र रू ५० बाट सुरु' : lang === 'hi' ? 'सिर्फ रू 50 से शुरू' : 'From रू 50 ($0.38) Per Pass'}
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {lang === 'ne'
-                ? 'कुनै डलर कार्ड नचाहिने—सिधै फोनपे वा इसेवा स्क्यान गरी ६० क्रेडिट पाउनुहोस्।'
-                : lang === 'hi'
-                ? 'बिना किसी डॉलर कार्ड के FonePay या eSewa QR से तुरंत क्रेडिट्स लें।'
-                : 'Zero foreign currency hurdles. Scan with any mobile banking app for instant 60 credits.'}
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-rose-500/40 transition">
-            <div className="flex items-center gap-2 text-rose-400 font-bold text-xs mb-2">
-              <Award className="w-4 h-4" />
-              <span>{lang === 'ne' ? '१००% कपीराइट सुरक्षित' : lang === 'hi' ? '100% कमर्शियल राइट्स' : 'Full Commercial Monetization'}</span>
-            </div>
-            <h3 className="text-lg font-black text-white mb-1">
-              {lang === 'ne' ? 'युट्युब व एड्स मनिटाइज' : lang === 'hi' ? 'यूट्यूब व एड्स कमाई' : '100% Monetization Ready'}
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {lang === 'ne'
-                ? 'ओरिजिनल एआई क्लिप र आवाज—युट्युब, टिकटक र क्लायन्ट डेलिभरीमा कुनै कपीराइट लाग्दैन।'
-                : lang === 'hi'
-                ? 'यूट्यूब, टिकटॉक, इंस्टाग्राम एड्स और फ्रीलांस डिलीवरी के लिए पूर्ण अधिकार।'
-                : 'Fully safe for YouTube Partner Program, TikTok Creator Rewards & Fiverr orders.'}
-            </p>
-          </div>
         </div>
 
         {/* Streamlined Interactive FAQ Accordion Hub */}

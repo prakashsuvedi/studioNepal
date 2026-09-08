@@ -28,7 +28,7 @@ export const DEFAULT_BRAND_ASSETS: BrandAsset[] = [
     id: 'asset_bug_hamro_ai',
     name: 'HamroAI Spire Core',
     category: 'watermark',
-    url: '/logo.jpg',
+    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
     defaultPosition: 'top-right',
   },
   {

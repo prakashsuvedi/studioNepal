@@ -21,6 +21,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { ImageMicroEditorModal } from './ImageMicroEditorModal';
+import { saveMediaItem } from '../lib/mediaLibrary';
 
 interface ImageStudioViewProps {
   initialPrompt?: string;
@@ -193,6 +194,19 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
         if (onUsageUpdated && data.trialUsage) {
           onUsageUpdated(data.trialUsage, data.remainingCredits);
         }
+
+        // Save generated image to persistent Global Media Library
+        saveMediaItem({
+          type: 'ai_image',
+          title: promptText.slice(0, 30) || 'Generated AI Image',
+          url: generatedUrl,
+          duration: 4,
+          category: data.result.engine ? `${data.result.engine} Image` : 'Azure AI Image',
+          aspectRatio,
+          prompt: promptText,
+          resolution: data.result.resolution || '1024x1024',
+          engine: data.result.engine || 'Azure gpt-image-1.5'
+        });
 
         // Auto-add directly to Video Studio timeline & navigate to video studio
         const newScene: Scene = {

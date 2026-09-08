@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   Sliders
 } from 'lucide-react';
+import { saveMediaItem } from '../lib/mediaLibrary';
 
 interface SoraStudioViewProps {
   initialPrompt?: string;
@@ -208,6 +209,19 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       await new Promise((r) => setTimeout(r, 400));
       if (finalUrl) {
         setVideoResultUrl(finalUrl);
+
+        // Save generated video to persistent Global Media Library
+        saveMediaItem({
+          type: 'sora_video',
+          title: 'Sora-2: ' + prompt.slice(0, 30),
+          url: finalUrl,
+          duration: parseInt(seconds) || 4,
+          category: 'Sora-2 AI Video',
+          aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+          prompt,
+          resolution,
+          engine: 'Azure Sora-2'
+        });
 
         // Auto-add directly to Video Studio timeline & navigate to video studio
         const newScene: Scene = {

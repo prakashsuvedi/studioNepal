@@ -53,7 +53,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     }
   }, [aspectRatio]);
 
-  // Pre-load images & videos in background
+  // Pre-load images & videos in background with graceful CORS fallback
   useEffect(() => {
     scenes.forEach((scene) => {
       if (scene.mediaUrl) {
@@ -66,6 +66,15 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
             vid.muted = true;
             vid.playsInline = true;
             vid.preload = 'auto';
+            vid.onerror = () => {
+              // Retry without crossOrigin
+              const fallbackVid = document.createElement('video');
+              fallbackVid.src = scene.mediaUrl;
+              fallbackVid.muted = true;
+              fallbackVid.playsInline = true;
+              fallbackVid.preload = 'auto';
+              videoCacheRef.current.set(scene.mediaUrl, fallbackVid);
+            };
             videoCacheRef.current.set(scene.mediaUrl, vid);
           }
         } else {
@@ -75,6 +84,17 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
             img.src = scene.mediaUrl;
             img.onload = () => {
               imageCacheRef.current.set(scene.mediaUrl, img);
+            };
+            img.onerror = () => {
+              // Retry without crossOrigin
+              const fallbackImg = new Image();
+              fallbackImg.src = scene.mediaUrl;
+              fallbackImg.onload = () => {
+                imageCacheRef.current.set(scene.mediaUrl, fallbackImg);
+              };
+              fallbackImg.onerror = () => {
+                imageCacheRef.current.set(scene.mediaUrl, fallbackImg);
+              };
             };
           }
         }
@@ -87,6 +107,11 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         wmImg.onload = () => {
           imageCacheRef.current.set(scene.watermark!.url, wmImg);
         };
+        wmImg.onerror = () => {
+          const fallback = new Image();
+          fallback.src = scene.watermark!.url;
+          fallback.onload = () => imageCacheRef.current.set(scene.watermark!.url, fallback);
+        };
       }
     });
 
@@ -96,6 +121,11 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       bImg.src = brandOverlayConfig.logoUrl;
       bImg.onload = () => {
         imageCacheRef.current.set(brandOverlayConfig.logoUrl, bImg);
+      };
+      bImg.onerror = () => {
+        const fallback = new Image();
+        fallback.src = brandOverlayConfig.logoUrl;
+        fallback.onload = () => imageCacheRef.current.set(brandOverlayConfig.logoUrl, fallback);
       };
     }
   }, [scenes, brandOverlayConfig]);

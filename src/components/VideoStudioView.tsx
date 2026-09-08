@@ -113,6 +113,12 @@ import { validateTimelineBeforeRender } from '../services/timelineValidationServ
 import { TextStylePreset, TextAnimationOption, TickerConfig, TimelineValidationReport, KineticTypographyConfig } from '../types';
 import { History } from 'lucide-react';
 import { UserSession } from '../types';
+import { CapCutTopBar } from './capcut/CapCutTopBar';
+import { CapCutLeftPanel } from './capcut/CapCutLeftPanel';
+import { CapCutPlayerPanel } from './capcut/CapCutPlayerPanel';
+import { CapCutInspectorPanel } from './capcut/CapCutInspectorPanel';
+import { CapCutTimelineToolbar } from './capcut/CapCutTimelineToolbar';
+import { CapCutTimelineDeck } from './capcut/CapCutTimelineDeck';
 
 interface VideoStudioViewProps {
   scenes: Scene[];
@@ -224,6 +230,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [selectedSfxId, setSelectedSfxId] = useState<string>('sfx-whoosh');
   const sfxAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioFileInputRef = useRef<HTMLInputElement | null>(null);
+  const voFileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaFileInputRef = useRef<HTMLInputElement | null>(null);
   const sfxFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -415,8 +422,124 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // Template loader drawer & Scene Templates Modal
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [showSceneTemplatesModal, setShowSceneTemplatesModal] = useState(false);
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [newProjectRatio, setNewProjectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
+  const [newProjectName, setNewProjectName] = useState('My CapCut Project');
   const [showToolsDropdown, setShowToolsDropdown] = useState(false);
   const toolsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Starter sequence template loader
+  const handleLoadStarterSequence = (templateId: string) => {
+    pushToHistory(scenes);
+    if (templateId === 'nepal_tourism') {
+      setProjectTitle('Nepal Tourism & Heritage');
+      setAspectRatio('16:9');
+      setScenes([
+        {
+          id: `scene-${Date.now()}-1`,
+          title: 'Himalayan Sunrise at Dawn',
+          duration: 4,
+          prompt: 'Golden sunlight hitting snow-capped Mount Everest summit',
+          mediaUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=1000&auto=format&fit=crop',
+          mediaType: 'image',
+          aspectRatio: '16:9',
+          motion: 'zoom_in',
+          transition: 'dissolve',
+          transitionDuration: 0.8,
+          textOverlay: 'स्वर्गभूमि नेपाल',
+          textNepali: 'स्वर्गभूमि नेपाल',
+          textColor: '#ffffff',
+          textFont: 'sans',
+          textPosition: 'lower_third',
+          filter: 'warm',
+          volume: 90
+        },
+        {
+          id: `scene-${Date.now()}-2`,
+          title: 'Kathmandu Durbar Square Heritage',
+          duration: 4.5,
+          prompt: 'Ancient pagoda temples of Kathmandu Durbar Square',
+          mediaUrl: 'https://images.unsplash.com/photo-1582650625119-3a31f841839d?q=80&w=1000&auto=format&fit=crop',
+          mediaType: 'image',
+          aspectRatio: '16:9',
+          motion: 'pan_right',
+          transition: 'dissolve',
+          transitionDuration: 0.8,
+          textOverlay: 'काठमाडौँ उपत्यकाको सम्पदा',
+          textNepali: 'काठमाडौँ उपत्यकाको सम्पदा',
+          textColor: '#facc15',
+          textFont: 'sans',
+          textPosition: 'lower_third',
+          filter: 'cinematic',
+          volume: 90
+        },
+        {
+          id: `scene-${Date.now()}-3`,
+          title: 'Pokhara Phewa Lake Serenity',
+          duration: 4.5,
+          prompt: 'Tranquil wooden boats reflecting Machhapuchhre peak',
+          mediaUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=1000&auto=format&fit=crop',
+          mediaType: 'image',
+          aspectRatio: '16:9',
+          motion: 'dolly',
+          transition: 'dissolve',
+          transitionDuration: 0.8,
+          textOverlay: 'Pokhara Valley',
+          textNepali: 'पोखराको शान्त वातावरण',
+          textColor: '#22d3ee',
+          textFont: 'sans',
+          textPosition: 'lower_third',
+          filter: 'cool',
+          volume: 90
+        }
+      ]);
+      setProjectNotice('Loaded "Nepal Tourism Reel" into timeline!');
+    } else if (templateId === 'tiktok_montage') {
+      setProjectTitle('TikTok Vertical Reel');
+      setAspectRatio('9:16');
+      setScenes([
+        {
+          id: `scene-${Date.now()}-1`,
+          title: 'Mountain Ascent Hook',
+          duration: 3,
+          prompt: 'Fast aerial flyover of Himalayan mountain ridge',
+          mediaUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1000&auto=format&fit=crop',
+          mediaType: 'image',
+          aspectRatio: '9:16',
+          motion: 'zoom_in',
+          transition: 'zoom_in',
+          transitionDuration: 0.5,
+          textOverlay: 'WAIT TILL THE PEAK! 🏔️',
+          textColor: '#facc15',
+          textFont: 'sans',
+          textPosition: 'center',
+          filter: 'vibrant',
+          volume: 90
+        },
+        {
+          id: `scene-${Date.now()}-2`,
+          title: 'Summit Victory Panorama',
+          duration: 3.5,
+          prompt: 'Climbers at summit waving flag in wind',
+          mediaUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=1000&auto=format&fit=crop',
+          mediaType: 'image',
+          aspectRatio: '9:16',
+          motion: 'pan_right',
+          transition: 'dissolve',
+          transitionDuration: 0.8,
+          textOverlay: 'TOP OF THE WORLD ✨',
+          textColor: '#ffffff',
+          textFont: 'neon',
+          textPosition: 'lower_third',
+          filter: 'warm',
+          volume: 90
+        }
+      ]);
+      setProjectNotice('Loaded "TikTok Vertical Reel" into timeline!');
+    }
+    setCurrentTime(0);
+    setTimeout(() => setProjectNotice(null), 3500);
+  };
 
   // Close tools dropdown when clicking outside
   useEffect(() => {
@@ -746,7 +869,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         artist: 'Studio Local Upload',
         url,
         duration: 30,
-        volume: 80,
+        volume: trackType === 'voiceover' ? 90 : 80,
         genre: 'User Audio',
         type: trackType
       };
@@ -755,12 +878,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         setSfxTracks(prev => [newTrack, ...prev]);
         setSelectedSfxId(newTrack.id);
         setProjectNotice(`SFX Asset Loaded: "${newTrack.title}"`);
+      } else if (trackType === 'voiceover') {
+        setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), newTrack]);
+        setProjectNotice(`Voiceover Track Loaded: "${newTrack.title}"`);
       } else {
         setAudioTracks(prev => [...prev, newTrack]);
-        if (trackType === 'bgm') {
-          setSelectedAudioId(newTrack.id);
-        }
-        setProjectNotice(`Audio Track Loaded: "${newTrack.title}" (${trackType.toUpperCase()})`);
+        setSelectedAudioId(newTrack.id);
+        setProjectNotice(`BGM Audio Track Loaded: "${newTrack.title}"`);
       }
       setTimeout(() => setProjectNotice(null), 3000);
     } catch (err) {
@@ -1362,7 +1486,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="w-full h-[calc(100vh-4.1rem)] bg-[#07090e] text-slate-100 flex flex-col overflow-hidden select-none -mt-4 -mb-8">
       {/* Hidden File Input for Importing Project JSON */}
       <input
         type="file"
@@ -1372,1199 +1496,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         className="hidden"
       />
 
-      {/* Auto-Save Session Restore Prompt Banner */}
-      {showSessionRestoreBanner && restorableDraftInfo && (
-        <div className="bg-gradient-to-r from-indigo-900 via-indigo-850 to-slate-900 text-white p-3.5 sm:p-4 rounded-xl border border-indigo-700/80 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="p-2.5 bg-indigo-600/40 rounded-xl shrink-0 border border-indigo-400/30">
-              <RotateCcw className="w-5 h-5 text-indigo-300 animate-spin-once" />
-            </div>
-            <div className="text-xs space-y-0.5">
-              <span className="font-bold text-white text-sm block flex items-center gap-2">
-                <span>Auto-Saved Session Draft Detected</span>
-                <span className="px-2 py-0.2 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] border border-indigo-400/30">
-                  {restorableDraftInfo.count} Scenes
-                </span>
-              </span>
-              <p className="text-indigo-200">
-                Found previous project draft <strong className="text-white">"{restorableDraftInfo.title}"</strong> auto-saved at {restorableDraftInfo.savedAt}.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
-            <button
-              onClick={() => {
-                handleRestoreAutoSave();
-                setShowSessionRestoreBanner(false);
-              }}
-              className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
-            >
-              <CheckCircle2 className="w-4 h-4 text-emerald-100" />
-              <span>Restore Draft Session</span>
-            </button>
-            <button
-              onClick={() => setShowSessionRestoreBanner(false)}
-              className="px-3 py-2 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 text-xs font-semibold border border-indigo-700/60 transition"
-            >
-              Dismiss / Keep Current
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Project Feedback Notification Banner */}
-      {projectNotice && (
-        <div className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between shadow-md animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-            <span>{projectNotice}</span>
-          </div>
-          <button
-            onClick={() => setProjectNotice(null)}
-            className="text-emerald-100 hover:text-white text-xs px-2 py-0.5 rounded hover:bg-emerald-700/50"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* 3-Step Production Stepper & Project Command Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col xl:flex-row items-center justify-between gap-4 shadow-xs transition-colors">
-        {/* Project Title & Auto-Save Badge */}
-        <div className="flex items-center gap-3 w-full xl:w-auto">
-          <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-            <Film className="w-5 h-5" />
-          </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              {isEditingTitle ? (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    value={projectTitle}
-                    onChange={(e) => setProjectTitle(e.target.value)}
-                    onBlur={() => setIsEditingTitle(false)}
-                    onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
-                    autoFocus
-                    className="text-sm font-bold text-slate-900 dark:text-white border-b-2 border-indigo-600 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded outline-none w-48 sm:w-60"
-                  />
-                  <button
-                    onClick={() => setIsEditingTitle(false)}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 font-bold px-1 hover:underline"
-                  >
-                    Done
-                  </button>
-                </div>
-              ) : (
-                <div
-                  className="flex items-center gap-1.5 group cursor-pointer"
-                  onClick={() => setIsEditingTitle(true)}
-                  title="Click to rename project"
-                >
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    {projectTitle}
-                  </h2>
-                  <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
-                </div>
-              )}
-              {/* Active Team Workspace Badge */}
-              <button
-                onClick={() => setShowWorkspacesModal(true)}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium transition cursor-pointer"
-                title="Active workspace & shared folder - Click to manage or switch"
-              >
-                <span>{activeWorkspace.icon}</span>
-                <span className="font-semibold">{activeWorkspace.name}</span>
-                <span className="text-slate-400 dark:text-slate-500">/</span>
-                <span className="text-indigo-600 dark:text-indigo-400">{activeWorkspace.folders[0]?.name || 'Main'}</span>
-              </button>
-
-              {/* Realtime Supabase Presence Component */}
-              <RealtimePresence
-                projectId={`project_${projectTitle.toLowerCase().replace(/[^a-z0-9]/g, '_')}`}
-                user={currentUser}
-                currentSceneId={selectedSceneId}
-                onFocusScene={(sceneId) => setSelectedSceneId(sceneId)}
-              />
-            </div>
-
-            {/* Auto-Save Status Indicator */}
-            <div className="flex items-center gap-2 text-xs">
-              {isAutoSaving ? (
-                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium text-[11px]">
-                  <Clock className="w-3 h-3 animate-spin" />
-                  <span>Auto-saving...</span>
-                </span>
-              ) : lastAutoSavedTime ? (
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium text-[11px]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Auto-saved at {lastAutoSavedTime}</span>
-                </span>
-              ) : (
-                <span className="text-slate-400 dark:text-slate-500 text-[11px]">Auto-save active</span>
-              )}
-
-              {hasExistingAutoSave && (
-                <button
-                  onClick={handleRestoreAutoSave}
-                  className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold underline underline-offset-2 flex items-center gap-0.5 ml-1 transition-colors cursor-pointer"
-                  title="Restore previous auto-saved project state"
-                >
-                  <RotateCcw className="w-2.5 h-2.5" />
-                  <span>Restore</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Premium Clustered Studio Toolbar */}
-        <div className="flex items-center gap-2 w-full xl:w-auto justify-end flex-wrap">
-          {/* Module 1: Character Consistency Anchor */}
-          <button
-            onClick={() => setShowCharacterConsistencyModal(true)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
-              activeCharacterToken 
-                ? 'bg-cyan-950/80 border-cyan-500 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
-            }`}
-            title="Module 1: Biometric Character Consistency & FaceID Anchor"
-          >
-            <Shield className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Character ID</span>
-            {activeCharacterToken && (
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            )}
-          </button>
-
-          {/* Module 2: Sora-2 Script to Scene (12s Intervals) */}
-          <button
-            onClick={() => setShowScriptToSceneModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
-            title="Module 2: Script-to-Scene 12-Second Sora-2 Frame Generator"
-          >
-            <Film className="w-3.5 h-3.5 text-purple-200" />
-            <span>Sora 12s Engine</span>
-          </button>
-
-          {/* Module 4: Automated Ad Builder */}
-          <button
-            onClick={() => setShowAutomatedAdBuilderModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
-            title="Module 4: Automated Ad & Template Builder (Commercials & Brand Storyboards)"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-            <span>Ad Builder</span>
-          </button>
-
-          {/* Module 3: AI Media Processing Suite */}
-          <button
-            onClick={() => setShowAiMediaProcessingModal(true)}
-            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
-            title="Module 3: AI Background Remover, Intelligent Crop & 4K Super-Resolution"
-          >
-            <Sliders className="w-3.5 h-3.5 text-emerald-500" />
-            <span>AI BG & 4K</span>
-          </button>
-
-          {/* Module 5: Multi-Channel Social Publisher */}
-          <button
-            onClick={() => setShowSocialPublisherModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer shrink-0"
-            title="Module 5: Direct Multi-Channel Social Publisher (YouTube, Instagram, Facebook, Pinterest, TikTok, X)"
-          >
-            <Upload className="w-3.5 h-3.5 text-cyan-200" />
-            <span>Publish Social</span>
-          </button>
-
-          {/* Media Suite: Media & Assets */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700/80 shrink-0">
-            <button
-              onClick={() => setShowGlobalMediaLibrary(true)}
-              className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center gap-1.5 transition cursor-pointer"
-              title="Open Global Media Library (Uploads, AI Images, Sora Videos)"
-            >
-              <Film className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Media</span>
-            </button>
-            <button
-              onClick={() => setShowAssetLibrary(true)}
-              className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center gap-1.5 transition cursor-pointer"
-              title="Open Asset Library (Watermarks, logos, brand graphics) - Shortcut: B"
-            >
-              <Layers className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Assets</span>
-            </button>
-          </div>
-
-          {/* Unified Studio Tools Menu */}
-          <div className="relative shrink-0" ref={toolsDropdownRef}>
-            <button
-              onClick={() => setShowToolsDropdown(!showToolsDropdown)}
-              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
-              title="Open Studio Production & Project Tools"
-            >
-              <Sliders className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>Tools</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showToolsDropdown ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Floating Dropdown Drawer */}
-            {showToolsDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
-                  Production & FX
-                </div>
-                <div className="space-y-0.5">
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowSubtitleModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Subtitles & SRT Sync</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">Auto</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowColorMatchModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Palette className="w-3.5 h-3.5 text-violet-500" />
-                      <span>Color Match & Balance</span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowBrandModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Shield className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Brand Watermark & Logo</span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowFrameInspectorModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Crosshair className="w-3.5 h-3.5 text-sky-500" />
-                      <span>Frame Inspector (Cut Point)</span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowSceneLibraryModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <FolderPlus className="w-3.5 h-3.5 text-teal-500" />
-                      <span>Scene Library (Reusables)</span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowRenderPresetModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Sliders className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Render Presets (Format & FPS)</span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowRenderQueueModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Layers className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Batch Render Queue</span>
-                    </span>
-                  </button>
-                </div>
-
-                <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
-                  Project & Collaboration
-                </div>
-                <div className="space-y-0.5">
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowVersionHistoryModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <History className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Version History & Checkpoints</span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowWorkspacesModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Workspace & Folders</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">W</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowStoryboardPdfModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-rose-500" />
-                      <span>Export Storyboard PDF</span>
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowTemplatesModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <FolderOpen className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Starter Project Kits</span>
-                    </span>
-                  </button>
-
-                  <div className="grid grid-cols-2 gap-1 pt-1">
-                    <button
-                      onClick={() => {
-                        setShowToolsDropdown(false);
-                        handleExportProjectJson();
-                      }}
-                      className="px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer"
-                      title="Save project JSON locally (Ctrl+S)"
-                    >
-                      <FileDown className="w-3.5 h-3.5" />
-                      <span>Save JSON</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowToolsDropdown(false);
-                        projectFileInputRef.current?.click();
-                      }}
-                      className="px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer"
-                      title="Load project JSON"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Open JSON</span>
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      setShowShortcutsModal(true);
-                    }}
-                    className="w-full px-2.5 py-1.5 mt-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 transition cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Command className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Keyboard Shortcuts</span>
-                    </span>
-                    <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-700 px-1 py-0.2 rounded">?</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Render Technical Summary & Supabase Audit Trigger */}
-          <button
-            onClick={() => setShowRenderSummaryOverlay(true)}
-            className="px-3 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/90 text-indigo-300 text-xs font-bold border border-indigo-500/40 shadow-xs flex items-center gap-1.5 transition cursor-pointer shrink-0"
-            title="View Real-Time Technical Feedback (Pass/Fail, Data Size MB, Latency, Render Time)"
-          >
-            <Activity className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Technical Audit</span>
-            {latestAuditEntry && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Latest audit passed" />
-            )}
-          </button>
-
-          {/* Dedicated YouTube Video & Shorts Publisher Button */}
-          <button
-            onClick={() => setShowYouTubePublisherModal(true)}
-            className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-xs shadow-red-600/30 flex items-center gap-1.5 transition cursor-pointer shrink-0"
-            title={
-              exportSuccess
-                ? "Video rendered & ready! Click to publish to YouTube"
-                : scenes.some(s => !!s.mediaUrl)
-                ? "Timeline has video scenes ready to publish or upload"
-                : "Open YouTube Publisher (Upload MP4 or select timeline video)"
-            }
-          >
-            <Youtube className="w-4 h-4 text-white" />
-            <span>Post to YouTube</span>
-            {exportSuccess ? (
-              <span className="px-1 py-0.2 rounded bg-emerald-400/20 text-emerald-300 text-[9px] font-extrabold border border-emerald-400/40">
-                Ready
-              </span>
-            ) : isYouTubeConnected ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" title="YouTube Connected" />
-            ) : null}
-          </button>
-
-          {/* Post to Social Channels */}
-          <button
-            onClick={() => setShowSocialPublisherModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 border border-slate-700 dark:border-slate-600 shadow-2xs transition cursor-pointer shrink-0"
-            title="Post output to X, TikTok, & Instagram Reels"
-          >
-            <Share2 className="w-3.5 h-3.5 text-purple-400" />
-            <span>Multi-Social</span>
-          </button>
-
-          {/* Primary Render / Export Action */}
-          <button
-            onClick={handleInitiatePreRenderCheck}
-            className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-xs shadow-rose-600/20 flex items-center gap-1.5 transition cursor-pointer shrink-0"
-            title="Perform pre-flight verification & render project"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Video</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Workspace Grid: Stage Preview & Scene Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left 7 Columns: Stage Preview Canvas */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-xs transition-colors">
-          {/* Stage Header Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Stage Preview</span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-mono border border-slate-200/60 dark:border-slate-700 max-w-[150px] truncate">
-                {selectedScene ? selectedScene.title : 'No scene'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Text Styling & Kinetic Typography Toolkit Button */}
-              <button
-                type="button"
-                onClick={() => setShowTextStylingToolkitModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                title="Open Kinetic Typography & Lower-Third Generator"
-              >
-                <Type className="w-3.5 h-3.5 text-purple-200" />
-                <span>Text Toolkit</span>
-              </button>
-
-              {/* Asset & Sound Library Button */}
-              <button
-                type="button"
-                onClick={() => setShowAssetAndSoundLibraryModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                title="Browse predefined sounds, BGM, SFX, tickers, watermarks, and text styles"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Asset & Sound</span>
-              </button>
-
-              {/* Proxy Rendering Mode Toggle */}
-              <button
-                type="button"
-                onClick={() => setIsProxyMode(prev => !prev)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                  isProxyMode
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs animate-pulse'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700'
-                }`}
-                title="Enable low-resolution proxy mode for real-time 60fps timeline editing performance"
-              >
-                <Zap className={`w-3.5 h-3.5 ${isProxyMode ? 'fill-slate-950' : 'text-amber-500'}`} />
-                <span>{isProxyMode ? '⚡ 360p Proxy' : 'Proxy'}</span>
-              </button>
-
-              {/* Preview Mode Switcher (Canvas API vs Interactive DOM) */}
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode('canvas')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[11px] font-semibold cursor-pointer ${
-                    previewMode === 'canvas'
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="Canvas API real-time proxy engine: renders crossfades, wipes, and video proxies at 60fps"
-                >
-                  <Activity className="w-3 h-3" />
-                  <span>Canvas</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode('interactive')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors text-[11px] font-semibold cursor-pointer ${
-                    previewMode === 'interactive'
-                      ? 'bg-indigo-600 text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="Interactive DOM Stage with direct element overlays"
-                >
-                  <Monitor className="w-3 h-3" />
-                  <span>Stage</span>
-                </button>
-              </div>
-
-              {/* Aspect Ratio Switcher */}
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('16:9')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer ${
-                    aspectRatio === '16:9' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="16:9 Cinema / YouTube"
-                >
-                  <Monitor className="w-3 h-3" />
-                  <span className="text-[10px]">16:9</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('9:16')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer ${
-                    aspectRatio === '9:16' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="9:16 TikTok / Reels"
-                >
-                  <Smartphone className="w-3 h-3" />
-                  <span className="text-[10px]">9:16</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('1:1')}
-                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer ${
-                    aspectRatio === '1:1' ? 'bg-indigo-600 text-white shadow-2xs font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="1:1 Square"
-                >
-                  <span className="text-[10px] font-bold">1:1</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Canvas Box: Either Live Canvas API Proxy or Interactive Stage */}
-          <div 
-            className="w-full flex items-center justify-center bg-slate-950 rounded-xl p-2 min-h-[340px] relative overflow-hidden"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const raw = e.dataTransfer.getData('application/json');
-              if (raw) {
-                try {
-                  const asset = JSON.parse(raw);
-                  if (asset && asset.url) {
-                    handleApplyWatermark({
-                      assetId: asset.id,
-                      url: asset.url,
-                      name: asset.name,
-                      position: 'bottom-right',
-                      opacity: 0.85,
-                      scale: 1,
-                    });
-                  }
-                } catch (err) {}
-              }
-            }}
-          >
-            {/* Proxy Mode Active Badge Overlay */}
-            {isProxyMode && (
-              <div className="absolute top-3 left-3 z-30 px-2.5 py-1 rounded-md bg-amber-500 text-slate-950 font-mono text-[10px] font-extrabold shadow-lg flex items-center gap-1.5 border border-amber-300">
-                <Zap className="w-3 h-3 fill-slate-950" />
-                <span>PROXY 360p ACTIVE (FAST TIMELINE EDITING)</span>
-              </div>
-            )}
-
-            {/* Hidden multi-track synchronized audio elements */}
-            {bgmTrack?.url ? (
-              <audio ref={audioRef} src={bgmTrack.url} preload="auto" className="hidden" />
-            ) : null}
-            {voTrack?.url ? (
-              <audio ref={voAudioRef} src={voTrack.url} preload="auto" className="hidden" />
-            ) : null}
-            {sfxTrack?.url ? (
-              <audio ref={sfxAudioRef} src={sfxTrack.url} preload="auto" className="hidden" />
-            ) : null}
-
-            {previewMode === 'canvas' ? (
-              <LivePreviewCanvas
-                scenes={scenes}
-                currentTime={currentTime}
-                isPlaying={isPlaying}
-                aspectRatio={aspectRatio}
-                brandOverlayConfig={brandOverlayConfig}
-                onTogglePlay={togglePlay}
-                selectedSceneId={selectedSceneId}
-                onSelectScene={(id) => setSelectedSceneId(id)}
-                subtitles={subtitles}
-                subtitleBurnOptions={subtitleBurnOptions}
-                vfxConfig={vfxConfig}
-              />
-            ) : (
-              <div 
-                className={`relative bg-black rounded-lg overflow-hidden shadow-2xl transition-all duration-300 flex items-center justify-center ${
-                  aspectRatio === '16:9' 
-                    ? 'w-full aspect-video max-w-2xl' 
-                    : aspectRatio === '9:16'
-                    ? 'h-[360px] aspect-[9/16]'
-                    : 'w-[320px] aspect-square'
-                }`}
-              >
-                {selectedScene?.mediaUrl ? (
-                  <div className="relative w-full h-full overflow-hidden">
-                    <img
-                      src={selectedScene.mediaUrl}
-                      alt={selectedScene.title}
-                      referrerPolicy="no-referrer"
-                      style={selectedScene.colorAdjustments ? {
-                        filter: `brightness(${100 + (selectedScene.colorAdjustments.brightness || 0) + (selectedScene.colorAdjustments.exposure || 0) * 0.5}%) contrast(${100 + (selectedScene.colorAdjustments.contrast || 0)}%) saturate(${100 + (selectedScene.colorAdjustments.saturation || 0)}%) sepia(${(selectedScene.colorAdjustments.colorTemp || 0) > 0 ? (selectedScene.colorAdjustments.colorTemp || 0) * 0.2 : 0}%) hue-rotate(${(selectedScene.colorAdjustments.tint || 0) * 0.5}deg)`
-                      } : undefined}
-                      className={`w-full h-full object-cover transition-transform duration-1000 ${
-                        isPlaying
-                          ? selectedScene.motion === 'pan_right'
-                            ? 'scale-110 translate-x-4'
-                            : selectedScene.motion === 'zoom_in'
-                            ? 'scale-125'
-                            : selectedScene.motion === 'zoom_out'
-                            ? 'scale-100'
-                            : selectedScene.motion === 'dolly'
-                            ? 'scale-115 translate-y-2'
-                            : 'scale-105'
-                          : 'scale-100'
-                      } ${
-                        selectedScene.filter === 'cinematic' ? 'contrast-125 saturate-110' :
-                        selectedScene.filter === 'warm' ? 'sepia-[0.3] saturate-125' :
-                        selectedScene.filter === 'cool' ? 'hue-rotate-15 saturate-90' :
-                        selectedScene.filter === 'vibrant' ? 'saturate-150 contrast-110' : ''
-                      }`}
-                    />
-                    {/* Subtle vignette */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
-                  </div>
-                ) : (
-                  <div className="text-center p-6 text-slate-500">
-                    <Film className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-xs">No media generated yet.</p>
-                  </div>
-                )}
-
-                {/* Subtitle / Devanagari text overlay */}
-                {(selectedScene?.textOverlay || selectedScene?.textNepali) && (
-                  <div 
-                    className={`absolute inset-x-4 pointer-events-none text-center px-4 py-2 transition-all ${
-                      selectedScene.textPosition === 'top' 
-                        ? 'top-4' 
-                        : selectedScene.textPosition === 'center'
-                        ? 'top-1/2 -translate-y-1/2'
-                        : 'bottom-4'
-                    }`}
-                  >
-                    <div className="inline-block bg-black/75 backdrop-blur-sm px-4 py-1.5 rounded-lg border border-white/10 shadow-lg">
-                      {selectedScene.textNepali && (
-                        <p className="font-['Mukta'] font-semibold text-sm sm:text-base text-amber-300 drop-shadow">
-                          {selectedScene.textNepali}
-                        </p>
-                      )}
-                      {selectedScene.textOverlay && (
-                        <p 
-                          style={{ color: selectedScene.textColor || '#ffffff' }}
-                          className="text-xs sm:text-sm font-medium tracking-wide drop-shadow"
-                        >
-                          {selectedScene.textOverlay}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Scene Watermark / Brand Stamp */}
-                {selectedScene?.watermark && selectedScene.watermark.url ? (
-                  <div
-                    className={`absolute pointer-events-none transition-all z-20 ${
-                      selectedScene.watermark.position === 'top-left' ? 'top-3 left-3' :
-                      selectedScene.watermark.position === 'top-right' ? 'top-3 right-3' :
-                      selectedScene.watermark.position === 'bottom-left' ? 'bottom-3 left-3' :
-                      selectedScene.watermark.position === 'bottom-right' ? 'bottom-3 right-3' :
-                      'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
-                    }`}
-                    style={{
-                      opacity: selectedScene.watermark.opacity,
-                      transform: `scale(${selectedScene.watermark.scale})`,
-                    }}
-                  >
-                    <img
-                      src={selectedScene.watermark.url}
-                      alt={selectedScene.watermark.name}
-                      className="max-h-12 max-w-28 object-contain drop-shadow-md"
-                    />
-                  </div>
-                ) : (brandOverlayConfig.enabled && brandOverlayConfig.logoUrl) ? (
-                  <div 
-                    className={`absolute pointer-events-none transition-all z-20 flex items-center gap-1.5 ${
-                      brandOverlayConfig.position === 'top-left' ? 'top-3 left-3' :
-                      brandOverlayConfig.position === 'top-right' ? 'top-3 right-3' :
-                      brandOverlayConfig.position === 'bottom-left' ? 'bottom-3 left-3' :
-                      'bottom-3 right-3'
-                    }`}
-                    style={{
-                      opacity: brandOverlayConfig.opacityPercent / 100,
-                      transform: `scale(${brandOverlayConfig.scalePercent / 20})`,
-                    }}
-                  >
-                    <img
-                      src={brandOverlayConfig.logoUrl}
-                      alt="Brand Watermark"
-                      className="w-6 h-6 rounded-full object-cover border border-amber-400 shadow"
-                    />
-                    {brandOverlayConfig.showBrandText && brandOverlayConfig.brandText && (
-                      <span className="px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-bold text-amber-300 border border-amber-500/30">
-                        {brandOverlayConfig.brandText}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/50 text-[10px] font-semibold text-white/70 border border-white/10">
-                    NepalAI Studio
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Quick Media Action Bar under Canvas */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Generate for this scene:</span>
-              <button
-                onClick={onOpenImageStudio}
-                className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-                <span>Azure GPT-Image</span>
-              </button>
-              <button
-                onClick={onOpenSoraStudio}
-                className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-xs font-semibold border border-purple-200 dark:border-purple-800 flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <Film className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                <span>Azure Sora Video</span>
-              </button>
-            </div>
-
-            <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
-              {formatTimecode(currentTime)} / {formatTimecode(totalDuration)}
-            </div>
-          </div>
-        </div>
-
-        {/* Right 5 Columns: Selected-Scene Inspector OR Media Library */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-xs transition-colors">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setRightTab('inspector')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition cursor-pointer ${
-                  rightTab === 'inspector'
-                    ? 'bg-indigo-600 text-white font-bold shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Inspector</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRightTab('medialib')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition cursor-pointer ${
-                  rightTab === 'medialib'
-                    ? 'bg-indigo-600 text-white font-bold shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Database className="w-3.5 h-3.5" />
-                <span>Production Assets</span>
-              </button>
-            </div>
-
-            {rightTab === 'inspector' && (
-              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-mono font-semibold border border-indigo-100 dark:border-indigo-800">
-                {selectedScene?.id}
-              </span>
-            )}
-          </div>
-
-          {rightTab === 'medialib' ? (
-            <MediaLibrary
-              onAddAudioTrack={(track) => {
-                setAudioTracks(prev => [...prev, track]);
-                setSelectedAudioId(track.id);
-                setProjectNotice(`Added audio track "${track.title}"!`);
-                setTimeout(() => setProjectNotice(null), 3000);
-              }}
-              onAddScene={(newSceneData) => {
-                const newScene: Scene = {
-                  ...newSceneData,
-                  id: 'scene-' + Math.random().toString(36).substring(2, 9),
-                };
-                pushToHistory(scenes);
-                setScenes(prev => [...prev, newScene]);
-                setSelectedSceneId(newScene.id);
-                setProjectNotice(`Added asset scene "${newScene.title}" to timeline!`);
-                setTimeout(() => setProjectNotice(null), 3000);
-              }}
-              onApplyWatermark={(wm) => {
-                if (!selectedScene) return;
-                pushToHistory(scenes);
-                setScenes(prev => prev.map(s => s.id === selectedSceneId ? { ...s, watermark: wm, brandLogo: wm } : s));
-                setProjectNotice(`Applied watermark "${wm.name}"!`);
-                setTimeout(() => setProjectNotice(null), 3000);
-              }}
-            />
-          ) : selectedScene ? (
-            <div className="space-y-4 text-xs overflow-y-auto max-h-[460px] pr-1 scrollbar-thin">
-              {/* Scene Title */}
-              <div className="space-y-1">
-                <label className="text-slate-700 dark:text-slate-300 font-semibold">Scene Title</label>
-                <input
-                  type="text"
-                  value={selectedScene.title}
-                  onChange={e => updateSelectedScene('title', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
-                />
-              </div>
-
-              {/* Duration Slider with Snap Grid Support */}
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
-                  <label className="font-semibold flex items-center gap-1">
-                    <span>Duration</span>
-                    {snapEnabled && (
-                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-normal font-mono">({snapGridInterval}s step)</span>
-                    )}
-                  </label>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{selectedScene.duration}s</span>
-                </div>
-                <input
-                  type="range"
-                  min={0.5}
-                  max={20}
-                  step={snapEnabled ? snapGridInterval : 0.5}
-                  value={selectedScene.duration}
-                  onChange={e => {
-                    const rawVal = parseFloat(e.target.value);
-                    const val = snapEnabled 
-                      ? Number((Math.round(rawVal / snapGridInterval) * snapGridInterval).toFixed(2)) 
-                      : rawVal;
-                    updateSelectedScene('duration', val);
-                  }}
-                  className="w-full accent-indigo-600 cursor-pointer"
-                />
-              </div>
-
-              {/* Camera Motion */}
-              <div className="space-y-1">
-                <label className="text-slate-700 dark:text-slate-300 font-semibold">Camera Motion (Dynamic Zoom / Pan)</label>
-                <select
-                  value={selectedScene.motion}
-                  onChange={e => updateSelectedScene('motion', e.target.value as CameraMotion)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
-                >
-                  <option value="static">Static (No Camera Motion)</option>
-                  <option value="pan_right">Cinematic Pan Right →</option>
-                  <option value="pan_left">Cinematic Pan Left ←</option>
-                  <option value="zoom_in">Slow Dramatic Zoom In</option>
-                  <option value="zoom_out">Slow Expansive Zoom Out</option>
-                  <option value="dolly">Dolly Forward</option>
-                  <option value="orbit">Orbit Sweep</option>
-                </select>
-              </div>
-
-              {/* Transition */}
-              <div className="space-y-1">
-                <label className="text-slate-700 dark:text-slate-300 font-semibold">Scene Transition</label>
-                <select
-                  value={selectedScene.transition}
-                  onChange={e => updateSelectedScene('transition', e.target.value as TransitionType)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
-                >
-                  <option value="fade">Smooth Crossfade</option>
-                  <option value="dissolve">Film Dissolve</option>
-                  <option value="cut">Direct Hard Cut</option>
-                  <option value="wipe_right">Wipe Right</option>
-                  <option value="wipe_left">Wipe Left</option>
-                  <option value="slide_left">Slide Left</option>
-                  <option value="slide_right">Slide Right</option>
-                  <option value="zoom_in">Zoom In</option>
-                  <option value="zoom_out">Zoom Out</option>
-                  <option value="flash_white">Flash White</option>
-                  <option value="blur_dissolve">Blur Dissolve</option>
-                </select>
-              </div>
-
-              {/* Clip Color Tag & Organization */}
-              <div className="space-y-1">
-                <label className="text-slate-700 dark:text-slate-300 font-semibold">Clip Color Tag & Organization</label>
-                <select
-                  value={selectedScene.colorTag || 'b_roll'}
-                  onChange={e => updateSelectedScene('colorTag', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs font-semibold"
-                >
-                  <option value="b_roll">🎬 B-roll (Indigo)</option>
-                  <option value="a_roll">🌟 A-roll (Emerald)</option>
-                  <option value="ai_gen">✨ AI-Gen (Purple)</option>
-                  <option value="interview">🎙️ Interview (Amber)</option>
-                  <option value="bramhanand">🏔️ Bramhanand (Rose)</option>
-                  <option value="custom">🏷️ Custom Tag</option>
-                </select>
-              </div>
-
-              {/* Transition Manager Trigger */}
-              <div className="pt-1">
-                <button
-                  onClick={() => {
-                    const idx = scenes.findIndex(s => s.id === selectedSceneId);
-                    setTransitionTargetSceneIndex(idx !== -1 ? idx : 0);
-                    setShowTransitionManagerModal(true);
-                  }}
-                  className="w-full py-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800 flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  <span>Configure Transition Manager →</span>
-                </button>
-              </div>
-
-              {/* Devanagari Subtitle / Nepali Text */}
-              <div className="space-y-1 bg-amber-50/70 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-200/80 dark:border-amber-800/40">
-                <div className="flex items-center justify-between">
-                  <label className="text-amber-900 dark:text-amber-300 font-semibold flex items-center gap-1.5">
-                    <Type className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
-                    <span>नेपाली टेक्स्ट (Nepali Subtitle)</span>
-                  </label>
-                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">Devanagari</span>
-                </div>
-                <input
-                  type="text"
-                  placeholder="उदा: सगरमाथाको सुन्दर बिहानी..."
-                  value={selectedScene.textNepali || ''}
-                  onChange={e => updateSelectedScene('textNepali', e.target.value)}
-                  className="w-full bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/60 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-['Mukta'] text-sm focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              {/* English Subtitle */}
-              <div className="space-y-1">
-                <label className="text-slate-700 dark:text-slate-300 font-semibold">English Subtitle / Lower Third</label>
-                <input
-                  type="text"
-                  placeholder="e.g. The Rooftop of the World"
-                  value={selectedScene.textOverlay}
-                  onChange={e => updateSelectedScene('textOverlay', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
-                />
-              </div>
-
-              {/* Color Filter */}
-              <div className="space-y-1">
-                <label className="text-slate-700 dark:text-slate-300 font-semibold">Color Grade / Filter</label>
-                <select
-                  value={selectedScene.filter}
-                  onChange={e => updateSelectedScene('filter', e.target.value as ColorFilter)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 text-xs"
-                >
-                  <option value="none">Standard Natural</option>
-                  <option value="cinematic">Cinematic High Contrast</option>
-                  <option value="warm">Himalayan Golden Warmth</option>
-                  <option value="cool">Mountain Alpine Cool</option>
-                  <option value="vibrant">Vibrant Festive Color</option>
-                </select>
-              </div>
-
-              {/* Volume Slider */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                  <label className="font-semibold flex items-center gap-1">
-                    <Volume2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    <span>Scene Audio Level</span>
-                  </label>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{selectedScene.volume}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={selectedScene.volume}
-                  onChange={e => updateSelectedScene('volume', parseInt(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer"
-                />
-              </div>
-
-              {/* Scene Watermark / Brand Logo */}
-              <div className="space-y-2 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/20">
-                <div className="flex items-center justify-between">
-                  <label className="text-indigo-950 dark:text-indigo-200 font-semibold flex items-center gap-1.5 text-xs">
-                    <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>Scene Watermark & Brand Stamp</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowAssetLibrary(true)}
-                    className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
-                  >
-                    {selectedScene.watermark ? 'Change Asset' : '+ Choose Asset'}
-                  </button>
-                </div>
-                {selectedScene.watermark && selectedScene.watermark.url ? (
-                  <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-2 rounded-lg border border-indigo-200 dark:border-indigo-800 text-xs">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={selectedScene.watermark.url}
-                        alt="Watermark"
-                        className="w-8 h-8 object-contain rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-0.5"
-                      />
-                      <div>
-                        <div className="font-semibold text-slate-800 dark:text-slate-200">{selectedScene.watermark.name}</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {selectedScene.watermark.position} • {Math.round(selectedScene.watermark.opacity * 100)}% opacity
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveWatermark(false)}
-                      className="text-slate-400 hover:text-rose-600 p-1 transition cursor-pointer"
-                      title="Remove watermark from this scene"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    No watermark applied. Open the Asset Library or drag a logo onto the stage box above.
-                  </p>
-                )}
-              </div>
-
-              {/* Scene Production Notes & Client Feedback */}
-              <div className="space-y-1 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <label className="text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-1.5 text-xs">
-                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Production Instructions & Notes</span>
-                  </label>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Persisted in JSON</span>
-                </div>
-                <textarea
-                  rows={2}
-                  value={selectedScene.notes || ''}
-                  onChange={e => updateSelectedScene('notes', e.target.value)}
-                  placeholder="e.g. Director note: Fade music at 3s; increase warm filter..."
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Scene Batch Tags Display */}
-              <div className="space-y-1 p-2.5 bg-purple-50/50 dark:bg-purple-950/20 rounded-xl border border-purple-100 dark:border-purple-900/40">
-                <div className="flex items-center justify-between">
-                  <label className="text-purple-950 dark:text-purple-300 font-semibold flex items-center gap-1.5 text-xs">
-                    <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                    <span>Scene Tags & Status Labels</span>
-                  </label>
-                </div>
-                {selectedScene.tags && selectedScene.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {selectedScene.tags.map((tag, tIdx) => (
-                      <span key={tIdx} className="px-2 py-0.5 rounded bg-purple-600 text-white text-[10px] font-bold">
-                        🏷️ {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">No batch tags assigned. Use the timeline Batch Tagging toolbar to apply status labels.</p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400">Select a scene from the timeline to edit properties.</p>
-          )}
-
-          {/* Scene Operations Toolbar */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <button
-              onClick={handleDuplicateScene}
-              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span>Duplicate</span>
-            </button>
-            <button
-              onClick={handleDeleteScene}
-              className="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete Scene</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Hidden File Inputs for Drag & Drop / Click to Upload into Timeline */}
-      <input
-        ref={mediaFileInputRef}
-        type="file"
-        accept="image/*,video/*"
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files) {
-            (Array.from(e.target.files) as File[]).forEach(handleMediaUpload);
-          }
-        }}
-      />
+      {/* Hidden File Inputs for Audio/SFX */}
       <input
         ref={audioFileInputRef}
         type="file"
@@ -2574,6 +1506,17 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onChange={(e) => {
           if (e.target.files) {
             (Array.from(e.target.files) as File[]).forEach(f => handleAudioUpload(f, 'bgm'));
+          }
+        }}
+      />
+      <input
+        ref={voFileInputRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleAudioUpload(e.target.files[0], 'voiceover');
           }
         }}
       />
@@ -2589,1267 +1532,332 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         }}
       />
 
-      {/* Multi-Track Timeline Dock (Ultra-Premium Studio Canvas) */}
-      <div 
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsTimelineDragActive(true);
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          setIsTimelineDragActive(false);
-        }}
-        onDrop={handleTimelineDrop}
-        className={`relative bg-[#0b0f19] dark:bg-[#070b14] border text-slate-100 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xl transition-all ${
-          isTimelineDragActive 
-            ? 'border-2 border-dashed border-indigo-500 bg-indigo-950/40 ring-4 ring-indigo-500/20' 
-            : 'border-slate-800/90'
-        }`}
-      >
-        {/* Drag Active Drop Zone Overlay */}
-        {isTimelineDragActive && (
-          <div className="absolute inset-0 z-50 bg-indigo-950/85 backdrop-blur-xs rounded-2xl border-2 border-dashed border-indigo-400 flex flex-col items-center justify-center gap-2 pointer-events-none animate-in fade-in duration-150">
-            <Upload className="w-10 h-10 text-indigo-400 animate-bounce" />
-            <p className="text-sm font-bold text-white">Drop Audio (MP3/WAV), Video clips, or Photos</p>
-            <p className="text-xs text-indigo-200">Files will automatically be appended as tracks or scenes</p>
-          </div>
-        )}
-
-        {/* Dock Control Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-          {/* Playback controls */}
+      {/* Auto-Save Session Restore Prompt Banner */}
+      {showSessionRestoreBanner && restorableDraftInfo && (
+        <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 text-white px-4 py-2 border-b border-indigo-700/80 flex items-center justify-between gap-3 text-xs shrink-0 z-40">
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrevScene}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all cursor-pointer border border-slate-700/60"
-              title="Previous Scene"
-            >
-              <SkipBack className="w-4 h-4" />
-            </button>
-            <button
-              id="timeline-play-btn"
-              onClick={togglePlay}
-              className="w-11 h-11 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:scale-105 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
-              title={isPlaying ? 'Pause' : 'Play Live Timeline'}
-            >
-              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-            </button>
-            <button
-              onClick={() => { setIsPlaying(false); setCurrentTime(0); }}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all cursor-pointer border border-slate-700/60"
-              title="Stop and Reset"
-            >
-              <Square className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleNextScene}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all cursor-pointer border border-slate-700/60"
-              title="Next Scene"
-            >
-              <SkipForward className="w-4 h-4" />
-            </button>
-
-            {/* Timecode display with Neon Cyan accent */}
-            <div className="px-3 py-1.5 rounded-xl bg-black/60 border border-cyan-500/30 font-mono text-xs text-cyan-400 font-bold ml-2 shadow-inner flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span>{formatTimecode(currentTime)}</span>
-              <span className="text-slate-500 font-normal">/</span>
-              <span className="text-slate-400">{formatTimecode(totalDuration)}</span>
-            </div>
-          </div>
-
-          {/* Edit Actions: Undo, Redo, Split, Snap, Zoom, Fit */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Undo & Redo History Stack Controls */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={handleUndo}
-                disabled={historyIndexRef.current <= 0}
-                className="px-2 py-1 rounded bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 border border-slate-200/80 dark:border-slate-600 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors cursor-pointer"
-                title="Undo last action (Ctrl+Z)"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                <span className="hidden sm:inline">Undo</span>
-              </button>
-              <button
-                onClick={handleRedo}
-                disabled={historyIndexRef.current >= historyRef.current.length - 1}
-                className="px-2 py-1 rounded bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 disabled:opacity-40 border border-slate-200/80 dark:border-slate-600 text-xs font-semibold shadow-2xs flex items-center gap-1 transition-colors cursor-pointer"
-                title="Redo change (Ctrl+Y)"
-              >
-                <RotateCw className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                <span className="hidden sm:inline">Redo</span>
-              </button>
-            </div>
-
-            {/* Split at playhead */}
-            <button
-              id="btn-split-playhead"
-              onClick={handleSplitAtPlayhead}
-              className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Split active scene into two clips at playhead time"
-            >
-              <Scissors className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>Split</span>
-            </button>
-
-            {/* Batch Select & Tagging Mode Toggle */}
-            <button
-              onClick={() => {
-                if (isBatchSelectMode) {
-                  handleClearBatchSelection();
-                } else {
-                  setIsBatchSelectMode(true);
-                  if (selectedSceneIds.length === 0) {
-                    setSelectedSceneIds([selectedSceneId]);
-                  }
-                }
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border cursor-pointer ${
-                isBatchSelectMode || selectedSceneIds.length > 0
-                  ? 'bg-purple-600 text-white border-purple-700 shadow-xs'
-                  : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 shadow-2xs'
-              }`}
-              title="Batch select multiple scenes to apply custom labels like Draft, Final, or Needs Review"
-            >
-              <Tag className="w-3.5 h-3.5" />
-              <span>Batch Tagging</span>
-              {selectedSceneIds.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-white text-purple-700 font-bold text-[10px]">
-                  {selectedSceneIds.length}
-                </span>
-              )}
-            </button>
-
-            {/* Snap-to-Grid Controls */}
-            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
-              snapEnabled
-                ? 'bg-indigo-50/90 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 shadow-2xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-            }`}>
-              <button
-                onClick={() => setSnapEnabled(!snapEnabled)}
-                className={`px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  snapEnabled
-                    ? 'bg-indigo-600 text-white shadow-2xs'
-                    : 'bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600'
-                }`}
-                title={snapEnabled ? 'Snap-to-Grid is ON (click to disable)' : 'Enable Snap-to-Grid alignment'}
-              >
-                <Magnet className="w-3.5 h-3.5" />
-                <span>Snap Grid</span>
-              </button>
-
-              {snapEnabled && (
-                <div className="flex items-center gap-1">
-                  <select
-                    value={snapGridInterval}
-                    onChange={(e) => setSnapGridInterval(parseFloat(e.target.value))}
-                    className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded px-1.5 py-0.5 text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300 focus:outline-none cursor-pointer"
-                    title="Select snap-to-grid time interval"
-                  >
-                    <option value={0.25}>0.25s Grid</option>
-                    <option value={0.5}>0.5s Grid</option>
-                    <option value={1.0}>1.0s Grid</option>
-                    <option value={2.0}>2.0s Grid</option>
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {/* Precision Timeline Zoom Slider Component */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider hidden md:inline">Zoom:</span>
-              <button
-                onClick={() => setTimelineZoom(prev => Math.max(0.5, Number((prev - 0.2).toFixed(1))))}
-                className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
-                title="Zoom Out Time-Axis Scale (-)"
-              >
-                <ZoomOut className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Precision Time-Axis Range Slider */}
-              <input
-                type="range"
-                min="0.5"
-                max="3.0"
-                step="0.1"
-                value={timelineZoom}
-                onChange={(e) => setTimelineZoom(parseFloat(e.target.value))}
-                className="w-16 sm:w-24 accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
-                title={`Timeline Zoom Scale: ${Math.round(timelineZoom * 100)}% (${pixelsPerSecond} px/sec)`}
-              />
-
-              <button
-                onClick={() => setTimelineZoom(prev => Math.min(3.0, Number((prev + 0.2).toFixed(1))))}
-                className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
-                title="Zoom In Time-Axis Scale (+)"
-              >
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-
-              <span className="text-[10px] text-slate-800 dark:text-slate-200 font-mono px-1 font-bold min-w-[38px] text-center bg-white dark:bg-slate-700 rounded border border-slate-200/80 dark:border-slate-600 py-0.5">
-                {Math.round(timelineZoom * 100)}%
-              </span>
-
-              {/* Quick Zoom Presets */}
-              <div className="hidden sm:flex items-center gap-0.5 border-l border-slate-200 dark:border-slate-700 pl-1">
-                {[0.5, 1.0, 1.5, 2.0, 3.0].map(zoomLevel => (
-                  <button
-                    key={zoomLevel}
-                    onClick={() => setTimelineZoom(zoomLevel)}
-                    className={`px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded transition cursor-pointer ${
-                      Math.abs(timelineZoom - zoomLevel) < 0.05
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white'
-                    }`}
-                  >
-                    {zoomLevel}x
-                  </button>
-                ))}
-              </div>
-
-              {/* Fit to window button */}
-              <button
-                onClick={handleFitToWindow}
-                className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 border-l border-slate-200 dark:border-slate-700 pl-1.5 transition cursor-pointer"
-                title="Fit timeline tracks to window width"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Asset Quick-Add Toolstrip: Media, Audio, SFX, VFX, Frame, Templates */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 pb-2 border-b border-slate-800/60 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Add Asset:</span>
-            
-            {/* + Media / Scene Clip */}
-            <button
-              onClick={() => mediaFileInputRef.current?.click()}
-              className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 hover:border-indigo-500 text-[11px] font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              title="Upload video or image file to append to timeline"
-            >
-              <Film className="w-3.5 h-3.5 text-indigo-400" />
-              <span>+ Media Clip</span>
-            </button>
-
-            {/* + Audio Track */}
-            <button
-              onClick={() => audioFileInputRef.current?.click()}
-              className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-purple-600 text-slate-200 hover:text-white border border-slate-700 hover:border-purple-500 text-[11px] font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              title="Upload custom MP3/WAV background music"
-            >
-              <Music className="w-3.5 h-3.5 text-purple-400" />
-              <span>+ Audio (BGM)</span>
-            </button>
-
-            {/* + SFX Track */}
-            <button
-              onClick={() => sfxFileInputRef.current?.click()}
-              className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-amber-600 text-slate-200 hover:text-white border border-slate-700 hover:border-amber-500 text-[11px] font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              title="Upload custom sound effect (WAV/MP3)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>+ SFX Audio</span>
-            </button>
-
-            {/* ✨ VFX & BFX Engine Modal Toggle */}
-            <button
-              onClick={() => setShowVfxModal(true)}
-              className="px-2.5 py-1 rounded-lg bg-teal-950/60 hover:bg-teal-600 text-teal-200 hover:text-white border border-teal-700/60 hover:border-teal-400 text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              title="Configure live Film Grain, Light Leaks, RGB Glitch, and Golden Hour glow"
-            >
-              <Wand2 className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
-              <span>✨ VFX & BFX Overlays</span>
-            </button>
-
-            {/* 🎬 Frame & Matte Quick Selector */}
-            <div className="flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700 text-[11px]">
-              <Layers className="w-3 h-3 text-slate-400" />
-              <span className="text-[10px] text-slate-400 font-medium">Frame:</span>
-              <select
-                value={vfxConfig.frameType}
-                onChange={(e) => setVfxConfig(prev => ({ ...prev, frameType: e.target.value as FrameOverlayType }))}
-                className="bg-transparent text-indigo-300 font-bold text-[11px] focus:outline-none cursor-pointer"
-                title="Apply cinematic aspect ratio matte overlay"
-              >
-                <option value="none" className="bg-slate-900 text-white">None (Standard)</option>
-                <option value="letterbox" className="bg-slate-900 text-white">2.35:1 Letterbox</option>
-                <option value="academy_4_3" className="bg-slate-900 text-white">4:3 Academy</option>
-                <option value="safe_zone_9_16" className="bg-slate-900 text-white">9:16 Safe Zone</option>
-                <option value="vintage_8mm" className="bg-slate-900 text-white">Vintage 8mm Matte</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-              Drag & Drop Supported
+            <RotateCcw className="w-4 h-4 text-cyan-400" />
+            <span>
+              Found draft <strong>"{restorableDraftInfo.title}"</strong> ({restorableDraftInfo.count} scenes) auto-saved at {restorableDraftInfo.savedAt}.
             </span>
           </div>
-        </div>
-
-        {/* FLOATING BATCH TAGGING DOCK TOOLBAR */}
-        {(isBatchSelectMode || selectedSceneIds.length > 0) && (
-          <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 text-white p-3 rounded-xl border border-purple-800 shadow-xl flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 pr-2 border-r border-purple-800/80">
-                <Tag className="w-4 h-4 text-purple-400" />
-                <span className="text-xs font-bold text-white">
-                  Batch Tagging ({selectedSceneIds.length} / {scenes.length} selected)
-                </span>
-              </div>
-
-              {/* Selection Toggles */}
-              <button
-                onClick={handleSelectAllScenes}
-                className="px-2.5 py-1 rounded-lg bg-purple-900/60 hover:bg-purple-800 text-purple-200 text-xs font-semibold border border-purple-700/60 transition"
-              >
-                Select All
-              </button>
-              <button
-                onClick={handleClearBatchSelection}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
-              >
-                Deselect
-              </button>
-
-              {/* Preset Tag Chips */}
-              <div className="flex items-center gap-1.5 pl-2 border-l border-purple-800/80">
-                <span className="text-[10px] text-purple-300 uppercase font-bold">Apply Preset:</span>
-                {['Draft', 'Final', 'Needs Review', 'A-Roll', 'B-Roll'].map(presetTag => (
-                  <button
-                    key={presetTag}
-                    onClick={() => handleApplyBatchTags([presetTag])}
-                    disabled={selectedSceneIds.length === 0}
-                    className="px-2 py-0.5 rounded-md bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-xs font-semibold disabled:opacity-40 transition cursor-pointer"
-                  >
-                    + {presetTag}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Tag Input */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <input
-                type="text"
-                value={customTagInput}
-                onChange={(e) => setCustomTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && customTagInput.trim()) {
-                    handleApplyBatchTags([customTagInput.trim()]);
-                    setCustomTagInput('');
-                  }
-                }}
-                placeholder="Custom label..."
-                className="bg-slate-900 border border-purple-800/80 rounded-lg px-2.5 py-1 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500 w-32"
-              />
-              <button
-                onClick={() => {
-                  if (customTagInput.trim()) {
-                    handleApplyBatchTags([customTagInput.trim()]);
-                    setCustomTagInput('');
-                  }
-                }}
-                disabled={selectedSceneIds.length === 0 || !customTagInput.trim()}
-                className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs disabled:opacity-40 transition shadow-sm"
-              >
-                Add Tag
-              </button>
-
-              {/* Clear All Tags */}
-              <button
-                onClick={handleRemoveBatchTags}
-                disabled={selectedSceneIds.length === 0}
-                className="px-2.5 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-200 text-xs font-semibold border border-rose-800/60 disabled:opacity-40 transition"
-                title="Remove all tags from selected scenes"
-              >
-                Clear Tags
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Visual Timeline Tracks Container with Scroll & Wheel Handlers */}
-        <div
-          ref={timelineScrollRef}
-          onWheel={handleTimelineWheel}
-          className="relative space-y-2 overflow-x-auto pb-4 pt-1 scrollbar-thin select-none rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-2 transition-colors"
-        >
-          {/* Active Red Draggable Playhead Scrub Indicator & Real-Time Badge */}
-          <div
-            onPointerDown={handleScrubPointerDown}
-            className={`absolute top-0 bottom-0 z-30 flex flex-col items-center cursor-grab active:cursor-grabbing transition-left duration-75 group ${
-              isScrubbing ? 'cursor-grabbing' : ''
-            }`}
-            style={{ left: `${80 + currentTime * pixelsPerSecond}px` }}
-          >
-            {/* Draggable Playhead Head / Handle */}
-            <div 
-              className={`-translate-x-1/2 px-2 py-0.5 rounded-lg bg-gradient-to-r from-rose-600 via-rose-500 to-rose-600 text-white font-mono text-[10px] font-bold shadow-lg border border-rose-300/60 flex items-center gap-1 shrink-0 transition-transform select-none ${
-                isScrubbing 
-                  ? 'scale-110 shadow-rose-500/40 ring-2 ring-rose-400 ring-offset-1 bg-rose-600' 
-                  : 'hover:scale-105'
-              }`}
-              title="Drag playhead to scrub timeline & update preview in real-time"
-            >
-              <GripVertical className="w-3 h-3 text-rose-200 shrink-0" />
-              <span>{formatTimecode(currentTime)}</span>
-              {isScrubbing && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-ping ml-0.5 shrink-0" />
-              )}
-            </div>
-
-            {/* Downward pointing handle diamond tip */}
-            <div className="-translate-x-1/2 -mt-0.5 w-2.5 h-2.5 bg-rose-600 rotate-45 border-r border-b border-rose-400 shadow-xs shrink-0 pointer-events-none" />
-
-            {/* Playhead vertical line extending across tracks */}
-            <div className={`w-0.5 flex-1 bg-gradient-to-b from-rose-500 via-rose-600 to-rose-700 shadow-sm opacity-90 transition-all ${
-              isScrubbing ? 'w-1 bg-rose-500 shadow-rose-500/60 opacity-100' : 'group-hover:w-1 group-hover:bg-rose-500'
-            }`} />
-
-            {/* Bottom anchor cap */}
-            <div className="-translate-x-1/2 w-3 h-1.5 bg-rose-700 rounded-b-md shadow-xs shrink-0 pointer-events-none" />
-          </div>
-
-          {/* Timecode Interactive Ruler */}
-          <div
-            onPointerDown={handleScrubPointerDown}
-            className="flex items-center text-[10px] font-mono text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-1 cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/40 rounded transition-colors relative select-none"
-            title="Click or drag across ruler to scrub playhead"
-          >
-            <div className="w-20 shrink-0 flex flex-col justify-center pl-1">
-              <span className="font-bold text-slate-600 dark:text-slate-300 text-[11px]">TRACKS</span>
-              {snapEnabled && (
-                <span className="text-[8px] font-mono font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5">
-                  <Magnet className="w-2.5 h-2.5" />
-                  <span>{snapGridInterval}s Snap</span>
-                </span>
-              )}
-            </div>
-            <div
-              className="relative h-5 flex items-center"
-              style={{ width: `${Math.max(600, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
-            >
-              {/* Optional Snap-to-Grid Sub-tick Guidelines */}
-              {snapEnabled && Array.from({ length: Math.ceil(totalDuration / snapGridInterval) + 1 }).map((_, gIdx) => {
-                const gSec = gIdx * snapGridInterval;
-                return (
-                  <div
-                    key={`grid-${gIdx}`}
-                    className="absolute top-0 bottom-0 w-px bg-indigo-300/40 dark:bg-indigo-600/30 pointer-events-none"
-                    style={{ left: `${gSec * pixelsPerSecond}px` }}
-                  />
-                );
-              })}
-
-              {/* Dynamic Ruler tick marks every step seconds */}
-              {Array.from({ length: Math.ceil(totalDuration) + 1 }).map((_, sec) => {
-                const step = timelineZoom < 0.8 ? 5 : timelineZoom < 1.4 ? 2 : 1;
-                const isMajor = sec % step === 0;
-                if (!isMajor && timelineZoom < 1.5) return null;
-
-                return (
-                  <div
-                    key={sec}
-                    className="absolute top-0 flex flex-col items-center pointer-events-none z-10"
-                    style={{ left: `${sec * pixelsPerSecond}px` }}
-                  >
-                    <div className={`w-px ${isMajor ? 'h-2.5 bg-slate-500 dark:bg-slate-400' : 'h-1 bg-slate-400 dark:bg-slate-600'}`} />
-                    {isMajor && (
-                      <span className="text-[9px] text-slate-600 dark:text-slate-400 font-mono -translate-x-1/2 mt-0.5 font-semibold">
-                        {formatTimecode(sec)}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Video Scene Blocks Row */}
           <div className="flex items-center gap-2">
-            <div className="w-20 shrink-0 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 pl-1">
-              <Film className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>Video</span>
-            </div>
-
-            <div
-              className="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs min-w-max"
+            <button
+              onClick={() => {
+                handleRestoreAutoSave();
+                setShowSessionRestoreBanner(false);
+              }}
+              className="px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition cursor-pointer"
             >
-              {scenes.map((scene, idx) => {
-                const isSelected = scene.id === selectedSceneId;
-                const sceneWidthPx = Math.max(110, Math.round(scene.duration * pixelsPerSecond));
-                const isBeingDragged = draggedSceneIndex === idx;
-                const isTargetedDrop = dragOverSceneIndex === idx;
-
-                return (
-                  <React.Fragment key={scene.id}>
-                    <div
-                      draggable={true}
-                      onDragStart={(e) => {
-                        e.stopPropagation();
-                        setDraggedSceneIndex(idx);
-                        e.dataTransfer.setData('text/plain', String(idx));
-                        e.dataTransfer.effectAllowed = 'move';
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.dataTransfer.dropEffect = 'move';
-                        if (dragOverSceneIndex !== idx) {
-                          setDragOverSceneIndex(idx);
-                        }
-                      }}
-                      onDragLeave={(e) => {
-                        e.stopPropagation();
-                        if (dragOverSceneIndex === idx) {
-                          setDragOverSceneIndex(null);
-                        }
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (draggedSceneIndex !== null && draggedSceneIndex !== idx) {
-                          pushToHistory(scenes);
-                          const reordered = [...scenes];
-                          const [moved] = reordered.splice(draggedSceneIndex, 1);
-                          reordered.splice(idx, 0, moved);
-                          setScenes(reordered);
-                          setSelectedSceneId(moved.id);
-                          setProjectNotice(`Reordered: Moved "${moved.title}" to position #${idx + 1}`);
-                          setTimeout(() => setProjectNotice(null), 3000);
-                        }
-                        setDraggedSceneIndex(null);
-                        setDragOverSceneIndex(null);
-                      }}
-                      onDragEnd={() => {
-                        setDraggedSceneIndex(null);
-                        setDragOverSceneIndex(null);
-                      }}
-                      onClick={() => {
-                        setSelectedSceneId(scene.id);
-                        let t = 0;
-                        for (let i = 0; i < idx; i++) t += scenes[i].duration;
-                        setCurrentTime(t);
-                      }}
-                      style={{ width: `${sceneWidthPx}px` }}
-                      className={`h-22 rounded-lg p-2 cursor-pointer transition-all relative overflow-hidden flex flex-col justify-between border select-none shrink-0 ${
-                        isBeingDragged
-                          ? 'opacity-40 border-dashed border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 scale-95'
-                          : isTargetedDrop
-                          ? 'border-indigo-600 ring-2 ring-indigo-500/80 bg-indigo-100 dark:bg-indigo-900/60 scale-105 z-20 shadow-md'
-                          : isSelected
-                          ? 'border-indigo-600 dark:border-indigo-500 ring-2 ring-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/50 shadow-sm'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs hover:bg-white dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {/* Scene Background Thumbnail */}
-                      {scene.mediaUrl && (
-                        <div className="absolute inset-0 opacity-20 pointer-events-none">
-                          <img 
-                            src={scene.mediaUrl} 
-                            alt="" 
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover" 
-                          />
-                        </div>
-                      )}
-
-                      <div className="relative z-10 flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={selectedSceneIds.includes(scene.id)}
-                            onChange={(e) => toggleSceneBatchSelection(scene.id, e as any)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-3.5 h-3.5 accent-purple-600 rounded cursor-pointer shrink-0"
-                            title="Select scene for batch operations"
-                          />
-                          <GripVertical className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 cursor-grab shrink-0 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Drag to reorder sequence" />
-                          <span className="text-[10px] font-bold text-slate-900 dark:text-slate-100 truncate">
-                            {idx + 1}. {scene.title}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewModalSceneIndex(idx);
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-bold flex items-center gap-0.5 shadow-2xs transition-colors cursor-pointer"
-                            title="Preview scene media, text overlays & metadata"
-                          >
-                            <Eye className="w-2.5 h-2.5" />
-                            <span>Preview</span>
-                          </button>
-                          <span className="px-1 py-0.2 rounded bg-slate-200/90 dark:bg-slate-700 text-[9px] font-mono text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-slate-600 font-semibold">
-                            {scene.duration}s
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Batch Tags & Production Notes Badges */}
-                      <div className="relative z-10 flex items-center gap-1 my-0.5 overflow-x-hidden">
-                        {scene.tags && scene.tags.map((tag, tIdx) => (
-                          <span key={tIdx} className="px-1 py-0.2 rounded bg-purple-600 text-white text-[8px] font-bold shrink-0">
-                            🏷️ {tag}
-                          </span>
-                        ))}
-                        {scene.notes && (
-                          <span className="px-1 py-0.2 rounded bg-amber-500 text-white text-[8px] font-bold shrink-0" title={`Production Note: ${scene.notes}`}>
-                            📝 Note
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="relative z-10 flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400 gap-1">
-                        <span className="truncate max-w-[65px] font-medium">{scene.motion}</span>
-                        <span className="px-1 py-0.2 rounded bg-indigo-100 dark:bg-indigo-950/80 text-[8px] text-indigo-700 dark:text-indigo-300 font-semibold shrink-0 capitalize">
-                          {scene.transition || 'dissolve'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Inter-Scene Transition Node Selector */}
-                    {idx < scenes.length - 1 && (
-                      <div className="relative shrink-0 flex items-center px-0.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTransitionTargetSceneIndex(idx);
-                            setShowTransitionManagerModal(true);
-                          }}
-                          className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-slate-700 hover:border-indigo-400 text-[10px] font-bold flex items-center gap-1 transition-all shadow-md hover:scale-105 z-10 group cursor-pointer"
-                          title={`Transition between Scene ${idx + 1} & Scene ${idx + 2}: ${scene.transition || 'dissolve'} (${scene.transitionDuration || 0.8}s) - Click to change`}
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-12 transition-transform" />
-                          <span className="capitalize font-mono text-[9px]">
-                            {scene.transition ? scene.transition.replace('_', ' ') : 'dissolve'}
-                          </span>
-                          <span className="text-[9px] font-mono opacity-80">
-                            ({scene.transitionDuration || 0.8}s)
-                          </span>
-                        </button>
-                      </div>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-
-              {/* Quick Append Scene Template Button */}
-              <button
-                onClick={() => setShowSceneTemplatesModal(true)}
-                className="h-22 px-3 rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30 hover:bg-amber-100/80 dark:hover:bg-amber-900/40 hover:border-amber-400 text-amber-900 dark:text-amber-200 flex flex-col items-center justify-center gap-1 transition-colors shrink-0 text-center cursor-pointer"
-                title="Append pre-configured scene template (Intro, Outro, Lower-Thirds, News Banners)"
-              >
-                <LayoutTemplate className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-[10px] font-bold whitespace-nowrap">+ Scene Template</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Multi-Track Audio & Visual Rows: Background Music, Voiceover, SFX, and VFX/BFX */}
-          <div className="space-y-2.5">
-            {/* 1. Background Music Track (BGM) */}
-            <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-purple-400 flex items-center gap-1.5 pl-1">
-                <Music className="w-3.5 h-3.5 text-purple-400" />
-                <span>BGM Track</span>
-              </div>
-              <div
-                className="p-2.5 bg-purple-950/40 rounded-xl border border-purple-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
-                style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-                  <span className="text-purple-200 font-bold truncate max-w-xs">
-                    {audioTracks.find(a => a.id === selectedAudioId)?.title || 'Background Cinematic Theme'}
-                  </span>
-                  <div className="flex items-center gap-0.5 opacity-70">
-                    {[4, 8, 12, 6, 14, 10, 5, 9, 13, 7].map((h, i) => (
-                      <div key={i} className="w-1 bg-purple-400 rounded-full" style={{ height: `${h}px` }} />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-purple-300 font-semibold">Vol:</span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={bgmVolume} 
-                      onChange={e => setBgmVolume(Number(e.target.value))}
-                      className="w-16 accent-purple-500 h-1 bg-purple-900/80 rounded-lg cursor-pointer" 
-                    />
-                    <span className="font-mono text-[10px] font-bold text-purple-200 w-7">{bgmVolume}%</span>
-                  </div>
-                  <select
-                    value={selectedAudioId}
-                    onChange={e => setSelectedAudioId(e.target.value)}
-                    className="bg-slate-900 border border-purple-700/80 rounded-lg px-2 py-1 text-purple-200 text-xs focus:outline-none focus:border-purple-400 shadow-2xs cursor-pointer max-w-[130px] truncate"
-                  >
-                    {audioTracks.map(track => (
-                      <option key={track.id} value={track.id}>{track.title}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => audioFileInputRef.current?.click()}
-                    className="p-1 rounded bg-purple-700 hover:bg-purple-600 text-white text-[10px] font-bold transition-colors cursor-pointer"
-                    title="Upload Custom BGM MP3/WAV"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Voiceover (VO) Track */}
-            <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-emerald-400 flex items-center gap-1.5 pl-1">
-                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Voiceover (VO)</span>
-              </div>
-              <div
-                className="p-2.5 bg-emerald-950/30 rounded-xl border border-emerald-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
-                style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${voTrack ? 'bg-emerald-400 animate-pulse' : 'bg-indigo-400'}`}></span>
-                  <span className="text-emerald-200 font-bold truncate max-w-xs">
-                    {voTrack ? voTrack.title : 'Nepali / Hindi Neural Voiceover (Studio Master)'}
-                  </span>
-                  <div className="flex items-center gap-0.5 opacity-70">
-                    {[6, 12, 8, 14, 10, 16, 7, 11, 13, 9].map((h, i) => (
-                      <div key={i} className={`w-1 rounded-full ${voTrack ? 'bg-emerald-400' : 'bg-indigo-400'}`} style={{ height: `${h}px` }} />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-emerald-300 font-semibold">Vol:</span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={voVolume} 
-                      onChange={e => setVoVolume(Number(e.target.value))}
-                      className="w-16 accent-emerald-500 h-1 bg-emerald-900/80 rounded-lg cursor-pointer" 
-                    />
-                    <span className="font-mono text-[10px] font-bold text-emerald-200 w-7">{voVolume}%</span>
-                  </div>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
-                    voTrack 
-                      ? 'bg-emerald-900/80 text-emerald-200 border-emerald-700' 
-                      : 'bg-indigo-900/80 text-indigo-200 border-indigo-700'
-                  }`}>
-                    {voTrack ? 'VO Synced' : 'AI TTS Active'}
-                  </span>
-                  <button
-                    onClick={() => audioFileInputRef.current?.click()}
-                    className="p-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors cursor-pointer"
-                    title="Upload Custom Voiceover WAV/MP3"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Sound Effects (SFX) Track */}
-            <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-amber-400 flex items-center gap-1.5 pl-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>SFX Track</span>
-              </div>
-              <div
-                className="p-2.5 bg-amber-950/40 rounded-xl border border-amber-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
-                style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                  <span className="text-amber-200 font-bold truncate max-w-xs">
-                    {sfxTracks.find(s => s.id === selectedSfxId)?.title || 'Cinematic Impact & Whoosh'}
-                  </span>
-                  <div className="flex items-center gap-0.5 opacity-70">
-                    {[3, 10, 5, 12, 8, 15, 6, 11, 4, 13].map((h, i) => (
-                      <div key={i} className="w-1 bg-amber-400 rounded-full" style={{ height: `${h}px` }} />
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-amber-300 font-semibold">Vol:</span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={sfxVolume} 
-                      onChange={e => setSfxVolume(Number(e.target.value))}
-                      className="w-16 accent-amber-500 h-1 bg-amber-900/80 rounded-lg cursor-pointer" 
-                    />
-                    <span className="font-mono text-[10px] font-bold text-amber-200 w-7">{sfxVolume}%</span>
-                  </div>
-                  <select
-                    value={selectedSfxId}
-                    onChange={e => setSelectedSfxId(e.target.value)}
-                    className="bg-slate-900 border border-amber-700/80 rounded-lg px-2 py-1 text-amber-200 text-xs focus:outline-none focus:border-amber-400 shadow-2xs cursor-pointer max-w-[130px] truncate"
-                  >
-                    {sfxTracks.map(track => (
-                      <option key={track.id} value={track.id}>{track.title}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => sfxFileInputRef.current?.click()}
-                    className="p-1 rounded bg-amber-700 hover:bg-amber-600 text-white text-[10px] font-bold transition-colors cursor-pointer"
-                    title="Upload Custom SFX WAV/MP3"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. VFX, BFX & Frame Matte Track */}
-            <div className="flex items-center gap-2">
-              <div className="w-24 shrink-0 text-xs font-semibold text-teal-400 flex items-center gap-1.5 pl-1">
-                <Wand2 className="w-3.5 h-3.5 text-teal-400" />
-                <span>VFX / BFX</span>
-              </div>
-              <div
-                className="p-2.5 bg-teal-950/40 rounded-xl border border-teal-800/60 flex items-center justify-between text-xs gap-4 shadow-2xs transition-colors"
-                style={{ width: `${Math.max(500, Math.ceil(totalDuration * pixelsPerSecond))}px` }}
-              >
-                <div className="flex items-center gap-2 overflow-x-auto py-0.5">
-                  <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse shrink-0"></span>
-                  <span className="text-teal-200 font-bold text-[11px] shrink-0">
-                    Live Overlays:
-                  </span>
-
-                  {/* Film Grain Live Chip */}
-                  <button
-                    onClick={() => setVfxConfig(prev => ({ ...prev, filmGrain: !prev.filmGrain }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
-                      vfxConfig.filmGrain
-                        ? 'bg-teal-600 text-white border-teal-400 shadow-xs'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                    title="Toggle 35mm Film Grain Simulation"
-                  >
-                    Grain {vfxConfig.filmGrain ? '15%' : 'Off'}
-                  </button>
-
-                  {/* Light Leaks Live Chip */}
-                  <button
-                    onClick={() => setVfxConfig(prev => ({ ...prev, lightLeaks: !prev.lightLeaks }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
-                      vfxConfig.lightLeaks
-                        ? 'bg-amber-600 text-white border-amber-400 shadow-xs'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                    title="Toggle Anamorphic Warm Light Leaks"
-                  >
-                    Light Leaks {vfxConfig.lightLeaks ? 'ON' : 'Off'}
-                  </button>
-
-                  {/* Golden Hour Live Chip */}
-                  <button
-                    onClick={() => setVfxConfig(prev => ({ ...prev, goldenHour: !prev.goldenHour }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
-                      vfxConfig.goldenHour
-                        ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white border-amber-300 shadow-xs'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                    title="Toggle Golden Hour Himalayan Sunset Warmth"
-                  >
-                    Golden Hour {vfxConfig.goldenHour ? 'ON' : 'Off'}
-                  </button>
-
-                  {/* Dreamy Glow Live Chip */}
-                  <button
-                    onClick={() => setVfxConfig(prev => ({ ...prev, dreamyGlow: !prev.dreamyGlow }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
-                      vfxConfig.dreamyGlow
-                        ? 'bg-indigo-600 text-white border-indigo-400 shadow-xs'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                    title="Toggle Dreamy Halation Glow"
-                  >
-                    Dreamy Glow {vfxConfig.dreamyGlow ? 'ON' : 'Off'}
-                  </button>
-
-                  {/* RGB Glitch Live Chip */}
-                  <button
-                    onClick={() => setVfxConfig(prev => ({ ...prev, rgbGlitch: !prev.rgbGlitch }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
-                      vfxConfig.rgbGlitch
-                        ? 'bg-rose-600 text-white border-rose-400 shadow-xs'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                    title="Toggle Cyberpunk RGB Chromatic Aberration"
-                  >
-                    RGB Glitch {vfxConfig.rgbGlitch ? 'ON' : 'Off'}
-                  </button>
-
-                  {/* Vignette Live Chip */}
-                  <button
-                    onClick={() => setVfxConfig(prev => ({ ...prev, vignette: !prev.vignette }))}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer shrink-0 ${
-                      vfxConfig.vignette
-                        ? 'bg-slate-700 text-white border-slate-500 shadow-xs'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
-                    }`}
-                    title="Toggle Cinematic Edge Vignette"
-                  >
-                    Vignette {vfxConfig.vignette ? 'ON' : 'Off'}
-                  </button>
-
-                  {/* Frame Matte Pill */}
-                  {vfxConfig.frameType !== 'none' && (
-                    <span className="px-2 py-0.5 rounded bg-indigo-900/90 text-indigo-200 border border-indigo-500/60 text-[10px] font-bold shrink-0">
-                      Matte: {vfxConfig.frameType.replace(/_/g, ' ')}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => setShowVfxModal(true)}
-                    className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Sliders className="w-3 h-3" />
-                    <span>Tune Intensity</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+              Restore Draft
+            </button>
+            <button
+              onClick={() => setShowSessionRestoreBanner(false)}
+              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer"
+            >
+              Dismiss
+            </button>
           </div>
         </div>
+      )}
+
+      {/* Project Feedback Notification Toast */}
+      {projectNotice && (
+        <div className="bg-cyan-600 text-slate-950 font-bold px-4 py-1.5 text-xs flex items-center justify-between shadow-md shrink-0 z-40 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-slate-950" />
+            <span>{projectNotice}</span>
+          </div>
+          <button
+            onClick={() => setProjectNotice(null)}
+            className="text-slate-950 font-bold text-xs hover:opacity-75 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* 1. CapCut Studio Top Bar */}
+      <CapCutTopBar
+        projectTitle={projectTitle}
+        setProjectTitle={setProjectTitle}
+        aspectRatio={aspectRatio}
+        setAspectRatio={setAspectRatio}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={historyIndexRef.current > 0}
+        canRedo={historyIndexRef.current < historyRef.current.length - 1}
+        onExport={() => setShowProjectExportModal(true)}
+        onNewProject={() => {
+          setNewProjectName('Untitled Project');
+          setNewProjectRatio(aspectRatio);
+          setShowNewProjectModal(true);
+        }}
+        onClearTimeline={() => {
+          pushToHistory(scenes);
+          setScenes([]);
+          setSelectedSceneId('');
+          setCurrentTime(0);
+          setIsPlaying(false);
+          setProjectNotice('Timeline cleared. Ready for new media clips!');
+          setTimeout(() => setProjectNotice(null), 3500);
+        }}
+        onImportProject={() => projectFileInputRef.current?.click()}
+        onSave={() => {
+          const exportData = {
+            version: '2.0',
+            title: projectTitle,
+            savedAt: new Date().toISOString(),
+            scenes,
+            audioTracks,
+            subtitles,
+            aspectRatio,
+            brandOverlayConfig
+          };
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${projectTitle.toLowerCase().replace(/[^a-z0-9]/g, '_')}.nepalai.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          setProjectNotice('Saved and downloaded project JSON!');
+          setTimeout(() => setProjectNotice(null), 3000);
+        }}
+        onOpenStoryboards={() => setShowAiStoryboardModal(true)}
+        autoSaveTime={lastAutoSavedTime || 'Just now'}
+      />
+
+      {/* 2. Upper Deck: 3 Non-Overlapping Studio Columns */}
+      <div className="flex-1 flex overflow-hidden min-h-0 bg-[#07090e]">
+        {/* Left: Media / Audio / Text / Effects Asset Browser */}
+        <CapCutLeftPanel
+          onAddSceneToTimeline={(newScene) => {
+            pushToHistory(scenes);
+            setScenes(prev => [...prev, newScene]);
+            setSelectedSceneId(newScene.id);
+            setProjectNotice(`Added "${newScene.title}" to timeline!`);
+            setTimeout(() => setProjectNotice(null), 3000);
+          }}
+          onAddAudioToTimeline={(track) => {
+            setAudioTracks(prev => [...prev, track]);
+            setSelectedAudioId(track.id);
+            setProjectNotice(`Added audio track "${track.title}"!`);
+            setTimeout(() => setProjectNotice(null), 3000);
+          }}
+          selectedSceneId={selectedSceneId}
+          onUpdateScene={(sceneId, updatedProps) => {
+            pushToHistory(scenes);
+            setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updatedProps } : s));
+          }}
+          onLoadStarterTemplate={handleLoadStarterSequence}
+          onOpenImageStudio={onOpenImageStudio}
+          onOpenSoraStudio={onOpenSoraStudio}
+          onOpenVoiceStudio={() => setShowCharacterConsistencyModal(true)}
+          onOpenSubtitleEditor={() => setShowSubtitleModal(true)}
+          onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
+          onOpenBrandWatermark={() => setShowBrandModal(true)}
+          scenes={scenes}
+          audioTracks={audioTracks}
+        />
+
+        {/* Center: Real-Time High-Res Player Canvas */}
+        <CapCutPlayerPanel
+          scenes={scenes}
+          selectedScene={selectedScene || scenes[0] || null}
+          isPlaying={isPlaying}
+          onTogglePlay={togglePlay}
+          currentTime={currentTime}
+          totalDuration={totalDuration}
+          aspectRatio={aspectRatio}
+          setAspectRatio={setAspectRatio}
+          onPrevScene={handlePrevScene}
+          onNextScene={handleNextScene}
+          brandOverlayConfig={brandOverlayConfig}
+          previewMode={previewMode === 'interactive' ? 'stage' : 'canvas'}
+          setPreviewMode={(m) => setPreviewMode(m === 'stage' ? 'interactive' : 'canvas')}
+        />
+
+        {/* Right: Inspector Properties Panel */}
+        <CapCutInspectorPanel
+          selectedScene={selectedScene || scenes[0] || null}
+          onUpdateScene={(updatedProps) => {
+            const targetId = selectedSceneId || scenes[0]?.id;
+            if (!targetId) return;
+            pushToHistory(scenes);
+            setScenes(prev => prev.map(s => s.id === targetId ? { ...s, ...updatedProps } : s));
+          }}
+          onDuplicateScene={handleDuplicateScene}
+          onDeleteScene={() => {
+            if (scenes.length <= 1) {
+              setProjectNotice('Cannot delete the last remaining scene');
+              setTimeout(() => setProjectNotice(null), 3000);
+              return;
+            }
+            pushToHistory(scenes);
+            const remaining = scenes.filter(s => s.id !== selectedSceneId);
+            setScenes(remaining);
+            setSelectedSceneId(remaining[0]?.id || '');
+          }}
+          bgmTrack={bgmTrack}
+          voTrack={voTrack}
+          bgmVolume={bgmVolume}
+          setBgmVolume={setBgmVolume}
+          voVolume={voVolume}
+          setVoVolume={setVoVolume}
+        />
       </div>
 
-      {/* VFX & Frame Overlays Tuning Modal */}
-      {showVfxModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-teal-500/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-150">
+      {/* 3. Mid Divider: Timeline Edit Toolbar */}
+      <CapCutTimelineToolbar
+        onSplitClip={handleSplitAtPlayhead}
+        onDeleteClip={() => {
+          if (scenes.length === 0) return;
+          pushToHistory(scenes);
+          const remaining = scenes.filter(s => s.id !== selectedSceneId);
+          setScenes(remaining);
+          setSelectedSceneId(remaining[0]?.id || '');
+        }}
+        onDuplicateClip={handleDuplicateScene}
+        onAddMedia={() => setShowGlobalMediaLibrary(true)}
+        onAddAudio={() => setShowAudioAddModal(true)}
+        onAddSceneTemplate={() => setShowSceneTemplatesModal(true)}
+        zoomLevel={pixelsPerSecond}
+        setZoomLevel={(z) => setTimelineZoom(z / 36)}
+        isSnapping={snapEnabled}
+        setIsSnapping={setSnapEnabled}
+        hasSelectedClip={!!selectedScene}
+      />
+
+      {/* 4. Bottom Deck: CapCut Multi-Track Timeline */}
+      <div className="h-52 sm:h-60 shrink-0 flex flex-col bg-[#090b12]">
+        <CapCutTimelineDeck
+          scenes={scenes}
+          selectedSceneId={selectedSceneId}
+          onSelectScene={(id) => {
+            setSelectedSceneId(id);
+            const idx = scenes.findIndex(s => s.id === id);
+            if (idx >= 0) {
+              let t = 0;
+              for (let i = 0; i < idx; i++) t += scenes[i].duration;
+              setCurrentTime(t);
+            }
+          }}
+          onReorderScenes={(newScenes) => {
+            pushToHistory(scenes);
+            setScenes(newScenes);
+          }}
+          onUpdateScene={(sceneId, updatedProps) => {
+            pushToHistory(scenes);
+            setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updatedProps } : s));
+          }}
+          onDeleteScene={(sceneId) => {
+            pushToHistory(scenes);
+            const remaining = scenes.filter(s => s.id !== sceneId);
+            setScenes(remaining);
+            setSelectedSceneId(remaining[0]?.id || '');
+          }}
+          onDuplicateScene={handleDuplicateScene}
+          currentTime={currentTime}
+          totalDuration={totalDuration}
+          onSeek={(t) => setCurrentTime(t)}
+          zoomLevel={pixelsPerSecond}
+          audioTracks={audioTracks}
+          selectedAudioId={selectedAudioId}
+          onSelectAudioId={setSelectedAudioId}
+          voTrack={voTrack}
+          onAddMedia={() => setShowGlobalMediaLibrary(true)}
+          onAddAudio={() => setShowAudioAddModal(true)}
+          onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
+          onOpenImageStudio={onOpenImageStudio}
+          onOpenSoraStudio={onOpenSoraStudio}
+        />
+      </div>
+
+      {/* New Project Dialog Modal */}
+      {showNewProjectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-[#0e121d] border border-slate-700/80 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Wand2 className="w-5 h-5 text-teal-400" />
-                <h3 className="font-bold text-base text-slate-100">Live VFX, BFX & Frame Engine</h3>
+                <Film className="w-5 h-5 text-cyan-400" />
+                <h3 className="font-bold text-base text-white">Create New Project</h3>
               </div>
               <button
-                onClick={() => setShowVfxModal(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                onClick={() => setShowNewProjectModal(false)}
+                className="text-slate-400 hover:text-white text-lg p-1 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
-              Adjust visual effects in real time. Changes lively render immediately inside the Studio Live Preview Canvas.
-            </p>
-
             <div className="space-y-4">
-              {/* Film Grain */}
-              <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-200">35mm Film Grain Simulation</span>
-                    {vfxConfig.filmGrain && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-teal-600 text-white font-bold">Active</span>
-                    )}
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={vfxConfig.filmGrain}
-                    onChange={(e) => setVfxConfig(prev => ({ ...prev, filmGrain: e.target.checked }))}
-                    className="w-4 h-4 accent-teal-500 rounded cursor-pointer"
-                  />
-                </div>
-                {vfxConfig.filmGrain && (
-                  <div className="flex items-center gap-3 pt-1">
-                    <span className="text-[10px] text-slate-400">Intensity:</span>
-                    <input
-                      type="range"
-                      min="0.05"
-                      max="0.4"
-                      step="0.05"
-                      value={vfxConfig.filmGrainIntensity ?? 0.15}
-                      onChange={(e) => setVfxConfig(prev => ({ ...prev, filmGrainIntensity: parseFloat(e.target.value) }))}
-                      className="flex-1 accent-teal-500 h-1 bg-slate-700 rounded-lg cursor-pointer"
-                    />
-                    <span className="font-mono text-[10px] text-teal-300 w-10 text-right">
-                      {Math.round((vfxConfig.filmGrainIntensity ?? 0.15) * 100)}%
-                    </span>
-                  </div>
-                )}
+              {/* Project Title */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Project Name</label>
+                <input
+                  type="text"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="e.g. Nepal Tourism Highlight Reel"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                />
               </div>
 
-              {/* Toggles Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Light Leaks */}
-                <div 
-                  onClick={() => setVfxConfig(prev => ({ ...prev, lightLeaks: !prev.lightLeaks }))}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                    vfxConfig.lightLeaks ? 'bg-amber-950/40 border-amber-500/60 text-amber-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold">Light Leaks</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.lightLeaks ? 'bg-amber-500 text-black' : 'bg-slate-700 text-slate-400'}`}>
-                      {vfxConfig.lightLeaks ? 'ON' : 'OFF'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Anamorphic warm amber edge flare</p>
-                </div>
-
-                {/* Golden Hour */}
-                <div 
-                  onClick={() => setVfxConfig(prev => ({ ...prev, goldenHour: !prev.goldenHour }))}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                    vfxConfig.goldenHour ? 'bg-rose-950/40 border-rose-500/60 text-rose-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold">Golden Hour</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.goldenHour ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                      {vfxConfig.goldenHour ? 'ON' : 'OFF'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Himalayan sunrise radiant warmth</p>
-                </div>
-
-                {/* Dreamy Glow */}
-                <div 
-                  onClick={() => setVfxConfig(prev => ({ ...prev, dreamyGlow: !prev.dreamyGlow }))}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                    vfxConfig.dreamyGlow ? 'bg-indigo-950/40 border-indigo-500/60 text-indigo-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold">Dreamy Halation</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.dreamyGlow ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                      {vfxConfig.dreamyGlow ? 'ON' : 'OFF'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Soft diffuse cinematic highlights</p>
-                </div>
-
-                {/* RGB Glitch */}
-                <div 
-                  onClick={() => setVfxConfig(prev => ({ ...prev, rgbGlitch: !prev.rgbGlitch }))}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
-                    vfxConfig.rgbGlitch ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold">RGB Glitch</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${vfxConfig.rgbGlitch ? 'bg-emerald-500 text-black' : 'bg-slate-700 text-slate-400'}`}>
-                      {vfxConfig.rgbGlitch ? 'ON' : 'OFF'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Chromatic aberration sync pulses</p>
-                </div>
-              </div>
-
-              {/* Frame Matte Selection */}
-              <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/80 space-y-2">
-                <span className="text-xs font-bold text-slate-200">Cinematic Frame & Matte Overlay</span>
-                <div className="grid grid-cols-3 gap-2 pt-1">
+              {/* Aspect Ratio Picker */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Canvas Aspect Ratio</label>
+                <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'none', label: 'None' },
-                    { id: 'letterbox', label: '2.35:1 Scope' },
-                    { id: 'academy_4_3', label: '4:3 Academy' },
-                    { id: 'safe_zone_9_16', label: '9:16 Social' },
-                    { id: 'vintage_8mm', label: 'Vintage 8mm' },
-                  ].map(frame => (
+                    { id: '16:9', label: '16:9', sub: 'YouTube / TV' },
+                    { id: '9:16', label: '9:16', sub: 'TikTok / Reel' },
+                    { id: '1:1', label: '1:1', sub: 'Instagram' }
+                  ].map((r) => (
                     <button
-                      key={frame.id}
-                      onClick={() => setVfxConfig(prev => ({ ...prev, frameType: frame.id as FrameOverlayType }))}
-                      className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer text-center ${
-                        vfxConfig.frameType === frame.id
-                          ? 'bg-teal-600 text-white border-teal-400 shadow-md'
-                          : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500'
+                      key={r.id}
+                      type="button"
+                      onClick={() => setNewProjectRatio(r.id as any)}
+                      className={`p-3 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                        newProjectRatio === r.id
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 font-bold shadow-md shadow-cyan-500/10'
+                          : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700'
                       }`}
                     >
-                      {frame.label}
+                      <span className="text-sm font-bold font-mono">{r.label}</span>
+                      <span className="text-[10px] text-slate-500">{r.sub}</span>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end pt-2 border-t border-slate-800">
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
               <button
-                onClick={() => setShowVfxModal(false)}
-                className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-lg shadow-teal-600/30 transition-all cursor-pointer"
+                type="button"
+                onClick={() => setShowNewProjectModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
               >
-                Apply to Live Preview
+                Cancel
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Starter Templates Modal */}
-      {showTemplatesModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl transition-colors">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Starter Video Templates</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Load pre-composed cinematic sequences or commercial ads.</p>
-              </div>
               <button
-                onClick={() => setShowTemplatesModal(false)}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 font-bold text-base cursor-pointer transition-colors"
+                type="button"
+                onClick={() => {
+                  pushToHistory(scenes);
+                  setProjectTitle(newProjectName.trim() || 'Untitled Project');
+                  setAspectRatio(newProjectRatio);
+                  setScenes([]);
+                  setSelectedSceneId('');
+                  setCurrentTime(0);
+                  setIsPlaying(false);
+                  setShowNewProjectModal(false);
+                  setProjectNotice(`Created "${newProjectName || 'Untitled Project'}" with clean timeline!`);
+                  setTimeout(() => setProjectNotice(null), 3500);
+                }}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/25 transition cursor-pointer"
               >
-                ✕
+                Start Blank Project
               </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {STARTER_TEMPLATES.map(tpl => (
-                <div 
-                  key={tpl.id}
-                  className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl p-4 space-y-3 hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors cursor-pointer flex flex-col justify-between"
-                  onClick={() => handleLoadTemplate(tpl)}
-                >
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
-                      {tpl.category}
-                    </span>
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{tpl.title}</h4>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{tpl.description}</p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-slate-700/60 text-xs">
-                    <span className="text-slate-500 dark:text-slate-400">{tpl.scenesCount} Scenes • {tpl.totalDuration}s</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Load Template →</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Export & Share Modal with Preflight Checks */}
-      {showExportModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl transition-colors">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>Export & Production Render</span>
-              </h3>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 font-bold text-base cursor-pointer transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Preflight Verification Checklist */}
-            <div className="space-y-2 bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-              <span className="font-semibold text-slate-900 dark:text-slate-100 block mb-2">Preflight Verification Checks</span>
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Scenes validated ({scenes.length} scenes, {totalDuration}s total duration)</span>
-              </div>
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Aspect ratio locked to {aspectRatio}</span>
-              </div>
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Devanagari text encoding confirmed</span>
-              </div>
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Audio sync configured with background track</span>
-              </div>
-            </div>
-
-            {/* Progress bar if exporting */}
-            {isExporting && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                  <span>Rendering cinematic composite...</span>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{exportProgress}%</span>
-                </div>
-                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-indigo-600 transition-all duration-300"
-                    style={{ width: `${exportProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {exportSuccess && (
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
-                <p className="font-bold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Video Rendered & Exported Successfully!
-                </p>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Composite MP4 ready for social distribution or download.
-                </p>
-              </div>
-            )}
-
-            {/* Modal Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => {
-                    setShowExportModal(false);
-                    setShowYouTubePublisherModal(true);
-                  }}
-                  className="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Youtube className="w-4 h-4 text-white" />
-                  <span>Post to YouTube</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowExportModal(false);
-                    setShowSocialPublisherModal(true);
-                  }}
-                  className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Share2 className="w-4 h-4 text-purple-200" />
-                  <span>Other Socials</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowExportModal(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={handleStartExport}
-                  disabled={isExporting}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm shadow-indigo-200 dark:shadow-none flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>{isExporting ? 'Rendering...' : 'Render & Download MP4'}</span>
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -3945,6 +1953,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         projectTitle={projectTitle}
         totalDuration={totalDuration}
         defaultAspectRatio={aspectRatio}
+        audioTracks={audioTracks}
+        brandOverlayConfig={brandOverlayConfig}
+        subtitles={subtitles}
       />
 
       {/* Global Media Library Modal */}

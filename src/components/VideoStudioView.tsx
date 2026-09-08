@@ -334,6 +334,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -795,6 +796,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       setCurrentTime(0);
     }
     setIsPlaying(!isPlaying);
+  };
+
+  // Step single frame forward or backward (30 FPS standard frame precision)
+  const handleStepFrame = (deltaFrames: number) => {
+    setIsPlaying(false);
+    const frameSec = 1 / 30;
+    setCurrentTime(prev => Math.max(0, Math.min(totalDuration, Number((prev + deltaFrames * frameSec).toFixed(3)))));
   };
 
   // Active BGM and Voiceover tracks
@@ -1673,9 +1681,31 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           setAspectRatio={setAspectRatio}
           onPrevScene={handlePrevScene}
           onNextScene={handleNextScene}
+          onStepFrame={handleStepFrame}
+          onOpenMediaLibrary={() => setShowGlobalMediaLibrary(true)}
           brandOverlayConfig={brandOverlayConfig}
           previewMode={previewMode === 'interactive' ? 'stage' : 'canvas'}
           setPreviewMode={(m) => setPreviewMode(m === 'stage' ? 'interactive' : 'canvas')}
+          isMuted={isMuted}
+          setIsMuted={setIsMuted}
+          onToggleCurrentTicker={() => {
+            const targetScene = selectedScene || scenes[0];
+            if (!targetScene) return;
+            const currentEnabled = Boolean(targetScene.tickerConfig?.enabled);
+            const updatedTicker = {
+              ...(targetScene.tickerConfig || {
+                badgeText: 'BREAKING',
+                headlineText: targetScene.textNepali || targetScene.title || 'Live Broadcast Update',
+                speed: 'normal' as const,
+                style: 'breaking_red' as const,
+              }),
+              enabled: !currentEnabled,
+            };
+            pushToHistory(scenes);
+            setScenes(prev => prev.map(s => s.id === targetScene.id ? { ...s, tickerConfig: updatedTicker } : s));
+            setProjectNotice(updatedTicker.enabled ? 'Enabled scrolling ticker overlay!' : 'Disabled scrolling ticker overlay!');
+            setTimeout(() => setProjectNotice(null), 2500);
+          }}
         />
 
         {/* Right: Inspector Properties Panel */}
@@ -2314,6 +2344,35 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         auditEntry={latestAuditEntry}
         onPostToYouTube={() => setShowYouTubePublisherModal(true)}
         onPostToSocial={() => setShowSocialPublisherModal(true)}
+      />
+
+      {/* Hidden Multi-Track Audio Elements for Real-Time Playback Synchronization */}
+      <audio
+        ref={audioRef}
+        src={bgmTrack?.url}
+        preload="auto"
+        muted={isMuted}
+        className="hidden"
+        onEnded={() => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = 0;
+            if (isPlaying) audioRef.current.play().catch(() => {});
+          }
+        }}
+      />
+      <audio
+        ref={voAudioRef}
+        src={voTrack?.url}
+        preload="auto"
+        muted={isMuted}
+        className="hidden"
+      />
+      <audio
+        ref={sfxAudioRef}
+        src={sfxTrack?.url}
+        preload="auto"
+        muted={isMuted}
+        className="hidden"
       />
     </div>
   );

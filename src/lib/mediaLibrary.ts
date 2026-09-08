@@ -54,6 +54,32 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
     engine: 'Azure Sora-2'
   },
   {
+    id: 'sample-sora-4',
+    type: 'sora_video',
+    title: 'Trishuli River Rapids & Mountain Valley',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+    duration: 6,
+    category: 'Sora-2 AI Video',
+    aspectRatio: '16:9',
+    createdAt: Date.now() - 3600000 * 5,
+    prompt: 'Dynamic drone tracking shot along rapid crystal blue Himalayan river carving through deep lush valley',
+    engine: 'Azure Sora-2'
+  },
+  {
+    id: 'sample-sora-5',
+    type: 'sora_video',
+    title: 'Everest Khumbu Glacier Icefalls',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
+    duration: 5,
+    category: 'Sora-2 AI Video',
+    aspectRatio: '16:9',
+    createdAt: Date.now() - 3600000 * 6,
+    prompt: 'Slow cinematic motion of massive ancient blue glacier crevices under dramatic Himalayan stormy sky',
+    engine: 'Azure Sora-2'
+  },
+  {
     id: 'sample-img-1',
     type: 'ai_image',
     title: 'Pashmina Craft Artisan Portrait',
@@ -190,4 +216,65 @@ export function removeMediaItem(id: string): MediaItem[] {
 
 export const getStoredMedia = getMediaLibrary;
 export const deleteMediaItem = removeMediaItem;
+
+/**
+ * Extract a high-quality thumbnail poster frame and accurate duration from any video URL or File object
+ */
+export function extractVideoThumbnailAndDuration(
+  source: string | File
+): Promise<{ thumbnailUrl: string; duration: number }> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+
+    const url = typeof source === 'string' ? source : URL.createObjectURL(source);
+    video.src = url;
+
+    const fallbackTimeout = setTimeout(() => {
+      resolve({ 
+        thumbnailUrl: '', 
+        duration: isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 10) / 10 : 5 
+      });
+    }, 4000);
+
+    video.onloadedmetadata = () => {
+      const dur = isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 10) / 10 : 5;
+      video.currentTime = Math.min(0.5, Math.max(0.05, dur / 4));
+    };
+
+    video.onseeked = () => {
+      clearTimeout(fallbackTimeout);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(video.videoWidth || 640, 640);
+        canvas.height = Math.min(video.videoHeight || 360, 360);
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve({ 
+            thumbnailUrl: dataUrl, 
+            duration: isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 10) / 10 : 5 
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not extract canvas frame from video', err);
+      }
+      resolve({ 
+        thumbnailUrl: '', 
+        duration: isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 10) / 10 : 5 
+      });
+    };
+
+    video.onerror = () => {
+      clearTimeout(fallbackTimeout);
+      resolve({ thumbnailUrl: '', duration: 5 });
+    };
+  });
+}
+
 

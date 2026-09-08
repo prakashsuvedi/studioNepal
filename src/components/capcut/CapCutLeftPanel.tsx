@@ -20,7 +20,9 @@ import {
   Pause,
   Film, 
   Image as ImageIcon, 
+  Video as VideoIcon,
   Check, 
+  CheckCircle2,
   Trash2,
   Sliders,
   ExternalLink,
@@ -31,7 +33,11 @@ import {
   Flame,
   Globe,
   Radio,
-  Clock
+  Clock,
+  Eye,
+  ArrowRightLeft,
+  X,
+  Copy
 } from 'lucide-react';
 import { Scene, AudioTrack, StarterTemplate } from '../../types';
 import { getStoredMedia, MediaItem, saveMediaItem, deleteMediaItem } from '../../lib/mediaLibrary';
@@ -54,6 +60,7 @@ interface CapCutLeftPanelProps {
 
 type TabType = 'media' | 'audio' | 'text' | 'effects' | 'transitions' | 'captions' | 'filters' | 'templates' | 'ai';
 type SubTabType = 'all' | 'imported' | 'generated' | 'stock';
+type TypeFilter = 'all' | 'video' | 'image';
 
 export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   onAddSceneToTimeline,
@@ -72,9 +79,15 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('media');
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('all');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [previewingItem, setPreviewingItem] = useState<MediaItem | null>(null);
+  const [addedItemId, setAddedItemId] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   // Audio preview playing state
   const [playingAudioUrl, setPlayingAudioUrl] = useState<string | null>(null);
@@ -94,8 +107,13 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   useEffect(() => {
     loadMedia();
     const handleStorage = () => loadMedia();
+    const handleCustom = () => loadMedia();
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('nepalai_media_library_updated', handleCustom);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('nepalai_media_library_updated', handleCustom);
+    };
   }, []);
 
   // Audio preview playback toggle
@@ -125,64 +143,132 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     };
   }, []);
 
+  // Extract thumbnail and duration from local video files via offscreen canvas
+  const extractVideoMetadata = (file: File): Promise<{ thumbnailUrl: string; duration: number }> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      const tempUrl = URL.createObjectURL(file);
+      video.src = tempUrl;
+      video.muted = true;
+      video.playsInline = true;
+
+      const timeout = setTimeout(() => {
+        resolve({ thumbnailUrl: '', duration: 5 });
+      }, 3500);
+
+      video.onloadedmetadata = () => {
+        const dur = Math.round(video.duration) || 5;
+        video.currentTime = Math.min(1, Math.max(0.2, dur / 3));
+      };
+
+      video.onseeked = () => {
+        clearTimeout(timeout);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 320;
+          canvas.height = 180;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, 320, 180);
+            const thumb = canvas.toDataURL('image/jpeg', 0.85);
+            resolve({ thumbnailUrl: thumb, duration: Math.round(video.duration) || 5 });
+            return;
+          }
+        } catch (err) {}
+        resolve({ thumbnailUrl: '', duration: Math.round(video.duration) || 5 });
+      };
+
+      video.onerror = () => {
+        clearTimeout(timeout);
+        resolve({ thumbnailUrl: '', duration: 5 });
+      };
+    });
+  };
+
+  const processFiles = async (files: File[]) => {
+    setIsProcessingUpload(true);
+    try {
+      for (const file of files) {
+        const url = URL.createObjectURL(file);
+        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov|m4v)$/i);
+        const isAudio = file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|ogg|m4a|aac)$/i);
+
+        if (isAudio) {
+          const newAudio: AudioTrack = {
+            id: `audio-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            title: file.name.replace(/\.[^/.]+$/, ''),
+            artist: 'Imported Audio',
+            url,
+            duration: 30,
+            volume: 80,
+            genre: 'User Import',
+            type: 'bgm'
+          };
+          onAddAudioToTimeline(newAudio);
+        } else {
+          let thumbnail = '';
+          let duration = isVideo ? 5 : 4;
+
+          if (isVideo) {
+            const meta = await extractVideoMetadata(file);
+            if (meta.thumbnailUrl) thumbnail = meta.thumbnailUrl;
+            if (meta.duration) duration = meta.duration;
+          }
+
+          const item: MediaItem = {
+            id: `media-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            title: file.name.replace(/\.[^/.]+$/, ''),
+            url,
+            thumbnailUrl: thumbnail || (isVideo ? undefined : url),
+            type: isVideo ? 'sora_video' : 'upload',
+            category: isVideo ? 'Imported Video' : 'Imported Media',
+            createdAt: Date.now(),
+            duration
+          };
+
+          saveMediaItem(item);
+          loadMedia();
+
+          const newScene: Scene = {
+            id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            title: item.title,
+            duration: item.duration || 4,
+            prompt: item.title,
+            mediaUrl: url,
+            mediaType: isVideo ? 'video' : 'image',
+            aspectRatio: '16:9',
+            motion: 'pan_right',
+            transition: 'dissolve',
+            transitionDuration: 0.8,
+            textOverlay: '',
+            textColor: '#ffffff',
+            textFont: 'sans',
+            textPosition: 'lower_third',
+            filter: 'cinematic',
+            volume: 90
+          };
+          onAddSceneToTimeline(newScene);
+        }
+      }
+    } finally {
+      setIsProcessingUpload(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (audioInputRef.current) audioInputRef.current.value = '';
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    const files = Array.from(e.target.files) as File[];
-    files.forEach(file => {
-      const url = URL.createObjectURL(file);
-      const isVideo = file.type.startsWith('video/');
-      const isAudio = file.type.startsWith('audio/');
+    processFiles(Array.from(e.target.files));
+  };
 
-      if (isAudio) {
-        const newAudio: AudioTrack = {
-          id: `audio-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          title: file.name.replace(/\.[^/.]+$/, ''),
-          artist: 'Imported Audio',
-          url,
-          duration: 30,
-          volume: 80,
-          genre: 'User Import',
-          type: 'bgm'
-        };
-        onAddAudioToTimeline(newAudio);
-      } else {
-        const item: MediaItem = {
-          id: `media-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          title: file.name.replace(/\.[^/.]+$/, ''),
-          url,
-          type: isVideo ? 'sora_video' : 'upload',
-          category: isVideo ? 'Imported Video' : 'Imported Media',
-          createdAt: Date.now(),
-          duration: isVideo ? 5 : 4
-        };
-
-        saveMediaItem(item);
-        loadMedia();
-
-        const newScene: Scene = {
-          id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          title: item.title,
-          duration: item.duration || 4,
-          prompt: item.title,
-          mediaUrl: url,
-          mediaType: isVideo ? 'video' : 'image',
-          aspectRatio: '16:9',
-          motion: 'pan_right',
-          transition: 'dissolve',
-          transitionDuration: 0.8,
-          textOverlay: '',
-          textColor: '#ffffff',
-          textFont: 'sans',
-          textPosition: 'lower_third',
-          filter: 'cinematic',
-          volume: 90
-        };
-        onAddSceneToTimeline(newScene);
-      }
-    });
-
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (audioInputRef.current) audioInputRef.current.value = '';
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
+    }
   };
 
   const handleDeleteMedia = (id: string, e: React.MouseEvent) => {
@@ -191,8 +277,110 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     loadMedia();
   };
 
-  // Stock Nepali & Cinematic media fallback demo items
+  // Add media item to timeline with visual feedback
+  const handleAddMediaToTimeline = (item: MediaItem) => {
+    const isVideoItem = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
+    const newScene: Scene = {
+      id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      title: item.title,
+      duration: item.duration || (isVideoItem ? 5 : 4),
+      prompt: item.prompt || item.title,
+      mediaUrl: item.url,
+      mediaType: isVideoItem ? 'video' : 'image',
+      aspectRatio: (item.aspectRatio as any) || '16:9',
+      motion: 'pan_right',
+      transition: 'dissolve',
+      transitionDuration: 0.8,
+      textOverlay: '',
+      textColor: '#ffffff',
+      textFont: 'sans',
+      textPosition: 'lower_third',
+      filter: 'cinematic',
+      volume: 90
+    };
+    onAddSceneToTimeline(newScene);
+    setAddedItemId(item.id);
+    setTimeout(() => setAddedItemId(null), 1500);
+  };
+
+  // 1-Click Replace selected scene's media
+  const handleReplaceSelectedScene = (item: MediaItem) => {
+    if (!selectedScene || !onUpdateScene) return;
+    const isVideoItem = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
+    onUpdateScene(selectedScene.id, {
+      mediaUrl: item.url,
+      mediaType: isVideoItem ? 'video' : 'image',
+      title: item.title,
+      prompt: item.prompt || item.title,
+      duration: item.duration || selectedScene.duration,
+    });
+    setAddedItemId(item.id);
+    setTimeout(() => setAddedItemId(null), 1500);
+  };
+
+  // Stock Nepali & Cinematic media items
   const stockMedia: MediaItem[] = [
+    {
+      id: 'stock-v1',
+      title: 'Himalayan Golden Flight (Sora-2 Video)',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=800&auto=format&fit=crop',
+      type: 'sora_video',
+      category: 'Stock Video',
+      createdAt: 1704067200000,
+      duration: 6,
+      resolution: '4K Ultra HD',
+      prompt: 'Aerial drone flight over Everest at golden hour with morning light'
+    },
+    {
+      id: 'stock-v2',
+      title: 'Heritage Temple Alleys (Sora-2 Video)',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1590736963159-c3d40fd7df93?q=80&w=800&auto=format&fit=crop',
+      type: 'sora_video',
+      category: 'Stock Video',
+      createdAt: 1704067200000,
+      duration: 5,
+      resolution: '1080p',
+      prompt: 'Moving cinematic tracking shot through Newari historical brick architecture'
+    },
+    {
+      id: 'stock-v3',
+      title: 'Phewa Lakeside Motion (Sora-2 Reel)',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
+      type: 'sora_video',
+      category: 'Stock Video',
+      createdAt: 1704067200000,
+      duration: 6,
+      aspectRatio: '9:16',
+      resolution: '1080x1920',
+      prompt: 'Vertical boat gliding on crystal mountain lake in Pokhara'
+    },
+    {
+      id: 'stock-v4',
+      title: 'Trishuli River Rapids & Mountain Valley',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+      type: 'sora_video',
+      category: 'Stock Video',
+      createdAt: 1704067200000,
+      duration: 6,
+      resolution: '1080p',
+      prompt: 'Dynamic drone tracking shot along rapid crystal blue river'
+    },
+    {
+      id: 'stock-v5',
+      title: 'Everest Khumbu Glacier Icefalls',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
+      type: 'sora_video',
+      category: 'Stock Video',
+      createdAt: 1704067200000,
+      duration: 5,
+      resolution: '1080p',
+      prompt: 'Cinematic sweep across deep blue glacial crevasses'
+    },
     {
       id: 'stock-1',
       title: 'Himalayan Dawn Over Everest',
@@ -233,12 +421,25 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
 
   // Combined media items for search & filter
   const allMedia = [...mediaItems, ...stockMedia];
+  const totalVideos = allMedia.filter(i => i.type === 'sora_video' || (i as any).type === 'video' || i.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i)).length;
+  const totalImages = allMedia.length - totalVideos;
+
   const filteredMedia = allMedia.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.prompt && item.prompt.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
     if (!matchesSearch) return false;
+
+    const isVid = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
+
+    // Type filter
+    if (typeFilter === 'video' && !isVid) return false;
+    if (typeFilter === 'image' && isVid) return false;
+
+    // Subtab filter
     if (activeSubTab === 'imported') return item.type === 'upload';
     if (activeSubTab === 'generated') return item.type === 'sora_video' || item.type === 'ai_image' || item.type === 'ai_audio';
-    if (activeSubTab === 'stock') return item.category.startsWith('Stock');
+    if (activeSubTab === 'stock') return (item.category && item.category.startsWith('Stock')) || item.id.startsWith('stock-');
     return true;
   });
 
@@ -385,7 +586,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
-                placeholder="Search assets, clips, images..."
+                placeholder="Search clips, prompts, stock..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/60 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none transition"
@@ -395,14 +596,14 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-2.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer active:scale-95"
-              title="Import local media files"
+              title="Import local video or image files"
             >
               <Upload className="w-3.5 h-3.5 text-slate-950" />
               <span>Import</span>
             </button>
           </div>
 
-          {/* Subtabs for Media filtering */}
+          {/* Subtabs for Media Source */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               {(['all', 'imported', 'generated', 'stock'] as SubTabType[]).map(sub => (
@@ -424,22 +625,86 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1 rounded cursor-pointer ${viewMode === 'grid' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
+                title="Grid view"
               >
                 <Grid className="w-3 h-3" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-1 rounded cursor-pointer ${viewMode === 'list' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
+                title="List view"
               >
                 <List className="w-3 h-3" />
               </button>
             </div>
           </div>
+
+          {/* Type Filter Pills: All / Videos / Images */}
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <button
+              onClick={() => setTypeFilter('all')}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition cursor-pointer flex items-center gap-1 ${
+                typeFilter === 'all'
+                  ? 'bg-slate-700 text-white font-bold'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>All</span>
+              <span className="opacity-70 text-[9px]">({allMedia.length})</span>
+            </button>
+
+            <button
+              onClick={() => setTypeFilter('video')}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition cursor-pointer flex items-center gap-1 ${
+                typeFilter === 'video'
+                  ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-500/50 font-bold'
+                  : 'bg-slate-900 text-slate-400 hover:text-cyan-300'
+              }`}
+            >
+              <VideoIcon className="w-2.5 h-2.5" />
+              <span>Videos</span>
+              <span className="opacity-70 text-[9px]">({totalVideos})</span>
+            </button>
+
+            <button
+              onClick={() => setTypeFilter('image')}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition cursor-pointer flex items-center gap-1 ${
+                typeFilter === 'image'
+                  ? 'bg-purple-500/30 text-purple-200 border border-purple-500/50 font-bold'
+                  : 'bg-slate-900 text-slate-400 hover:text-purple-300'
+              }`}
+            >
+              <ImageIcon className="w-2.5 h-2.5" />
+              <span>Images</span>
+              <span className="opacity-70 text-[9px]">({totalImages})</span>
+            </button>
+          </div>
         </div>
       )}
 
       {/* 3. Tab Contents Area */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+      <div 
+        className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar relative"
+        onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+        onDragLeave={() => setIsDraggingOver(false)}
+        onDrop={handleFileDrop}
+      >
+        {/* Drag & Drop Visual Overlay */}
+        {isDraggingOver && activeTab === 'media' && (
+          <div className="absolute inset-2 z-30 bg-cyan-950/90 border-2 border-dashed border-cyan-400 rounded-xl flex flex-col items-center justify-center text-center p-4 backdrop-blur-xs transition-all pointer-events-none">
+            <Upload className="w-10 h-10 text-cyan-300 mb-2 animate-bounce" />
+            <p className="text-sm font-bold text-white">Drop video or image to import</p>
+            <p className="text-xs text-cyan-200/80 mt-1">Automatic thumbnail extraction & timeline ready</p>
+          </div>
+        )}
+
+        {/* Processing Indicator */}
+        {isProcessingUpload && (
+          <div className="p-2.5 bg-cyan-950/40 border border-cyan-500/40 rounded-lg flex items-center gap-2.5 text-xs text-cyan-200">
+            <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+            <span>Processing media & extracting video poster frames...</span>
+          </div>
+        )}
 
         {/* ==================== MEDIA TAB ==================== */}
         {activeTab === 'media' && (
@@ -451,143 +716,262 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-300">No media assets found</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Import files or generate AI images & videos.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Try changing filters or import new media.</p>
                 </div>
                 <div className="flex items-center justify-center gap-2 pt-2">
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-lg transition cursor-pointer"
+                    onClick={() => {
+                      setTypeFilter('all');
+                      setActiveSubTab('all');
+                      setSearchQuery('');
+                    }}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-lg transition cursor-pointer"
                   >
-                    Import File
+                    Reset Filters
                   </button>
                   <button
-                    onClick={onOpenImageStudio}
+                    onClick={() => fileInputRef.current?.click()}
                     className="px-3 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition cursor-pointer"
                   >
-                    AI Image
+                    Import File
                   </button>
                 </div>
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-2 gap-2.5">
-                {filteredMedia.map(item => (
-                  <div
-                    key={item.id}
-                    className="group relative bg-slate-950 border border-slate-800/90 rounded-lg overflow-hidden transition hover:border-cyan-500/60 flex flex-col shadow-sm"
-                  >
-                    {/* Thumbnail */}
-                    <div className="relative aspect-video w-full bg-black overflow-hidden flex items-center justify-center">
-                      {item.type === 'video' ? (
-                        <video src={item.url} className="w-full h-full object-cover" muted />
-                      ) : (
-                        <img src={item.url} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      )}
+                {filteredMedia.map(item => {
+                  const isVideoItem = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
+                  const isAdded = addedItemId === item.id;
 
-                      {/* Type Badge */}
-                      <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[9px] font-mono font-bold text-slate-200 uppercase">
-                        {item.type}
-                      </span>
-
-                      {/* Hover Overlay Actions */}
-                      <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
-                        <button
-                          onClick={() => {
-                            const newScene: Scene = {
-                              id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                              title: item.title,
-                              duration: item.duration || 4,
-                              prompt: item.title,
-                              mediaUrl: item.url,
-                              mediaType: item.type,
-                              aspectRatio: '16:9',
-                              motion: 'pan_right',
-                              transition: 'dissolve',
-                              transitionDuration: 0.8,
-                              textOverlay: '',
-                              textColor: '#ffffff',
-                              textFont: 'sans',
-                              textPosition: 'lower_third',
-                              filter: 'cinematic',
-                              volume: 90
-                            };
-                            onAddSceneToTimeline(newScene);
-                          }}
-                          className="p-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg font-bold shadow-md transition active:scale-95 cursor-pointer"
-                          title="Add to Timeline"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                        {item.source === 'import' && (
-                          <button
-                            onClick={(e) => handleDeleteMedia(item.id, e)}
-                            className="p-2 bg-rose-900/80 hover:bg-rose-600 text-rose-200 rounded-lg font-bold shadow-md transition active:scale-95 cursor-pointer"
-                            title="Delete Item"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                  return (
+                    <div
+                      key={item.id}
+                      className="group relative bg-slate-950 border border-slate-800/90 rounded-lg overflow-hidden transition hover:border-cyan-500/60 flex flex-col shadow-sm"
+                    >
+                      {/* Thumbnail with Video Play Indicator & Hover Playback */}
+                      <div className="relative aspect-video w-full bg-black overflow-hidden flex items-center justify-center">
+                        {isVideoItem ? (
+                          <>
+                            <video
+                              src={item.url}
+                              poster={item.thumbnailUrl}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onMouseEnter={(e) => {
+                                const v = e.currentTarget;
+                                v.play().catch(() => {});
+                              }}
+                              onMouseLeave={(e) => {
+                                const v = e.currentTarget;
+                                v.pause();
+                                v.currentTime = 0;
+                              }}
+                            />
+                            {/* Persistent Video Play Overlay Badge (disappears on hover or when playing) */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
+                              <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-xs border border-white/30 flex items-center justify-center text-white shadow-lg">
+                                <Play className="w-4 h-4 fill-white ml-0.5" />
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <img
+                            src={item.thumbnailUrl || item.url}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
                         )}
+
+                        {/* Type Badge */}
+                        <span className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase backdrop-blur-sm ${
+                          isVideoItem ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/40' : 'bg-purple-950/80 text-purple-300 border border-purple-500/40'
+                        }`}>
+                          {isVideoItem ? 'VIDEO' : 'IMAGE'}
+                        </span>
+
+                        {/* Duration Badge */}
+                        {item.duration && (
+                          <span className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/80 rounded text-[9px] font-mono text-slate-300">
+                            {item.duration}s
+                          </span>
+                        )}
+
+                        {/* Hover Overlay Actions */}
+                        <div className="absolute inset-0 bg-slate-950/85 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-2">
+                          <div className="flex items-center gap-1.5">
+                            {/* Quick Add Button */}
+                            <button
+                              onClick={() => handleAddMediaToTimeline(item)}
+                              className={`px-2.5 py-1.5 rounded-md font-bold shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1 text-xs ${
+                                isAdded 
+                                  ? 'bg-emerald-500 text-slate-950'
+                                  : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'
+                              }`}
+                              title="Add to Timeline"
+                            >
+                              {isAdded ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Added!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Add</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Preview Lightbox Button */}
+                            <button
+                              onClick={() => setPreviewingItem(item)}
+                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition cursor-pointer"
+                              title="Preview Full Screen"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Quick Replace Button (when a scene is selected on timeline) */}
+                          {selectedScene && onUpdateScene && (
+                            <button
+                              onClick={() => handleReplaceSelectedScene(item)}
+                              className="px-2 py-1 bg-slate-800/90 hover:bg-cyan-900/60 text-slate-300 hover:text-cyan-200 rounded text-[10px] font-medium transition cursor-pointer flex items-center gap-1 border border-slate-700/60"
+                              title={`Replace selected clip (${selectedScene.title})`}
+                            >
+                              <ArrowRightLeft className="w-2.5 h-2.5" />
+                              <span>Replace Clip</span>
+                            </button>
+                          )}
+
+                          {item.id.startsWith('media-') && (
+                            <button
+                              onClick={(e) => handleDeleteMedia(item.id, e)}
+                              className="text-[10px] text-rose-400 hover:text-rose-300 underline cursor-pointer mt-0.5"
+                              title="Delete from Library"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Metadata Footer */}
+                      <div className="p-2 flex items-center justify-between text-[11px] bg-slate-950">
+                        <span className="font-semibold text-slate-300 truncate max-w-[120px]" title={item.title}>
+                          {item.title}
+                        </span>
+                        <button
+                          onClick={() => setPreviewingItem(item)}
+                          className="text-slate-500 hover:text-slate-300 transition"
+                          title="View Info"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
-
-                    {/* Metadata Footer */}
-                    <div className="p-2 flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-slate-300 truncate max-w-[110px]" title={item.title}>
-                        {item.title}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="space-y-1.5">
-                {filteredMedia.map(item => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-2 bg-slate-950 border border-slate-800 rounded-lg hover:border-cyan-500/50 transition group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-10 h-7 rounded bg-black overflow-hidden shrink-0">
-                        {item.type === 'video' ? (
-                          <video src={item.url} className="w-full h-full object-cover" muted />
-                        ) : (
-                          <img src={item.url} alt={item.title} className="w-full h-full object-cover" />
-                        )}
+                {filteredMedia.map(item => {
+                  const isVideoItem = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
+                  const isAdded = addedItemId === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-2 bg-slate-950 border border-slate-800 rounded-lg hover:border-cyan-500/50 transition group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div 
+                          className="relative w-14 h-9 rounded bg-black overflow-hidden shrink-0 border border-slate-800 flex items-center justify-center cursor-pointer"
+                          onClick={() => setPreviewingItem(item)}
+                          title="Click to preview"
+                        >
+                          {isVideoItem ? (
+                            <>
+                              <video
+                                src={item.url}
+                                poster={item.thumbnailUrl}
+                                className="w-full h-full object-cover"
+                                muted
+                                preload="metadata"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10">
+                                <Play className="w-3 h-3 fill-white text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <img src={item.thumbnailUrl || item.url} alt={item.title} className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-200 truncate">{item.title}</p>
+                          <p className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
+                            <span className={isVideoItem ? 'text-cyan-400 font-bold' : 'text-purple-400 font-bold'}>
+                              {isVideoItem ? 'VIDEO' : 'IMAGE'}
+                            </span>
+                            <span>•</span>
+                            <span>{item.duration || 4}s</span>
+                            {item.category && (
+                              <>
+                                <span>•</span>
+                                <span className="truncate max-w-[90px]">{item.category}</span>
+                              </>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-200 truncate">{item.title}</p>
-                        <p className="text-[10px] text-slate-500 uppercase">{item.type} • {item.duration || 4}s</p>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setPreviewingItem(item)}
+                          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer"
+                          title="Preview"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+
+                        {selectedScene && onUpdateScene && (
+                          <button
+                            onClick={() => handleReplaceSelectedScene(item)}
+                            className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded transition cursor-pointer"
+                            title={`Replace selected clip (${selectedScene.title})`}
+                          >
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleAddMediaToTimeline(item)}
+                          className={`p-1.5 rounded-md transition font-bold cursor-pointer flex items-center gap-1 text-[11px] ${
+                            isAdded
+                              ? 'bg-emerald-500 text-slate-950'
+                              : 'bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950'
+                          }`}
+                          title="Add to Timeline"
+                        >
+                          {isAdded ? (
+                            <>
+                              <Check className="w-3 h-3" />
+                              <span>Added</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3 h-3" />
+                              <span>Add</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
-
-                    <button
-                      onClick={() => {
-                        const newScene: Scene = {
-                          id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                          title: item.title,
-                          duration: item.duration || 4,
-                          prompt: item.title,
-                          mediaUrl: item.url,
-                          mediaType: item.type,
-                          aspectRatio: '16:9',
-                          motion: 'pan_right',
-                          transition: 'dissolve',
-                          transitionDuration: 0.8,
-                          textOverlay: '',
-                          textColor: '#ffffff',
-                          textFont: 'sans',
-                          textPosition: 'lower_third',
-                          filter: 'cinematic',
-                          volume: 90
-                        };
-                        onAddSceneToTimeline(newScene);
-                      }}
-                      className="p-1.5 bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 rounded-md transition font-bold cursor-pointer"
-                      title="Add to Timeline"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -1057,6 +1441,143 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* 4. Media Preview Lightbox Modal */}
+      {previewingItem && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="max-w-2xl w-full bg-[#0f1322] border border-slate-700 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-[#0b0e19]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                  previewingItem.type === 'sora_video' || previewingItem.url.match(/\.(mp4|webm|mov)($|\?)/i)
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                }`}>
+                  {previewingItem.type === 'sora_video' || previewingItem.url.match(/\.(mp4|webm|mov)($|\?)/i) ? 'SORA-2 VIDEO' : 'AI IMAGE'}
+                </span>
+                <h3 className="text-sm font-bold text-white truncate">{previewingItem.title}</h3>
+              </div>
+              <button
+                onClick={() => setPreviewingItem(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                title="Close preview"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Media Stage */}
+            <div className="p-4 bg-black/70 flex items-center justify-center overflow-hidden min-h-[260px] max-h-[50vh]">
+              {previewingItem.type === 'sora_video' || previewingItem.url.match(/\.(mp4|webm|mov)($|\?)/i) ? (
+                <video
+                  src={previewingItem.url}
+                  poster={previewingItem.thumbnailUrl}
+                  controls
+                  autoPlay
+                  loop
+                  playsInline
+                  className="max-w-full max-h-[46vh] rounded-lg shadow-2xl object-contain"
+                />
+              ) : (
+                <img
+                  src={previewingItem.thumbnailUrl || previewingItem.url}
+                  alt={previewingItem.title}
+                  className="max-w-full max-h-[46vh] rounded-lg shadow-2xl object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+            </div>
+
+            {/* Modal Metadata & Prompt Details */}
+            <div className="p-4 space-y-3 bg-[#0d101c] border-t border-slate-800/80 overflow-y-auto max-h-[30vh]">
+              {/* Prompt Box */}
+              {previewingItem.prompt && (
+                <div className="p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 text-xs text-slate-300 space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                    <span className="flex items-center gap-1 text-cyan-400">
+                      <Sparkles className="w-3 h-3" />
+                      Generation Prompt
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(previewingItem.prompt || '');
+                        setCopySuccess(true);
+                        setTimeout(() => setCopySuccess(false), 2000);
+                      }}
+                      className="text-slate-400 hover:text-cyan-300 transition flex items-center gap-1 text-[10px] cursor-pointer"
+                    >
+                      {copySuccess ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copySuccess ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                  <p className="italic text-slate-200">{previewingItem.prompt}</p>
+                </div>
+              )}
+
+              {/* Technical Specifications */}
+              <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                {previewingItem.duration && (
+                  <span className="px-2 py-1 bg-slate-900 border border-slate-800 rounded-md text-slate-300 font-mono">
+                    Duration: {previewingItem.duration}s
+                  </span>
+                )}
+                {previewingItem.aspectRatio && (
+                  <span className="px-2 py-1 bg-slate-900 border border-slate-800 rounded-md text-slate-300 font-mono">
+                    Aspect Ratio: {previewingItem.aspectRatio}
+                  </span>
+                )}
+                {previewingItem.resolution && (
+                  <span className="px-2 py-1 bg-slate-900 border border-slate-800 rounded-md text-cyan-300 font-mono">
+                    {previewingItem.resolution}
+                  </span>
+                )}
+                {previewingItem.engine && (
+                  <span className="px-2 py-1 bg-slate-900 border border-slate-800 rounded-md text-slate-400 font-mono">
+                    Engine: {previewingItem.engine}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="px-4 py-3 bg-[#0a0c16] border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={() => setPreviewingItem(null)}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition cursor-pointer"
+              >
+                Close
+              </button>
+
+              <div className="flex items-center gap-2">
+                {selectedScene && onUpdateScene && (
+                  <button
+                    onClick={() => {
+                      handleReplaceSelectedScene(previewingItem);
+                      setPreviewingItem(null);
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 border border-slate-700"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>Replace Clip</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    handleAddMediaToTimeline(previewingItem);
+                    setPreviewingItem(null);
+                  }}
+                  className="px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add to Timeline</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

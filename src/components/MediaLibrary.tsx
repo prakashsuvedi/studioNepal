@@ -13,7 +13,8 @@ import {
   Check, 
   Zap,
   Play,
-  Pause
+  Pause,
+  X
 } from 'lucide-react';
 import { AudioTrack, Scene, SceneWatermark } from '../types';
 
@@ -76,6 +77,7 @@ const PREDEFINED_PRODUCTION_ASSETS: MediaAssetItem[] = [
     title: 'Kathmandu Durbar Square 4K',
     category: 'video',
     url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    previewUrl: 'https://images.unsplash.com/photo-1590736963159-c3d40fd7df93?q=80&w=400&auto=format&fit=crop',
     duration: 10,
     tags: ['video', 'kathmandu', 'heritage']
   },
@@ -84,8 +86,18 @@ const PREDEFINED_PRODUCTION_ASSETS: MediaAssetItem[] = [
     title: 'Mount Everest Sunrise Drone',
     category: 'video',
     url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    previewUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=400&auto=format&fit=crop',
     duration: 12,
     tags: ['video', 'everest', 'mountains']
+  },
+  {
+    id: 'vid-pokhara-lake',
+    title: 'Phewa Lake Peaceful Drift 4K',
+    category: 'video',
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    previewUrl: 'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?q=80&w=400&auto=format&fit=crop',
+    duration: 15,
+    tags: ['video', 'pokhara', 'nature']
   },
   // Watermarks
   {
@@ -128,6 +140,7 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioObj, setAudioObj] = useState<HTMLAudioElement | null>(null);
+  const [previewingVideo, setPreviewingVideo] = useState<MediaAssetItem | null>(null);
   const [assets, setAssets] = useState<MediaAssetItem[]>(PREDEFINED_PRODUCTION_ASSETS);
   const [isFetchingFromSupabase, setIsFetchingFromSupabase] = useState(false);
 
@@ -178,6 +191,7 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
         duration: asset.duration || 8,
         prompt: `Production media asset: ${asset.title}`,
         mediaUrl: asset.url,
+        thumbnailUrl: asset.previewUrl,
         mediaType: 'video',
         aspectRatio: '16:9',
         motion: 'pan_right',
@@ -263,12 +277,35 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
                 <GripVertical className="w-3.5 h-3.5" />
               </div>
 
-              <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-700/60 flex items-center justify-center shrink-0 text-slate-300">
-                {asset.category === 'sfx' && <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
-                {asset.category === 'bgm' && <Music className="w-3.5 h-3.5 text-indigo-400" />}
-                {asset.category === 'video' && <Film className="w-3.5 h-3.5 text-emerald-400" />}
-                {asset.category === 'watermark' && <ImageIcon className="w-3.5 h-3.5 text-teal-400" />}
-              </div>
+              {/* Media Thumbnail / Icon */}
+              {asset.category === 'video' ? (
+                <div 
+                  className="relative w-12 h-8 rounded-md bg-black overflow-hidden shrink-0 border border-slate-700/80 group/vid cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewingVideo(previewingVideo?.id === asset.id ? null : asset);
+                  }}
+                  title="Click to preview video"
+                >
+                  <img
+                    src={asset.previewUrl || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=300&auto=format&fit=crop'}
+                    alt={asset.title}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover/vid:bg-black/20 transition">
+                    <div className="w-4 h-4 rounded-full bg-indigo-600/90 text-white flex items-center justify-center shadow">
+                      <Play className="w-2 h-2 ml-0.5 fill-white text-white" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-700/60 flex items-center justify-center shrink-0 text-slate-300">
+                  {asset.category === 'sfx' && <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                  {asset.category === 'bgm' && <Music className="w-3.5 h-3.5 text-indigo-400" />}
+                  {asset.category === 'watermark' && <ImageIcon className="w-3.5 h-3.5 text-teal-400" />}
+                </div>
+              )}
 
               <div className="min-w-0">
                 <span className="font-semibold text-xs text-slate-200 group-hover:text-white truncate block">
@@ -291,9 +328,19 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
                 </button>
               )}
 
+              {asset.category === 'video' && (
+                <button
+                  onClick={() => setPreviewingVideo(previewingVideo?.id === asset.id ? null : asset)}
+                  className="p-1 rounded-md bg-slate-900 hover:bg-cyan-600 text-slate-300 hover:text-white transition cursor-pointer"
+                  title="Preview Video Player"
+                >
+                  <Play className="w-3 h-3" />
+                </button>
+              )}
+
               <button
                 onClick={() => handleAddAsset(asset)}
-                className="px-2 py-1 rounded-md bg-indigo-600/80 hover:bg-indigo-600 text-white text-[10px] font-bold flex items-center gap-1 transition"
+                className="px-2 py-1 rounded-md bg-indigo-600/80 hover:bg-indigo-600 text-white text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
                 title="Add to Timeline"
               >
                 <Plus className="w-3 h-3" />
@@ -303,6 +350,52 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Video Preview Lightbox Modal */}
+      {previewingVideo && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl space-y-3 p-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Film className="w-4 h-4 text-cyan-400" />
+                <h4 className="text-xs font-bold text-white truncate max-w-xs">{previewingVideo.title}</h4>
+              </div>
+              <button
+                onClick={() => setPreviewingVideo(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="aspect-video w-full bg-black rounded-xl overflow-hidden relative">
+              <video
+                src={previewingVideo.url}
+                poster={previewingVideo.previewUrl}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] font-mono text-slate-400">
+                Duration: {previewingVideo.duration || 10}s
+              </span>
+              <button
+                onClick={() => {
+                  handleAddAsset(previewingVideo);
+                  setPreviewingVideo(null);
+                }}
+                className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add to Timeline</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

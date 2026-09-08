@@ -16,6 +16,9 @@ interface LivePreviewCanvasProps {
   subtitles?: SubtitleItem[];
   subtitleBurnOptions?: SubtitleBurnOptions;
   vfxConfig?: VfxConfig;
+  safeAreaMode?: 'none' | 'action_title' | 'social_9_16' | 'grid_3x3';
+  isMuted?: boolean;
+  playbackSpeed?: number;
 }
 
 export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
@@ -31,29 +34,45 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   subtitles,
   subtitleBurnOptions,
   vfxConfig,
+  safeAreaMode = 'none',
+  isMuted = false,
+  playbackSpeed = 1,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const videoCacheRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [fps, setFps] = useState<number>(60);
   const [showHud, setShowHud] = useState<boolean>(true);
+  const [renderNonce, setRenderNonce] = useState<number>(0);
   const lastFrameTimeRef = useRef<number>(performance.now());
   const frameCountRef = useRef<number>(0);
 
-  // Canvas internal proxy resolutions (low-res proxy for instant 60fps rendering)
+  // Active scene info for HUD display
+  const activeSceneInfo = useMemo(() => {
+    let accumulatedTime = 0;
+    for (let i = 0; i < scenes.length; i++) {
+      if (currentTime >= accumulatedTime && currentTime < accumulatedTime + scenes[i].duration) {
+        return { index: i, scene: scenes[i] };
+      }
+      accumulatedTime += scenes[i].duration;
+    }
+    return { index: 0, scene: scenes[0] || null };
+  }, [scenes, currentTime]);
+
+  // High-Resolution crisp canvas coordinate space
   const canvasDimensions = useMemo(() => {
     switch (aspectRatio) {
       case '9:16':
-        return { width: 360, height: 640 };
+        return { width: 720, height: 1280 };
       case '1:1':
-        return { width: 480, height: 480 };
+        return { width: 1080, height: 1080 };
       case '16:9':
       default:
-        return { width: 640, height: 360 };
+        return { width: 1280, height: 720 };
     }
   }, [aspectRatio]);
 
-  // Pre-load images & videos in background with graceful CORS fallback
+  // Pre-load images & videos in background with graceful CORS fallback and immediate canvas repaint trigger
   useEffect(() => {
     scenes.forEach((scene) => {
       if (scene.mediaUrl) {
@@ -66,13 +85,16 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
             vid.muted = true;
             vid.playsInline = true;
             vid.preload = 'auto';
+            vid.onloadeddata = () => {
+              setRenderNonce((n) => n + 1);
+            };
             vid.onerror = () => {
-              // Retry without crossOrigin
               const fallbackVid = document.createElement('video');
               fallbackVid.src = scene.mediaUrl;
               fallbackVid.muted = true;
               fallbackVid.playsInline = true;
               fallbackVid.preload = 'auto';
+              fallbackVid.onloadeddata = () => setRenderNonce((n) => n + 1);
               videoCacheRef.current.set(scene.mediaUrl, fallbackVid);
             };
             videoCacheRef.current.set(scene.mediaUrl, vid);
@@ -84,13 +106,14 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
             img.src = scene.mediaUrl;
             img.onload = () => {
               imageCacheRef.current.set(scene.mediaUrl, img);
+              setRenderNonce((n) => n + 1);
             };
             img.onerror = () => {
-              // Retry without crossOrigin
               const fallbackImg = new Image();
               fallbackImg.src = scene.mediaUrl;
               fallbackImg.onload = () => {
                 imageCacheRef.current.set(scene.mediaUrl, fallbackImg);
+                setRenderNonce((n) => n + 1);
               };
               fallbackImg.onerror = () => {
                 imageCacheRef.current.set(scene.mediaUrl, fallbackImg);
@@ -106,11 +129,15 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         wmImg.src = scene.watermark.url;
         wmImg.onload = () => {
           imageCacheRef.current.set(scene.watermark!.url, wmImg);
+          setRenderNonce((n) => n + 1);
         };
         wmImg.onerror = () => {
           const fallback = new Image();
           fallback.src = scene.watermark!.url;
-          fallback.onload = () => imageCacheRef.current.set(scene.watermark!.url, fallback);
+          fallback.onload = () => {
+            imageCacheRef.current.set(scene.watermark!.url, fallback);
+            setRenderNonce((n) => n + 1);
+          };
         };
       }
     });
@@ -121,11 +148,15 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       bImg.src = brandOverlayConfig.logoUrl;
       bImg.onload = () => {
         imageCacheRef.current.set(brandOverlayConfig.logoUrl, bImg);
+        setRenderNonce((n) => n + 1);
       };
       bImg.onerror = () => {
         const fallback = new Image();
         fallback.src = brandOverlayConfig.logoUrl;
-        fallback.onload = () => imageCacheRef.current.set(brandOverlayConfig.logoUrl, fallback);
+        fallback.onload = () => {
+          imageCacheRef.current.set(brandOverlayConfig.logoUrl, fallback);
+          setRenderNonce((n) => n + 1);
+        };
       };
     }
   }, [scenes, brandOverlayConfig]);
@@ -262,6 +293,15 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       context.translate(-width / 2, -height / 2);
     };
 
+    // Pause any cached video elements that belong to inactive scenes
+    videoCacheRef.current.forEach((vid, url) => {
+      if (url !== currentScene.mediaUrl && (!nextScene || url !== nextScene.mediaUrl)) {
+        if (!vid.paused) {
+          vid.pause();
+        }
+      }
+    });
+
     // Draw scene frame (both images & video tags)
     const drawSceneFrame = (scene: Scene, progress: number, alpha: number = 1.0, elapsedSec: number = 0) => {
       ctx.save();
@@ -273,18 +313,37 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       const isVideo = scene.mediaType === 'video' || scene.mediaUrl?.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
 
       if (isVideo) {
-        const vidElem = videoCacheRef.current.get(scene.mediaUrl);
+        let vidElem = videoCacheRef.current.get(scene.mediaUrl);
+        if (!vidElem) {
+          vidElem = document.createElement('video');
+          vidElem.crossOrigin = 'anonymous';
+          vidElem.src = scene.mediaUrl;
+          vidElem.muted = isMuted || (scene.volume === 0);
+          vidElem.volume = Math.max(0, Math.min(1, (scene.volume ?? 100) / 100));
+          vidElem.playsInline = true;
+          vidElem.preload = 'auto';
+          vidElem.onloadeddata = () => setRenderNonce((n) => n + 1);
+          videoCacheRef.current.set(scene.mediaUrl, vidElem);
+        }
+
         if (vidElem) {
+          const sceneVol = typeof scene.volume === 'number' ? scene.volume : 100;
+          vidElem.muted = isMuted || sceneVol === 0;
+          vidElem.volume = Math.max(0, Math.min(1, sceneVol / 100));
+          vidElem.playbackRate = playbackSpeed || 1;
+
           if (isPlaying && vidElem.paused) {
             vidElem.play().catch(() => {});
           } else if (!isPlaying && !vidElem.paused) {
             vidElem.pause();
           }
-          if (Math.abs(vidElem.currentTime - (elapsedSec % (vidElem.duration || scene.duration))) > 0.3) {
-            vidElem.currentTime = elapsedSec % (vidElem.duration || scene.duration);
+          const targetVideoTime = elapsedSec % (vidElem.duration || scene.duration || 4);
+          const maxDrift = isPlaying ? 0.35 : 0.08;
+          if (Math.abs(vidElem.currentTime - targetVideoTime) > maxDrift) {
+            vidElem.currentTime = targetVideoTime;
           }
 
-          if (vidElem.readyState >= 2) {
+          if (vidElem.readyState >= 2 && vidElem.videoWidth > 0) {
             const imgRatio = vidElem.videoWidth / vidElem.videoHeight;
             const targetRatio = width / height;
             let dw = width, dh = height, dx = 0, dy = 0;
@@ -296,10 +355,64 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
               dy = (height - dh) / 2;
             }
             ctx.drawImage(vidElem, dx, dy, dw, dh);
+          } else {
+            // Check if scene has a thumbnailUrl or cached poster while buffering
+            const thumbUrl = scene.thumbnailUrl;
+            let thumbImg = thumbUrl ? imageCacheRef.current.get(thumbUrl) : null;
+            if (!thumbImg && thumbUrl) {
+              thumbImg = new Image();
+              thumbImg.crossOrigin = 'anonymous';
+              thumbImg.src = thumbUrl;
+              thumbImg.onload = () => {
+                imageCacheRef.current.set(thumbUrl, thumbImg!);
+                setRenderNonce((n) => n + 1);
+              };
+              imageCacheRef.current.set(thumbUrl, thumbImg);
+            }
+
+            if (thumbImg && thumbImg.complete && thumbImg.naturalWidth > 0) {
+              const imgRatio = thumbImg.naturalWidth / thumbImg.naturalHeight;
+              const targetRatio = width / height;
+              let dw = width, dh = height, dx = 0, dy = 0;
+              if (imgRatio > targetRatio) {
+                dw = height * imgRatio;
+                dx = (width - dw) / 2;
+              } else {
+                dh = width / imgRatio;
+                dy = (height - dh) / 2;
+              }
+              ctx.drawImage(thumbImg, dx, dy, dw, dh);
+            } else {
+              // Video buffer placeholder
+              const grad = ctx.createLinearGradient(0, 0, width, height);
+              grad.addColorStop(0, '#0f172a');
+              grad.addColorStop(1, '#1e1b4b');
+              ctx.fillStyle = grad;
+              ctx.fillRect(0, 0, width, height);
+
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText(`🎬 Video: ${scene.title}`, width / 2, height / 2 - 10);
+              ctx.font = '14px "Plus Jakarta Sans", sans-serif';
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+              ctx.fillText('Syncing frame buffer...', width / 2, height / 2 + 20);
+            }
           }
         }
       } else {
-        const cachedImg = imageCacheRef.current.get(scene.mediaUrl);
+        let cachedImg = imageCacheRef.current.get(scene.mediaUrl);
+        if (!cachedImg && scene.mediaUrl) {
+          cachedImg = new Image();
+          cachedImg.crossOrigin = 'anonymous';
+          cachedImg.src = scene.mediaUrl;
+          cachedImg.onload = () => {
+            imageCacheRef.current.set(scene.mediaUrl, cachedImg!);
+            setRenderNonce((n) => n + 1);
+          };
+          imageCacheRef.current.set(scene.mediaUrl, cachedImg);
+        }
+
         if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
           const imgRatio = cachedImg.naturalWidth / cachedImg.naturalHeight;
           const targetRatio = width / height;
@@ -324,9 +437,14 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
           ctx.fillRect(0, 0, width, height);
 
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+          ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(`Scene: ${scene.title}`, width / 2, height / 2);
+          ctx.fillText(`Scene: ${scene.title}`, width / 2, height / 2 - 10);
+          if (scene.prompt) {
+            ctx.font = '14px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.fillText(scene.prompt.slice(0, 50) + (scene.prompt.length > 50 ? '...' : ''), width / 2, height / 2 + 22);
+          }
         }
       }
 
@@ -493,20 +611,12 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       );
     }
 
-    // 4. Draw Animated Scrolling Ticker Option
-    const activeTicker: TickerConfig | undefined = currentScene.tickerConfig || {
-      enabled: true,
-      text: 'NEPALAI STUDIO PRO • REALTIME PRODUCTION ENGINE • 4K HDR HYBRID RENDERING',
-      textNepali: 'नेपालआई स्टुडियो प्रो - अत्याधुनिक भिडियो सम्पादन प्लेटफर्म',
-      style: 'breaking_red',
-      speed: 'medium',
-      position: 'bottom',
-      badgeText: 'LIVE BROADCAST',
-    };
+    // 4. Draw Animated Scrolling Ticker Option (Only when explicitly enabled by user)
+    const activeTicker: TickerConfig | undefined = currentScene.tickerConfig;
 
     if (activeTicker && activeTicker.enabled) {
       ctx.save();
-      const tickerHeight = Math.max(26, Math.round(height * 0.08));
+      const tickerHeight = Math.max(36, Math.round(height * 0.08));
       const tickerY = activeTicker.position === 'top' ? 0 : height - tickerHeight;
 
       // Background style
@@ -523,14 +633,14 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       } else if (activeTicker.style === 'nepal_heritage') {
         ctx.fillStyle = '#1e3a8a';
       } else {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
       }
 
       ctx.fillRect(0, tickerY, width, tickerHeight);
 
       // Top line border
       ctx.strokeStyle = activeTicker.style === 'neon_cyber' ? '#06b6d4' : 'rgba(255, 255, 255, 0.25)';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(0, tickerY);
       ctx.lineTo(width, tickerY);
@@ -539,7 +649,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       // Badge on left
       const badgeText = activeTicker.badgeText || 'BREAKING';
       ctx.font = `bold ${Math.round(tickerHeight * 0.45)}px "Plus Jakarta Sans", sans-serif`;
-      const badgeWidth = ctx.measureText(badgeText).width + 16;
+      const badgeWidth = ctx.measureText(badgeText).width + 24;
 
       ctx.fillStyle = activeTicker.style === 'gold_luxury' ? '#18181b' : '#f87171';
       ctx.fillRect(0, tickerY, badgeWidth, tickerHeight);
@@ -549,16 +659,16 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       ctx.fillText(badgeText, badgeWidth / 2, tickerY + tickerHeight * 0.65);
 
       // Scrolling ticker text calculation
-      const tickerTextCombined = `${activeTicker.textNepali ? activeTicker.textNepali + '  •  ' : ''}${activeTicker.text}  •  `;
+      const tickerTextCombined = `${activeTicker.textNepali ? activeTicker.textNepali + '  •  ' : ''}${activeTicker.text || ''}  •  `;
       ctx.font = `600 ${Math.round(tickerHeight * 0.45)}px "Plus Jakarta Sans", sans-serif`;
       ctx.textAlign = 'left';
 
-      const speedFactor = activeTicker.speed === 'fast' ? 120 : activeTicker.speed === 'slow' ? 45 : 80;
-      const textX = width - ((currentTime * speedFactor) % (width + 600));
+      const speedFactor = activeTicker.speed === 'fast' ? 140 : activeTicker.speed === 'slow' ? 55 : 95;
+      const textX = width - ((currentTime * speedFactor) % (width + 800));
 
       ctx.save();
       ctx.beginPath();
-      ctx.rect(badgeWidth + 6, tickerY, width - badgeWidth - 12, tickerHeight);
+      ctx.rect(badgeWidth + 8, tickerY, width - badgeWidth - 16, tickerHeight);
       ctx.clip();
 
       ctx.fillStyle = '#ffffff';
@@ -859,10 +969,78 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         cross(width - 20, height - 20);
         ctx.restore();
       }
-    }
 
-    ctx.restore();
-  }, [currentTime, scenes, canvasDimensions, isPlaying, brandOverlayConfig, subtitles, subtitleBurnOptions, vfxConfig]);
+      // 8. Safe Area Guide Overlays & Framing Markers
+      if (safeAreaMode && safeAreaMode !== 'none') {
+        ctx.save();
+        if (safeAreaMode === 'action_title') {
+          // 90% Action Safe
+          const actPadX = width * 0.05;
+          const actPadY = height * 0.05;
+          ctx.strokeStyle = '#06b6d4';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 6]);
+          ctx.strokeRect(actPadX, actPadY, width - actPadX * 2, height - actPadY * 2);
+
+          // 80% Title Safe
+          const titlePadX = width * 0.1;
+          const titlePadY = height * 0.1;
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(titlePadX, titlePadY, width - titlePadX * 2, height - titlePadY * 2);
+
+          // Labels
+          ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+          ctx.fillStyle = '#06b6d4';
+          ctx.textAlign = 'left';
+          ctx.fillText('90% ACTION SAFE', actPadX + 6, actPadY + 14);
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillText('80% TITLE SAFE', titlePadX + 6, titlePadY + 14);
+        } else if (safeAreaMode === 'social_9_16') {
+          // TikTok / Instagram Reels Safe UI Margin
+          const topMargin = height * 0.14; // Header UI / Search
+          const bottomMargin = height * 0.22; // Caption & Sound bar
+          const rightMargin = width * 0.18; // Like / Comment sidebar
+
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+          // Top blocked UI zone
+          ctx.fillRect(0, 0, width, topMargin);
+          // Bottom blocked UI zone
+          ctx.fillRect(0, height - bottomMargin, width, bottomMargin);
+          // Right icon UI zone
+          ctx.fillRect(width - rightMargin, topMargin, rightMargin, height - topMargin - bottomMargin);
+
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(width * 0.04, topMargin, width - rightMargin - width * 0.04, height - topMargin - bottomMargin);
+
+          ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+          ctx.fillStyle = '#fca5a5';
+          ctx.textAlign = 'center';
+          ctx.fillText('REELS / SHORTS SAFE CORE', (width - rightMargin) / 2, height / 2);
+        } else if (safeAreaMode === 'grid_3x3') {
+          // Rule of thirds grid
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+
+          // Verticals
+          ctx.beginPath();
+          ctx.moveTo(width / 3, 0); ctx.lineTo(width / 3, height);
+          ctx.moveTo((width * 2) / 3, 0); ctx.lineTo((width * 2) / 3, height);
+          // Horizontals
+          ctx.moveTo(0, height / 3); ctx.lineTo(width, height / 3);
+          ctx.moveTo(0, (height * 2) / 3); ctx.lineTo(width, (height * 2) / 3);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+  }, [currentTime, scenes, canvasDimensions, isPlaying, brandOverlayConfig, subtitles, subtitleBurnOptions, vfxConfig, safeAreaMode, renderNonce, isMuted, playbackSpeed]);
 
   const formatTimecode = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -886,19 +1064,26 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         {/* Live HUD Overlay */}
         {showHud && (
           <div className="absolute inset-x-4 top-4 flex items-center justify-between pointer-events-none text-[11px] font-mono select-none z-30">
-            {/* Left Badge: Proxy Engine & FPS */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900/80 backdrop-blur-xs text-slate-200 border border-slate-700/60 shadow">
+            {/* Left Badge: Scene Index, Title & FPS */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950/85 backdrop-blur-sm text-slate-200 border border-slate-700/70 shadow-lg">
               <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
-              <span className="font-bold">CANVAS PROXY</span>
-              <span className="text-slate-400">|</span>
+              <span className="font-bold text-cyan-400">CLIP #{activeSceneInfo.index + 1}</span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-200 font-medium max-w-[130px] truncate">{activeSceneInfo.scene?.title || 'Scene'}</span>
+              <span className="text-slate-500">|</span>
               <span className="text-emerald-400 font-semibold">{fps} FPS</span>
             </div>
 
-            {/* Right Badge: Timecode & Aspect Ratio */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900/80 backdrop-blur-xs text-slate-200 border border-slate-700/60 shadow">
-              <span className="text-indigo-400 font-bold">{formatTimecode(currentTime)}</span>
+            {/* Right Badge: Timecode, Aspect Ratio & Speed */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950/85 backdrop-blur-sm text-slate-200 border border-slate-700/70 shadow-lg">
+              <span className="text-cyan-400 font-bold">{formatTimecode(currentTime)}</span>
               <span className="text-slate-500">•</span>
               <span className="text-slate-300 font-semibold">{aspectRatio}</span>
+              {playbackSpeed !== 1 && (
+                <span className="px-1.5 py-0.5 rounded bg-purple-500/25 text-purple-300 border border-purple-500/50 text-[10px] font-bold">
+                  {playbackSpeed}x
+                </span>
+              )}
             </div>
           </div>
         )}

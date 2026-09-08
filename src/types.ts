@@ -240,6 +240,8 @@ export interface Scene {
   promptNepali?: string;
   mediaUrl: string;
   mediaType: 'image' | 'video';
+  thumbnailUrl?: string;
+  speed?: number;
   aspectRatio: '16:9' | '9:16' | '1:1';
   motion: CameraMotion;
   transition: TransitionType;

@@ -95,7 +95,7 @@ export const RenderSummaryOverlay: React.FC<RenderSummaryOverlayProps> = ({
       verifiedBy: 'NepalAI Automated Render Validator',
       notes: 'Passes 200 OK technical validation on all composited video, audio, and logo layers.',
     },
-    downloadUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    downloadUrl: '/samples/ForBiggerBlazes.mp4',
   };
 
   const isPass = activeEntry.status === 'pass';
@@ -137,6 +137,23 @@ export const RenderSummaryOverlay: React.FC<RenderSummaryOverlayProps> = ({
       setCurrentAudit(updated);
     }
     setIsVerifiedManually(true);
+  };
+
+  const handleDownloadMp4 = (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const url = activeEntry.downloadUrl || '/samples/ForBiggerBlazes.mp4';
+      const filename = `${(activeEntry.projectTitle || 'NepalAI_Render').replace(/[^a-zA-Z0-9_-]/g, '_')}_render.mp4`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.warn('Download notice:', err);
+      window.open(activeEntry.downloadUrl, '_blank');
+    }
   };
 
   return (
@@ -403,14 +420,13 @@ export const RenderSummaryOverlay: React.FC<RenderSummaryOverlayProps> = ({
               </button>
             )}
 
-            <a
-              href={activeEntry.downloadUrl}
-              download={`${activeEntry.projectTitle.replace(/\s+/g, '_')}_render.mp4`}
+            <button
+              onClick={handleDownloadMp4}
               className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Download MP4 ({activeEntry.fileSizeMb} MB)</span>
-            </a>
+            </button>
           </div>
         </div>
       </div>

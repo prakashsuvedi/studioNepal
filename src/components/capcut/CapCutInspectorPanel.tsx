@@ -63,10 +63,14 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
 
   if (!selectedScene) {
     return (
-      <div className="w-72 md:w-80 bg-[#0e111a] border-l border-slate-800/80 p-6 flex flex-col items-center justify-center text-center text-slate-500 select-none">
-        <Sliders className="w-8 h-8 opacity-40 mb-2" />
-        <p className="text-xs font-semibold text-slate-400">No clip selected</p>
-        <p className="text-[11px] text-slate-600 mt-0.5">Click any scene or audio clip in the timeline to edit properties.</p>
+      <div className="w-64 md:w-72 bg-[#0a0d14] border-l border-slate-800/80 p-4 flex flex-col items-center justify-center text-center text-slate-500 select-none shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800/80 flex items-center justify-center mb-2.5 shadow-inner">
+          <Sliders className="w-5 h-5 text-slate-400" />
+        </div>
+        <p className="text-xs font-bold text-slate-300">Inspector Properties</p>
+        <p className="text-[11px] text-slate-500 mt-1 max-w-[190px] leading-relaxed">
+          Select any video clip, photo, or audio track on the timeline to configure motions, filters, and overlays.
+        </p>
       </div>
     );
   }
@@ -139,11 +143,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
   };
 
   return (
-    <div className="w-72 md:w-80 bg-[#0e111a] border-l border-slate-800/80 flex flex-col h-full select-none shrink-0 overflow-hidden">
+    <div className="w-64 md:w-72 bg-[#0a0d14] border-l border-slate-800/80 flex flex-col h-full select-none shrink-0 overflow-hidden">
       {/* 1. Header & Tabs (CapCut Style) */}
       <div className="border-b border-slate-800/80 bg-[#090c14]">
-        <div className="p-3 pb-1 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-200 truncate max-w-[170px]" title={selectedScene.title}>
+        <div className="p-2.5 pb-0.5 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-200 truncate max-w-[150px]" title={selectedScene.title}>
             {selectedScene.title}
           </span>
           <div className="flex items-center gap-1">
@@ -153,7 +157,7 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                 className="p-1 text-slate-400 hover:text-slate-200 rounded hover:bg-slate-800 transition cursor-pointer"
                 title="Duplicate Clip (Ctrl+D)"
               >
-                <Copy className="w-3.5 h-3.5" />
+                <Copy className="w-3 h-3" />
               </button>
             )}
             {onDeleteScene && (
@@ -162,14 +166,14 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                 className="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-800 transition cursor-pointer"
                 title="Delete Clip (Del)"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3 h-3" />
               </button>
             )}
           </div>
         </div>
 
         {/* Tab Bar */}
-        <div className="flex items-center px-2 overflow-x-auto no-scrollbar gap-1 text-[11px] font-semibold">
+        <div className="flex items-center px-1.5 overflow-x-auto no-scrollbar gap-0.5 text-[10px] font-medium">
           {[
             { id: 'basic', label: 'Basic' },
             { id: 'ticker', label: 'Ticker' },
@@ -181,7 +185,7 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-2.5 border-b-2 transition cursor-pointer shrink-0 ${
+              className={`py-1.5 px-2 border-b-2 transition cursor-pointer shrink-0 ${
                 activeTab === tab.id 
                   ? 'border-cyan-400 text-cyan-400 font-bold' 
                   : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -197,12 +201,12 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
       </div>
 
       {/* 2. Tab Content Body */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
         {/* BASIC TAB */}
         {activeTab === 'basic' && (
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             {/* Media Source & Quick Replace */}
-            <div className="p-3 bg-slate-950 border border-slate-800/90 rounded-xl space-y-2.5">
+            <div className="p-2.5 bg-slate-950 border border-slate-800/90 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-slate-300 flex items-center gap-1.5">
                   {selectedScene.mediaType === 'video' ? (

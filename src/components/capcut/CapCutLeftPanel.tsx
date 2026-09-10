@@ -230,10 +230,11 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
           saveMediaItem(item);
           loadMedia();
 
+          const sceneId = `scene-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
           const newScene: Scene = {
-            id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            id: sceneId,
             title: item.title,
-            duration: item.duration || 4,
+            duration: item.duration || (isVideo ? 5 : 4),
             prompt: item.title,
             mediaUrl: url,
             mediaType: isVideo ? 'video' : 'image',
@@ -249,6 +250,35 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
             volume: 90
           };
           onAddSceneToTimeline(newScene);
+
+          // Concurrently upload file to server storage bucket for persistent server rendering
+          const reader = new FileReader();
+          reader.onload = async () => {
+            try {
+              const fullData = reader.result as string;
+              const base64Data = fullData.split(',')[1] || fullData;
+              const sanitizedName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+              const uploadResp = await fetch('/api/storage/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  filename: sanitizedName,
+                  fileData: base64Data,
+                  mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg')
+                })
+              });
+              if (uploadResp.ok) {
+                const uploadJson = await uploadResp.json();
+                const serverUrl = uploadJson.url || `/api/storage/file/${uploadJson.filename}`;
+                if (serverUrl && onUpdateScene) {
+                  onUpdateScene(sceneId, { mediaUrl: serverUrl });
+                }
+              }
+            } catch (syncErr) {
+              console.warn('[MediaUpload] Storage bucket sync notice:', syncErr);
+            }
+          };
+          reader.readAsDataURL(file);
         }
       }
     } finally {
@@ -286,6 +316,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
       duration: item.duration || (isVideoItem ? 5 : 4),
       prompt: item.prompt || item.title,
       mediaUrl: item.url,
+      thumbnailUrl: item.thumbnailUrl || (item.url.endsWith('.mp4') ? item.url.replace(/\.mp4$/, '_thumb.jpg') : undefined),
       mediaType: isVideoItem ? 'video' : 'image',
       aspectRatio: (item.aspectRatio as any) || '16:9',
       motion: 'pan_right',
@@ -323,7 +354,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     {
       id: 'stock-v1',
       title: 'Himalayan Golden Flight (Sora-2 Video)',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      url: '/samples/ForBiggerBlazes.mp4',
       thumbnailUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=800&auto=format&fit=crop',
       type: 'sora_video',
       category: 'Stock Video',
@@ -335,7 +366,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     {
       id: 'stock-v2',
       title: 'Heritage Temple Alleys (Sora-2 Video)',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      url: '/samples/ForBiggerEscapes.mp4',
       thumbnailUrl: 'https://images.unsplash.com/photo-1590736963159-c3d40fd7df93?q=80&w=800&auto=format&fit=crop',
       type: 'sora_video',
       category: 'Stock Video',
@@ -347,7 +378,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     {
       id: 'stock-v3',
       title: 'Phewa Lakeside Motion (Sora-2 Reel)',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+      url: '/samples/ForBiggerJoyBlazes.mp4',
       thumbnailUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
       type: 'sora_video',
       category: 'Stock Video',
@@ -360,7 +391,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     {
       id: 'stock-v4',
       title: 'Trishuli River Rapids & Mountain Valley',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      url: '/samples/ForBiggerFun.mp4',
       thumbnailUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
       type: 'sora_video',
       category: 'Stock Video',
@@ -372,7 +403,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     {
       id: 'stock-v5',
       title: 'Everest Khumbu Glacier Icefalls',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+      url: '/samples/ForBiggerMeltdowns.mp4',
       thumbnailUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
       type: 'sora_video',
       category: 'Stock Video',
@@ -443,13 +474,23 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     return true;
   });
 
+  // User-generated and imported voiceovers/audio from media library
+  const importedVoiceovers = mediaItems.filter(item => 
+    item.type === 'ai_audio' || 
+    (item as any).type === 'audio' || 
+    item.category?.toLowerCase().includes('voice') ||
+    item.category?.toLowerCase().includes('audio') ||
+    item.url?.match(/\.(mp3|wav|ogg|m4a|aac)($|\?)/i) ||
+    item.url?.startsWith('data:audio')
+  );
+
   // Sound Effects (SFX) Library
   const sfxLibrary: AudioTrack[] = [
     {
       id: 'sfx-swoosh',
       title: 'Cinematic Whoosh Transition',
       artist: 'Studio FX',
-      url: 'https://cdn.freesound.org/previews/608/608645_11861866-lq.mp3',
+      url: '/audio/sfx_whoosh.mp3',
       duration: 2,
       volume: 85,
       genre: 'SFX Whoosh',
@@ -459,8 +500,8 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
       id: 'sfx-bowl',
       title: 'Tibetan Singing Bowl Resonator',
       artist: 'Himalayan Healing',
-      url: 'https://cdn.freesound.org/previews/518/518296_6142149-lq.mp3',
-      duration: 6,
+      url: '/audio/sfx_bell.mp3',
+      duration: 4,
       volume: 80,
       genre: 'SFX Healing',
       type: 'bgm'
@@ -469,7 +510,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
       id: 'sfx-camera',
       title: 'Camera Shutter Click',
       artist: 'Studio FX',
-      url: 'https://cdn.freesound.org/previews/387/387232_1474204-lq.mp3',
+      url: '/audio/sfx_camera.mp3',
       duration: 1,
       volume: 90,
       genre: 'SFX Shutter',
@@ -479,7 +520,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
       id: 'sfx-pop',
       title: 'Modern UI Pop Ding',
       artist: 'Studio FX',
-      url: 'https://cdn.freesound.org/previews/536/536422_4921277-lq.mp3',
+      url: '/audio/sfx_pop.mp3',
       duration: 1,
       volume: 75,
       genre: 'SFX Pop',
@@ -528,7 +569,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   ];
 
   return (
-    <div className="w-80 md:w-96 bg-[#0c0e17] border-r border-slate-800/80 flex flex-col h-full shrink-0 select-none z-20">
+    <div className="flex h-full shrink-0 select-none z-20 border-r border-slate-800/80 bg-[#0c0e17]">
       {/* Hidden file inputs for immediate upload */}
       <input
         ref={fileInputRef}
@@ -546,8 +587,8 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         className="hidden"
       />
 
-      {/* 1. Primary Left Navigation Bar (CapCut Style Icon Deck) */}
-      <div className="flex items-center gap-1 p-1.5 bg-[#090b12] border-b border-slate-800/80 overflow-x-auto no-scrollbar">
+      {/* 1. Primary Vertical Tool Navigation Rail (Studio Pro Archetype) */}
+      <div className="w-13 bg-[#090b13] border-r border-slate-800/80 flex flex-col items-center py-1.5 space-y-0.5 shrink-0 select-none z-10">
         {[
           { id: 'media', label: 'Media', icon: Folder },
           { id: 'audio', label: 'Audio', icon: Music },
@@ -565,52 +606,76 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`flex flex-col items-center justify-center min-w-[54px] py-1.5 px-1 rounded-lg text-[10px] font-semibold transition cursor-pointer shrink-0 ${
+              className={`relative flex flex-col items-center justify-center w-11 py-1.5 rounded-lg text-[9px] font-semibold transition-all duration-150 cursor-pointer group ${
                 isActive 
-                  ? 'bg-slate-800 text-cyan-400 shadow-sm border border-slate-700/60 font-bold' 
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                  ? 'bg-slate-800/90 text-cyan-400 font-bold shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
               }`}
+              title={tab.label}
             >
-              <Icon className={`w-4 h-4 mb-0.5 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
-              <span>{tab.label}</span>
+              {isActive && (
+                <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-cyan-400 rounded-r-full shadow-sm shadow-cyan-400/50" />
+              )}
+              <Icon className={`w-3.5 h-3.5 mb-0.5 transition-transform group-hover:scale-110 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+              <span className="leading-tight tracking-tight text-[8.5px] truncate max-w-[42px]">{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* 2. Search & Filter Header (when applicable) */}
-      {activeTab === 'media' && (
-        <div className="p-3 border-b border-slate-800/70 space-y-2.5 bg-[#0e111b]">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search clips, prompts, stock..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/60 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none transition"
-              />
-            </div>
-
+      {/* 2. Contextual Media / Tools Panel */}
+      <div className="w-60 sm:w-64 md:w-68 bg-[#0c0e17] flex flex-col h-full overflow-hidden shrink-0">
+        {/* Contextual Header Bar */}
+        <div className="h-8.5 px-3 border-b border-slate-800/80 bg-[#0a0d14] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-slate-200 capitalize tracking-wide">
+              {activeTab === 'ai' ? 'AI Studio' : `${activeTab}`}
+            </span>
+            <span className="px-1.5 py-0.2 rounded bg-slate-800 text-[9px] font-mono text-cyan-400 font-bold">
+              {activeTab === 'media' ? filteredMedia.length :
+               activeTab === 'audio' ? (audioTracks.length + sfxLibrary.length + importedVoiceovers.length) :
+               activeTab === 'effects' ? vfxPresets.length :
+               activeTab === 'transitions' ? transitionPresets.length :
+               activeTab === 'filters' ? filterPresets.length :
+               activeTab === 'text' ? textPresets.length : ''}
+            </span>
+          </div>
+          {activeTab === 'media' && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-2.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer active:scale-95"
-              title="Import local video or image files"
+              className="px-2 py-0.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded text-[10px] font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer active:scale-95"
+              title="Import local files"
             >
-              <Upload className="w-3.5 h-3.5 text-slate-950" />
+              <Upload className="w-2.5 h-2.5 text-slate-950 stroke-[2.5]" />
               <span>Import</span>
             </button>
-          </div>
+          )}
+        </div>
+
+        {/* 2. Search & Filter Header (when applicable) */}
+        {activeTab === 'media' && (
+          <div className="p-2 border-b border-slate-800/70 space-y-1.5 bg-[#0e111b]">
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/60 rounded-md pl-6 pr-2 py-1 text-[11px] text-slate-200 placeholder-slate-500 outline-none transition"
+                />
+              </div>
+            </div>
 
           {/* Subtabs for Media Source */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between pt-0.5">
+            <div className="flex items-center gap-0.5">
               {(['all', 'imported', 'generated', 'stock'] as SubTabType[]).map(sub => (
                 <button
                   key={sub}
                   onClick={() => setActiveSubTab(sub)}
-                  className={`px-2 py-0.5 rounded text-[10px] capitalize transition cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded text-[9px] capitalize transition cursor-pointer ${
                     activeSubTab === sub 
                       ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30' 
                       : 'text-slate-400 hover:text-slate-200'
@@ -621,62 +686,62 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               ))}
             </div>
 
-            <div className="flex items-center gap-1 text-slate-500">
+            <div className="flex items-center gap-0.5 text-slate-500">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1 rounded cursor-pointer ${viewMode === 'grid' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
+                className={`p-0.5 rounded cursor-pointer ${viewMode === 'grid' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
                 title="Grid view"
               >
-                <Grid className="w-3 h-3" />
+                <Grid className="w-2.5 h-2.5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1 rounded cursor-pointer ${viewMode === 'list' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
+                className={`p-0.5 rounded cursor-pointer ${viewMode === 'list' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
                 title="List view"
               >
-                <List className="w-3 h-3" />
+                <List className="w-2.5 h-2.5" />
               </button>
             </div>
           </div>
 
           {/* Type Filter Pills: All / Videos / Images */}
-          <div className="flex items-center gap-1.5 pt-0.5">
+          <div className="flex items-center gap-1 pt-0.5">
             <button
               onClick={() => setTypeFilter('all')}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition cursor-pointer flex items-center gap-1 ${
+              className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
                 typeFilter === 'all'
                   ? 'bg-slate-700 text-white font-bold'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200'
               }`}
             >
               <span>All</span>
-              <span className="opacity-70 text-[9px]">({allMedia.length})</span>
+              <span className="opacity-70 text-[8px]">({allMedia.length})</span>
             </button>
 
             <button
               onClick={() => setTypeFilter('video')}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition cursor-pointer flex items-center gap-1 ${
+              className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
                 typeFilter === 'video'
                   ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-500/50 font-bold'
                   : 'bg-slate-900 text-slate-400 hover:text-cyan-300'
               }`}
             >
-              <VideoIcon className="w-2.5 h-2.5" />
+              <VideoIcon className="w-2 h-2" />
               <span>Videos</span>
-              <span className="opacity-70 text-[9px]">({totalVideos})</span>
+              <span className="opacity-70 text-[8px]">({totalVideos})</span>
             </button>
 
             <button
               onClick={() => setTypeFilter('image')}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition cursor-pointer flex items-center gap-1 ${
+              className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
                 typeFilter === 'image'
                   ? 'bg-purple-500/30 text-purple-200 border border-purple-500/50 font-bold'
                   : 'bg-slate-900 text-slate-400 hover:text-purple-300'
               }`}
             >
-              <ImageIcon className="w-2.5 h-2.5" />
+              <ImageIcon className="w-2 h-2" />
               <span>Images</span>
-              <span className="opacity-70 text-[9px]">({totalImages})</span>
+              <span className="opacity-70 text-[8px]">({totalImages})</span>
             </button>
           </div>
         </div>
@@ -684,25 +749,25 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
 
       {/* 3. Tab Contents Area */}
       <div 
-        className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar relative"
+        className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar relative"
         onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
         onDragLeave={() => setIsDraggingOver(false)}
         onDrop={handleFileDrop}
       >
         {/* Drag & Drop Visual Overlay */}
         {isDraggingOver && activeTab === 'media' && (
-          <div className="absolute inset-2 z-30 bg-cyan-950/90 border-2 border-dashed border-cyan-400 rounded-xl flex flex-col items-center justify-center text-center p-4 backdrop-blur-xs transition-all pointer-events-none">
-            <Upload className="w-10 h-10 text-cyan-300 mb-2 animate-bounce" />
-            <p className="text-sm font-bold text-white">Drop video or image to import</p>
-            <p className="text-xs text-cyan-200/80 mt-1">Automatic thumbnail extraction & timeline ready</p>
+          <div className="absolute inset-1.5 z-30 bg-cyan-950/90 border-2 border-dashed border-cyan-400 rounded-lg flex flex-col items-center justify-center text-center p-3 backdrop-blur-xs transition-all pointer-events-none">
+            <Upload className="w-8 h-8 text-cyan-300 mb-1.5 animate-bounce" />
+            <p className="text-xs font-bold text-white">Drop to import media</p>
+            <p className="text-[10px] text-cyan-200/80 mt-0.5">Auto thumbnail & timeline ready</p>
           </div>
         )}
 
         {/* Processing Indicator */}
         {isProcessingUpload && (
-          <div className="p-2.5 bg-cyan-950/40 border border-cyan-500/40 rounded-lg flex items-center gap-2.5 text-xs text-cyan-200">
-            <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
-            <span>Processing media & extracting video poster frames...</span>
+          <div className="p-2 bg-cyan-950/40 border border-cyan-500/40 rounded-lg flex items-center gap-2 text-[11px] text-cyan-200">
+            <div className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+            <span>Processing media...</span>
           </div>
         )}
 
@@ -710,35 +775,35 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         {activeTab === 'media' && (
           <>
             {filteredMedia.length === 0 ? (
-              <div className="text-center py-10 space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
-                  <Film className="w-6 h-6" />
+              <div className="text-center py-8 space-y-2">
+                <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
+                  <Film className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-300">No media assets found</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Try changing filters or import new media.</p>
+                  <p className="text-xs font-bold text-slate-300">No media assets</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Import or generate media.</p>
                 </div>
-                <div className="flex items-center justify-center gap-2 pt-2">
+                <div className="flex items-center justify-center gap-1.5 pt-1">
                   <button
                     onClick={() => {
                       setTypeFilter('all');
                       setActiveSubTab('all');
                       setSearchQuery('');
                     }}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-lg transition cursor-pointer"
+                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-200 rounded-md transition cursor-pointer"
                   >
-                    Reset Filters
+                    Reset
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition cursor-pointer"
+                    className="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-md text-[10px] font-bold transition cursor-pointer"
                   >
-                    Import File
+                    Import
                   </button>
                 </div>
               </div>
             ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {filteredMedia.map(item => {
                   const isVideoItem = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
                   const isAdded = addedItemId === item.id;
@@ -746,10 +811,10 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className="group relative bg-slate-950 border border-slate-800/90 rounded-lg overflow-hidden transition hover:border-cyan-500/60 flex flex-col shadow-sm"
+                      className="group relative bg-slate-950 border border-slate-800/90 rounded-md overflow-hidden transition hover:border-cyan-500/60 flex flex-col shadow-xs"
                     >
                       {/* Thumbnail with Video Play Indicator & Hover Playback */}
-                      <div className="relative aspect-video w-full bg-black overflow-hidden flex items-center justify-center">
+                      <div className="relative aspect-[16/11] w-full bg-black overflow-hidden flex items-center justify-center">
                         {isVideoItem ? (
                           <>
                             <video
@@ -769,10 +834,10 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                                 v.currentTime = 0;
                               }}
                             />
-                            {/* Persistent Video Play Overlay Badge (disappears on hover or when playing) */}
+                            {/* Persistent Video Play Overlay Badge */}
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
-                              <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-xs border border-white/30 flex items-center justify-center text-white shadow-lg">
-                                <Play className="w-4 h-4 fill-white ml-0.5" />
+                              <div className="w-6 h-6 rounded-full bg-black/60 backdrop-blur-xs border border-white/30 flex items-center justify-center text-white shadow-md">
+                                <Play className="w-3 h-3 fill-white ml-0.5" />
                               </div>
                             </div>
                           </>
@@ -786,26 +851,26 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                         )}
 
                         {/* Type Badge */}
-                        <span className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase backdrop-blur-sm ${
+                        <span className={`absolute top-1 left-1 px-1 py-0.2 rounded text-[8px] font-mono font-bold uppercase backdrop-blur-xs ${
                           isVideoItem ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/40' : 'bg-purple-950/80 text-purple-300 border border-purple-500/40'
                         }`}>
-                          {isVideoItem ? 'VIDEO' : 'IMAGE'}
+                          {isVideoItem ? 'VID' : 'IMG'}
                         </span>
 
                         {/* Duration Badge */}
                         {item.duration && (
-                          <span className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/80 rounded text-[9px] font-mono text-slate-300">
+                          <span className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/80 rounded text-[8px] font-mono text-slate-300">
                             {item.duration}s
                           </span>
                         )}
 
                         {/* Hover Overlay Actions */}
-                        <div className="absolute inset-0 bg-slate-950/85 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-2">
-                          <div className="flex items-center gap-1.5">
+                        <div className="absolute inset-0 bg-slate-950/85 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-1">
+                          <div className="flex items-center gap-1">
                             {/* Quick Add Button */}
                             <button
                               onClick={() => handleAddMediaToTimeline(item)}
-                              className={`px-2.5 py-1.5 rounded-md font-bold shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1 text-xs ${
+                              className={`px-2 py-1 rounded font-bold shadow-sm transition active:scale-95 cursor-pointer flex items-center gap-1 text-[10px] ${
                                 isAdded 
                                   ? 'bg-emerald-500 text-slate-950'
                                   : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'
@@ -814,12 +879,12 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                             >
                               {isAdded ? (
                                 <>
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Added!</span>
+                                  <Check className="w-3 h-3 stroke-[2.5]" />
+                                  <span>Added</span>
                                 </>
                               ) : (
                                 <>
-                                  <Plus className="w-3.5 h-3.5" />
+                                  <Plus className="w-3 h-3 stroke-[2.5]" />
                                   <span>Add</span>
                                 </>
                               )}
@@ -828,10 +893,10 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                             {/* Preview Lightbox Button */}
                             <button
                               onClick={() => setPreviewingItem(item)}
-                              className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition cursor-pointer"
+                              className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition cursor-pointer"
                               title="Preview Full Screen"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <Eye className="w-3 h-3" />
                             </button>
                           </div>
 
@@ -839,18 +904,18 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                           {selectedScene && onUpdateScene && (
                             <button
                               onClick={() => handleReplaceSelectedScene(item)}
-                              className="px-2 py-1 bg-slate-800/90 hover:bg-cyan-900/60 text-slate-300 hover:text-cyan-200 rounded text-[10px] font-medium transition cursor-pointer flex items-center gap-1 border border-slate-700/60"
+                              className="px-1.5 py-0.5 bg-slate-800/90 hover:bg-cyan-900/60 text-slate-300 hover:text-cyan-200 rounded text-[9px] font-medium transition cursor-pointer flex items-center gap-1 border border-slate-700/60"
                               title={`Replace selected clip (${selectedScene.title})`}
                             >
-                              <ArrowRightLeft className="w-2.5 h-2.5" />
-                              <span>Replace Clip</span>
+                              <ArrowRightLeft className="w-2 h-2" />
+                              <span>Replace</span>
                             </button>
                           )}
 
                           {item.id.startsWith('media-') && (
                             <button
                               onClick={(e) => handleDeleteMedia(item.id, e)}
-                              className="text-[10px] text-rose-400 hover:text-rose-300 underline cursor-pointer mt-0.5"
+                              className="text-[9px] text-rose-400 hover:text-rose-300 underline cursor-pointer"
                               title="Delete from Library"
                             >
                               Delete
@@ -860,8 +925,8 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                       </div>
 
                       {/* Metadata Footer */}
-                      <div className="p-2 flex items-center justify-between text-[11px] bg-slate-950">
-                        <span className="font-semibold text-slate-300 truncate max-w-[120px]" title={item.title}>
+                      <div className="p-1 px-1.5 flex items-center justify-between text-[10px] bg-slate-950">
+                        <span className="font-semibold text-slate-300 truncate max-w-[85px]" title={item.title}>
                           {item.title}
                         </span>
                         <button
@@ -869,7 +934,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                           className="text-slate-500 hover:text-slate-300 transition"
                           title="View Info"
                         >
-                          <Eye className="w-3 h-3" />
+                          <Eye className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     </div>
@@ -877,7 +942,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                 })}
               </div>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {filteredMedia.map(item => {
                   const isVideoItem = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
                   const isAdded = addedItemId === item.id;
@@ -885,11 +950,11 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between p-2 bg-slate-950 border border-slate-800 rounded-lg hover:border-cyan-500/50 transition group"
+                      className="flex items-center justify-between p-1.5 bg-slate-950 border border-slate-800 rounded-md hover:border-cyan-500/50 transition group"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div 
-                          className="relative w-14 h-9 rounded bg-black overflow-hidden shrink-0 border border-slate-800 flex items-center justify-center cursor-pointer"
+                          className="relative w-12 h-8 rounded bg-black overflow-hidden shrink-0 border border-slate-800 flex items-center justify-center cursor-pointer"
                           onClick={() => setPreviewingItem(item)}
                           title="Click to preview"
                         >
@@ -903,7 +968,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                                 preload="metadata"
                               />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10">
-                                <Play className="w-3 h-3 fill-white text-white" />
+                                <Play className="w-2.5 h-2.5 fill-white text-white" />
                               </div>
                             </>
                           ) : (
@@ -911,19 +976,13 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-slate-200 truncate">{item.title}</p>
-                          <p className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
+                          <p className="text-[11px] font-semibold text-slate-200 truncate max-w-[95px]">{item.title}</p>
+                          <p className="text-[9px] text-slate-500 uppercase flex items-center gap-1">
                             <span className={isVideoItem ? 'text-cyan-400 font-bold' : 'text-purple-400 font-bold'}>
-                              {isVideoItem ? 'VIDEO' : 'IMAGE'}
+                              {isVideoItem ? 'VID' : 'IMG'}
                             </span>
                             <span>•</span>
                             <span>{item.duration || 4}s</span>
-                            {item.category && (
-                              <>
-                                <span>•</span>
-                                <span className="truncate max-w-[90px]">{item.category}</span>
-                              </>
-                            )}
                           </p>
                         </div>
                       </div>
@@ -1001,41 +1060,130 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               )}
             </div>
 
+            {/* Voiceovers & Imported Audio (Saved in Media Library) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                  <Mic className="w-3 h-3 text-emerald-400" />
+                  <span>Voiceovers & Imported Audio</span>
+                </h4>
+                <span className="px-1.5 py-0.2 bg-emerald-950/60 border border-emerald-800/60 text-[9px] text-emerald-300 font-mono rounded">
+                  {importedVoiceovers.length}
+                </span>
+              </div>
+
+              {importedVoiceovers.length === 0 ? (
+                <div className="p-3 rounded-lg border border-dashed border-slate-800 bg-slate-950/40 text-center space-y-1.5">
+                  <p className="text-[10px] text-slate-400">No generated voiceovers yet.</p>
+                  {onOpenVoiceStudio && (
+                    <button
+                      onClick={onOpenVoiceStudio}
+                      className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-[10px] text-emerald-300 rounded font-semibold transition cursor-pointer"
+                    >
+                      + Generate Voice in Voice Studio
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-0.5 custom-scrollbar">
+                  {importedVoiceovers.map(item => {
+                    const isPreviewPlaying = playingAudioUrl === item.url;
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-1.5 bg-slate-950 border border-emerald-900/40 hover:border-emerald-500/60 rounded-md flex items-center justify-between transition group"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <button
+                            onClick={() => togglePlayAudioPreview(item.url)}
+                            className={`w-6 h-6 rounded flex items-center justify-center shrink-0 transition cursor-pointer ${
+                              isPreviewPlaying
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-emerald-950/60 text-emerald-400 hover:bg-emerald-800/80 hover:text-white'
+                            }`}
+                            title={isPreviewPlaying ? 'Pause' : 'Play Preview'}
+                          >
+                            {isPreviewPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
+                          </button>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold text-slate-200 truncate max-w-[120px]">{item.title}</p>
+                            <p className="text-[9px] text-emerald-400 font-mono flex items-center gap-1">
+                              <span>{item.category || 'AI Voiceover'}</span>
+                              <span>•</span>
+                              <span>{Math.round(item.duration || 6)}s</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              onAddAudioToTimeline({
+                                id: item.id,
+                                title: item.title,
+                                artist: item.engine || 'NepalAI Voiceover',
+                                url: item.url,
+                                duration: item.duration || 8,
+                                volume: 100,
+                                genre: 'Voiceover',
+                                type: 'voiceover'
+                              });
+                            }}
+                            className="p-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded transition cursor-pointer font-bold"
+                            title="Add to Voiceover Track"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteMedia(item.id, e)}
+                            className="p-1 text-slate-600 hover:text-rose-400 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* BGM Soundtracks */}
             <div>
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Soundtracks (BGM)</h4>
-              <div className="space-y-1.5">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Soundtracks (BGM)</h4>
+              <div className="space-y-1">
                 {audioTracks.map(track => {
                   const isPreviewPlaying = playingAudioUrl === track.url;
                   return (
                     <div
                       key={track.id}
-                      className="p-2 bg-slate-950 border border-slate-800/90 rounded-lg flex items-center justify-between hover:border-purple-500/50 transition group"
+                      className="p-1.5 bg-slate-950 border border-slate-800/90 rounded-md flex items-center justify-between hover:border-purple-500/50 transition group"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <button
                           onClick={() => togglePlayAudioPreview(track.url)}
-                          className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition cursor-pointer ${
+                          className={`w-6 h-6 rounded flex items-center justify-center shrink-0 transition cursor-pointer ${
                             isPreviewPlaying 
                               ? 'bg-purple-500 text-white' 
                               : 'bg-purple-950/60 text-purple-400 hover:bg-purple-800/80 hover:text-white'
                           }`}
-                          title={isPreviewPlaying ? 'Pause Preview' : 'Play Preview'}
+                          title={isPreviewPlaying ? 'Pause' : 'Play'}
                         >
-                          {isPreviewPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                          {isPreviewPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
                         </button>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-200 truncate">{track.title}</p>
-                          <p className="text-[10px] text-purple-400 font-mono">{track.genre || 'Soundtrack'} • {track.duration || 30}s</p>
+                          <p className="text-[11px] font-bold text-slate-200 truncate max-w-[130px]">{track.title}</p>
+                          <p className="text-[9px] text-purple-400 font-mono">{track.genre || 'Soundtrack'} • {track.duration || 30}s</p>
                         </div>
                       </div>
 
                       <button
                         onClick={() => onAddAudioToTimeline(track)}
-                        className="p-1.5 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white rounded-md transition cursor-pointer font-bold"
-                        title="Apply Track to Timeline"
+                        className="p-1 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white rounded transition cursor-pointer font-bold"
+                        title="Add to Timeline"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
                   );
@@ -1045,39 +1193,39 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
 
             {/* Sound Effects (SFX) */}
             <div>
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Sound Effects (SFX)</h4>
-              <div className="space-y-1.5">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Sound Effects (SFX)</h4>
+              <div className="space-y-1">
                 {sfxLibrary.map(sfx => {
                   const isPreviewPlaying = playingAudioUrl === sfx.url;
                   return (
                     <div
                       key={sfx.id}
-                      className="p-2 bg-slate-950 border border-slate-800/90 rounded-lg flex items-center justify-between hover:border-amber-500/50 transition group"
+                      className="p-1.5 bg-slate-950 border border-slate-800/90 rounded-md flex items-center justify-between hover:border-amber-500/50 transition group"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <button
                           onClick={() => togglePlayAudioPreview(sfx.url)}
-                          className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition cursor-pointer ${
+                          className={`w-6 h-6 rounded flex items-center justify-center shrink-0 transition cursor-pointer ${
                             isPreviewPlaying 
                               ? 'bg-amber-500 text-slate-950 font-black' 
                               : 'bg-amber-950/60 text-amber-400 hover:bg-amber-800/80 hover:text-white'
                           }`}
-                          title={isPreviewPlaying ? 'Pause Preview' : 'Play Preview'}
+                          title={isPreviewPlaying ? 'Pause' : 'Play'}
                         >
-                          {isPreviewPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                          {isPreviewPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
                         </button>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-200 truncate">{sfx.title}</p>
-                          <p className="text-[10px] text-amber-400 font-mono">{sfx.genre} • {sfx.duration}s</p>
+                          <p className="text-[11px] font-bold text-slate-200 truncate max-w-[130px]">{sfx.title}</p>
+                          <p className="text-[9px] text-amber-400 font-mono">{sfx.genre} • {sfx.duration}s</p>
                         </div>
                       </div>
 
                       <button
                         onClick={() => onAddAudioToTimeline(sfx)}
-                        className="p-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-slate-950 rounded-md transition cursor-pointer font-bold"
-                        title="Apply SFX to Timeline"
+                        className="p-1 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-slate-950 rounded transition cursor-pointer font-bold"
+                        title="Add to Timeline"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
                   );
@@ -1578,6 +1726,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

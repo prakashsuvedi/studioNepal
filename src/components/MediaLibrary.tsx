@@ -76,7 +76,7 @@ const PREDEFINED_PRODUCTION_ASSETS: MediaAssetItem[] = [
     id: 'vid-kathmandu-street',
     title: 'Kathmandu Durbar Square 4K',
     category: 'video',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    url: '/samples/ForBiggerBlazes.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1590736963159-c3d40fd7df93?q=80&w=400&auto=format&fit=crop',
     duration: 10,
     tags: ['video', 'kathmandu', 'heritage']
@@ -85,7 +85,7 @@ const PREDEFINED_PRODUCTION_ASSETS: MediaAssetItem[] = [
     id: 'vid-everest-timelapse',
     title: 'Mount Everest Sunrise Drone',
     category: 'video',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    url: '/samples/ForBiggerEscapes.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=400&auto=format&fit=crop',
     duration: 12,
     tags: ['video', 'everest', 'mountains']
@@ -94,7 +94,7 @@ const PREDEFINED_PRODUCTION_ASSETS: MediaAssetItem[] = [
     id: 'vid-pokhara-lake',
     title: 'Phewa Lake Peaceful Drift 4K',
     category: 'video',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    url: '/samples/TearsOfSteel.mp4',
     previewUrl: 'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?q=80&w=400&auto=format&fit=crop',
     duration: 15,
     tags: ['video', 'pokhara', 'nature']

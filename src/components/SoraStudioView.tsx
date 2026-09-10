@@ -16,9 +16,13 @@ import {
   Copy,
   CheckCheck,
   SlidersHorizontal,
-  Sliders
+  Sliders,
+  Trash2,
+  Plus,
+  CheckCircle2,
+  FolderHeart
 } from 'lucide-react';
-import { saveMediaItem } from '../lib/mediaLibrary';
+import { saveMediaItem, getMediaLibrary, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
 
 interface SoraStudioViewProps {
   initialPrompt?: string;
@@ -87,10 +91,24 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [jobProgress, setJobProgress] = useState(0);
   const [videoResultUrl, setVideoResultUrl] = useState<string>(
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    '/samples/ForBiggerBlazes.mp4'
   );
   const [addedSuccess, setAddedSuccess] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [historyVideos, setHistoryVideos] = useState<MediaItem[]>(() => 
+    getMediaLibrary().filter(m => m.type === 'sora_video')
+  );
+  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
+  const [historyAddedId, setHistoryAddedId] = useState<string | null>(null);
+  const [previewingItem, setPreviewingItem] = useState<MediaItem | null>(null);
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setHistoryVideos(getMediaLibrary().filter(m => m.type === 'sora_video'));
+    };
+    window.addEventListener('nepalai_media_library_updated', handleUpdate);
+    return () => window.removeEventListener('nepalai_media_library_updated', handleUpdate);
+  }, []);
 
   // Devanagari detection
   const hasDevanagari = /[\u0900-\u097F]/.test(prompt);
@@ -155,7 +173,11 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         effectiveUserId,
         prompt,
         parseInt(seconds) || 4,
-        'sora-2'
+        'sora-2',
+        {
+          resolution,
+          aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+        }
       );
 
       let finalUrl = data.result?.url;
@@ -211,7 +233,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         setVideoResultUrl(finalUrl);
 
         // Save generated video to persistent Global Media Library
-        saveMediaItem({
+        const savedItem = saveMediaItem({
           type: 'sora_video',
           title: 'Sora-2: ' + prompt.slice(0, 30),
           url: finalUrl,
@@ -222,31 +244,8 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           resolution,
           engine: 'Azure Sora-2'
         });
-
-        // Auto-add directly to Video Studio timeline & navigate to video studio
-        const newScene: Scene = {
-          id: 'scene-sora-' + Math.random().toString(36).substring(2, 9),
-          title: 'Sora-2: ' + prompt.slice(0, 20),
-          duration: parseInt(seconds) || 4,
-          prompt,
-          promptNepali: hasDevanagari ? prompt : videoSubtitle || prompt,
-          mediaUrl: finalUrl,
-          mediaType: finalUrl.includes('.mp4') || finalUrl.includes('.webm') || finalUrl.includes('video') ? 'video' : 'image',
-          aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
-          motion: 'zoom_in',
-          transition: 'dissolve',
-          textOverlay: (videoSubtitle || prompt).slice(0, 32),
-          textNepali: (hasDevanagari ? prompt : videoSubtitle).slice(0, 32),
-          textPosition: 'lower_third',
-          textColor: '#ffffff',
-          textFont: 'devanagari',
-          filter: 'cinematic',
-          volume: 85
-        };
-        onAddSceneToVideo(newScene);
-        if (onNavigateToTimeline) {
-          onNavigateToTimeline();
-        }
+        setLastSavedId(savedItem.id);
+        setAddedSuccess(false);
       }
       setJobProgress(100);
       if (onUsageUpdated && data.trialUsage) {
@@ -270,12 +269,14 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const handleAddToTimeline = () => {
     const newScene: Scene = {
       id: 'scene-sora-' + Math.random().toString(36).substring(2, 9),
+      assetId: lastSavedId || ('media-sora-' + Date.now()),
       title: 'Sora-2: ' + prompt.slice(0, 20),
-      duration: parseInt(seconds),
+      duration: parseInt(seconds) || 5,
       prompt,
       promptNepali: hasDevanagari ? prompt : videoSubtitle || prompt,
       mediaUrl: videoResultUrl,
-      mediaType: videoResultUrl.includes('.mp4') || videoResultUrl.includes('.webm') || videoResultUrl.includes('video') ? 'video' : 'image',
+      thumbnailUrl: videoResultUrl.endsWith('.mp4') ? videoResultUrl.replace(/\.mp4$/, '_thumb.jpg') : undefined,
+      mediaType: 'video',
       aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
       motion: 'zoom_in',
       transition: 'dissolve',
@@ -289,7 +290,41 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     };
     onAddSceneToVideo(newScene);
     setAddedSuccess(true);
-    setTimeout(() => setAddedSuccess(false), 3000);
+    setTimeout(() => setAddedSuccess(false), 3500);
+  };
+
+  // Add an item from persistent history to timeline
+  const handleAddHistoryItemToTimeline = (item: MediaItem) => {
+    const newScene: Scene = {
+      id: 'scene-sora-' + Math.random().toString(36).substring(2, 9),
+      assetId: item.id,
+      title: item.title || 'Sora Video Scene',
+      duration: item.duration || 5,
+      prompt: item.prompt || item.title,
+      promptNepali: item.prompt || item.title,
+      mediaUrl: item.url,
+      thumbnailUrl: item.thumbnailUrl || (item.url.endsWith('.mp4') ? item.url.replace(/\.mp4$/, '_thumb.jpg') : undefined),
+      mediaType: 'video',
+      aspectRatio: item.aspectRatio || '16:9',
+      motion: 'zoom_in',
+      transition: 'dissolve',
+      textOverlay: (item.prompt || item.title).slice(0, 32),
+      textNepali: (item.prompt || item.title).slice(0, 32),
+      textPosition: 'lower_third',
+      textColor: '#ffffff',
+      textFont: 'devanagari',
+      filter: 'cinematic',
+      volume: 85
+    };
+    onAddSceneToVideo(newScene);
+    setHistoryAddedId(item.id);
+    setTimeout(() => setHistoryAddedId(null), 3000);
+  };
+
+  const handleDeleteHistoryItem = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    removeMediaItem(id);
+    setHistoryVideos(prev => prev.filter(m => m.id !== id));
   };
 
   return (
@@ -623,6 +658,213 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Persistent Sora Videos Gallery & History Section */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <FolderHeart className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Generated Sora Video History & Persistent Library</h3>
+              <p className="text-xs text-slate-500">
+                All Sora videos generated here persist automatically. Add them to your Video Studio timeline at any time using stable asset IDs.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold font-mono">
+              {historyVideos.length} Video Clips
+            </span>
+            {onNavigateToTimeline && (
+              <button
+                type="button"
+                onClick={onNavigateToTimeline}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Film className="w-3.5 h-3.5 text-slate-600" />
+                <span>View Timeline</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {historyVideos.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+            <Video className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400" />
+            <p className="text-xs font-medium text-slate-500">No generated Sora videos in library yet</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Generate a video clip above to automatically save and reference it here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {historyVideos.map((item) => (
+              <div 
+                key={item.id}
+                className="bg-slate-50 rounded-xl border border-slate-200/80 overflow-hidden flex flex-col justify-between hover:shadow-md transition group"
+              >
+                <div 
+                  onClick={() => setPreviewingItem(item)}
+                  className="relative aspect-video w-full bg-slate-900 overflow-hidden cursor-pointer"
+                >
+                  {item.thumbnailUrl ? (
+                    <img
+                      src={item.thumbnailUrl}
+                      alt={item.title}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                  ) : (
+                    <video
+                      src={item.url}
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 flex items-center justify-center transition">
+                    <div className="w-9 h-9 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center shadow-lg transition">
+                      <Play className="w-4 h-4 text-indigo-600 ml-0.5" />
+                    </div>
+                  </div>
+                  <div className="absolute top-2 left-2">
+                    <span className="px-2 py-0.5 rounded bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
+                      Sora-2
+                    </span>
+                  </div>
+                  <div className="absolute bottom-2 right-2">
+                    <span className="px-1.5 py-0.5 rounded bg-black/75 text-[10px] font-mono text-white">
+                      {item.duration || 4}s
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 space-y-2.5 flex-1 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-slate-900 truncate" title={item.title}>
+                      {item.title}
+                    </h4>
+                    {item.prompt && (
+                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed" title={item.prompt}>
+                        {item.prompt}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleAddHistoryItemToTimeline(item)}
+                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition shadow-xs cursor-pointer ${
+                        historyAddedId === item.id 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      }`}
+                    >
+                      {historyAddedId === item.id ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Added!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add to Studio</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPreviewingItem(item)}
+                      title="Play Preview"
+                      className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                    </button>
+
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      download={`${item.title || 'sora_clip'}.mp4`}
+                      title="Download Video"
+                      className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteHistoryItem(item.id, e)}
+                      title="Delete from Library"
+                      className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Video Preview Modal */}
+      {previewingItem && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-2xl overflow-hidden max-w-3xl w-full border border-slate-800 shadow-2xl flex flex-col">
+            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-white truncate max-w-md">{previewingItem.title}</h4>
+                <p className="text-xs text-slate-400 font-mono">{previewingItem.duration || 4}s • {previewingItem.resolution || '1280x720'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewingItem(null)}
+                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+            <div className="bg-black flex items-center justify-center max-h-[60vh] overflow-hidden p-2">
+              <video
+                src={previewingItem.url}
+                controls
+                autoPlay
+                playsInline
+                className="max-h-[56vh] w-auto max-w-full rounded-lg"
+              />
+            </div>
+            <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-400 line-clamp-1 italic">{previewingItem.prompt || previewingItem.title}</p>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={previewingItem.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  download="sora_video.mp4"
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium transition flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleAddHistoryItemToTimeline(previewingItem);
+                    setPreviewingItem(null);
+                  }}
+                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>+ Add to Video Studio</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,7 +9,7 @@
       "tier": "pro_studio",
       "credits": 999999,
       "createdAt": "2026-08-01T10:00:00.000Z",
-      "updatedAt": "2026-09-07T05:17:37.606Z"
+      "updatedAt": "2026-09-09T03:15:01.094Z"
     },
     {
       "id": "usr_client_02",
@@ -87,6 +87,39 @@
       "credits": 500,
       "createdAt": "2026-09-07T05:17:07.003Z",
       "updatedAt": "2026-09-07T05:17:07.003Z"
+    },
+    {
+      "id": "usr_1788864709197_g4rfq",
+      "email": "creator_test@nepalai.tech",
+      "name": "Creator User",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "free_trial",
+      "credits": 500,
+      "createdAt": "2026-09-08T10:51:49.197Z",
+      "updatedAt": "2026-09-08T10:51:49.197Z"
+    },
+    {
+      "id": "usr_admin_01",
+      "email": "creator_usr_prakash_admin@nepalai.tech",
+      "name": "Creator User",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "role": "admin",
+      "tier": "pro_studio",
+      "credits": 999999,
+      "createdAt": "2026-09-08T11:19:49.858Z",
+      "updatedAt": "2026-09-08T11:19:49.858Z"
+    },
+    {
+      "id": "usr_admin_01",
+      "email": "creator_usr_default_admin@nepalai.tech",
+      "name": "Creator User",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "role": "admin",
+      "tier": "pro_studio",
+      "credits": 999999,
+      "createdAt": "2026-09-08T15:42:23.124Z",
+      "updatedAt": "2026-09-08T15:42:23.124Z"
     }
   ],
   "trialUsage": {
@@ -102,10 +135,10 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 99999,
-      "totalTokensUsed": 221900,
-      "lastUsedAt": "2026-09-07T07:38:47.476Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T03:41:11.659Z"
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-08T15:42:23.124Z",
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.741Z"
     },
     "usr_client_02": {
       "userId": "usr_client_02",
@@ -121,8 +154,8 @@
       "maxRenders": 50,
       "totalTokensUsed": 52400,
       "lastUsedAt": "2026-09-02T14:15:00.000Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T04:35:18.816Z"
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.742Z"
     },
     "usr_client_03": {
       "userId": "usr_client_03",
@@ -138,8 +171,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 4200,
       "lastUsedAt": "2026-09-03T11:20:00.000Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T04:35:18.950Z"
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.742Z"
     },
     "usr_client_04": {
       "userId": "usr_client_04",
@@ -155,8 +188,8 @@
       "maxRenders": 10,
       "totalTokensUsed": 21800,
       "lastUsedAt": "2026-09-03T08:10:00.000Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T04:35:19.061Z"
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.742Z"
     },
     "usr-google-prakash": {
       "userId": "usr-google-prakash",
@@ -187,8 +220,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-04T07:43:50.345Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T04:35:19.170Z"
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.743Z"
     },
     "usr_1788507920932_feh9u": {
       "userId": "usr_1788507920932_feh9u",
@@ -204,8 +237,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 700,
       "lastUsedAt": "2026-09-04T07:48:58.626Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T04:35:19.276Z"
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.743Z"
     },
     "usr_1788664974375_fa6my": {
       "userId": "usr_1788664974375_fa6my",
@@ -221,8 +254,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-06T03:22:54.375Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T04:35:19.381Z"
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.743Z"
     },
     "usr_smoke_test_prakash": {
       "userId": "usr_smoke_test_prakash",
@@ -255,8 +288,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-07T05:17:07.003Z",
-      "lastResetDate": "2026-09-07",
-      "lastResetAt": "2026-09-07T05:43:49.684Z"
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.744Z"
     },
     "user_1": {
       "userId": "user_1",
@@ -274,6 +307,74 @@
       "lastUsedAt": "2026-09-07T05:17:07.152Z",
       "lastResetDate": "2026-09-07",
       "lastResetAt": "2026-09-07T05:17:07.152Z"
+    },
+    "usr_1788864709197_g4rfq": {
+      "userId": "usr_1788864709197_g4rfq",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-08T10:51:49.197Z",
+      "lastResetDate": "2026-09-10",
+      "lastResetAt": "2026-09-10T09:18:41.744Z"
+    },
+    "test": {
+      "userId": "test",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-08T10:51:49.197Z",
+      "lastResetDate": "2026-09-08",
+      "lastResetAt": "2026-09-08T10:51:49.197Z"
+    },
+    "usr_prakash_admin": {
+      "userId": "usr_prakash_admin",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-08T11:20:08.051Z",
+      "lastResetDate": "2026-09-08",
+      "lastResetAt": "2026-09-08T11:20:08.051Z"
+    },
+    "usr_default_admin": {
+      "userId": "usr_default_admin",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-08T15:42:38.853Z",
+      "lastResetDate": "2026-09-08",
+      "lastResetAt": "2026-09-08T15:42:38.853Z"
     }
   },
   "transactions": [
@@ -305,6 +406,102 @@
     }
   ],
   "generationLogs": [
+    {
+      "id": "gen_1788880651388_5lnf",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते अंकल, नमस्ते आन्टी ! म नयाँ कथा सुनाउँछु है।",
+      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T15:17:31.388Z"
+    },
+    {
+      "id": "gen_1788880616239_mly1",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-HemkalaNeural",
+      "prompt": "पसलको चहलपहल र नेपाली संवादको पृष्ठभूमि आवाज।",
+      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T15:16:56.239Z"
+    },
+    {
+      "id": "gen_1788880609288_q23h",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-HemkalaNeural",
+      "prompt": "हिमालयको चिसो हावा र घन्टीको मधुर धुन।",
+      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T15:16:49.288Z"
+    },
+    {
+      "id": "gen_1788880595523_m040",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-HemkalaNeural",
+      "prompt": "नमस्ते, म एना हुँ ! मलाई जादुई परीका कथाहरू मन पर्छ।",
+      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T15:16:35.523Z"
+    },
+    {
+      "id": "gen_1788880586977_v0hx",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते अंकल, नमस्ते आन्टी ! म नयाँ कथा सुनाउँछु है।",
+      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T15:16:26.977Z"
+    },
+    {
+      "id": "gen_1788880584129_jggs",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-HemkalaNeural",
+      "prompt": "सानी नानी कान्ति ! नेपाली बाल कथा वाचनको लागि उत्तम।",
+      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T15:16:24.129Z"
+    },
+    {
+      "id": "gen_1788865934151_n3uz",
+      "userId": "usr_admin_01",
+      "type": "image",
+      "model": "gpt-image-1.5 (High-Res Photorealistic)",
+      "prompt": "generate flower in the middle of lake",
+      "resultUrl": "/api/storage/file/gpt_image_1788865933813_z8uq.png",
+      "tokensCost": 350,
+      "creditsCost": 5,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T11:12:14.151Z"
+    },
+    {
+      "id": "gen_1788865857863_aqa7",
+      "userId": "usr_admin_01",
+      "type": "image",
+      "model": "gpt-image-1.5 (High-Res Photorealistic)",
+      "prompt": "generate sharukh khan in everest smilling",
+      "resultUrl": "/api/storage/file/gpt_image_1788865857140_2v1c.png",
+      "tokensCost": 350,
+      "creditsCost": 5,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-08T11:10:57.863Z"
+    },
     {
       "id": "gen_1788526980779_9ey2",
       "userId": "usr_admin_01",

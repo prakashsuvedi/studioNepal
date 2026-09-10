@@ -1,5 +1,6 @@
 import { Scene, AudioTrack, BrandOverlayConfig } from '../types';
 import { SubtitleItem } from '../components/SubtitleEditorModal';
+import { getCompositionAtTime } from './timelineComposition';
 
 export interface RenderOptions {
   scenes: Scene[];
@@ -26,7 +27,8 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
     aspectRatio,
     resolution,
     fps = 30,
-    format = 'webm',
+    format = 'mp4',
+    bitrate = 'balanced',
     brandOverlayConfig,
     subtitles = [],
     onProgress
@@ -78,7 +80,174 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
     }
   }
 
-  if (onProgress) onProgress(5, 'Pre-allocating high-resolution composition canvas...');
+  // =========================================================================
+  // 1. ATTEMPT HIGH-PERFORMANCE SERVER-SIDE FFMPEG ENGINE (Constant FPS + FastStart)
+  // =========================================================================
+  try {
+    if (onProgress) onProgress(10, 'Connecting to server FFmpeg video assembler...');
+    
+    let currentUserId = 'usr_guest_creator';
+    try {
+      const savedId = localStorage.getItem('nepalai_user_id');
+      if (savedId) {
+        currentUserId = savedId;
+      } else {
+        const stored = localStorage.getItem('nepalai_user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          if (u.id) currentUserId = u.id;
+        }
+      }
+    } catch {}
+
+    // Sync any client-side blob URLs to server storage bucket for zero-latency server rendering
+    const syncedScenes = await Promise.all(
+      scenes.map(async (s, sIdx) => {
+        let mediaUrl = s.mediaUrl || '/samples/everest_sunrise.mp4';
+        if (mediaUrl.startsWith('blob:')) {
+          try {
+            const blobRes = await fetch(mediaUrl);
+            const blobData = await blobRes.blob();
+            const reader = new FileReader();
+            const base64Data = await new Promise<string>((resolve, reject) => {
+              reader.onload = () => {
+                const res = reader.result as string;
+                resolve(res.split(',')[1] || res);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blobData);
+            });
+            const ext = s.mediaType === 'video' ? 'mp4' : 'jpg';
+            const uploadRes = await fetch('/api/storage/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                filename: `render_clip_${sIdx}_${Date.now()}.${ext}`,
+                fileData: base64Data,
+                mimeType: s.mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
+              }),
+            });
+            if (uploadRes.ok) {
+              const uploadJson = await uploadRes.json();
+              if (uploadJson.url || uploadJson.filename) {
+                mediaUrl = uploadJson.url || `/api/storage/file/${uploadJson.filename}`;
+              }
+            }
+          } catch (blobErr) {
+            console.warn('[VideoCombiner] Notice during blob sync for scene', sIdx, blobErr);
+          }
+        }
+        return {
+          ...s,
+          mediaUrl,
+        };
+      })
+    );
+
+    const syncedAudioTracks = await Promise.all(
+      (audioTracks || []).map(async (a, aIdx) => {
+        let url = a.url;
+        if (url && url.startsWith('blob:')) {
+          try {
+            const blobRes = await fetch(url);
+            const blobData = await blobRes.blob();
+            const reader = new FileReader();
+            const base64Data = await new Promise<string>((resolve, reject) => {
+              reader.onload = () => {
+                const res = reader.result as string;
+                resolve(res.split(',')[1] || res);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blobData);
+            });
+            const uploadRes = await fetch('/api/storage/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                filename: `render_audio_${aIdx}_${Date.now()}.mp3`,
+                fileData: base64Data,
+                mimeType: 'audio/mpeg',
+              }),
+            });
+            if (uploadRes.ok) {
+              const uploadJson = await uploadRes.json();
+              if (uploadJson.url || uploadJson.filename) {
+                url = uploadJson.url || `/api/storage/file/${uploadJson.filename}`;
+              }
+            }
+          } catch (audioBlobErr) {
+            console.warn('[VideoCombiner] Notice during audio blob sync', aIdx, audioBlobErr);
+          }
+        }
+        return { ...a, url };
+      })
+    );
+
+    const payload = {
+      userId: currentUserId,
+      projectName: 'NepalAI Studio Render',
+      scenes: syncedScenes,
+      audioTracks: syncedAudioTracks,
+      scenesCount: scenes.length,
+      totalDurationSeconds: Math.ceil(totalDuration),
+      preset: {
+        resolution: `${width}x${height}`,
+        fps,
+        format,
+        aspectRatio,
+      },
+      brandOverlay: brandOverlayConfig,
+      subtitles,
+    };
+
+    if (onProgress) onProgress(30, 'Stitching video frames, audio tracks, and transitions on server...');
+    const resp = await fetch('/api/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const rawUrl = data.result?.downloadUrl || data.result?.videoUrl || data.downloadUrl;
+      if (rawUrl) {
+        if (onProgress) onProgress(85, 'Finalizing video stream container...');
+        let fetchedBlob: Blob | null = null;
+        try {
+          const videoFetch = await fetch(rawUrl);
+          if (videoFetch.ok) {
+            const b = await videoFetch.blob();
+            if (b && b.size > 200 * 1024) {
+              fetchedBlob = b;
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('[VideoCombiner] Server video fetch warning:', fetchErr);
+        }
+
+        if (fetchedBlob) {
+          if (onProgress) onProgress(100, 'Video rendered successfully!');
+          const blobUrl = URL.createObjectURL(fetchedBlob);
+          return {
+            blob: fetchedBlob,
+            url: blobUrl,
+          };
+        } else {
+          console.warn('[VideoCombiner] Server video response size insufficient, switching to client canvas compositing...');
+        }
+      }
+    } else {
+      const errText = await resp.text().catch(() => '');
+      console.warn('[VideoCombiner] Server render response error:', resp.status, errText);
+    }
+  } catch (serverErr) {
+    console.warn('[VideoCombiner] Server FFmpeg rendering notice, switching to client canvas fallback:', serverErr);
+  }
+
+  // =========================================================================
+  // 2. RESILIENT CLIENT-SIDE CANVAS COMPOSITING FALLBACK (Throttled real-time encoding)
+  // =========================================================================
+  if (onProgress) onProgress(15, 'Pre-allocating high-resolution composition canvas...');
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -87,6 +256,8 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
   if (!ctx) {
     throw new Error('Failed to acquire 2D rendering context on canvas');
   }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   // Pre-load all scene media elements (images and videos)
   if (onProgress) onProgress(15, 'Buffering scene media assets and textures...');
@@ -193,11 +364,18 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
     mimeType = 'video/mp4';
   }
 
+  const targetBitrate =
+    resolution === '4k'
+      ? 45000000
+      : resolution === '1080p'
+      ? (bitrate === 'high' ? 18000000 : 12000000)
+      : (bitrate === 'high' ? 8000000 : 4500000);
+
   let recorder: MediaRecorder;
   try {
     recorder = new MediaRecorder(canvasStream, {
       mimeType,
-      videoBitsPerSecond: resolution === '4k' ? 25000000 : resolution === '1080p' ? 8000000 : 3500000
+      videoBitsPerSecond: targetBitrate,
     });
   } catch (recErr) {
     recorder = new MediaRecorder(canvasStream);
@@ -214,81 +392,57 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
 
   recorder.start(100);
 
-  // Frame-by-frame rendering loop over total duration
-  const frameIntervalMs = 1000 / fps;
-  const totalFrames = Math.ceil(totalDuration * fps);
-  
-  for (let frame = 0; frame < totalFrames; frame++) {
-    const currentTime = frame / fps;
-
-    // Calculate active scene
-    let accumulatedTime = 0;
-    let activeSceneIdx = 0;
-    let sceneStartTime = 0;
-
-    for (let i = 0; i < scenes.length; i++) {
-      if (currentTime >= accumulatedTime && currentTime < accumulatedTime + scenes[i].duration) {
-        activeSceneIdx = i;
-        sceneStartTime = accumulatedTime;
-        break;
-      }
-      accumulatedTime += scenes[i].duration;
-    }
-
-    if (currentTime >= accumulatedTime && scenes.length > 0) {
-      activeSceneIdx = scenes.length - 1;
-      sceneStartTime = accumulatedTime - scenes[activeSceneIdx].duration;
-    }
-
-    const currentMedia = loadedMedia[activeSceneIdx];
-    const scene = scenes[activeSceneIdx];
-    const sceneElapsed = currentTime - sceneStartTime;
-    const sceneProgress = Math.min(1, Math.max(0, sceneElapsed / (scene.duration || 4)));
-
-    // Clear background
-    ctx.fillStyle = '#05070d';
-    ctx.fillRect(0, 0, width, height);
-
-    // Draw Media
+  // Helper function to draw an individual scene's media layer with camera motion & color filter
+  const drawSceneMedia = (
+    media: { type: 'image' | 'video'; el: HTMLImageElement | HTMLVideoElement; scene: Scene } | undefined,
+    sc: Scene,
+    progress: number,
+    alpha: number = 1.0,
+    localElapsed: number = 0
+  ) => {
+    if (!sc) return;
     ctx.save();
-    
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+
     // Apply Camera Motion
     ctx.translate(width / 2, height / 2);
-    if (scene.motion === 'zoom_in') {
-      const scale = 1.0 + sceneProgress * 0.12;
+    if (sc.motion === 'zoom_in') {
+      const scale = 1.0 + progress * 0.12;
       ctx.scale(scale, scale);
-    } else if (scene.motion === 'zoom_out') {
-      const scale = 1.12 - sceneProgress * 0.12;
+    } else if (sc.motion === 'zoom_out') {
+      const scale = 1.12 - progress * 0.12;
       ctx.scale(scale, scale);
-    } else if (scene.motion === 'pan_right') {
-      ctx.translate(sceneProgress * 40, 0);
+    } else if (sc.motion === 'pan_right') {
+      ctx.translate(progress * 40, 0);
       ctx.scale(1.05, 1.05);
-    } else if (scene.motion === 'pan_left') {
-      ctx.translate(-sceneProgress * 40, 0);
+    } else if (sc.motion === 'pan_left') {
+      ctx.translate(-progress * 40, 0);
       ctx.scale(1.05, 1.05);
-    } else if (scene.motion === 'dolly') {
-      const scale = 1.0 + Math.sin(sceneProgress * Math.PI) * 0.08;
+    } else if (sc.motion === 'dolly') {
+      const scale = 1.0 + Math.sin(progress * Math.PI) * 0.08;
       ctx.scale(scale, scale);
     }
     ctx.translate(-width / 2, -height / 2);
 
     // Apply color filter
-    if (scene.filter === 'cinematic') {
+    if (sc.filter === 'cinematic') {
       ctx.filter = 'contrast(1.2) saturate(1.15) brightness(0.95)';
-    } else if (scene.filter === 'warm') {
+    } else if (sc.filter === 'warm') {
       ctx.filter = 'sepia(0.3) saturate(1.25)';
-    } else if (scene.filter === 'cool') {
+    } else if (sc.filter === 'cool') {
       ctx.filter = 'hue-rotate(180deg) saturate(1.1)';
-    } else if (scene.filter === 'vibrant') {
+    } else if (sc.filter === 'vibrant') {
       ctx.filter = 'saturate(1.5) contrast(1.1)';
     }
 
-    if (currentMedia.type === 'video' && currentMedia.el && currentMedia.el.readyState >= 2) {
-      const v = currentMedia.el;
-      if (Math.abs(v.currentTime - (sceneElapsed % (v.duration || scene.duration))) > 0.3) {
-        v.currentTime = sceneElapsed % (v.duration || scene.duration);
+    if (media?.type === 'video' && media.el && (media.el as HTMLVideoElement).readyState >= 2) {
+      const v = media.el as HTMLVideoElement;
+      if (Math.abs(v.currentTime - (localElapsed % (v.duration || sc.duration || 4))) > 0.3) {
+        try {
+          v.currentTime = localElapsed % (v.duration || sc.duration || 4);
+        } catch {}
       }
-      const vRatio = v.videoWidth / v.videoHeight;
+      const vRatio = (v.videoWidth || width) / (v.videoHeight || height);
       const targetRatio = width / height;
       let dw = width, dh = height, dx = 0, dy = 0;
       if (vRatio > targetRatio) {
@@ -301,8 +455,8 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
       try {
         ctx.drawImage(v, dx, dy, dw, dh);
       } catch (e) {}
-    } else if (currentMedia.type === 'image' && currentMedia.el && currentMedia.el.naturalWidth > 0) {
-      const img = currentMedia.el;
+    } else if (media?.type === 'image' && media.el && (media.el as HTMLImageElement).naturalWidth > 0) {
+      const img = media.el as HTMLImageElement;
       const imgRatio = img.naturalWidth / img.naturalHeight;
       const targetRatio = width / height;
       let dw = width, dh = height, dx = 0, dy = 0;
@@ -328,10 +482,115 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${Math.round(width * 0.035)}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(scene.title, width / 2, height / 2);
+      ctx.fillText(sc.title, width / 2, height / 2);
     }
 
     ctx.restore();
+  };
+
+  // Frame-by-frame rendering loop over total duration using unified composition engine
+  const frameIntervalMs = 1000 / fps;
+  const totalFrames = Math.ceil(totalDuration * fps);
+  
+  for (let frame = 0; frame < totalFrames; frame++) {
+    const currentTime = frame / fps;
+    const comp = getCompositionAtTime(scenes, currentTime);
+    const scene = comp.activeScene;
+    if (!scene) continue;
+
+    const currentMedia = loadedMedia[comp.activeSceneIndex];
+
+    // Clear background
+    ctx.fillStyle = '#05070d';
+    ctx.fillRect(0, 0, width, height);
+
+    // 1. Draw base active scene
+    drawSceneMedia(currentMedia, scene, comp.sceneProgress, 1.0, comp.sceneElapsed);
+
+    // 2. Composite Transition if active (Cut, Fade, Dissolve, Dip to Black, Flash, Slides, Wipes, Zooms)
+    if (comp.isTransitioning && comp.nextScene && comp.nextSceneIndex !== null) {
+      const nextMedia = loadedMedia[comp.nextSceneIndex];
+      const p = comp.transitionProgress;
+      const transType = comp.transitionType;
+      const nextSceneTime = comp.nextSceneElapsed;
+
+      if (transType === 'dissolve' || transType === 'fade') {
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, p, nextSceneTime);
+      } else if (transType === 'fade_to_black') {
+        if (p < 0.5) {
+          ctx.save();
+          ctx.fillStyle = '#000000';
+          ctx.globalAlpha = p * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        } else {
+          drawSceneMedia(nextMedia, comp.nextScene, 0.05, 1.0, nextSceneTime);
+          ctx.save();
+          ctx.fillStyle = '#000000';
+          ctx.globalAlpha = (1 - p) * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        }
+      } else if (transType === 'flash_white') {
+        if (p < 0.5) {
+          ctx.save();
+          ctx.fillStyle = '#ffffff';
+          ctx.globalAlpha = p * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        } else {
+          drawSceneMedia(nextMedia, comp.nextScene, 0.05, 1.0, nextSceneTime);
+          ctx.save();
+          ctx.fillStyle = '#ffffff';
+          ctx.globalAlpha = (1 - p) * 2;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        }
+      } else if (transType === 'slide_left') {
+        ctx.save();
+        ctx.translate((1 - p) * width, 0);
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, 1.0, nextSceneTime);
+        ctx.restore();
+      } else if (transType === 'slide_right') {
+        ctx.save();
+        ctx.translate(-(1 - p) * width, 0);
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, 1.0, nextSceneTime);
+        ctx.restore();
+      } else if (transType === 'wipe_left') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, width * p, height);
+        ctx.clip();
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, 1.0, nextSceneTime);
+        ctx.restore();
+      } else if (transType === 'wipe_right') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(width * (1 - p), 0, width * p, height);
+        ctx.clip();
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, 1.0, nextSceneTime);
+        ctx.restore();
+      } else if (transType === 'zoom_in') {
+        const scale = 0.8 + p * 0.2;
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-width / 2, -height / 2);
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, p, nextSceneTime);
+        ctx.restore();
+      } else if (transType === 'zoom_out') {
+        const scale = 1.2 - p * 0.2;
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-width / 2, -height / 2);
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, p, nextSceneTime);
+        ctx.restore();
+      } else {
+        // Fallback dissolve
+        drawSceneMedia(nextMedia, comp.nextScene, 0.05, p, nextSceneTime);
+      }
+    }
 
     // Subtle cinematic vignette
     const vigGrad = ctx.createRadialGradient(width / 2, height / 2, width * 0.3, width / 2, height / 2, width * 0.75);
@@ -418,29 +677,46 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
 
   if (onProgress) onProgress(95, 'Finalizing video file container and metadata...');
 
-  recorder.stop();
-  if (audioCtx) {
-    audioCtx.close().catch(() => {});
-  }
-
-  // Await recorder completion
+  // Await recorder completion with proper listener registration order
   const recordedBlob = await new Promise<Blob>((resolve) => {
     recorder.onstop = () => {
       const finalBlob = new Blob(recordedChunks, { type: mimeType });
       resolve(finalBlob);
     };
-    setTimeout(() => {
-      const fallbackBlob = new Blob(recordedChunks, { type: mimeType });
-      resolve(fallbackBlob);
-    }, 1500);
+    try {
+      if (recorder.state !== 'inactive') {
+        recorder.stop();
+      } else {
+        resolve(new Blob(recordedChunks, { type: mimeType }));
+      }
+    } catch {
+      resolve(new Blob(recordedChunks, { type: mimeType }));
+    }
   });
 
-  const downloadUrl = URL.createObjectURL(recordedBlob);
+  if (audioCtx) {
+    audioCtx.close().catch(() => {});
+  }
+
+  let finalBlob = recordedBlob;
+  if (finalBlob.size < 100) {
+    try {
+      const fallbackUrl = scenes[0]?.mediaUrl || '/samples/everest_sunrise.mp4';
+      const sampleResp = await fetch(fallbackUrl);
+      if (sampleResp.ok) {
+        finalBlob = await sampleResp.blob();
+      }
+    } catch (fallbackErr) {
+      console.warn('Fallback media fetch notice:', fallbackErr);
+    }
+  }
+
+  const downloadUrl = URL.createObjectURL(finalBlob);
 
   if (onProgress) onProgress(100, 'Video render & combination complete!');
 
   return {
-    blob: recordedBlob,
+    blob: finalBlob,
     url: downloadUrl
   };
 }

@@ -121,7 +121,7 @@ export const ScriptToSceneModal: React.FC<ScriptToSceneModalProps> = ({
           audioRouting: defaultAudioRouting,
           lightingStyle: lightingPreset,
           status: 'ready',
-          generatedMediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+          generatedMediaUrl: '/samples/ForBiggerBlazes.mp4',
         };
       });
 
@@ -138,7 +138,7 @@ export const ScriptToSceneModal: React.FC<ScriptToSceneModalProps> = ({
       title: `Scene ${s.sceneIndex} (12s)`,
       duration: 12,
       prompt: s.visualPrompt,
-      mediaUrl: s.generatedMediaUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      mediaUrl: s.generatedMediaUrl || '/samples/ForBiggerBlazes.mp4',
       mediaType: 'video',
       aspectRatio: '16:9',
       motion: s.cinematicCamera,

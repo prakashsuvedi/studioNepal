@@ -7,6 +7,7 @@ import {
 import { UserSession, UserTrialQuota } from '../types';
 import { apiGenerateAudio, apiGetAudioSuggestions } from '../lib/api';
 import { VoiceWaveformVisualizer } from './VoiceWaveformVisualizer';
+import { saveMediaItem } from '../lib/mediaLibrary';
 
 interface VoiceStudioViewProps {
   initialText?: string;
@@ -33,32 +34,32 @@ interface VoiceItem {
 
 const VOICES: VoiceItem[] = [
   // Children
-  { id: 'kanti_child_ne', name: 'Kanti (Nepali Girl)', demographic: 'children', gender: 'Female', language: 'Nepali', role: 'Secondary Character', description: 'Sweet, bright, authentic child voiceover.', sampleText: 'सानी नानी कान्ति ! नेपाली बाल कथा वाचनको लागि उत्तम।', pitchShift: '+30%', speedShift: '1.06x' },
-  { id: 'sanjok_child_ne', name: 'Sanjok (Nepali Boy)', demographic: 'children', gender: 'Male', language: 'Nepali', role: 'Secondary Character', description: 'Energetic, cheerful young boy voice.', sampleText: 'नमस्ते अंकल, नमस्ते आन्टी ! म नयाँ कथा सुनाउँछु है।', pitchShift: '+30%', speedShift: '1.06x' },
-  { id: 'ana_child_en', name: 'Ana (English Child)', demographic: 'children', gender: 'Female', language: 'English', role: 'Secondary Character', description: 'Natural young English girl voice.', sampleText: 'Hi, I am Ana! I love reading magical fairy tales.', pitchShift: '+25%', speedShift: '1.05x' },
+  { id: 'kanti_child_ne', name: 'Kanti (Nepali Girl)', demographic: 'children', gender: 'Female', language: 'Nepali', role: 'Secondary Character', description: 'Sweet, bright, authentic natural child voiceover.', sampleText: 'सानी नानी कान्ति ! नेपाली बाल कथा वाचनको लागि उत्तम।', pitchShift: 'Natural', speedShift: '1.0x' },
+  { id: 'sanjok_child_ne', name: 'Sanjok (Nepali Boy)', demographic: 'children', gender: 'Male', language: 'Nepali', role: 'Secondary Character', description: 'Energetic, cheerful natural young boy voice.', sampleText: 'नमस्ते अंकल, नमस्ते आन्टी ! म नयाँ कथा सुनाउँछु है।', pitchShift: 'Natural', speedShift: '1.0x' },
+  { id: 'ana_child_en', name: 'Ana (English Child)', demographic: 'children', gender: 'Female', language: 'English', role: 'Secondary Character', description: 'Natural young English girl voice.', sampleText: 'Hi, I am Ana! I love reading magical fairy tales.', pitchShift: 'Natural', speedShift: '1.0x' },
 
   // Teens
-  { id: 'rohan_teen_ne', name: 'Rohan (Nepali Teen)', demographic: 'teen', gender: 'Male', language: 'Nepali', role: 'Secondary Character', description: 'Relatable, casual Nepali teenager.', sampleText: 'के छ साथीहरू? आज हामी नेपालएआई स्टुडियोको बारेमा कुरा गर्दैछौं।', pitchShift: '+12%', speedShift: '1.03x' },
-  { id: 'emily_teen_en', name: 'Emily (English Teen)', demographic: 'teen', gender: 'Female', language: 'English', role: 'Secondary Character', description: 'Bouncy, enthusiastic English teen voice.', sampleText: 'Hey guys! Welcome back to my lifestyle channel.', pitchShift: '+12%', speedShift: '1.03x' },
+  { id: 'rohan_teen_ne', name: 'Rohan (Nepali Teen)', demographic: 'teen', gender: 'Male', language: 'Nepali', role: 'Secondary Character', description: 'Relatable, casual natural Nepali teenager.', sampleText: 'के छ साथीहरू? आज हामी नेपालएआई स्टुडियोको बारेमा कुरा गर्दैछौं।', pitchShift: 'Natural', speedShift: '1.0x' },
+  { id: 'emily_teen_en', name: 'Emily (English Teen)', demographic: 'teen', gender: 'Female', language: 'English', role: 'Secondary Character', description: 'Bouncy, enthusiastic natural English teen voice.', sampleText: 'Hey guys! Welcome back to my lifestyle channel.', pitchShift: 'Natural', speedShift: '1.0x' },
 
   // Young Adults
-  { id: 'sita_ne', name: 'Sita (Nepali Natural)', demographic: 'young_adult', gender: 'Female', language: 'Nepali', role: 'Primary Narrator', description: 'Clear, elegant, and highly articulate.', sampleText: 'नमस्ते ! नेपालएआई स्टुडियोको नेपाली संवादात्मक वाचन केन्द्रमा स्वागत छ।', pitchShift: 'Default', speedShift: 'Default' },
-  { id: 'maya_en', name: 'Maya (English US)', demographic: 'young_adult', gender: 'Female', language: 'English', role: 'Primary Narrator', description: 'Professional, confident, clear presentation.', sampleText: 'Welcome to NepalAI Studio, the premier video production platform powered by AI.', pitchShift: 'Default', speedShift: 'Default' },
-  { id: 'jenny_en', name: 'Jenny (English Conversational)', demographic: 'young_adult', gender: 'Female', language: 'English', role: 'Secondary Character', description: 'Warm, conversational, and energetic.', sampleText: 'Awesome! Let\'s build the next-generation voice script together.', pitchShift: 'Default', speedShift: 'Default' },
+  { id: 'sita_ne', name: 'Sita (Nepali Natural)', demographic: 'young_adult', gender: 'Female', language: 'Nepali', role: 'Primary Narrator', description: 'Clear, elegant, and highly articulate natural female voice.', sampleText: 'नमस्ते ! नेपालएआई स्टुडियोको नेपाली संवादात्मक वाचन केन्द्रमा स्वागत छ।', pitchShift: 'Natural', speedShift: '1.0x' },
+  { id: 'maya_en', name: 'Maya (English US)', demographic: 'young_adult', gender: 'Female', language: 'English', role: 'Primary Narrator', description: 'Professional, confident, clear presentation voice.', sampleText: 'Welcome to NepalAI Studio, the premier video production platform powered by AI.', pitchShift: 'Natural', speedShift: '1.0x' },
+  { id: 'jenny_en', name: 'Jenny (English Conversational)', demographic: 'young_adult', gender: 'Female', language: 'English', role: 'Secondary Character', description: 'Warm, conversational, and energetic natural voice.', sampleText: 'Awesome! Let\'s build the next-generation voice script together.', pitchShift: 'Natural', speedShift: '1.0x' },
 
   // Adults
-  { id: 'aarav_ne', name: 'Aarav (Nepali Warm)', demographic: 'adult', gender: 'Male', language: 'Nepali', role: 'Primary Narrator', description: 'Warm, deep, baritone commercial narrator.', sampleText: 'नेपाली कला, संस्कृति र प्रविधि सँगै अगाडि बढ्दैछन्।', pitchShift: 'Default', speedShift: 'Default' },
-  { id: 'david_en', name: 'David (English Cinematic)', demographic: 'adult', gender: 'Male', language: 'English', role: 'Primary Narrator', description: 'Deep, dramatic storytelling voice.', sampleText: 'In a world where intelligence meets creativity, a new dawn arises.', pitchShift: 'Default', speedShift: 'Default' },
-  { id: 'emma_en', name: 'Emma (English Corporate)', demographic: 'adult', gender: 'Female', language: 'English', role: 'Primary Narrator', description: 'Corporate, professional corporate trainer.', sampleText: 'Our quarterly goals are highly aligned with the latest market indicators.', pitchShift: 'Default', speedShift: 'Default' },
+  { id: 'aarav_ne', name: 'Aarav (Nepali Warm)', demographic: 'adult', gender: 'Male', language: 'Nepali', role: 'Primary Narrator', description: 'Warm, deep, baritone natural narrator.', sampleText: 'नेपाली कला, संस्कृति र प्रविधि सँगै अगाडि बढ्दैछन्।', pitchShift: 'Natural', speedShift: '1.0x' },
+  { id: 'david_en', name: 'David (English Cinematic)', demographic: 'adult', gender: 'Male', language: 'English', role: 'Primary Narrator', description: 'Deep, dramatic storytelling voice.', sampleText: 'In a world where intelligence meets creativity, a new dawn arises.', pitchShift: 'Natural', speedShift: '1.0x' },
+  { id: 'emma_en', name: 'Emma (English Corporate)', demographic: 'adult', gender: 'Female', language: 'English', role: 'Primary Narrator', description: 'Corporate, professional corporate trainer.', sampleText: 'Our quarterly goals are highly aligned with the latest market indicators.', pitchShift: 'Natural', speedShift: '1.0x' },
 
   // Elderly
-  { id: 'guru_elder_ne', name: 'Guru-ba (Nepali Elder)', demographic: 'elderly', gender: 'Male', language: 'Nepali', role: 'Primary Narrator', description: 'Wise, slow, grandfatherly heritage tone.', sampleText: 'धेरै वर्ष पहिलेको कुरा हो... सुन्नुहोस् है त नानी बाबुहरू।', pitchShift: '-18%', speedShift: '0.86x' },
-  { id: 'aama_elder_ne', name: 'Aama (Grandmother)', demographic: 'elderly', gender: 'Female', language: 'Nepali', role: 'Secondary Character', description: 'Nurturing, traditional, grandmother tone.', sampleText: 'बाबु, स्वस्थ बस, खुसी बस। आजको दिन धेरै राम्रो छ।', pitchShift: '-12%', speedShift: '0.85x' },
-  { id: 'arthur_elder_en', name: 'Arthur (English Senior)', demographic: 'elderly', gender: 'Male', language: 'English', role: 'Primary Narrator', description: 'Distinguished, classic, rich history voice.', sampleText: 'Let me share a story from the days of long ago.', pitchShift: '-18%', speedShift: '0.86x' },
+  { id: 'guru_elder_ne', name: 'Guru-ba (Nepali Elder)', demographic: 'elderly', gender: 'Male', language: 'Nepali', role: 'Primary Narrator', description: 'Wise, slow, grandfatherly heritage tone.', sampleText: 'धेरै वर्ष पहिलेको कुरा हो... सुन्नुहोस् है त नानी बाबुहरू।', pitchShift: 'Natural', speedShift: '0.94x' },
+  { id: 'aama_elder_ne', name: 'Aama (Grandmother)', demographic: 'elderly', gender: 'Female', language: 'Nepali', role: 'Secondary Character', description: 'Nurturing, traditional, grandmother tone.', sampleText: 'बाबु, स्वस्थ बस, खुसी बस। आजको दिन धेरै राम्रो छ।', pitchShift: 'Natural', speedShift: '0.94x' },
+  { id: 'arthur_elder_en', name: 'Arthur (English Senior)', demographic: 'elderly', gender: 'Male', language: 'English', role: 'Primary Narrator', description: 'Distinguished, classic, rich history voice.', sampleText: 'Let me share a story from the days of long ago.', pitchShift: 'Natural', speedShift: '0.94x' },
 
   // Background Ambient
-  { id: 'ambient_cafe', name: 'Kathmandu Ambient Cafe', demographic: 'ambient', gender: 'Neutral', language: 'Nepali', role: 'Ambient/Background', description: 'Muffled ambient background tea-shop chatter.', sampleText: '[Ambient tea shop background chat scene]', pitchShift: '-8%', speedShift: '0.95x' },
-  { id: 'ambient_wind', name: 'Himalayan Wind Chimes', demographic: 'ambient', gender: 'Neutral', language: 'English', role: 'Ambient/Background', description: 'Soothing mountain wind backdrop.', sampleText: '[Mountain wind background blowing softly]', pitchShift: 'Softer', speedShift: 'Slow' },
+  { id: 'ambient_cafe', name: 'Kathmandu Ambient Cafe', demographic: 'ambient', gender: 'Neutral', language: 'Nepali', role: 'Ambient/Background', description: 'Muffled ambient background tea-shop chatter.', sampleText: '[Ambient tea shop background chat scene]', pitchShift: 'Natural', speedShift: '0.95x' },
+  { id: 'ambient_wind', name: 'Himalayan Wind Chimes', demographic: 'ambient', gender: 'Neutral', language: 'English', role: 'Ambient/Background', description: 'Soothing mountain wind backdrop.', sampleText: '[Mountain wind background blowing softly]', pitchShift: 'Natural', speedShift: 'Slow' },
 ];
 
 const getVoiceSampleText = (voice: VoiceItem, lang: 'ne' | 'en'): string => {
@@ -897,6 +898,16 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         };
         setSyncedAssets(prev => [newAsset, ...prev]);
 
+        // Automatically save to Media Library so it appears instantly in Video Studio's Audio tab & Import list
+        saveMediaItem({
+          type: 'ai_audio',
+          title: `[Voiceover] ${selectedVoice.name} - ${(cleanedText || text).slice(0, 22)}...`,
+          url: data.result.url,
+          duration: data.result.duration || Math.max(4, Math.ceil((cleanedText || text).length / 14)),
+          category: 'AI Voiceover',
+          engine: data.result.format || 'Azure Speech Neural (eastus)'
+        });
+
       }
     } catch (e: any) {
       console.error(e);
@@ -1181,14 +1192,25 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   };
 
   const handleAttachToVideo = () => {
+    const estimatedDuration = Math.max(4, Math.ceil(text.length / 14));
+    const trackTitle = `[Voiceover] ${selectedVoice.name}: ${text.replace(/\[.*?\]/g, '').slice(0, 22)}...`;
     if (onAttachAudioTrack) {
-      const estimatedDuration = Math.max(4, Math.ceil(text.length / 14));
       onAttachAudioTrack(
-        `[${selectedProject}] ${selectedVoice.name}: ${text.replace(/\[.*?\]/g, '').slice(0, 20)}...`,
+        trackTitle,
         estimatedDuration,
         generatedAudioUrl || undefined,
         text
       );
+    }
+    if (generatedAudioUrl) {
+      saveMediaItem({
+        type: 'ai_audio',
+        title: trackTitle,
+        url: generatedAudioUrl,
+        duration: estimatedDuration,
+        category: 'AI Voiceover',
+        engine: 'Azure Speech Neural (eastus)'
+      });
     }
     setAttachedSuccess(true);
     setTimeout(() => setAttachedSuccess(false), 3000);

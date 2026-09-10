@@ -46,12 +46,12 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   hasSelectedClip,
 }) => {
   return (
-    <div className="h-10 bg-[#0c0f17] border-t border-b border-slate-800/80 px-4 flex items-center justify-between select-none shrink-0 text-xs">
+    <div className="h-10 bg-[#090c13] border-t border-b border-slate-800/80 px-3.5 flex items-center justify-between select-none shrink-0 text-xs">
       {/* Left Edit Tools (CapCut Style) */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {/* Pointer Tool */}
         <button
-          className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-md transition font-bold"
+          className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-md transition font-bold border border-cyan-500/30"
           title="Selection Tool (V)"
         >
           <MousePointer className="w-3.5 h-3.5" />
@@ -61,11 +61,11 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         <button
           onClick={onSplitClip}
           disabled={!hasSelectedClip}
-          className="p-1.5 text-slate-400 hover:text-slate-200 disabled:opacity-30 rounded-md hover:bg-slate-800 transition cursor-pointer flex items-center gap-1"
+          className="px-2 py-1 text-slate-300 hover:text-white disabled:opacity-30 rounded-md hover:bg-slate-800 border border-transparent hover:border-slate-700 transition cursor-pointer flex items-center gap-1"
           title="Split Clip at Playhead (Ctrl+B)"
         >
-          <Scissors className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-[11px]">Split</span>
+          <Scissors className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="hidden sm:inline text-[11px] font-semibold">Split</span>
         </button>
 
         {/* Delete */}
@@ -94,7 +94,7 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         {onAddMedia && (
           <button
             onClick={onAddMedia}
-            className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition flex items-center gap-1 cursor-pointer"
           >
             <Film className="w-3 h-3 text-cyan-400" />
             <span>+ Media</span>
@@ -104,7 +104,7 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         {onAddAudio && (
           <button
             onClick={onAddAudio}
-            className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition flex items-center gap-1 cursor-pointer"
           >
             <Music className="w-3 h-3 text-purple-400" />
             <span>+ Audio</span>
@@ -114,7 +114,7 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         {onAddSceneTemplate && (
           <button
             onClick={onAddSceneTemplate}
-            className="hidden md:flex items-center gap-1 px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-md text-[11px] font-semibold transition cursor-pointer"
+            className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-md text-[11px] font-semibold transition cursor-pointer"
           >
             <LayoutTemplate className="w-3 h-3 text-amber-400" />
             <span>+ Template</span>
@@ -138,7 +138,7 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         </button>
 
         {/* Zoom Slider */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
           <button
             onClick={() => setZoomLevel(Math.max(10, zoomLevel - 8))}
             className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer"

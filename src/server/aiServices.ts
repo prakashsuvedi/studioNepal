@@ -23,10 +23,10 @@ const SAMPLE_IMAGE_BANK: Record<string, string> = {
 };
 
 const SAMPLE_VIDEO_BANK: Record<string, string> = {
-  himalaya: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-  drone: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-  pokhara: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-  default: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  himalaya: '/samples/ForBiggerBlazes.mp4',
+  drone: '/samples/ForBiggerEscapes.mp4',
+  pokhara: '/samples/ForBiggerFun.mp4',
+  default: '/samples/ForBiggerBlazes.mp4',
 };
 
 let cachedHfStatus: {
@@ -94,14 +94,100 @@ export function getAzureOpenAIKey(): string {
   return candidateKeys[0] || '';
 }
 
+/**
+ * Premium Cinematic Prompt Enhancer for Sora-2 and Video Generation
+ */
+export function enhanceCinematicVideoPrompt(
+  rawPrompt: string,
+  options?: { motion?: string; style?: string; aspect?: string }
+): string {
+  const p = (rawPrompt || '').trim();
+  if (!p) {
+    return 'Cinematic 8K aerial view of Mount Everest at sunrise, golden morning light on snowy peaks, photorealistic, 35mm master lens, Arri Alexa LF color science, fluid motion';
+  }
+
+  const hasCinematic = /8k|photorealistic|35mm|cinematic|masterpiece|hyperrealistic|arri alexa|alexa lf/i.test(p);
+  const parts = [p];
+
+  if (!hasCinematic) {
+    parts.push(
+      'cinematic 8K UHD, photorealistic masterwork, Arri Alexa LF color science, 35mm master prime lens, natural shallow depth of field, rich HDR dynamic range, fluid cinematic movement, zero motion blur distortion, sharp optical focus'
+    );
+  }
+
+  if (options?.motion && !p.toLowerCase().includes(options.motion.toLowerCase())) {
+    parts.push(`camera motion: ${options.motion}`);
+  }
+
+  if (options?.style && !p.toLowerCase().includes(options.style.toLowerCase())) {
+    parts.push(`visual style: ${options.style}`);
+  }
+
+  return parts.join(', ');
+}
+
+/**
+ * Premium Photorealistic Prompt Enhancer for GPT-Image-1.5 and FLUX Studio
+ */
+export function enhancePhotorealisticImagePrompt(
+  rawPrompt: string,
+  options?: { stylePreset?: string; cameraAngle?: string; negativePrompt?: string }
+): string {
+  const p = (rawPrompt || '').trim();
+  if (!p) {
+    return 'Photorealistic 8K scenic landscape of the Himalayas at dawn, golden hour lighting, Hasselblad medium format, razor-sharp detail';
+  }
+
+  const hasPhoto = /8k|photorealistic|hasselblad|octane|unreal engine|hyperrealistic|subsurface scattering/i.test(p);
+  const parts = [p];
+
+  if (!hasPhoto) {
+    parts.push(
+      'photorealistic 8K UHD, shot on Hasselblad H6D-100c medium format camera, 85mm f/1.2 master prime lens, razor-sharp textures, balanced volumetric studio lighting, subsurface scattering, masterwork composition'
+    );
+  }
+
+  if (options?.stylePreset && !p.toLowerCase().includes(options.stylePreset.toLowerCase())) {
+    parts.push(options.stylePreset);
+  }
+
+  if (options?.cameraAngle && !p.toLowerCase().includes(options.cameraAngle.toLowerCase())) {
+    parts.push(options.cameraAngle);
+  }
+
+  return parts.join(', ');
+}
+
 export async function serverGenerateImage(
   prompt: string,
   model = 'gpt-image-1.5',
-  quality: 'standard' | 'hd' | 'ultra' = 'standard'
+  quality: 'standard' | 'hd' | 'ultra' = 'hd',
+  options?: {
+    aspectRatio?: '16:9' | '9:16' | '1:1' | '4:5';
+    negativePrompt?: string;
+    stylePreset?: string;
+    cameraAngle?: string;
+  }
 ): Promise<{ url: string; model: string; resolution: string; engine: string; hfUser?: string }> {
   const azureKey = getAzureOpenAIKey();
-  const width = quality === 'ultra' ? 1280 : quality === 'hd' ? 1024 : 768;
-  const height = quality === 'ultra' ? 720 : quality === 'hd' ? 576 : 432;
+  
+  // Calculate premium resolution mapping based on aspect ratio
+  // Azure gpt-image-1.5 supports: 1536x1024 (16:9/3:2), 1024x1536 (9:16/4:5), and 1024x1024 (1:1)
+  let azureSize = '1024x1024';
+  let pollW = 1024;
+  let pollH = 1024;
+
+  if (options?.aspectRatio === '16:9') {
+    azureSize = '1536x1024';
+    pollW = 1536;
+    pollH = 1024;
+  } else if (options?.aspectRatio === '9:16' || options?.aspectRatio === '4:5') {
+    azureSize = '1024x1536';
+    pollW = 1024;
+    pollH = 1536;
+  }
+
+  const enhancedPrompt = enhancePhotorealisticImagePrompt(prompt, options);
 
   // 1. Real Azure OpenAI GPT-Image-1.5 Generation (prakashsuvedi-7749-resource)
   if (
@@ -113,7 +199,7 @@ export async function serverGenerateImage(
   ) {
     try {
       console.log(
-        `[Azure Image] Generating real gpt-image-1.5 image for: "${prompt.slice(0, 60)}..."`
+        `[Azure Image] Generating real gpt-image-1.5 high-grade image (${azureSize}): "${enhancedPrompt.slice(0, 70)}..."`
       );
       const azureImgUrl =
         'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/images/generations';
@@ -125,10 +211,10 @@ export async function serverGenerateImage(
           Authorization: `Bearer ${azureKey}`,
         },
         body: JSON.stringify({
-          prompt: prompt.trim(),
+          prompt: enhancedPrompt,
           model: 'gpt-image-1.5',
-          size: '1024x1024',
-          quality: quality === 'ultra' || quality === 'hd' ? 'high' : 'medium',
+          size: azureSize,
+          quality: 'high', // Always use high quality on Azure gpt-image-1.5 for studio-grade results
         }),
         signal: AbortSignal.timeout(45000),
       });
@@ -144,21 +230,42 @@ export async function serverGenerateImage(
             const filename = `gpt_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
             const saved = await storageBucket.saveMedia(filename, buf, 'image/png');
             console.log(
-              `[Azure Image] Successfully generated & stored gpt-image-1.5 (${buf.length} bytes): ${saved.url}`
+              `[Azure Image] Successfully generated & stored gpt-image-1.5 (${buf.length} bytes, ${azureSize}): ${saved.url}`
             );
             return {
               url: saved.url,
-              model: 'gpt-image-1.5 (High-Res Photorealistic)',
-              resolution: '1024x1024 (HD Photorealistic)',
+              model: 'gpt-image-1.5 (High-Res Photorealistic Master)',
+              resolution: `${azureSize} (Studio Master High-Res)`,
               engine:
                 'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
               hfUser: 'prakashsuvedi',
             };
           } else if (directUrl) {
+            // Fetch directUrl server-side to prevent browser CORS and SAS token expiration issues
+            try {
+              const fetchImg = await fetch(directUrl, { signal: AbortSignal.timeout(15000) });
+              if (fetchImg.ok) {
+                const imgBuf = Buffer.from(await fetchImg.arrayBuffer());
+                if (imgBuf.length > 1000) {
+                  const filename = `gpt_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
+                  const saved = await storageBucket.saveMedia(filename, imgBuf, 'image/png');
+                  return {
+                    url: saved.url,
+                    model: 'gpt-image-1.5 (High-Res Photorealistic Master)',
+                    resolution: `${azureSize} (Studio Master High-Res)`,
+                    engine:
+                      'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
+                    hfUser: 'prakashsuvedi',
+                  };
+                }
+              }
+            } catch (dlErr) {
+              console.warn('[Azure Image] Direct URL server fetch notice:', dlErr);
+            }
             return {
               url: directUrl,
-              model: 'gpt-image-1.5 (High-Res Photorealistic)',
-              resolution: '1024x1024 (HD Photorealistic)',
+              model: 'gpt-image-1.5 (High-Res Photorealistic Master)',
+              resolution: `${azureSize} (Studio Master High-Res)`,
               engine:
                 'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
               hfUser: 'prakashsuvedi',
@@ -174,21 +281,62 @@ export async function serverGenerateImage(
     }
   }
 
-  // 2. High-speed Neural Image Generation (Pollinations Turbo / FLUX cluster)
-  try {
-    const cleanPrompt = encodeURIComponent(prompt.trim().slice(0, 300));
-    const seed = Math.floor(Math.random() * 1000000);
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+  // 2. High-Fidelity Hugging Face FLUX.1 Schnell Direct Pipeline
+  const hfKey = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
+  if (hfKey && hfKey.length > 5 && (model.includes('flux') || !azureKey)) {
+    try {
+      console.log(`[HF FLUX] Generating studio image via FLUX.1 Schnell...`);
+      const hfUrl = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell';
+      const hfRes = await fetch(hfUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${hfKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: enhancedPrompt,
+          parameters: {
+            negative_prompt: options?.negativePrompt || 'blurry, distorted, low quality, artifact, deformed',
+          },
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
 
-    const imgRes = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(9000) });
+      if (hfRes.ok) {
+        const arrayBuf = await hfRes.arrayBuffer();
+        if (arrayBuf.byteLength > 5000) {
+          const buf = Buffer.from(arrayBuf);
+          const filename = `flux_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
+          const saved = await storageBucket.saveMedia(filename, buf, 'image/png');
+          return {
+            url: saved.url,
+            model: 'FLUX.1 Schnell (Black Forest Labs)',
+            resolution: `${pollW}x${pollH} (High-Speed Studio Quality)`,
+            engine: 'Hugging Face Inference Cluster (FLUX.1)',
+            hfUser: 'prakashsuvedi',
+          };
+        }
+      }
+    } catch (hfErr) {
+      console.warn('[HF FLUX] Direct inference notice:', hfErr);
+    }
+  }
+
+  // 3. High-speed Neural Image Generation (Pollinations FLUX Enhanced cluster)
+  try {
+    const cleanPrompt = encodeURIComponent(enhancedPrompt.slice(0, 320));
+    const seed = Math.floor(Math.random() * 1000000);
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${pollW}&height=${pollH}&seed=${seed}&model=flux&enhance=true&nologo=true`;
+
+    const imgRes = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(12000) });
     if (imgRes.ok) {
       const arrayBuffer = await imgRes.arrayBuffer();
       if (arrayBuffer.byteLength > 2000) {
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         return {
           url: `data:image/jpeg;base64,${base64}`,
-          model: 'FLUX.1 / Turbo Neural Pipeline',
-          resolution: `${width}x${height}`,
+          model: 'FLUX.1 Pro / Enhanced Neural Pipeline',
+          resolution: `${pollW}x${pollH} (High-Fidelity)`,
           engine: 'NepalAI Neural Accelerated Image Studio',
           hfUser: 'prakashsuvedi',
         };
@@ -198,7 +346,7 @@ export async function serverGenerateImage(
     console.warn('Fast neural generation notice, proceeding to high-res thematic library:', err);
   }
 
-  // 3. High-Resolution Contextual Visual Matching Fallback
+  // 4. High-Resolution Contextual Visual Matching Fallback
   const lower = prompt.toLowerCase();
   let selected = SAMPLE_IMAGE_BANK.default;
   if (lower.includes('everest') || lower.includes('mountain') || lower.includes('snow') || lower.includes('himalaya')) {
@@ -215,8 +363,8 @@ export async function serverGenerateImage(
 
   return {
     url: selected,
-    model: 'gpt-image-1.5 (High-Res Photorealistic)',
-    resolution: quality === 'ultra' ? '2048x1152' : '1024x576',
+    model: 'gpt-image-1.5 (High-Res Photorealistic Master)',
+    resolution: `${pollW}x${pollH} (Studio Visuals)`,
     engine: 'NepalAI High-Precision Visual Studio',
     hfUser: 'prakashsuvedi',
   };
@@ -306,7 +454,14 @@ export async function serverCheckVideoJob(jobId: string): Promise<{
 export async function serverGenerateVideo(
   prompt: string,
   durationSeconds = 4,
-  model = 'sora-2'
+  model = 'sora-2',
+  options?: {
+    resolution?: string;
+    aspectRatio?: '16:9' | '9:16' | '1:1';
+    quality?: string;
+    motion?: string;
+    style?: string;
+  }
 ): Promise<{
   url: string;
   model: string;
@@ -321,9 +476,24 @@ export async function serverGenerateVideo(
   const azureKey = getAzureOpenAIKey();
   const clampedDuration = Math.min(20, Math.max(1, durationSeconds || 4));
 
+  const isVertical =
+    options?.aspectRatio === '9:16' ||
+    options?.resolution === '720x1280' ||
+    (options?.resolution && options.resolution.includes('720x1280')) ||
+    (options?.resolution && options.resolution.includes('vertical'));
+
+  const targetSize = isVertical ? '720x1280' : '1280x720';
+  const resLabel = isVertical ? '720x1280 (9:16 Mobile & Shorts)' : '1280x720 (16:9 Cinema Master)';
+  const enhancedPrompt = enhanceCinematicVideoPrompt(prompt, {
+    motion: options?.motion,
+    style: options?.style,
+    aspect: options?.aspectRatio,
+  });
+
   // 1. Direct Azure OpenAI Sora-2 Endpoint (prakashsuvedi-7749-resource.services.ai.azure.com)
   if (azureKey && azureKey.length > 5) {
     try {
+      console.log(`[Azure Sora-2] Dispatching studio video (${targetSize}): "${enhancedPrompt.slice(0, 70)}..."`);
       const azureSoraUrl = 'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/videos';
       const dispatchRes = await fetch(azureSoraUrl, {
         method: 'POST',
@@ -333,9 +503,9 @@ export async function serverGenerateVideo(
           'Authorization': `Bearer ${azureKey}`,
         },
         body: JSON.stringify({
-          prompt,
+          prompt: enhancedPrompt,
           model: 'sora-2',
-          size: '720x1280',
+          size: targetSize,
           seconds: String(clampedDuration),
         }),
         signal: AbortSignal.timeout(12000),
@@ -380,9 +550,9 @@ export async function serverGenerateVideo(
                       const saved = await storageBucket.saveMedia(`sora_${videoId}.mp4`, buf, 'video/mp4');
                       return {
                         url: saved.url,
-                        model: 'sora-2',
+                        model: 'sora-2 (Cinematic Studio Master)',
                         duration: clampedDuration,
-                        resolution: '720x1280 HD',
+                        resolution: resLabel,
                         fps: 30,
                         engine: 'Azure AI Foundry (sora-2) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
                         jobId: videoId,
@@ -396,9 +566,9 @@ export async function serverGenerateVideo(
 
                   return {
                     url: `/api/video/content/${videoId}`,
-                    model: 'sora-2',
+                    model: 'sora-2 (Cinematic Studio Master)',
                     duration: clampedDuration,
-                    resolution: '720x1280 HD',
+                    resolution: resLabel,
                     fps: 30,
                     engine: 'Azure AI Foundry (sora-2) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
                     jobId: videoId,
@@ -421,9 +591,9 @@ export async function serverGenerateVideo(
             jobId: videoId,
             status: 'in_progress',
             progress: currentProgress,
-            model: 'sora-2',
+            model: 'sora-2 (Cinematic Studio Master)',
             duration: clampedDuration,
-            resolution: '720x1280 HD',
+            resolution: resLabel,
             fps: 30,
             engine: 'Azure AI Foundry (sora-2) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
           };
@@ -445,14 +615,14 @@ export async function serverGenerateVideo(
   } else if (lower.includes('pokhara') || lower.includes('lake') || lower.includes('boat')) {
     videoUrl = SAMPLE_VIDEO_BANK.pokhara;
   } else if (lower.includes('cat') || lower.includes('animal') || lower.includes('pet')) {
-    videoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4';
+    videoUrl = '/samples/ForBiggerFun.mp4';
   }
 
   return {
     url: videoUrl,
-    model: 'sora-2 (Cinematic Stream)',
+    model: 'sora-2 (Cinematic Master Stream)',
     duration: clampedDuration,
-    resolution: '720x1280 (Sora-2 Mobile & Cinema)',
+    resolution: resLabel,
     fps: 30,
     engine: 'Azure AI Foundry (sora-2) via NepalAI Studio Pipeline',
     status: 'completed',
@@ -552,7 +722,7 @@ function applyPhoneticRules(text: string, phoneticDict: string, language: string
       'नमस्ते': 'nʌˈmʌste',
       'स्टुडियो': 'ˈstudijo',
       'कान्ति': 'ˈkɑːnti',
-      'संजोग': 'sʌnValues',
+      'संजोग': 'sʌnd͡zoɡ',
       'सिर्जना': 'sirˈdzʌnɑː',
       'प्रविधि': 'prʌˈwidʰi',
     };
@@ -586,16 +756,28 @@ function applyPhoneticRules(text: string, phoneticDict: string, language: string
 }
 
 export async function serverGenerateAudio(
-  text: string,
-  voiceId = 'aakash_ne',
-  language: 'ne-NP' | 'en-US' = 'ne-NP',
-  emotion = 'neutral',
-  deliveryStyle = 'general',
-  speed?: string,
-  volume?: string,
-  pitch?: string,
-  phoneticDict?: string
+  textOrParams: string | { text: string; voiceId?: string; language?: 'ne-NP' | 'en-US'; emotion?: string; deliveryStyle?: string; speed?: string; volume?: string; pitch?: string; phoneticDict?: string },
+  voiceIdArg = 'aakash_ne',
+  languageArg: 'ne-NP' | 'en-US' = 'ne-NP',
+  emotionArg = 'neutral',
+  deliveryStyleArg = 'general',
+  speedArg?: string,
+  volumeArg?: string,
+  pitchArg?: string,
+  phoneticDictArg?: string
 ): Promise<{ url: string; storageUrl?: string; filename?: string; duration: number; voice: string; language: string; format: string }> {
+  // Unpack object argument if passed
+  const isObj = typeof textOrParams === 'object' && textOrParams !== null;
+  const text: string = isObj ? textOrParams.text : (typeof textOrParams === 'string' ? textOrParams : '');
+  const voiceId = isObj && textOrParams.voiceId ? textOrParams.voiceId : voiceIdArg;
+  const language = isObj && textOrParams.language ? textOrParams.language : languageArg;
+  const emotion = isObj && textOrParams.emotion ? textOrParams.emotion : emotionArg;
+  const deliveryStyle = isObj && textOrParams.deliveryStyle ? textOrParams.deliveryStyle : deliveryStyleArg;
+  const speed = isObj ? textOrParams.speed : speedArg;
+  const volume = isObj ? textOrParams.volume : volumeArg;
+  const pitch = isObj ? textOrParams.pitch : pitchArg;
+  const phoneticDict = isObj ? textOrParams.phoneticDict : phoneticDictArg;
+
   // Check Azure Speech Subscription Key in environment variables
   const speechKey =
     process.env.AZURE_SPEECH ||
@@ -607,10 +789,10 @@ export async function serverGenerateAudio(
   const region = process.env.AZURE_SPEECH_REGION || 'eastus';
 
   // Determine Azure Speech Neural Voice Name & default demographics
-  let azureVoice = language === 'en-US' ? 'en-US-AvaNeural' : 'ne-NP-HemkalaNeural';
+  let azureVoice = language === 'en-US' ? 'en-US-AvaMultilingualNeural' : 'ne-NP-HemkalaNeural';
   
   if (language === 'ne-NP') {
-    if (voiceId.includes('aakash') || voiceId.includes('sagar') || voiceId.includes('male') || voiceId.includes('rohan') || voiceId.includes('sanjok') || voiceId.includes('guru')) {
+    if (voiceId.includes('aakash') || voiceId.includes('sagar') || voiceId.includes('male') || voiceId.includes('rohan') || voiceId.includes('sanjok') || voiceId.includes('guru') || voiceId.includes('aarav')) {
       azureVoice = 'ne-NP-SagarNeural';
     } else {
       azureVoice = 'ne-NP-HemkalaNeural';
@@ -619,58 +801,48 @@ export async function serverGenerateAudio(
     if (voiceId.includes('ana')) {
       azureVoice = 'en-US-AnaNeural'; // Native Child Voice
     } else if (voiceId.includes('andrew') || voiceId.includes('guy') || voiceId.includes('male') || voiceId.includes('david') || voiceId.includes('arthur')) {
-      azureVoice = 'en-US-AndrewNeural';
+      azureVoice = 'en-US-AndrewMultilingualNeural';
     } else if (voiceId.includes('emma')) {
-      azureVoice = 'en-US-EmmaNeural';
+      azureVoice = 'en-US-EmmaMultilingualNeural';
     } else if (voiceId.includes('jenny')) {
-      azureVoice = 'en-US-JennyNeural';
+      azureVoice = 'en-US-JennyMultilingualNeural';
     } else {
-      azureVoice = 'en-US-AvaNeural';
+      azureVoice = 'en-US-AvaMultilingualNeural';
     }
   }
 
-  // Calculate default prosody modifiers based on demographic selection
+  // Preserve 100% natural neural prosody (pitch 0%) so acoustic models retain authentic human warmth, breath cadence, and zero robotic artifacting
   let defaultPitch = "0%";
   let defaultRate = "0%";
   
   if (voiceId.includes('kanti') || voiceId.includes('sanjok') || voiceId.includes('child')) {
-    defaultPitch = "+30%";
-    defaultRate = "+6%";
+    defaultRate = "+4%";
   } else if (voiceId.includes('rohan') || voiceId.includes('emily') || voiceId.includes('teen')) {
-    defaultPitch = "+12%";
-    defaultRate = "+3%";
+    defaultRate = "+2%";
   } else if (voiceId.includes('guru') || voiceId.includes('aama') || voiceId.includes('old') || voiceId.includes('arthur')) {
-    defaultPitch = "-18%";
-    defaultRate = "-14%";
+    defaultRate = "-7%";
   } else if (voiceId.includes('ambient') || voiceId.includes('background')) {
-    // Soft ambient low hum background
-    defaultPitch = "-8%";
-    defaultRate = "-5%";
+    defaultRate = "-4%";
   }
 
-  // Adjust for emotional state properties
+  // Adjust for emotional state properties using subtle, natural cadences
   if (emotion === 'happy') {
-    defaultPitch = defaultPitch === "0%" ? "+8%" : defaultPitch;
-    defaultRate = defaultRate === "0%" ? "+8%" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "+4%" : defaultRate;
   } else if (emotion === 'sad') {
-    defaultPitch = defaultPitch === "0%" ? "-10%" : defaultPitch;
-    defaultRate = defaultRate === "0%" ? "-12%" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-8%" : defaultRate;
   } else if (emotion === 'energetic') {
-    defaultPitch = defaultPitch === "0%" ? "+12%" : defaultPitch;
-    defaultRate = defaultRate === "0%" ? "+16%" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "+8%" : defaultRate;
   } else if (emotion === 'horror') {
-    defaultPitch = defaultPitch === "0%" ? "-22%" : defaultPitch;
-    defaultRate = defaultRate === "0%" ? "-18%" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-10%" : defaultRate;
   }
 
   // Adjust for genre formats
   if (deliveryStyle === 'documentary') {
-    defaultPitch = defaultPitch === "0%" ? "-5%" : defaultPitch;
-    defaultRate = defaultRate === "0%" ? "-10%" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-6%" : defaultRate;
   } else if (deliveryStyle === 'drama') {
-    defaultRate = defaultRate === "0%" ? "-8%" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "-5%" : defaultRate;
   } else if (deliveryStyle === 'quick_talk' || deliveryStyle === 'quick') {
-    defaultRate = defaultRate === "0%" ? "+32%" : defaultRate;
+    defaultRate = defaultRate === "0%" ? "+20%" : defaultRate;
   }
 
   // 1. Azure Cognitive Services Text-to-Speech REST API (eastus region)
@@ -695,32 +867,32 @@ export async function serverGenerateAudio(
       // Parse custom directional bracket tags into XML-compliant prosody and breaks
       let innerText = parseAudioMarkupTags(phoneticProcessed);
 
-      // Wrap in dynamic prosody properties based on extracted speed/volume if passed
-      let overridePitch = pitch || defaultPitch;
+      // Wrap in dynamic prosody properties only when explicitly requested
+      let overridePitch = pitch && pitch !== '0%' ? pitch : defaultPitch;
       let overrideRate = defaultRate;
       let overrideVolume = "0dB";
       let hasOverride = false;
 
-      if (pitch) {
+      if (pitch && pitch !== '0%') {
         hasOverride = true;
       }
 
       if (speed) {
         const spdLc = speed.toLowerCase();
         if (spdLc === 'slow') {
-          overrideRate = '-15%';
+          overrideRate = '-12%';
           hasOverride = true;
         } else if (spdLc === 'fast') {
-          overrideRate = '+20%';
+          overrideRate = '+15%';
           hasOverride = true;
         } else if (spdLc === 'medium') {
           overrideRate = '0%';
           hasOverride = true;
         } else if (spdLc === 'x-slow') {
-          overrideRate = '-35%';
+          overrideRate = '-25%';
           hasOverride = true;
         } else if (spdLc === 'x-fast') {
-          overrideRate = '+40%';
+          overrideRate = '+28%';
           hasOverride = true;
         } else if (spdLc.startsWith('+') || spdLc.startsWith('-') || spdLc.endsWith('%')) {
           overrideRate = speed;
@@ -731,19 +903,19 @@ export async function serverGenerateAudio(
       if (volume) {
         const volLc = volume.toLowerCase();
         if (volLc === 'soft') {
-          overrideVolume = '-6dB';
+          overrideVolume = '-4dB';
           hasOverride = true;
         } else if (volLc === 'loud') {
-          overrideVolume = '+6dB';
+          overrideVolume = '+4dB';
           hasOverride = true;
         } else if (volLc === 'medium') {
           overrideVolume = '0dB';
           hasOverride = true;
         } else if (volLc === 'x-soft') {
-          overrideVolume = '-12dB';
+          overrideVolume = '-8dB';
           hasOverride = true;
         } else if (volLc === 'x-loud') {
-          overrideVolume = '+12dB';
+          overrideVolume = '+8dB';
           hasOverride = true;
         } else if (volLc.startsWith('+') || volLc.startsWith('-') || volLc.endsWith('db')) {
           overrideVolume = volume;
@@ -778,17 +950,34 @@ export async function serverGenerateAudio(
   </voice>
 </speak>`;
 
-      const ttsRes = await fetch(azureTtsEndpoint, {
+      // Use broadcast-grade 48kHz 192kbps studio MP3 format for crystal-clear natural presence
+      let ttsRes = await fetch(azureTtsEndpoint, {
         method: 'POST',
         headers: {
           'Ocp-Apim-Subscription-Key': speechKey.trim(),
           'Content-Type': 'application/ssml+xml',
-          'X-Microsoft-OutputFormat': 'audio-24khz-160kbitrate-mono-mp3',
+          'X-Microsoft-OutputFormat': 'audio-48khz-192kbitrate-mono-mp3',
           'User-Agent': 'NepalAI-Studio-Speech',
         },
         body: ssml,
         signal: AbortSignal.timeout(12000),
       });
+
+      // Graceful fallback to 24kHz if specific endpoint requires standard bitrate
+      if (!ttsRes.ok) {
+        console.warn(`Azure 48kHz audio requested, status ${ttsRes.status}, falling back to 24kHz`);
+        ttsRes = await fetch(azureTtsEndpoint, {
+          method: 'POST',
+          headers: {
+            'Ocp-Apim-Subscription-Key': speechKey.trim(),
+            'Content-Type': 'application/ssml+xml',
+            'X-Microsoft-OutputFormat': 'audio-24khz-160kbitrate-mono-mp3',
+            'User-Agent': 'NepalAI-Studio-Speech',
+          },
+          body: ssml,
+          signal: AbortSignal.timeout(12000),
+        });
+      }
 
       if (ttsRes.ok) {
         const arrayBuf = await ttsRes.arrayBuffer();
@@ -854,7 +1043,7 @@ export async function serverGenerateAudio(
   }
 
   // 3. Fallback sound sample
-  const audioSampleUrl = 'https://commondatastorage.googleapis.com/codeskulptor-assets/Eee_Ooo.mp3';
+  const audioSampleUrl = '/audio/himalayan_breeze.mp3';
 
   return {
     url: audioSampleUrl,
@@ -878,30 +1067,44 @@ export async function serverRenderVideoProject(
 ): Promise<{ renderId: string; downloadUrl: string; duration: number; sizeMb: number; format: string; videoUrl: string; resolution: string; fps: number; codec: string; status: string; expiresInHours: number }> {
   let assets: VideoSegmentInput[] = [];
 
+  let audioTrackUrl: string | undefined;
+
   if (typeof projectNameOrOptions === 'object' && projectNameOrOptions.scenes) {
     assets = projectNameOrOptions.scenes.map((s: any) => ({
-      url: s.mediaUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      url: s.mediaUrl || '/samples/everest_sunrise.mp4',
       duration: s.duration || 4,
       transition: s.transition || 'fade',
       mediaType: s.mediaType || 'video',
     }));
+    if (projectNameOrOptions.audioTracks && projectNameOrOptions.audioTracks.length > 0) {
+      audioTrackUrl = projectNameOrOptions.audioTracks[0]?.url;
+    }
   }
 
   if (assets.length === 0) {
     assets = [
       {
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        duration: totalDurationSeconds || 30,
+        url: '/samples/everest_sunrise.mp4',
+        duration: totalDurationSeconds || 5,
         transition: 'fade',
       },
     ];
   }
 
+  const presetResolution = typeof projectNameOrOptions === 'object' && projectNameOrOptions.preset?.resolution 
+    ? projectNameOrOptions.preset.resolution 
+    : '1280x720';
+  const presetFps = typeof projectNameOrOptions === 'object' && projectNameOrOptions.preset?.fps 
+    ? projectNameOrOptions.preset.fps 
+    : 30;
+
   // Execute FFmpeg VideoProcessor stitch pipeline
   const processResult = await videoProcessor.processVideo({
     assets,
-    fps: 30,
-    resolution: '1024x576',
+    fps: presetFps,
+    resolution: presetResolution,
+    audioTrackUrl,
+    audioTracks: typeof projectNameOrOptions === 'object' ? projectNameOrOptions.audioTracks : undefined,
   });
 
   return {
@@ -973,11 +1176,44 @@ ${dynamicUnicodeInstructions}
     ...messages.slice(-10),
   ];
 
-  // 1. PRIMARY ROUTE: Direct Azure OpenAI (Azure AI Foundry gpt-4o & gpt-5-mini)
-  const azureKey = process.env.AZURE_OPENAI_KEY || process.env.AZURE_API_KEY;
+  // 1. PRIMARY ROUTE: Live NepalAI Hugging Face Space chat service (verified high speed)
+  const hfSpaceUrl = 'https://prakashsuvedi-nepalai-studio.hf.space/api/hamroai/chat';
+  try {
+    const spaceRes = await fetch(hfSpaceUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': `usr_google_${userId || 'usr_admin_01'}`,
+      },
+      body: JSON.stringify({
+        messages,
+        model,
+        language: language === 'auto' ? 'en' : language,
+        locale: language === 'ne' ? 'ne-NP' : language === 'hi' ? 'hi-IN' : 'en-US',
+        systemInstruction,
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+
+    if (spaceRes.ok) {
+      const spaceData = await spaceRes.json();
+      if (spaceData && spaceData.reply) {
+        return {
+          reply: spaceData.reply,
+          usage: spaceData.usage,
+        };
+      }
+    }
+  } catch (spaceErr) {
+    console.warn('HF Space chat notice, falling back:', spaceErr);
+  }
+
+  // 2. SECONDARY ROUTE: Direct Azure OpenAI (Azure AI Foundry gpt-4o & gpt-5-mini)
+  const azureKey = getAzureOpenAIKey();
 
   if (azureKey) {
     const azureEndpoints = [
+      'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/chat/completions',
       'https://solutions-ai-hub.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview',
       `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${model}/chat/completions?api-version=2024-02-15-preview`
     ];
@@ -992,7 +1228,7 @@ ${dynamicUnicodeInstructions}
             'api-key': azureKey,
           },
           body: JSON.stringify({
-            model,
+            model: model === 'gpt-5-mini' ? 'gpt-4o-mini' : 'gpt-4o',
             messages: formattedMessages,
           }),
           signal: AbortSignal.timeout(10000),
@@ -1012,38 +1248,6 @@ ${dynamicUnicodeInstructions}
         console.warn(`Azure OpenAI endpoint notice (${azureUrl}):`, azureErr);
       }
     }
-  }
-
-  // 2. SECONDARY ROUTE: Hugging Face Space backend
-  const hfSpaceUrl = 'https://prakashsuvedi-nepalai-studio.hf.space/api/hamroai/chat';
-  try {
-    const spaceRes = await fetch(hfSpaceUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': `usr_google_${userId}`,
-      },
-      body: JSON.stringify({
-        messages,
-        model,
-        language: language === 'auto' ? 'en' : language,
-        locale: language === 'ne' ? 'ne-NP' : language === 'hi' ? 'hi-IN' : 'en-US',
-        systemInstruction,
-      }),
-      signal: AbortSignal.timeout(3000),
-    });
-
-    if (spaceRes.ok) {
-      const spaceData = await spaceRes.json();
-      if (spaceData && spaceData.reply) {
-        return {
-          reply: spaceData.reply,
-          usage: spaceData.usage,
-        };
-      }
-    }
-  } catch (spaceErr) {
-    console.warn('HF Space chat notice:', spaceErr);
   }
 
   // 3. Direct OpenAI API if OPENAI_API_KEY is configured

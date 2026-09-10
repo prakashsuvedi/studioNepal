@@ -369,5 +369,7 @@ export const RenderQueueModal: React.FC<RenderQueueModalProps> = ({
 };
 
 function aspectRatioDefault(scenes: Scene[]): '16:9' | '9:16' | '1:1' {
-  return scenes[0]?.aspectRatio || '16:9';
+  const ar = scenes[0]?.aspectRatio;
+  if (ar === '9:16' || ar === '1:1') return ar;
+  return '16:9';
 }

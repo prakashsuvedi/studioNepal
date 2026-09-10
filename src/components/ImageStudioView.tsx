@@ -18,10 +18,13 @@ import {
   Sliders,
   ShieldCheck,
   CheckCheck,
-  ExternalLink
+  ExternalLink,
+  Trash2,
+  CheckCircle2,
+  FolderHeart
 } from 'lucide-react';
 import { ImageMicroEditorModal } from './ImageMicroEditorModal';
-import { saveMediaItem } from '../lib/mediaLibrary';
+import { saveMediaItem, getMediaLibrary, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
 
 interface ImageStudioViewProps {
   initialPrompt?: string;
@@ -105,6 +108,19 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
   const [genError, setGenError] = useState<string | null>(null);
   const [generationMetadata, setGenerationMetadata] = useState<{ engine?: string; resolution?: string } | null>(null);
   const [isMicroEditorOpen, setIsMicroEditorOpen] = useState(false);
+  const [historyImages, setHistoryImages] = useState<MediaItem[]>(() => 
+    getMediaLibrary().filter(m => m.type === 'ai_image')
+  );
+  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
+  const [historyAddedId, setHistoryAddedId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setHistoryImages(getMediaLibrary().filter(m => m.type === 'ai_image'));
+    };
+    window.addEventListener('nepalai_media_library_updated', handleUpdate);
+    return () => window.removeEventListener('nepalai_media_library_updated', handleUpdate);
+  }, []);
 
   // Devanagari detection
   const hasDevanagari = /[\u0900-\u097F]/.test(prompt);
@@ -181,7 +197,11 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
         activeUserId,
         promptText,
         apiModel,
-        quality === 'hd' ? 'hd' : 'standard'
+        quality === 'hd' ? 'hd' : 'standard',
+        {
+          aspectRatio,
+          negativePrompt: negativePrompt.trim() || undefined,
+        }
       );
       
       if (data && data.result && data.result.url) {
@@ -196,7 +216,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
         }
 
         // Save generated image to persistent Global Media Library
-        saveMediaItem({
+        const savedItem = saveMediaItem({
           type: 'ai_image',
           title: promptText.slice(0, 30) || 'Generated AI Image',
           url: generatedUrl,
@@ -207,31 +227,8 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
           resolution: data.result.resolution || '1024x1024',
           engine: data.result.engine || 'Azure gpt-image-1.5'
         });
-
-        // Auto-add directly to Video Studio timeline & navigate to video studio
-        const newScene: Scene = {
-          id: 'scene-' + Math.random().toString(36).substring(2, 9),
-          title: promptText.slice(0, 24) || 'Generated Image Scene',
-          duration: 4,
-          prompt: promptText,
-          promptNepali: hasDevanagari ? promptText : canvasSubtitle || promptText,
-          mediaUrl: generatedUrl,
-          mediaType: 'image',
-          aspectRatio,
-          motion: 'pan_right',
-          transition: 'fade',
-          textOverlay: (canvasSubtitle || promptText).slice(0, 32),
-          textNepali: (hasDevanagari ? promptText : canvasSubtitle).slice(0, 32),
-          textPosition: 'lower_third',
-          textColor: '#ffffff',
-          textFont: 'devanagari',
-          filter: 'cinematic',
-          volume: 80
-        };
-        onAddSceneToVideo(newScene);
-        if (onNavigateToTimeline) {
-          onNavigateToTimeline();
-        }
+        setLastSavedId(savedItem.id);
+        setAddedSuccess(false);
       } else {
         throw new Error('No image returned from generation pipeline');
       }
@@ -253,6 +250,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
   const handleAddToTimeline = () => {
     const newScene: Scene = {
       id: 'scene-' + Math.random().toString(36).substring(2, 9),
+      assetId: lastSavedId || ('media-img-' + Date.now()),
       title: prompt.slice(0, 24) || 'Generated Image Scene',
       duration: 4,
       prompt: prompt,
@@ -272,7 +270,40 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
     };
     onAddSceneToVideo(newScene);
     setAddedSuccess(true);
-    setTimeout(() => setAddedSuccess(false), 3000);
+    setTimeout(() => setAddedSuccess(false), 3500);
+  };
+
+  // Add an item from persistent history to timeline
+  const handleAddHistoryItemToTimeline = (item: MediaItem) => {
+    const newScene: Scene = {
+      id: 'scene-' + Math.random().toString(36).substring(2, 9),
+      assetId: item.id,
+      title: item.title || 'Generated Image Scene',
+      duration: item.duration || 4,
+      prompt: item.prompt || item.title,
+      promptNepali: item.prompt || item.title,
+      mediaUrl: item.url,
+      mediaType: 'image',
+      aspectRatio: item.aspectRatio || '16:9',
+      motion: 'pan_right',
+      transition: 'fade',
+      textOverlay: (item.prompt || item.title).slice(0, 32),
+      textNepali: (item.prompt || item.title).slice(0, 32),
+      textPosition: 'lower_third',
+      textColor: '#ffffff',
+      textFont: 'devanagari',
+      filter: 'cinematic',
+      volume: 80
+    };
+    onAddSceneToVideo(newScene);
+    setHistoryAddedId(item.id);
+    setTimeout(() => setHistoryAddedId(null), 3000);
+  };
+
+  const handleDeleteHistoryItem = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    removeMediaItem(id);
+    setHistoryImages(prev => prev.filter(m => m.id !== id));
   };
 
   return (
@@ -689,6 +720,148 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Persistent AI Art History & Media Library Section */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+              <FolderHeart className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Generated Art History & Persistent Media Assets</h3>
+              <p className="text-xs text-slate-500">
+                All images generated here persist automatically. Add them to your Video Studio timeline at any time using stable asset IDs.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold font-mono">
+              {historyImages.length} Assets
+            </span>
+            {onNavigateToTimeline && (
+              <button
+                type="button"
+                onClick={onNavigateToTimeline}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Film className="w-3.5 h-3.5 text-slate-600" />
+                <span>View Timeline</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {historyImages.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+            <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400" />
+            <p className="text-xs font-medium text-slate-500">No generated images in library yet</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Generate an image above to automatically save and reference it here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {historyImages.map((item) => (
+              <div 
+                key={item.id}
+                className="bg-slate-50 rounded-xl border border-slate-200/80 overflow-hidden flex flex-col justify-between hover:shadow-md transition group"
+              >
+                <div className="relative aspect-square w-full bg-slate-900 overflow-hidden">
+                  <img
+                    src={item.url}
+                    alt={item.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  />
+                  <div className="absolute top-2 left-2 flex items-center gap-1">
+                    <span className="px-2 py-0.5 rounded bg-slate-900/80 backdrop-blur text-[10px] font-bold text-white shadow-xs">
+                      {item.engine || 'Azure AI'}
+                    </span>
+                  </div>
+                  {item.aspectRatio && (
+                    <div className="absolute top-2 right-2">
+                      <span className="px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono text-white">
+                        {item.aspectRatio}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3 space-y-2.5 flex-1 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-slate-900 truncate" title={item.title}>
+                      {item.title}
+                    </h4>
+                    {item.prompt && (
+                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed" title={item.prompt}>
+                        {item.prompt}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleAddHistoryItemToTimeline(item)}
+                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition shadow-xs cursor-pointer ${
+                        historyAddedId === item.id 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      }`}
+                    >
+                      {historyAddedId === item.id ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Added!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add to Studio</span>
+                        </>
+                      )}
+                    </button>
+
+                    {item.prompt && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrompt(item.prompt || '');
+                          if (item.aspectRatio) setAspectRatio(item.aspectRatio as any);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        title="Reuse Prompt in Generator"
+                        className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      download={`${item.title || 'nepalai_asset'}.png`}
+                      title="Download Asset"
+                      className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteHistoryItem(item.id, e)}
+                      title="Delete from Library"
+                      className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

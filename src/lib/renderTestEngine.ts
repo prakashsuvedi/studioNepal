@@ -257,7 +257,7 @@ export async function runRenderTestEngine(
       subtitlesCount: layerConfig.subtitles.count,
       transitionsCount: Math.max(0, layerConfig.videoClips.length - 1),
     },
-    downloadUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    downloadUrl: '/samples/ForBiggerBlazes.mp4',
     errorMessage: simulateFailure ? 'Simulated GPU encoder crash during test' : undefined,
   });
 
@@ -285,7 +285,7 @@ export async function runRenderTestEngine(
     },
     stagesCompleted,
     auditEntry,
-    downloadUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    downloadUrl: '/samples/ForBiggerBlazes.mp4',
     errorMessage: simulateFailure ? 'Simulated GPU encoder crash during test' : undefined,
   };
 

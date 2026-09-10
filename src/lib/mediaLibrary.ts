@@ -1,3 +1,5 @@
+import { sanitizeMediaUrl } from './mediaUrlSanitizer';
+
 export interface MediaItem {
   id: string;
   type: 'sora_video' | 'ai_image' | 'upload' | 'ai_audio';
@@ -18,7 +20,7 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
     id: 'sample-sora-1',
     type: 'sora_video',
     title: 'Himalayan Sunrise Golden Peak 4K',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    url: '/samples/ForBiggerBlazes.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=800&auto=format&fit=crop',
     duration: 6,
     category: 'Sora-2 AI Video',
@@ -31,7 +33,7 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
     id: 'sample-sora-2',
     type: 'sora_video',
     title: 'Kathmandu Heritage Durbar Square',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    url: '/samples/ForBiggerEscapes.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1590736963159-c3d40fd7df93?q=80&w=800&auto=format&fit=crop',
     duration: 5,
     category: 'Sora-2 AI Video',
@@ -44,7 +46,7 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
     id: 'sample-sora-3',
     type: 'sora_video',
     title: 'Phewa Lake Calm Reflections (9:16 Reel)',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+    url: '/samples/ForBiggerJoyBlazes.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
     duration: 6,
     category: 'Sora-2 AI Video',
@@ -57,7 +59,7 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
     id: 'sample-sora-4',
     type: 'sora_video',
     title: 'Trishuli River Rapids & Mountain Valley',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    url: '/samples/ForBiggerFun.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
     duration: 6,
     category: 'Sora-2 AI Video',
@@ -70,7 +72,7 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
     id: 'sample-sora-5',
     type: 'sora_video',
     title: 'Everest Khumbu Glacier Icefalls',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+    url: '/samples/ForBiggerMeltdowns.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
     duration: 5,
     category: 'Sora-2 AI Video',
@@ -146,7 +148,11 @@ export function getMediaLibrary(): MediaItem[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      return parsed.map((m: MediaItem) => ({
+        ...m,
+        url: sanitizeMediaUrl(m.url),
+        thumbnailUrl: m.thumbnailUrl ? sanitizeMediaUrl(m.thumbnailUrl) : m.thumbnailUrl,
+      }));
     }
   } catch (e) {
     console.warn('Failed to parse media library from localStorage', e);

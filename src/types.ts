@@ -106,6 +106,7 @@ export type TransitionType =
   | 'cut' 
   | 'fade' 
   | 'dissolve' 
+  | 'fade_to_black'
   | 'wipe_left' 
   | 'wipe_right'
   | 'slide_left'
@@ -234,15 +235,20 @@ export interface SavedSceneTemplate {
 
 export interface Scene {
   id: string;
+  assetId?: string; // Stable reference to MediaItem id in persistent MediaLibrary
   title: string;
   duration: number; // in seconds (e.g. 3, 4, 5)
+  startTime?: number; // timeline start offset in seconds
+  sourceStart?: number; // media source offset in seconds (default 0)
+  sourceDuration?: number; // media source duration in seconds
+  playbackRate?: number; // playback rate multiplier (default 1)
   prompt: string;
   promptNepali?: string;
   mediaUrl: string;
   mediaType: 'image' | 'video';
   thumbnailUrl?: string;
   speed?: number;
-  aspectRatio: '16:9' | '9:16' | '1:1';
+  aspectRatio: '16:9' | '9:16' | '1:1' | '4:5';
   motion: CameraMotion;
   transition: TransitionType;
   transitionDuration?: number; // duration of transition to next scene in seconds (default 0.8s)

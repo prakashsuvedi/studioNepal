@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface StorageConfig {
@@ -118,6 +119,22 @@ export class StorageBucketService {
     // 2. Local Storage Disk Bucket
     const filePath = path.join(LOCAL_STORAGE_DIR, sanitizedFilename);
     fs.writeFileSync(filePath, buffer);
+
+    if (sanitizedFilename.endsWith('.mp4') || (mimeType && mimeType.startsWith('video/'))) {
+      try {
+        const tmpPath = `${filePath}.norm.mp4`;
+        execSync(`ffmpeg -y -i "${filePath}" -c:v copy -c:a aac -ar 48000 -movflags +faststart "${tmpPath}"`, {
+          stdio: 'ignore',
+          timeout: 10000,
+        });
+        if (fs.existsSync(tmpPath) && fs.statSync(tmpPath).size > 1000) {
+          fs.renameSync(tmpPath, filePath);
+          buffer = fs.readFileSync(filePath);
+        }
+      } catch (normErr) {
+        console.warn('Video ffmpeg normalization notice:', normErr);
+      }
+    }
 
     const hostBase = this.config.publicBaseUrl || '';
     const fileUrl = `${hostBase}/api/storage/file/${sanitizedFilename}`;

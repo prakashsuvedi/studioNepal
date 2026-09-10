@@ -25,12 +25,13 @@ import { OnboardingTourModal } from './components/OnboardingTourModal';
 import { ViralTemplate } from './data/viralTemplates';
 
 import { apiGetMe, apiLogout } from './lib/api';
+import { purgeLegacyStorageUrls, sanitizeScenes } from './lib/mediaUrlSanitizer';
 import { Lock, Sparkles, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   // Navigation & studio state
   const [activeTab, setActiveTab] = useState<StudioTab>('landing');
-  const [scenes, setScenes] = useState<Scene[]>(INITIAL_SCENES);
+  const [scenes, setScenes] = useState<Scene[]>(() => sanitizeScenes(INITIAL_SCENES));
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>(INITIAL_AUDIO_TRACKS);
   const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
   const [sharedVoiceText, setSharedVoiceText] = useState<string>('');
@@ -74,6 +75,7 @@ export default function App() {
     title: string;
     subtitle?: string;
     type?: 'video' | 'image' | 'voice' | 'render' | 'hamroai';
+    subState?: 'transcoding' | 'generating' | 'encoding' | 'compositing' | 'syncing' | 'audio_mix' | string;
     progress?: number;
   }) => {
     setGlobalLoading({
@@ -81,6 +83,7 @@ export default function App() {
       title: loading.title,
       subtitle: loading.subtitle,
       type: loading.type || 'general',
+      subState: loading.subState,
       progress: loading.progress,
       onCancel: () => setGlobalLoading(prev => ({ ...prev, active: false })),
     });
@@ -92,6 +95,9 @@ export default function App() {
 
   // Initial user session restore (Strictly respects stored user - does NOT auto-login fallback)
   useEffect(() => {
+    // Purge any outdated external URLs from storage
+    purgeLegacyStorageUrls();
+
     const savedUserId = localStorage.getItem('nepalai_user_id');
     if (savedUserId) {
       apiGetMe(savedUserId)
@@ -240,7 +246,7 @@ export default function App() {
       />
 
       {/* Main Studio Viewport */}
-      <main className="flex-1 pb-24 md:pb-16">
+      <main className={`flex-1 ${activeTab === 'video_studio' || activeTab === 'character_studio' || activeTab === 'ad_builder' ? 'pb-0 overflow-hidden' : 'pb-24 md:pb-16'}`}>
         {activeTab === 'landing' && (
           <LandingPageView
             user={user}
@@ -377,6 +383,7 @@ export default function App() {
             currentUser={user}
             onOpenImageStudio={() => handleSelectTab('image_studio')}
             onOpenSoraStudio={() => handleSelectTab('sora_studio')}
+            onOpenVoiceStudio={() => handleSelectTab('tts_studio')}
             onStartGlobalLoading={handleStartGlobalLoading}
             onStopGlobalLoading={handleStopGlobalLoading}
             audioTracks={audioTracks}

@@ -82,6 +82,7 @@ export const GlobalMediaLibraryModal: React.FC<GlobalMediaLibraryModalProps> = (
       prompt: item.prompt || item.title,
       promptNepali: item.title,
       mediaUrl: item.url,
+      thumbnailUrl: item.thumbnailUrl || (item.url.endsWith('.mp4') ? item.url.replace(/\.mp4$/, '_thumb.jpg') : undefined),
       mediaType: isVideo ? 'video' : 'image',
       aspectRatio: validAspectRatio,
       motion: isVideo ? 'static' : 'zoom_in',

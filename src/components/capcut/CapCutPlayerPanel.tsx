@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Scene, BrandOverlayConfig } from '../../types';
+import { getCompositionAtTime } from '../../lib/timelineComposition';
 import { LivePreviewCanvas } from '../LivePreviewCanvas';
 
 interface CapCutPlayerPanelProps {
@@ -74,17 +75,10 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
     }
   };
 
-  // Find the exact active scene at currentTime for stage mode
+  // Find the exact active scene at currentTime using deterministic composition logic
   const activeSceneAtPlayhead = React.useMemo(() => {
     if (scenes.length === 0) return null;
-    let accumulated = 0;
-    for (const scene of scenes) {
-      if (currentTime >= accumulated && currentTime < accumulated + scene.duration) {
-        return scene;
-      }
-      accumulated += scene.duration;
-    }
-    return scenes[scenes.length - 1] || null;
+    return getCompositionAtTime(scenes, currentTime).activeScene || scenes[scenes.length - 1] || null;
   }, [scenes, currentTime]);
 
   const displayedScene = activeSceneAtPlayhead || selectedScene;
@@ -109,41 +103,44 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex-1 bg-[#07090e] flex flex-col h-full overflow-hidden select-none border-r border-slate-800/80"
+      className="flex-1 bg-[#06080d] flex flex-col h-full overflow-hidden select-none border-r border-slate-800/80 min-w-0"
     >
       {/* Top Header */}
-      <div className="h-9 px-3 border-b border-slate-800/80 flex items-center justify-between bg-[#0a0d14] text-xs">
+      <div className="h-10 px-3.5 border-b border-slate-800/80 flex items-center justify-between bg-[#090c13] text-xs shrink-0">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-300">Player Viewport</span>
-          <span className="px-1.5 py-0.2 bg-slate-800 text-[10px] font-mono font-bold text-cyan-400 rounded">
+          <span className="font-bold text-slate-200 flex items-center gap-1.5">
+            <Monitor className="w-3.5 h-3.5 text-cyan-400" />
+            Viewport
+          </span>
+          <span className="px-2 py-0.5 bg-slate-800/90 text-[10px] font-mono font-bold text-cyan-400 rounded-md border border-slate-700/60">
             {aspectRatio}
           </span>
           {displayedScene && (
-            <span className="text-[11px] text-slate-500 truncate max-w-[140px]">
-              • {displayedScene.title}
+            <span className="text-[11px] text-slate-400 truncate max-w-[180px] bg-slate-900/60 px-2 py-0.5 rounded border border-slate-800">
+              {displayedScene.title}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {/* Safe Area Guides Selector */}
           <select
             value={safeAreaMode}
             onChange={(e) => setSafeAreaMode(e.target.value as any)}
-            className="bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-[10px] font-medium text-slate-300 focus:outline-none cursor-pointer"
+            className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-md px-2 py-1 text-[10px] font-medium text-slate-300 focus:outline-none cursor-pointer"
             title="Toggle Safe Area Overlay Guidelines"
           >
-            <option value="none">Safe Area: Off</option>
-            <option value="action_title">90/80 Action & Title Safe</option>
-            <option value="social_9_16">Reels/TikTok 9:16 Safe Margin</option>
-            <option value="grid_3x3">3x3 Composition Grid</option>
+            <option value="none">Guides: Off</option>
+            <option value="action_title">90/80 Action Safe</option>
+            <option value="social_9_16">9:16 Social Margins</option>
+            <option value="grid_3x3">3x3 Rule of Thirds</option>
           </select>
 
           {/* Quick Ticker Toggle */}
           {onToggleCurrentTicker && displayedScene && (
             <button
               onClick={onToggleCurrentTicker}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
                 isTickerActive 
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' 
                   : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
@@ -151,17 +148,17 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
               title={isTickerActive ? "Click to disable scrolling ticker" : "Click to enable scrolling ticker"}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${isTickerActive ? 'bg-rose-400 animate-pulse' : 'bg-slate-500'}`} />
-              Ticker: {isTickerActive ? 'ON' : 'OFF'}
+              <span>Ticker: {isTickerActive ? 'ON' : 'OFF'}</span>
             </button>
           )}
 
           {setPreviewMode && (
             <button
               onClick={() => setPreviewMode(previewMode === 'canvas' ? 'stage' : 'canvas')}
-              className={`px-2 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer ${
+              className={`px-2 py-1 rounded-md text-[10px] font-semibold transition cursor-pointer ${
                 previewMode === 'canvas' 
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' 
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
               }`}
             >
               {previewMode === 'canvas' ? 'Compositor' : 'Direct'}
@@ -170,7 +167,7 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
 
           <button
             onClick={handleFullscreen}
-            className="p-1 text-slate-400 hover:text-slate-200 rounded hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-200 rounded-md hover:bg-slate-800 border border-transparent hover:border-slate-700 transition cursor-pointer"
             title="Toggle Fullscreen"
           >
             <Maximize2 className="w-3.5 h-3.5" />
@@ -179,15 +176,16 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
       </div>
 
       {/* Main Viewport Container */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
+      <div className="flex-1 flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden relative bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900/20 via-[#06080d] to-[#06080d]">
         <div 
-          className={`relative bg-black rounded-lg overflow-hidden shadow-2xl transition-all duration-300 flex items-center justify-center border border-slate-800/80 ${
-            aspectRatio === '16:9' 
-              ? 'w-full aspect-video max-w-3xl max-h-full' 
-              : aspectRatio === '9:16'
-              ? 'h-full aspect-[9/16] max-h-[500px]'
-              : 'h-full aspect-square max-h-[460px]'
-          }`}
+          className="relative bg-black rounded-lg overflow-hidden shadow-2xl shadow-black/80 flex items-center justify-center border border-slate-800/80 transition-all duration-150"
+          style={{
+            aspectRatio: aspectRatio === '16:9' ? '16 / 9' : aspectRatio === '9:16' ? '9 / 16' : '1 / 1',
+            height: '100%',
+            width: 'auto',
+            maxWidth: '100%',
+            maxHeight: '100%',
+          }}
         >
           {scenes.length > 0 ? (
             previewMode === 'canvas' ? (
@@ -253,16 +251,16 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
       </div>
 
       {/* Bottom Player Controller (CapCut Signature Dark Bar) */}
-      <div className="h-11 bg-[#0a0d14] border-t border-slate-800/80 px-4 flex items-center justify-between shrink-0">
+      <div className="h-11 bg-[#0a0d14] border-t border-slate-800/80 px-2.5 sm:px-4 flex items-center justify-between shrink-0 gap-2">
         {/* Timecode */}
-        <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-slate-300">
+        <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-slate-300 shrink-0">
           <span className="text-cyan-400">{formatTimecode(currentTime)}</span>
           <span className="text-slate-600">/</span>
           <span className="text-slate-500">{formatTimecode(totalDuration)}</span>
         </div>
 
         {/* Playback Controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             onClick={onPrevScene}
             className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer"
@@ -274,7 +272,7 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
           {onStepFrame && (
             <button
               onClick={() => onStepFrame(-1)}
-              className="p-1 text-slate-400 hover:text-cyan-400 rounded hover:bg-slate-800 transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-cyan-400 rounded hover:bg-slate-800 transition cursor-pointer hidden sm:inline-flex"
               title="Step -1 Frame (-0.033s)"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -292,7 +290,7 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
           {onStepFrame && (
             <button
               onClick={() => onStepFrame(1)}
-              className="p-1 text-slate-400 hover:text-cyan-400 rounded hover:bg-slate-800 transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-cyan-400 rounded hover:bg-slate-800 transition cursor-pointer hidden sm:inline-flex"
               title="Step +1 Frame (+0.033s)"
             >
               <ChevronRight className="w-4 h-4" />
@@ -309,9 +307,9 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
         </div>
 
         {/* Right Tools: Speed, Mute & Ratio */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Speed Selector */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-[11px] font-bold text-slate-300">
+          <div className="hidden sm:flex items-center bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-[11px] font-bold text-slate-300">
             <span className="text-slate-500 mr-1 text-[10px]">Speed:</span>
             <select
               value={playbackSpeed}
@@ -338,9 +336,9 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
             onChange={e => setAspectRatio(e.target.value as any)}
             className="bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer"
           >
-            <option value="16:9">16:9 (Landscape)</option>
-            <option value="9:16">9:16 (Portrait)</option>
-            <option value="1:1">1:1 (Square)</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="1:1">1:1</option>
           </select>
         </div>
       </div>

@@ -162,7 +162,13 @@ export async function apiGenerateImage(
   userId: string,
   prompt: string,
   model = 'black-forest-labs/FLUX.1-schnell',
-  quality = 'standard'
+  quality = 'hd',
+  options?: {
+    aspectRatio?: '16:9' | '9:16' | '1:1' | '4:5';
+    negativePrompt?: string;
+    stylePreset?: string;
+    cameraAngle?: string;
+  }
 ): Promise<{
   success: boolean;
   result: { url: string; model: string; resolution: string; engine: string };
@@ -172,7 +178,16 @@ export async function apiGenerateImage(
   const res = await fetch('/api/generate/image', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-    body: JSON.stringify({ userId, prompt, model, quality }),
+    body: JSON.stringify({
+      userId,
+      prompt,
+      model,
+      quality,
+      aspectRatio: options?.aspectRatio,
+      negativePrompt: options?.negativePrompt,
+      stylePreset: options?.stylePreset,
+      cameraAngle: options?.cameraAngle,
+    }),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -185,7 +200,14 @@ export async function apiGenerateVideo(
   userId: string,
   prompt: string,
   durationSeconds = 15,
-  model = 'openai/sora-2'
+  model = 'openai/sora-2',
+  options?: {
+    resolution?: string;
+    aspectRatio?: '16:9' | '9:16' | '1:1';
+    quality?: string;
+    motion?: string;
+    style?: string;
+  }
 ): Promise<{
   success: boolean;
   result: {
@@ -205,7 +227,17 @@ export async function apiGenerateVideo(
   const res = await fetch('/api/generate/video', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-    body: JSON.stringify({ userId, prompt, durationSeconds, model }),
+    body: JSON.stringify({
+      userId,
+      prompt,
+      durationSeconds,
+      model,
+      resolution: options?.resolution,
+      aspectRatio: options?.aspectRatio,
+      quality: options?.quality,
+      motion: options?.motion,
+      style: options?.style,
+    }),
   });
   const data = await res.json();
   if (!res.ok) {

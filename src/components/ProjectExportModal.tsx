@@ -47,7 +47,7 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
 }) => {
   const [format, setFormat] = useState<'mp4' | 'webm' | 'gif'>('mp4');
   const [resolution, setResolution] = useState<'1080p' | '4k' | '720p'>('1080p');
-  const [bitrate, setBitrate] = useState<'high' | 'balanced' | 'compressed'>('balanced');
+  const [bitrate, setBitrate] = useState<'high' | 'balanced' | 'compressed'>('high');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>(defaultAspectRatio);
   const [fps, setFps] = useState<number>(30);
   
@@ -142,6 +142,41 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
       console.error('Video composition error:', err);
       setRenderError(err.message || 'Video composition encountered an error. Please retry.');
       setIsExporting(false);
+    }
+  };
+
+  const handleDownloadVideo = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!downloadUrl) return;
+    try {
+      const filename = `${projectTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_rendered.${format}`;
+      let targetDownloadHref = downloadUrl;
+
+      // If downloadUrl is a server URL, fetch full blob to prevent 10KB partial downloads
+      if (!downloadUrl.startsWith('blob:')) {
+        try {
+          const res = await fetch(downloadUrl);
+          if (res.ok) {
+            const fullBlob = await res.blob();
+            targetDownloadHref = URL.createObjectURL(fullBlob);
+          }
+        } catch (fetchErr) {
+          console.warn('[ExportModal] Direct blob fetch notice, trying direct link fallback:', fetchErr);
+        }
+      }
+
+      const a = document.createElement('a');
+      a.href = targetDownloadHref;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      if (targetDownloadHref !== downloadUrl) {
+        setTimeout(() => URL.revokeObjectURL(targetDownloadHref), 15000);
+      }
+    } catch {
+      window.open(downloadUrl, '_blank');
     }
   };
 
@@ -341,6 +376,43 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
             </div>
           </div>
 
+          {/* Master Encoding Profile / Bitrate */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Encoding Profile &amp; Bitrate Quality
+              </label>
+              <span className="text-[10px] text-emerald-400 font-mono font-medium">
+                {bitrate === 'high' ? 'CRF 18 • High Profile • 320k Audio' : bitrate === 'balanced' ? 'CRF 21 • Main Profile' : 'CRF 26 • Fast Share'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'high', label: 'Studio Master', desc: 'CRF 18 / 320k Audio' },
+                { id: 'balanced', label: 'Balanced HD', desc: 'CRF 21 / Standard' },
+                { id: 'compressed', label: 'Fast Web', desc: 'CRF 26 / Small' },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setBitrate(item.id as any)}
+                  className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center cursor-pointer ${
+                    bitrate === item.id 
+                      ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-md' 
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold">{item.label}</span>
+                    {item.id === 'high' && (
+                      <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/30 text-emerald-300 rounded font-semibold">Pro</span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-0.5">{item.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Render Error */}
           {renderError && (
             <div className="bg-rose-950/40 border border-rose-500/50 p-3.5 rounded-xl flex items-center gap-3 text-rose-200 text-xs">
@@ -410,14 +482,13 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
             </button>
 
             {exportSuccess && downloadUrl ? (
-              <a
-                href={downloadUrl}
-                download={`${projectTitle.replace(/\s+/g, '_')}_rendered.${format}`}
+              <button
+                onClick={handleDownloadVideo}
                 className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Combined Video</span>
-              </a>
+              </button>
             ) : (
               <button
                 onClick={handleStartExport}

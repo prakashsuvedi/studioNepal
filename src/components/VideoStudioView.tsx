@@ -831,67 +831,141 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     setCurrentTime(prev => Math.max(0, Math.min(totalDuration, Number((prev + deltaFrames * frameSec).toFixed(3)))));
   };
 
-  // Active BGM and Voiceover tracks
-  const bgmTrack = audioTracks.find(a => a.id === selectedAudioId) || audioTracks.find(a => a.type !== 'voiceover') || audioTracks[0];
+  // Active BGM, Voiceover, and SFX tracks
+  const bgmTrack = audioTracks.find(a => a.id === selectedAudioId) || audioTracks.find(a => a.type !== 'voiceover' && a.type !== 'sfx') || audioTracks[0];
   const voTrack = audioTracks.find(a => a.type === 'voiceover');
-
-  // Multi-Track Audio Playback Sync & Intelligent Auto-Ducking
-  useEffect(() => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      if (bgmTrack?.url) {
-        // Auto-ducking: when a voiceover track is active or current scene has dialogue, duck BGM
-        const isVoiceActive = Boolean(voTrack?.url) || Boolean(selectedScene?.scriptText || selectedScene?.narrationVoice);
-        const baseVol = (bgmVolume ?? 75) / 100;
-        audioRef.current.volume = isVoiceActive ? Math.max(0.1, baseVol * 0.28) : baseVol;
-        audioRef.current.play().catch(e => console.warn('BGM play notice:', e));
-      }
-    } else {
-      audioRef.current.pause();
-    }
-  }, [isPlaying, bgmTrack, voTrack, bgmVolume, selectedScene]);
-
-  // Voiceover audio playback sync
-  useEffect(() => {
-    if (!voAudioRef.current) return;
-    if (isPlaying && voTrack?.url) {
-      voAudioRef.current.volume = (voVolume ?? 90) / 100;
-      voAudioRef.current.play().catch(e => console.warn('VO play notice:', e));
-    } else if (voAudioRef.current) {
-      voAudioRef.current.pause();
-    }
-  }, [isPlaying, voTrack, voVolume]);
-
-  // SFX audio playback sync
   const sfxTrack = sfxTracks.find(s => s.id === selectedSfxId) || sfxTracks[0];
-  useEffect(() => {
-    if (!sfxAudioRef.current) return;
-    if (isPlaying && sfxTrack?.url) {
-      sfxAudioRef.current.volume = (sfxVolume ?? 75) / 100;
-      sfxAudioRef.current.play().catch(e => console.warn('SFX play notice:', e));
-    } else if (sfxAudioRef.current) {
-      sfxAudioRef.current.pause();
-    }
-  }, [isPlaying, sfxTrack, sfxVolume]);
 
-  // Audio Playhead Seek Sync
+  // Multi-Track Audio Playback Sync & Intelligent Dynamic Auto-Ducking (Ultra-smooth rate-guided engine)
   useEffect(() => {
-    if (audioRef.current && Math.abs(audioRef.current.currentTime - currentTime) > 0.4) {
-      try {
-        audioRef.current.currentTime = Math.min(audioRef.current.duration || totalDuration, currentTime);
-      } catch (e) {}
+    // 1. Calculate active voice/dialogue presence for intelligent auto-ducking
+    const voStart = voTrack?.startTime || 0;
+    const voDuration = voTrack?.duration || 9999;
+    const isVoSpeaking = Boolean(voTrack?.url) && (currentTime >= voStart && currentTime <= voStart + voDuration);
+    const isSceneDialogue = Boolean(selectedScene?.scriptText || selectedScene?.narrationVoice);
+    const isVoiceActive = isVoSpeaking || isSceneDialogue;
+
+    // 2. Compute smooth volumes
+    const baseBgm = (isMuted || isBgmMuted) ? 0 : ((bgmVolume ?? 80) / 100);
+    const targetBgmVol = isVoiceActive ? Math.max(0.1, baseBgm * 0.28) : baseBgm;
+    const targetVoVol = (isMuted || isVoMuted) ? 0 : Math.min(1, Math.max(0, (voVolume ?? 90) / 100));
+    const targetSfxVol = isMuted ? 0 : Math.min(1, Math.max(0, (sfxVolume ?? 75) / 100));
+
+    // Update volumes smoothly without clicks
+    if (audioRef.current) audioRef.current.volume = targetBgmVol;
+    if (voAudioRef.current) voAudioRef.current.volume = targetVoVol;
+    if (sfxAudioRef.current) sfxAudioRef.current.volume = targetSfxVol;
+
+    // 3. Playback State Synchronization
+    if (!isPlaying) {
+      // When Paused: Pause all and sync playheads to current playhead position
+      if (audioRef.current && !audioRef.current.paused) audioRef.current.pause();
+      if (voAudioRef.current && !voAudioRef.current.paused) voAudioRef.current.pause();
+      if (sfxAudioRef.current && !sfxAudioRef.current.paused) sfxAudioRef.current.pause();
+
+      if (audioRef.current && bgmTrack?.url) {
+        const bgmTargetTime = Math.max(0, (currentTime - (bgmTrack.startTime || 0)) % (audioRef.current.duration || totalDuration || 30));
+        if (Math.abs(audioRef.current.currentTime - bgmTargetTime) > 0.05) {
+          try { audioRef.current.currentTime = bgmTargetTime; } catch (e) {}
+        }
+      }
+      if (voAudioRef.current && voTrack?.url) {
+        const voTargetTime = Math.max(0, currentTime - voStart);
+        if (Math.abs(voAudioRef.current.currentTime - voTargetTime) > 0.05) {
+          try { voAudioRef.current.currentTime = voTargetTime; } catch (e) {}
+        }
+      }
+      if (sfxAudioRef.current && sfxTrack?.url) {
+        const sfxStart = sfxTrack.startTime || 0;
+        const sfxTargetTime = Math.max(0, currentTime - sfxStart);
+        if (Math.abs(sfxAudioRef.current.currentTime - sfxTargetTime) > 0.05) {
+          try { sfxAudioRef.current.currentTime = sfxTargetTime; } catch (e) {}
+        }
+      }
+      return;
     }
-    if (voAudioRef.current && Math.abs(voAudioRef.current.currentTime - currentTime) > 0.4) {
-      try {
-        voAudioRef.current.currentTime = Math.min(voAudioRef.current.duration || totalDuration, currentTime);
-      } catch (e) {}
+
+    // 4. When Playing: Master BGM Track Sync (Micro-rate guided, zero audio buffer flushing)
+    if (audioRef.current && bgmTrack?.url) {
+      const bgmTargetTime = Math.max(0, (currentTime - (bgmTrack.startTime || 0)) % (audioRef.current.duration || totalDuration || 30));
+      const drift = audioRef.current.currentTime - bgmTargetTime;
+      const absDrift = Math.abs(drift);
+
+      if (audioRef.current.paused) {
+        try {
+          audioRef.current.currentTime = bgmTargetTime;
+          audioRef.current.play().catch(() => {});
+        } catch (e) {}
+      } else if (absDrift > 1.2 && !audioRef.current.seeking) {
+        // Large jump or user scrubbing on timeline: hard seek
+        audioRef.current.currentTime = bgmTargetTime;
+      } else if (absDrift > 0.06 && !audioRef.current.seeking) {
+        // Micro drift correction: steer playback rate by ±3% so sound flows 100% glitch-free
+        audioRef.current.playbackRate = drift < 0 ? 1.035 : 0.965;
+      } else {
+        audioRef.current.playbackRate = 1.0;
+      }
     }
-    if (sfxAudioRef.current && Math.abs(sfxAudioRef.current.currentTime - currentTime) > 0.4) {
-      try {
-        sfxAudioRef.current.currentTime = Math.min(sfxAudioRef.current.duration || totalDuration, currentTime);
-      } catch (e) {}
+
+    // 5. Voiceover Track Sync (Windowed playback)
+    if (voAudioRef.current && voTrack?.url) {
+      if (isVoSpeaking) {
+        const voTargetTime = Math.max(0, currentTime - voStart);
+        const voDrift = voAudioRef.current.currentTime - voTargetTime;
+        const absVoDrift = Math.abs(voDrift);
+
+        if (voAudioRef.current.paused) {
+          try {
+            voAudioRef.current.currentTime = voTargetTime;
+            voAudioRef.current.play().catch(() => {});
+          } catch (e) {}
+        } else if (absVoDrift > 1.2 && !voAudioRef.current.seeking) {
+          voAudioRef.current.currentTime = voTargetTime;
+        } else if (absVoDrift > 0.06 && !voAudioRef.current.seeking) {
+          voAudioRef.current.playbackRate = voDrift < 0 ? 1.035 : 0.965;
+        } else {
+          voAudioRef.current.playbackRate = 1.0;
+        }
+      } else {
+        if (!voAudioRef.current.paused) {
+          voAudioRef.current.pause();
+        }
+        if (currentTime < voStart) {
+          try { voAudioRef.current.currentTime = 0; } catch (e) {}
+        }
+      }
     }
-  }, [currentTime, totalDuration]);
+
+    // 6. SFX Track Sync (Windowed playback)
+    if (sfxAudioRef.current && sfxTrack?.url) {
+      const sfxStart = sfxTrack.startTime || 0;
+      const sfxDuration = sfxTrack.duration || 5;
+      const isSfxSpeaking = currentTime >= sfxStart && currentTime <= sfxStart + sfxDuration;
+
+      if (isSfxSpeaking) {
+        const sfxTargetTime = Math.max(0, currentTime - sfxStart);
+        const sfxDrift = sfxAudioRef.current.currentTime - sfxTargetTime;
+        const absSfxDrift = Math.abs(sfxDrift);
+
+        if (sfxAudioRef.current.paused) {
+          try {
+            sfxAudioRef.current.currentTime = sfxTargetTime;
+            sfxAudioRef.current.play().catch(() => {});
+          } catch (e) {}
+        } else if (absSfxDrift > 1.2 && !sfxAudioRef.current.seeking) {
+          sfxAudioRef.current.currentTime = sfxTargetTime;
+        } else if (absSfxDrift > 0.06 && !sfxAudioRef.current.seeking) {
+          sfxAudioRef.current.playbackRate = sfxDrift < 0 ? 1.035 : 0.965;
+        } else {
+          sfxAudioRef.current.playbackRate = 1.0;
+        }
+      } else {
+        if (!sfxAudioRef.current.paused) {
+          sfxAudioRef.current.pause();
+        }
+      }
+    }
+  }, [isPlaying, currentTime, bgmTrack, voTrack, sfxTrack, isMuted, isBgmMuted, isVoMuted, bgmVolume, voVolume, sfxVolume, selectedScene, totalDuration]);
 
   // Handle Drag and Drop Media/Audio Files directly into Timeline
   const handleAudioUpload = (file: File, trackType: 'bgm' | 'voiceover' | 'sfx' = 'bgm') => {
@@ -2455,19 +2529,16 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         ref={audioRef}
         src={bgmTrack?.url}
         preload="auto"
+        loop={true}
+        playsInline
         muted={isMuted || isBgmMuted}
         className="hidden"
-        onEnded={() => {
-          if (audioRef.current) {
-            audioRef.current.currentTime = 0;
-            if (isPlaying) audioRef.current.play().catch(() => {});
-          }
-        }}
       />
       <audio
         ref={voAudioRef}
         src={voTrack?.url}
         preload="auto"
+        playsInline
         muted={isMuted || isVoMuted}
         className="hidden"
       />
@@ -2475,6 +2546,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         ref={sfxAudioRef}
         src={sfxTrack?.url}
         preload="auto"
+        playsInline
         muted={isMuted}
         className="hidden"
       />

@@ -26,7 +26,8 @@ import {
   X,
   Edit2,
   Clock,
-  Layers
+  Layers,
+  RotateCw
 } from 'lucide-react';
 import { Scene, AudioTrack, TransitionType } from '../../types';
 import { computeSceneTimings } from '../../lib/timelineComposition';
@@ -79,6 +80,8 @@ interface CapCutTimelineDeckProps {
   isPlaying?: boolean;
   snapEnabled?: boolean;
   onApplyTransitionToAll?: (transition: TransitionType, duration: number) => void;
+  isAudioBuffering?: boolean;
+  audioLoadingStatus?: Record<string, 'buffering' | 'ready' | 'error'>;
 }
 
 export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
@@ -113,6 +116,8 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
   isPlaying = false,
   snapEnabled = true,
   onApplyTransitionToAll,
+  isAudioBuffering = false,
+  audioLoadingStatus = {},
 }) => {
   const rulerRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -696,60 +701,83 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
 
           {/* Track 3 Content: Voiceover Audio Track (Waveform visual) */}
           <div className="h-8 border-b border-slate-800/60 bg-[#090c14] relative flex items-center">
-            <div 
-              style={{ left: 0, width: `${Math.max(120, totalDuration * pixelsPerSecond)}px` }}
-              className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition ${
-                isVoMuted 
-                  ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
-                  : 'bg-emerald-950/40 border-emerald-700/60 text-emerald-200'
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${isVoMuted ? 'bg-slate-500' : isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'}`}></span>
-                <span className="font-bold text-[10px] truncate max-w-xs">
-                  {voTrack ? voTrack.title : 'Nepali Neural Voiceover'}
-                </span>
-                <div className="flex items-center gap-0.5 opacity-75 pl-1.5">
-                  {[4, 10, 6, 14, 8, 12, 5, 11, 7, 13, 6, 10].map((h, i) => (
-                    <div 
-                      key={i} 
-                      className={`w-0.5 rounded-full transition-all duration-150 ${isVoMuted ? 'bg-slate-600' : 'bg-emerald-400'}`} 
-                      style={{ height: isPlaying && !isVoMuted ? `${Math.max(2, (h * ((i % 3) + 1)) % 14)}px` : `${Math.min(12, h)}px` }} 
-                    />
-                  ))}
+            {(() => {
+              const isVoBuffering = Boolean(voTrack?.url && audioLoadingStatus[voTrack.url] === 'buffering');
+              return (
+                <div 
+                  style={{ left: 0, width: `${Math.max(120, totalDuration * pixelsPerSecond)}px` }}
+                  className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition ${
+                    isVoMuted 
+                      ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
+                      : 'bg-emerald-950/40 border-emerald-700/60 text-emerald-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isVoMuted ? 'bg-slate-500' : isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'}`}></span>
+                    <span className="font-bold text-[10px] truncate max-w-xs">
+                      {voTrack ? voTrack.title : 'Nepali Neural Voiceover'}
+                    </span>
+                    {isVoBuffering && (
+                      <span className="flex items-center gap-1 text-[8px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1 py-0.2 rounded font-mono animate-pulse shrink-0">
+                        <RotateCw className="w-2 h-2 animate-spin" />
+                        <span>Buffering...</span>
+                      </span>
+                    )}
+                    <div className="flex items-center gap-0.5 opacity-75 pl-1.5">
+                      {[4, 10, 6, 14, 8, 12, 5, 11, 7, 13, 6, 10].map((h, i) => (
+                        <div 
+                          key={i} 
+                          className={`w-0.5 rounded-full transition-all duration-150 ${isVoMuted ? 'bg-slate-600' : 'bg-emerald-400'}`} 
+                          style={{ height: isPlaying && !isVoMuted ? `${Math.max(2, (h * ((i % 3) + 1)) % 14)}px` : `${Math.min(12, h)}px` }} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="font-mono text-[8px] font-bold text-emerald-400 shrink-0 ml-1">{isVoMuted ? 'MUTED' : `${voVolume}%`}</span>
                 </div>
-              </div>
-              <span className="font-mono text-[8px] font-bold text-emerald-400">{isVoMuted ? 'MUTED' : `${voVolume}%`}</span>
-            </div>
+              );
+            })()}
           </div>
 
           {/* Track 4 Content: Background Music (BGM) Track */}
           <div className="h-8 bg-[#090c14] relative flex items-center">
-            <div 
-              style={{ left: 0, width: `${Math.max(120, totalDuration * pixelsPerSecond)}px` }}
-              className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition ${
-                isBgmMuted 
-                  ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
-                  : 'bg-purple-950/40 border-purple-700/60 text-purple-200'
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${isBgmMuted ? 'bg-slate-500' : isPlaying ? 'bg-purple-400 animate-pulse' : 'bg-purple-500'}`}></span>
-                <span className="font-bold text-[10px] truncate max-w-xs">
-                  {audioTracks.find(a => a.id === selectedAudioId)?.title || 'Cinematic Theme'}
-                </span>
-                <div className="flex items-center gap-0.5 opacity-75 pl-1.5">
-                  {[6, 12, 8, 13, 5, 11, 7, 12, 6, 10, 8, 11].map((h, i) => (
-                    <div 
-                      key={i} 
-                      className={`w-0.5 rounded-full transition-all duration-150 ${isBgmMuted ? 'bg-slate-600' : 'bg-purple-400'}`} 
-                      style={{ height: isPlaying && !isBgmMuted ? `${Math.max(2, (h * ((i % 2) + 1.2)) % 14)}px` : `${Math.min(12, h)}px` }} 
-                    />
-                  ))}
+            {(() => {
+              const currentBgm = audioTracks.find(a => a.id === selectedAudioId) || audioTracks[0];
+              const isBgmBuffering = Boolean(currentBgm?.url && audioLoadingStatus[currentBgm.url] === 'buffering');
+              return (
+                <div 
+                  style={{ left: 0, width: `${Math.max(120, totalDuration * pixelsPerSecond)}px` }}
+                  className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition ${
+                    isBgmMuted 
+                      ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
+                      : 'bg-purple-950/40 border-purple-700/60 text-purple-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isBgmMuted ? 'bg-slate-500' : isPlaying ? 'bg-purple-400 animate-pulse' : 'bg-purple-500'}`}></span>
+                    <span className="font-bold text-[10px] truncate max-w-xs">
+                      {currentBgm?.title || 'Cinematic Theme'}
+                    </span>
+                    {isBgmBuffering && (
+                      <span className="flex items-center gap-1 text-[8px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1 py-0.2 rounded font-mono animate-pulse shrink-0">
+                        <RotateCw className="w-2 h-2 animate-spin" />
+                        <span>Buffering...</span>
+                      </span>
+                    )}
+                    <div className="flex items-center gap-0.5 opacity-75 pl-1.5">
+                      {[6, 12, 8, 13, 5, 11, 7, 12, 6, 10, 8, 11].map((h, i) => (
+                        <div 
+                          key={i} 
+                          className={`w-0.5 rounded-full transition-all duration-150 ${isBgmMuted ? 'bg-slate-600' : 'bg-purple-400'}`} 
+                          style={{ height: isPlaying && !isBgmMuted ? `${Math.max(2, (h * ((i % 2) + 1.2)) % 14)}px` : `${Math.min(12, h)}px` }} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="font-mono text-[8px] font-bold text-purple-400 shrink-0 ml-1">{isBgmMuted ? 'MUTED' : `${bgmVolume}%`}</span>
                 </div>
-              </div>
-              <span className="font-mono text-[8px] font-bold text-purple-400">{isBgmMuted ? 'MUTED' : `${bgmVolume}%`}</span>
-            </div>
+              );
+            })()}
           </div>
 
           {/* Draggable Playhead Needle (CapCut Cyan Needle) */}

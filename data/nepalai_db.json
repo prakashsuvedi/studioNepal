@@ -9,7 +9,7 @@
       "tier": "pro_studio",
       "credits": 999999,
       "createdAt": "2026-08-01T10:00:00.000Z",
-      "updatedAt": "2026-09-09T03:15:01.094Z"
+      "updatedAt": "2026-09-11T03:38:43.638Z"
     },
     {
       "id": "usr_client_02",
@@ -135,10 +135,10 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 99999,
-      "totalTokensUsed": 0,
-      "lastUsedAt": "2026-09-08T15:42:23.124Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.741Z"
+      "totalTokensUsed": 700,
+      "lastUsedAt": "2026-09-11T03:58:48.816Z",
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T03:38:43.638Z"
     },
     "usr_client_02": {
       "userId": "usr_client_02",
@@ -154,8 +154,8 @@
       "maxRenders": 50,
       "totalTokensUsed": 52400,
       "lastUsedAt": "2026-09-02T14:15:00.000Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.742Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.332Z"
     },
     "usr_client_03": {
       "userId": "usr_client_03",
@@ -171,8 +171,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 4200,
       "lastUsedAt": "2026-09-03T11:20:00.000Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.742Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.333Z"
     },
     "usr_client_04": {
       "userId": "usr_client_04",
@@ -188,8 +188,8 @@
       "maxRenders": 10,
       "totalTokensUsed": 21800,
       "lastUsedAt": "2026-09-03T08:10:00.000Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.742Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.333Z"
     },
     "usr-google-prakash": {
       "userId": "usr-google-prakash",
@@ -220,8 +220,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-04T07:43:50.345Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.743Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.333Z"
     },
     "usr_1788507920932_feh9u": {
       "userId": "usr_1788507920932_feh9u",
@@ -237,8 +237,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 700,
       "lastUsedAt": "2026-09-04T07:48:58.626Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.743Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.334Z"
     },
     "usr_1788664974375_fa6my": {
       "userId": "usr_1788664974375_fa6my",
@@ -254,8 +254,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-06T03:22:54.375Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.743Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.334Z"
     },
     "usr_smoke_test_prakash": {
       "userId": "usr_smoke_test_prakash",
@@ -288,8 +288,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-07T05:17:07.003Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.744Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.334Z"
     },
     "user_1": {
       "userId": "user_1",
@@ -322,8 +322,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-08T10:51:49.197Z",
-      "lastResetDate": "2026-09-10",
-      "lastResetAt": "2026-09-10T09:18:41.744Z"
+      "lastResetDate": "2026-09-11",
+      "lastResetAt": "2026-09-11T04:07:24.334Z"
     },
     "test": {
       "userId": "test",
@@ -406,6 +406,30 @@
     }
   ],
   "generationLogs": [
+    {
+      "id": "gen_1789099128816_399z",
+      "userId": "usr_admin_01",
+      "type": "image",
+      "model": "gpt-image-1.5 (High-Res Photorealistic Master)",
+      "prompt": "Mount Everest sunrise golden hour 8k photorealistic",
+      "resultUrl": "/api/storage/file/gpt_image_1789099128385_y0zu.png",
+      "tokensCost": 350,
+      "creditsCost": 5,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-11T03:58:48.816Z"
+    },
+    {
+      "id": "gen_1789098630627_anif",
+      "userId": "usr_admin_01",
+      "type": "image",
+      "model": "gpt-image-1.5 (High-Res Photorealistic Master)",
+      "prompt": "A beautiful view of Pokhara Phewa Lake with Annapurna in background",
+      "resultUrl": "/api/storage/file/gpt_image_1789098630104_kvmd.png",
+      "tokensCost": 350,
+      "creditsCost": 5,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-09-11T03:50:30.627Z"
+    },
     {
       "id": "gen_1788880651388_5lnf",
       "userId": "usr_admin_01",

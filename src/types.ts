@@ -28,6 +28,12 @@ export interface HamroChatMessage {
   model?: HamroAiModel;
   language?: HamroAiLanguage;
   tokens?: number;
+  imageUrl?: string;
+  imageMetadata?: {
+    model?: string;
+    resolution?: string;
+    engine?: string;
+  };
 }
 
 export interface HamroPromptTemplate {

@@ -95,6 +95,23 @@ export function getAzureOpenAIKey(): string {
 }
 
 /**
+ * Dedicated key resolver for Azure Chat models (gpt-4o, gpt-5-mini) on solutions-ai-hub
+ */
+export function getAzureChatKey(): string {
+  const candidateKeys = [
+    process.env.AZURE_OPENAI_KEY,
+    process.env.AZURE_API_KEY,
+    process.env.OPENAI_API_KEY,
+  ].filter((k): k is string => Boolean(k && k.trim().length > 5));
+
+  // The key starting with 2woR has been confirmed on solutions-ai-hub
+  const workingChatKey = candidateKeys.find((k) => k.startsWith('2woR'));
+  if (workingChatKey) return workingChatKey;
+
+  return candidateKeys[0] || '';
+}
+
+/**
  * Premium Cinematic Prompt Enhancer for Sora-2 and Video Generation
  */
 export function enhanceCinematicVideoPrompt(
@@ -1176,7 +1193,74 @@ ${dynamicUnicodeInstructions}
     ...messages.slice(-10),
   ];
 
-  // 1. PRIMARY ROUTE: Live NepalAI Hugging Face Space chat service (verified high speed)
+  // 1. PRIMARY ROUTE: Direct Azure OpenAI (gpt-4o & gpt-5-mini on solutions-ai-hub)
+  const azureChatKey = getAzureChatKey();
+  if (azureChatKey) {
+    const targetDeployment = model === 'gpt-5-mini' ? 'gpt-5-mini' : 'gpt-4o';
+    const chatEndpoints = [
+      `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-02-15-preview`,
+      'https://solutions-ai-hub.services.ai.azure.com/openai/v1/chat/completions',
+      `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-10-21`,
+      'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/chat/completions',
+    ];
+
+    for (const azureUrl of chatEndpoints) {
+      try {
+        const azureRes = await fetch(azureUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${azureChatKey}`,
+            'api-key': azureChatKey,
+          },
+          body: JSON.stringify({
+            model: targetDeployment,
+            messages: formattedMessages,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+
+        if (azureRes.ok) {
+          const data: any = await azureRes.json();
+          const reply = data.choices?.[0]?.message?.content || '';
+          if (reply && reply.trim().length > 0) {
+            console.log(`[HamroAI Chat] Responded via Azure OpenAI (${model}) in real-time`);
+            return {
+              reply,
+              usage: data.usage,
+            };
+          }
+        }
+      } catch (azureErr: any) {
+        // Continue to next endpoint seamlessly
+      }
+    }
+  }
+
+  // 2. SECONDARY ROUTE: Google Gemini 2.5 Flash via @google/genai
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey && geminiKey.trim().length > 5) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
+      const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
+      const systemPrompt = `You are HamroAI (${model}), a warm, exceptionally capable AI assistant built by NepalAI for Nepali, Hindi, and Global users. User language is ${language}. Reply naturally, in Devanagari script for Nepali/Hindi, with complete accuracy: "${lastUserMsg}"`;
+      
+      const geminiRes = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: systemPrompt,
+      });
+      if (geminiRes && geminiRes.text) {
+        return {
+          reply: geminiRes.text,
+          usage: { total_tokens: 350, prompt_tokens: 150, completion_tokens: 200 }
+        };
+      }
+    } catch (geminiErr: any) {
+      // Continue to next fallback
+    }
+  }
+
+  // 3. TERTIARY ROUTE: Live NepalAI Hugging Face Space chat service (quick timeout)
   const hfSpaceUrl = 'https://prakashsuvedi-nepalai-studio.hf.space/api/hamroai/chat';
   try {
     const spaceRes = await fetch(hfSpaceUrl, {
@@ -1192,7 +1276,7 @@ ${dynamicUnicodeInstructions}
         locale: language === 'ne' ? 'ne-NP' : language === 'hi' ? 'hi-IN' : 'en-US',
         systemInstruction,
       }),
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(3000),
     });
 
     if (spaceRes.ok) {
@@ -1205,103 +1289,7 @@ ${dynamicUnicodeInstructions}
       }
     }
   } catch (spaceErr) {
-    console.warn('HF Space chat notice, falling back:', spaceErr);
-  }
-
-  // 2. SECONDARY ROUTE: Direct Azure OpenAI (Azure AI Foundry gpt-4o & gpt-5-mini)
-  const azureKey = getAzureOpenAIKey();
-
-  if (azureKey) {
-    const azureEndpoints = [
-      'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/chat/completions',
-      'https://solutions-ai-hub.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview',
-      `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${model}/chat/completions?api-version=2024-02-15-preview`
-    ];
-
-    for (const azureUrl of azureEndpoints) {
-      try {
-        const azureRes = await fetch(azureUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${azureKey}`,
-            'api-key': azureKey,
-          },
-          body: JSON.stringify({
-            model: model === 'gpt-5-mini' ? 'gpt-4o-mini' : 'gpt-4o',
-            messages: formattedMessages,
-          }),
-          signal: AbortSignal.timeout(10000),
-        });
-
-        if (azureRes.ok) {
-          const data: any = await azureRes.json();
-          const reply = data.choices?.[0]?.message?.content || '';
-          if (reply && reply.trim().length > 0) {
-            return {
-              reply,
-              usage: data.usage,
-            };
-          }
-        }
-      } catch (azureErr) {
-        console.warn(`Azure OpenAI endpoint notice (${azureUrl}):`, azureErr);
-      }
-    }
-  }
-
-  // 3. Direct OpenAI API if OPENAI_API_KEY is configured
-  const openAiKey = process.env.OPENAI_API_KEY;
-  if (openAiKey && openAiKey.trim().length > 5) {
-    try {
-      const isGpt5 = model.includes('5') || model.includes('o1') || model.includes('o3');
-      const openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openAiKey.trim()}`,
-        },
-        body: JSON.stringify({
-          model: model === 'gpt-5-mini' ? 'gpt-4o-mini' : 'gpt-4o',
-          messages: formattedMessages,
-          ...(isGpt5 ? { max_completion_tokens: 3000 } : { max_tokens: 3000, temperature: 0.7 }),
-        }),
-      });
-
-      if (openAiRes.ok) {
-        const data: any = await openAiRes.json();
-        const reply = data.choices?.[0]?.message?.content || '';
-        return {
-          reply,
-          usage: data.usage,
-        };
-      }
-    } catch (openAiErr) {
-      console.warn('Direct OpenAI API notice:', openAiErr);
-    }
-  }
-
-  // 4. Try Google Gemini API via @google/genai
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey && geminiKey.trim().length > 5) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
-      const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
-      const systemPrompt = `You are HamroAI (${model}), a warm, exceptionally capable AI assistant built by NepalAI for Nepali, Hindi, and Global users. User language is ${language}. Reply naturally and accurately to: "${lastUserMsg}"`;
-      
-      const geminiRes = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: systemPrompt,
-      });
-      if (geminiRes && geminiRes.text) {
-        return {
-          reply: geminiRes.text,
-          usage: { total_tokens: 350, prompt_tokens: 150, completion_tokens: 200 }
-        };
-      }
-    } catch (geminiErr: any) {
-      console.warn('Gemini API notice:', geminiErr?.message || geminiErr);
-    }
+    // Gracefully handle space cold starts without throwing errors
   }
 
   // 5. Intelligent fallback response

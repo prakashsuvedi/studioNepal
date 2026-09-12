@@ -334,21 +334,12 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
         };
 
-        const timeoutId = setTimeout(stopAudio, 5000);
-
         audio.onended = stopAudio;
         audio.onerror = stopAudio;
-        audio.ontimeupdate = () => {
-          if (audio.currentTime >= 5) {
-            stopAudio();
-            clearTimeout(timeoutId);
-          }
-        };
 
         await audio.play().catch(err => {
           console.warn('Sample playback failed:', err);
           stopAudio();
-          clearTimeout(timeoutId);
         });
       } else {
         setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
@@ -813,42 +804,32 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       const targetUserId = user?.id || 'usr_guest_' + Date.now();
       const voiceIdParam = selectedVoice.id;
 
-      // Extract parameters and strip tags from text
-      let cleanedText = text;
+      // Extract optional speed/volume/pitch parameters from text if present
+      let textToSynthesize = text;
       let extractedSpeed: string | undefined = undefined;
       let extractedVolume: string | undefined = undefined;
       let extractedPitch: string | undefined = undefined;
 
-      const speedMatch = cleanedText.match(/\[Speed:\s*([^\]]+)\]/i);
+      const speedMatch = textToSynthesize.match(/\[Speed:\s*([^\]]+)\]/i);
       if (speedMatch) {
         extractedSpeed = speedMatch[1].trim();
       }
 
-      const volumeMatch = cleanedText.match(/\[Volume:\s*([^\]]+)\]/i);
+      const volumeMatch = textToSynthesize.match(/\[Volume:\s*([^\]]+)\]/i);
       if (volumeMatch) {
         extractedVolume = volumeMatch[1].trim();
       }
 
-      const pitchMatch = cleanedText.match(/\[Pitch:\s*([^\]]+)\]/i);
+      const pitchMatch = textToSynthesize.match(/\[Pitch:\s*([^\]]+)\]/i);
       if (pitchMatch) {
         extractedPitch = pitchMatch[1].trim();
       } else if (pitchVal !== 0) {
         extractedPitch = `${pitchVal > 0 ? '+' : ''}${pitchVal}%`;
       }
 
-      // Strip all formatting and instruction bracket tags before sending to TTS engine
-      cleanedText = cleanedText
-        .replace(/\[Speed:\s*[^\]]+\]/gi, '')
-        .replace(/\[Volume:\s*[^\]]+\]/gi, '')
-        .replace(/\[Pause:\s*[^\]]+\]/gi, '')
-        .replace(/\[Emphasis:\s*[^\]]+\]/gi, '')
-        .replace(/\[Pitch:\s*[^\]]+\]/gi, '')
-        .replace(/\[\/(Speed|Volume|Emphasis|Pitch)\]/gi, '')
-        .trim();
-      
       const data = await apiGenerateAudio(
         targetUserId,
-        cleanedText || 'नमस्ते',
+        textToSynthesize || 'नमस्ते',
         voiceIdParam,
         language === 'ne' ? 'ne-NP' : 'en-US',
         emotion,
@@ -872,6 +853,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
         const audio = new Audio(data.result.url);
         audio.playbackRate = rate;
+        if ('preservesPitch' in audio) {
+          audio.preservesPitch = true;
+        } else if ('webkitPreservesPitch' in audio) {
+          (audio as any).webkitPreservesPitch = true;
+        }
 
         audio.onplay = () => setIsPlaying(true);
         audio.onended = () => setIsPlaying(false);
@@ -890,7 +876,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         // Sync Asset to user Project automatically
         const newAsset = {
           id: 'asset_' + Date.now(),
-          title: `Voiceover: ${(cleanedText || text).slice(0, 20)}...`,
+          title: `Voiceover: ${(textToSynthesize || text).slice(0, 20)}...`,
           project: selectedProject,
           voice: selectedVoice.name,
           url: data.result.url,
@@ -901,9 +887,9 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         // Automatically save to Media Library so it appears instantly in Video Studio's Audio tab & Import list
         saveMediaItem({
           type: 'ai_audio',
-          title: `[Voiceover] ${selectedVoice.name} - ${(cleanedText || text).slice(0, 22)}...`,
+          title: `[Voiceover] ${selectedVoice.name} - ${(textToSynthesize || text).slice(0, 22)}...`,
           url: data.result.url,
-          duration: data.result.duration || Math.max(4, Math.ceil((cleanedText || text).length / 14)),
+          duration: data.result.duration || Math.max(4, Math.ceil((textToSynthesize || text).length / 14)),
           category: 'AI Voiceover',
           engine: data.result.format || 'Azure Speech Neural (eastus)'
         });

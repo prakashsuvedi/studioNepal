@@ -805,16 +805,20 @@ export async function serverGenerateAudio(
 
   const region = process.env.AZURE_SPEECH_REGION || 'eastus';
 
+  // Normalize language tag for Azure SSML BCP-47 compliance (e.g. ne-NP, en-US)
+  const langStr = String(language || 'ne-NP');
+  const normLang = (langStr === 'ne' || langStr === 'ne-NP') ? 'ne-NP' : ((langStr === 'en' || langStr === 'en-US') ? 'en-US' : langStr);
+
   // Determine Azure Speech Neural Voice Name & default demographics
-  let azureVoice = language === 'en-US' ? 'en-US-AvaMultilingualNeural' : 'ne-NP-HemkalaNeural';
+  let azureVoice = normLang === 'en-US' ? 'en-US-AvaMultilingualNeural' : 'ne-NP-HemkalaNeural';
   
-  if (language === 'ne-NP') {
+  if (normLang === 'ne-NP') {
     if (voiceId.includes('aakash') || voiceId.includes('sagar') || voiceId.includes('male') || voiceId.includes('rohan') || voiceId.includes('sanjok') || voiceId.includes('guru') || voiceId.includes('aarav')) {
       azureVoice = 'ne-NP-SagarNeural';
     } else {
       azureVoice = 'ne-NP-HemkalaNeural';
     }
-  } else if (language === 'en-US') {
+  } else if (normLang === 'en-US') {
     if (voiceId.includes('ana')) {
       azureVoice = 'en-US-AnaNeural'; // Native Child Voice
     } else if (voiceId.includes('andrew') || voiceId.includes('guy') || voiceId.includes('male') || voiceId.includes('david') || voiceId.includes('arthur')) {
@@ -862,27 +866,37 @@ export async function serverGenerateAudio(
     defaultRate = defaultRate === "0%" ? "+20%" : defaultRate;
   }
 
+  // Helper for formatting rate attributes without generating invalid '+fast' or '+slow' SSML
+  const formatRateAttr = (rateVal: string): string => {
+    if (!rateVal) return '0%';
+    const val = rateVal.trim().toLowerCase();
+    if (['x-slow', 'slow', 'medium', 'fast', 'x-fast', 'default'].includes(val)) {
+      return val;
+    }
+    if (val.startsWith('+') || val.startsWith('-')) {
+      return val;
+    }
+    if (/^[0-9\.]+%?$/.test(val)) {
+      return `+${val.endsWith('%') ? val : val + '%'}`;
+    }
+    return val;
+  };
+
   // 1. Azure Cognitive Services Text-to-Speech REST API (eastus region)
   if (speechKey && speechKey.trim().length > 5) {
     try {
       const azureTtsEndpoint = `https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`;
 
-      // Escape SSML XML characters
-      const escapedText = text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+      // 1. Parse bracket tags ([Pause: 1s], etc) into SSML XML tags (<break time="1s"/>, etc)
+      let innerText = parseAudioMarkupTags(text);
 
       // Apply phonetic dictionary rules
-      let phoneticProcessed = escapedText;
       if (phoneticDict) {
-        phoneticProcessed = applyPhoneticRules(escapedText, phoneticDict, language);
+        innerText = applyPhoneticRules(innerText, phoneticDict, normLang);
       }
 
-      // Parse custom directional bracket tags into XML-compliant prosody and breaks
-      let innerText = parseAudioMarkupTags(phoneticProcessed);
+      // Ensure bare ampersands are escaped for valid SSML XML compliance
+      innerText = innerText.replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;');
 
       // Wrap in dynamic prosody properties only when explicitly requested
       let overridePitch = pitch && pitch !== '0%' ? pitch : defaultPitch;
@@ -943,8 +957,7 @@ export async function serverGenerateAudio(
       if (hasOverride) {
         let prosodyAttributes = '';
         if (overrideRate && overrideRate !== '0%') {
-          const rateAttr = overrideRate.startsWith('+') || overrideRate.startsWith('-') ? overrideRate : `+${overrideRate}`;
-          prosodyAttributes += ` rate="${rateAttr.toLowerCase()}"`;
+          prosodyAttributes += ` rate="${formatRateAttr(overrideRate)}"`;
         }
         if (overrideVolume && overrideVolume !== '0dB') {
           prosodyAttributes += ` volume="${overrideVolume.toLowerCase()}"`;
@@ -957,12 +970,11 @@ export async function serverGenerateAudio(
           innerText = `<prosody${prosodyAttributes}>${innerText}</prosody>`;
         }
       } else if (defaultPitch !== "0%" || defaultRate !== "0%") {
-        const rateAttr = defaultRate.startsWith('+') || defaultRate.startsWith('-') ? defaultRate : `+${defaultRate}`;
-        innerText = `<prosody pitch="${defaultPitch}" rate="${rateAttr}">${innerText}</prosody>`;
+        innerText = `<prosody pitch="${defaultPitch}" rate="${formatRateAttr(defaultRate)}">${innerText}</prosody>`;
       }
 
-      const ssml = `<speak version='1.0' xml:lang='${language}' xmlns="http://www.w3.org/2001/10/synthesis">
-  <voice xml:lang='${language}' name='${azureVoice}'>
+      const ssml = `<speak version='1.0' xml:lang='${normLang}' xmlns="http://www.w3.org/2001/10/synthesis">
+  <voice xml:lang='${normLang}' name='${azureVoice}'>
     ${innerText}
   </voice>
 </speak>`;
@@ -980,8 +992,24 @@ export async function serverGenerateAudio(
         signal: AbortSignal.timeout(12000),
       });
 
-      // Graceful fallback to 24kHz if specific endpoint requires standard bitrate
-      if (!ttsRes.ok) {
+      // Graceful retry with clean plain SSML if custom tags returned 400 Bad Request
+      if (!ttsRes.ok && ttsRes.status === 400) {
+        console.warn('Azure Speech 400 Bad Request detected on customized SSML, retrying with sanitized SSML...');
+        const cleanSSMLText = text.replace(/\[[^\]]*\]/g, '').replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;').trim() || 'नमस्ते';
+        const fallbackSSML = `<speak version='1.0' xml:lang='${normLang}' xmlns="http://www.w3.org/2001/10/synthesis"><voice xml:lang='${normLang}' name='${azureVoice}'>${cleanSSMLText}</voice></speak>`;
+        
+        ttsRes = await fetch(azureTtsEndpoint, {
+          method: 'POST',
+          headers: {
+            'Ocp-Apim-Subscription-Key': speechKey.trim(),
+            'Content-Type': 'application/ssml+xml',
+            'X-Microsoft-OutputFormat': 'audio-24khz-160kbitrate-mono-mp3',
+            'User-Agent': 'NepalAI-Studio-Speech',
+          },
+          body: fallbackSSML,
+          signal: AbortSignal.timeout(12000),
+        });
+      } else if (!ttsRes.ok) {
         console.warn(`Azure 48kHz audio requested, status ${ttsRes.status}, falling back to 24kHz`);
         ttsRes = await fetch(azureTtsEndpoint, {
           method: 'POST',
@@ -1003,10 +1031,9 @@ export async function serverGenerateAudio(
 
         // Save audio buffer to Storage Bucket (Local / Supabase)
         const savedMedia = await storageBucket.saveMedia(filename, buffer, 'audio/mpeg');
-        const base64 = buffer.toString('base64');
 
         return {
-          url: `data:audio/mp3;base64,${base64}`,
+          url: savedMedia.url || `/api/storage/file/${filename}`,
           storageUrl: savedMedia.url,
           filename: savedMedia.filename,
           duration: Math.min(300, Math.max(3, Math.round(text.length / 12))),
@@ -1045,7 +1072,7 @@ export async function serverGenerateAudio(
         const base64 = gBuf.toString('base64');
 
         return {
-          url: `data:audio/mp3;base64,${base64}`,
+          url: savedMedia.url || `/api/storage/file/${filename}`,
           storageUrl: savedMedia.url,
           filename: savedMedia.filename,
           duration: Math.min(300, Math.max(3, Math.round(text.length / 12))),

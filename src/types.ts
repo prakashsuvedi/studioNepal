@@ -211,6 +211,11 @@ export interface TickerConfig {
   speed: 'slow' | 'medium' | 'fast';
   position: 'bottom' | 'top';
   badgeText?: string;
+  badgeColor?: string;
+  fontSize?: 'small' | 'medium' | 'large';
+  textColor?: string;
+  speedPx?: number;
+  backgroundStyle?: 'solid' | 'glass' | 'gradient' | 'neon';
 }
 
 export interface SceneWatermark {
@@ -260,7 +265,7 @@ export interface Scene {
   transitionDuration?: number; // duration of transition to next scene in seconds (default 0.8s)
   textOverlay: string;
   textNepali?: string;
-  textPosition: 'bottom' | 'center' | 'top' | 'lower_third';
+  textPosition: 'bottom' | 'center' | 'top' | 'lower_third' | 'bottom_lifted';
   textColor: string;
   textFont: 'sans' | 'devanagari' | 'mono';
   textStyle?: TextStylePreset;
@@ -271,6 +276,7 @@ export interface Scene {
   filter: ColorFilter;
   colorAdjustments?: ColorAdjustments;
   volume: number; // 0 - 100
+  isMuted?: boolean; // mute clip audio
   watermark?: SceneWatermark;
   colorTag?: 'b_roll' | 'a_roll' | 'ai_gen' | 'interview' | 'bramhanand' | 'custom';
   tagColor?: string; // hex color or tailwind badge color

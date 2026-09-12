@@ -69,6 +69,9 @@ interface CapCutTimelineDeckProps {
   onOpenSceneTemplates?: () => void;
   onOpenImageStudio?: () => void;
   onOpenSoraStudio?: () => void;
+  onOpenVoiceStudio?: () => void;
+  onDeleteVoiceover?: () => void;
+  onDeleteBgm?: (id?: string) => void;
   isBgmMuted?: boolean;
   setIsBgmMuted?: (muted: boolean) => void;
   isVoMuted?: boolean;
@@ -105,6 +108,9 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
   onOpenSceneTemplates,
   onOpenImageStudio,
   onOpenSoraStudio,
+  onOpenVoiceStudio,
+  onDeleteVoiceover,
+  onDeleteBgm,
   isBgmMuted = false,
   setIsBgmMuted,
   isVoMuted = false,
@@ -315,11 +321,29 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
             </button>
             <span>Voiceover</span>
           </div>
-          <div className="flex items-center gap-0.5">
-            {setVoVolume && (
+          <div className="flex items-center gap-1">
+            {voTrack && setVoVolume && (
               <span className="text-[8px] font-mono text-emerald-400 bg-emerald-950/80 px-0.5 rounded border border-emerald-800/60">
                 {voVolume}%
               </span>
+            )}
+            {voTrack && onDeleteVoiceover && (
+              <button
+                onClick={onDeleteVoiceover}
+                className="text-[9px] text-slate-400 hover:text-rose-400 cursor-pointer p-0.5 transition"
+                title="Remove Voiceover Track"
+              >
+                <Trash2 className="w-2.5 h-2.5" />
+              </button>
+            )}
+            {!voTrack && (
+              <button
+                onClick={onOpenVoiceStudio || onAddAudio}
+                className="text-[9px] text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer"
+                title="Add Voiceover Track"
+              >
+                + Add
+              </button>
             )}
           </div>
         </div>
@@ -336,21 +360,31 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
             </button>
             <span>Music</span>
           </div>
-          <div className="flex items-center gap-0.5">
-            {setBgmVolume && (
+          <div className="flex items-center gap-1">
+            {audioTracks.filter(a => a.type !== 'voiceover').length > 0 && setBgmVolume && (
               <span className="text-[8px] font-mono text-purple-400 bg-purple-950/80 px-0.5 rounded border border-purple-800/60">
                 {bgmVolume}%
               </span>
             )}
-            {onAddAudio && (
+            {audioTracks.filter(a => a.type !== 'voiceover').length > 0 && onDeleteBgm && (
               <button
-                onClick={onAddAudio}
-                className="text-[9px] text-purple-400 hover:text-purple-300 font-bold cursor-pointer"
-                title="Add Audio Track"
+                onClick={() => {
+                  const currentBgm = audioTracks.find(a => a.id === selectedAudioId) || audioTracks.find(a => a.type !== 'voiceover');
+                  if (currentBgm) onDeleteBgm(currentBgm.id);
+                }}
+                className="text-[9px] text-slate-400 hover:text-rose-400 cursor-pointer p-0.5 transition"
+                title="Remove Music Track"
               >
-                +
+                <Trash2 className="w-2.5 h-2.5" />
               </button>
             )}
+            <button
+              onClick={onAddAudio}
+              className="text-[9px] text-purple-400 hover:text-purple-300 font-bold cursor-pointer"
+              title="Add Audio Track"
+            >
+              + Add
+            </button>
           </div>
         </div>
       </div>
@@ -541,6 +575,34 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                                 {widthPx > 40 ? 'IMG' : ''}
                               </span>
                             )}
+                            {isVideo && onUpdateScene && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const isCurrentlyMuted = scene.isMuted || scene.volume === 0;
+                                  onUpdateScene(scene.id, {
+                                    isMuted: !isCurrentlyMuted,
+                                    volume: !isCurrentlyMuted ? 0 : (scene.volume || 100)
+                                  });
+                                }}
+                                className={`px-1 rounded text-[8px] font-mono font-bold flex items-center gap-0.5 transition cursor-pointer ${
+                                  scene.isMuted || scene.volume === 0
+                                    ? 'bg-rose-950/90 text-rose-300 border border-rose-700/60 hover:bg-rose-900'
+                                    : 'bg-black/60 text-slate-300 hover:text-white border border-slate-700/40'
+                                }`}
+                                title={scene.isMuted || scene.volume === 0 ? 'Clip Muted - Click to Unmute' : `Clip Volume ${scene.volume ?? 100}% - Click to Mute`}
+                              >
+                                {scene.isMuted || scene.volume === 0 ? (
+                                  <VolumeX className="w-2 h-2 text-rose-400 shrink-0" />
+                                ) : (
+                                  <Volume2 className="w-2 h-2 text-emerald-400 shrink-0" />
+                                )}
+                                {widthPx > 60 && (
+                                  <span>{scene.isMuted || scene.volume === 0 ? 'MUTED' : `${scene.volume ?? 100}%`}</span>
+                                )}
+                              </button>
+                            )}
                             {widthPx > 60 && (
                               <span className="capitalize px-1 bg-black/60 rounded text-[8px] truncate max-w-[50px]">
                                 {scene.motion || 'Cut'}
@@ -701,12 +763,12 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
 
           {/* Track 3 Content: Voiceover Audio Track (Waveform visual) */}
           <div className="h-8 border-b border-slate-800/60 bg-[#090c14] relative flex items-center">
-            {(() => {
+            {voTrack ? (() => {
               const isVoBuffering = Boolean(voTrack?.url && audioLoadingStatus[voTrack.url] === 'buffering');
               return (
                 <div 
-                  style={{ left: 0, width: `${Math.max(120, totalDuration * pixelsPerSecond)}px` }}
-                  className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition ${
+                  style={{ left: 0, width: `${Math.max(160, totalDuration * pixelsPerSecond)}px` }}
+                  className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition group ${
                     isVoMuted 
                       ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
                       : 'bg-emerald-950/40 border-emerald-700/60 text-emerald-200'
@@ -715,7 +777,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isVoMuted ? 'bg-slate-500' : isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'}`}></span>
                     <span className="font-bold text-[10px] truncate max-w-xs">
-                      {voTrack ? voTrack.title : 'Nepali Neural Voiceover'}
+                      {voTrack.title}
                     </span>
                     {isVoBuffering && (
                       <span className="flex items-center gap-1 text-[8px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1 py-0.2 rounded font-mono animate-pulse shrink-0">
@@ -733,21 +795,61 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                       ))}
                     </div>
                   </div>
-                  <span className="font-mono text-[8px] font-bold text-emerald-400 shrink-0 ml-1">{isVoMuted ? 'MUTED' : `${voVolume}%`}</span>
+                  <div className="flex items-center gap-1 shrink-0 ml-1">
+                    <span className="font-mono text-[8px] font-bold text-emerald-400">{isVoMuted ? 'MUTED' : `${voVolume}%`}</span>
+                    {onDeleteVoiceover && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteVoiceover();
+                        }}
+                        className="p-1 rounded hover:bg-rose-950/80 text-slate-400 hover:text-rose-300 transition cursor-pointer"
+                        title="Remove Voiceover Track"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
-            })()}
+            })() : (
+              <div className="flex items-center gap-2 pl-3 py-1">
+                <span className="text-[9px] text-slate-500 italic">No voiceover track</span>
+                <button
+                  onClick={onOpenVoiceStudio || onAddAudio}
+                  className="px-2 py-0.5 rounded bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/60 text-[9px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Plus className="w-2.5 h-2.5" />
+                  <span>+ Voiceover</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Track 4 Content: Background Music (BGM) Track */}
           <div className="h-8 bg-[#090c14] relative flex items-center">
             {(() => {
-              const currentBgm = audioTracks.find(a => a.id === selectedAudioId) || audioTracks[0];
+              const bgmTracks = audioTracks.filter(a => a.type !== 'voiceover');
+              const currentBgm = bgmTracks.find(a => a.id === selectedAudioId) || bgmTracks[0];
+              if (!currentBgm) {
+                return (
+                  <div className="flex items-center gap-2 pl-3 py-1">
+                    <span className="text-[9px] text-slate-500 italic">No music track</span>
+                    <button
+                      onClick={onAddAudio}
+                      className="px-2 py-0.5 rounded bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 text-[9px] text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <Plus className="w-2.5 h-2.5" />
+                      <span>+ Music</span>
+                    </button>
+                  </div>
+                );
+              }
               const isBgmBuffering = Boolean(currentBgm?.url && audioLoadingStatus[currentBgm.url] === 'buffering');
               return (
                 <div 
-                  style={{ left: 0, width: `${Math.max(120, totalDuration * pixelsPerSecond)}px` }}
-                  className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition ${
+                  style={{ left: 0, width: `${Math.max(160, totalDuration * pixelsPerSecond)}px` }}
+                  className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition group ${
                     isBgmMuted 
                       ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
                       : 'bg-purple-950/40 border-purple-700/60 text-purple-200'
@@ -756,7 +858,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isBgmMuted ? 'bg-slate-500' : isPlaying ? 'bg-purple-400 animate-pulse' : 'bg-purple-500'}`}></span>
                     <span className="font-bold text-[10px] truncate max-w-xs">
-                      {currentBgm?.title || 'Cinematic Theme'}
+                      {currentBgm.title}
                     </span>
                     {isBgmBuffering && (
                       <span className="flex items-center gap-1 text-[8px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1 py-0.2 rounded font-mono animate-pulse shrink-0">
@@ -774,7 +876,21 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                       ))}
                     </div>
                   </div>
-                  <span className="font-mono text-[8px] font-bold text-purple-400 shrink-0 ml-1">{isBgmMuted ? 'MUTED' : `${bgmVolume}%`}</span>
+                  <div className="flex items-center gap-1 shrink-0 ml-1">
+                    <span className="font-mono text-[8px] font-bold text-purple-400">{isBgmMuted ? 'MUTED' : `${bgmVolume}%`}</span>
+                    {onDeleteBgm && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteBgm(currentBgm.id);
+                        }}
+                        className="p-1 rounded hover:bg-rose-950/80 text-slate-400 hover:text-rose-300 transition cursor-pointer"
+                        title="Remove Music Track"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })()}

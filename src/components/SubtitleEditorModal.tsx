@@ -40,7 +40,7 @@ export interface SubtitleBurnOptions {
   fontSize: 'small' | 'medium' | 'large';
   textColor: string;
   backgroundColor: string;
-  position: 'bottom' | 'center' | 'top';
+  position: 'bottom' | 'lower_third' | 'bottom_lifted' | 'center' | 'top';
   bilingualDevanagari: boolean;
 }
 
@@ -373,11 +373,13 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
                   <select
                     value={burnOptions.position}
                     onChange={(e) => setBurnOptions(prev => ({ ...prev, position: e.target.value as any }))}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white font-medium"
                   >
-                    <option value="bottom">Bottom Overlay (Standard)</option>
-                    <option value="center">Center Highlight</option>
-                    <option value="top">Top Header Overlay</option>
+                    <option value="bottom">Bottom Overlay (Standard 10%)</option>
+                    <option value="lower_third">Lower-Third (Broadcast / TV 22%)</option>
+                    <option value="bottom_lifted">Lifted Bottom (Reels / Safe Margin 18%)</option>
+                    <option value="center">Center Punch (Viral / Impact)</option>
+                    <option value="top">Top Header Banner (10%)</option>
                   </select>
                 </div>
 

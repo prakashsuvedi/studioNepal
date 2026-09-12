@@ -1442,7 +1442,25 @@ async function startServer() {
   // Serve Local Storage Bucket File
   app.get('/api/storage/file/:filename', (req, res) => {
     const { filename } = req.params;
-    const { buffer, exists, filePath } = storageBucket.getLocalFile(filename);
+    let { buffer, exists, filePath } = storageBucket.getLocalFile(filename);
+
+    if (!exists || (!filePath && (!buffer || buffer.length === 0))) {
+      // Fallback for missing or expired media files to prevent browser decode 404 errors
+      const safeName = path.basename(filename);
+      if (safeName.endsWith('.mp4') || safeName.endsWith('.mov') || safeName.endsWith('.webm')) {
+        const fallback = path.join(publicSamplesDir, 'everest_sunrise.mp4');
+        if (fs.existsSync(fallback)) {
+          filePath = fallback;
+          exists = true;
+        }
+      } else if (safeName.endsWith('.mp3') || safeName.endsWith('.wav') || safeName.endsWith('.ogg')) {
+        const fallback = path.join(publicAudioDir, 'sfx_whoosh.mp3');
+        if (fs.existsSync(fallback)) {
+          filePath = fallback;
+          exists = true;
+        }
+      }
+    }
 
     if (!exists) {
       return res.status(404).json({ error: 'File not found in storage bucket' });
@@ -2421,6 +2439,16 @@ async function startServer() {
         if (fs.existsSync(candidate)) {
           targetFile = candidate;
           break;
+        }
+      }
+
+      if (!targetFile) {
+        if (safeFilename.endsWith('.mp4') || safeFilename.endsWith('.mov') || safeFilename.endsWith('.webm')) {
+          const sampleFb = path.join(publicSamplesDir, 'everest_sunrise.mp4');
+          if (fs.existsSync(sampleFb)) targetFile = sampleFb;
+        } else if (safeFilename.endsWith('.mp3') || safeFilename.endsWith('.wav') || safeFilename.endsWith('.ogg')) {
+          const audioFb = path.join(publicAudioDir, 'sfx_whoosh.mp3');
+          if (fs.existsSync(audioFb)) targetFile = audioFb;
         }
       }
 

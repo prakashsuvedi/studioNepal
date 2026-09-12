@@ -131,10 +131,34 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
     aspectRatio: '1:1',
     createdAt: Date.now() - 3600000 * 12,
     prompt: 'High resolution transparent brand watermark logo asset'
+  },
+  {
+    id: 'sample-vo-1',
+    type: 'ai_audio',
+    title: 'Sita Nepali Female Neural Voiceover',
+    url: '/audio/vo_nepali_female.mp3',
+    duration: 6,
+    category: 'AI Voiceover',
+    createdAt: Date.now() - 3600000 * 2,
+    prompt: 'नमस्ते, नेपालआई स्टुडियोमा तपाईंलाई स्वागत छ।',
+    engine: 'SpeechT5 Nepali Neural'
+  },
+  {
+    id: 'sample-vo-2',
+    type: 'ai_audio',
+    title: 'Aarav Nepali Male Cinematic Narration',
+    url: '/audio/vo_nepali_male.mp3',
+    duration: 6,
+    category: 'AI Voiceover',
+    createdAt: Date.now() - 3600000 * 4,
+    prompt: 'नेपालको प्राकृतिक सौन्दर्य र ऐतिहासिक सम्पदा विश्वमै अनुपम छ।',
+    engine: 'Azure Neural Speech'
   }
 ];
 
 const STORAGE_KEY = 'nepalai_generated_media_library_v2';
+
+let memoryMediaCache: MediaItem[] | null = null;
 
 /**
  * Retrieve all user generated assets + uploads + default presets
@@ -143,21 +167,40 @@ export function getMediaLibrary(): MediaItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
+      if (memoryMediaCache && memoryMediaCache.length > 0) {
+        return memoryMediaCache;
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MEDIA_ITEMS));
+      memoryMediaCache = DEFAULT_MEDIA_ITEMS;
       return DEFAULT_MEDIA_ITEMS;
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.map((m: MediaItem) => ({
+      // Ensure default voiceovers exist if user hasn't generated any yet
+      const hasAudio = parsed.some((m: MediaItem) => m.type === 'ai_audio');
+      const combined = hasAudio
+        ? parsed
+        : [...parsed, ...DEFAULT_MEDIA_ITEMS.filter(d => d.type === 'ai_audio')];
+
+      const sanitized = combined.map((m: MediaItem) => ({
         ...m,
         url: sanitizeMediaUrl(m.url),
         thumbnailUrl: m.thumbnailUrl ? sanitizeMediaUrl(m.thumbnailUrl) : m.thumbnailUrl,
       }));
+
+      if (memoryMediaCache && memoryMediaCache.length > sanitized.length) {
+        const existingIds = new Set(sanitized.map(s => s.id));
+        const extras = memoryMediaCache.filter(m => !existingIds.has(m.id));
+        return [...extras, ...sanitized];
+      }
+
+      memoryMediaCache = sanitized;
+      return sanitized;
     }
   } catch (e) {
     console.warn('Failed to parse media library from localStorage', e);
   }
-  return DEFAULT_MEDIA_ITEMS;
+  return memoryMediaCache || DEFAULT_MEDIA_ITEMS;
 }
 
 /**
@@ -180,10 +223,10 @@ export function saveMediaItem(item: {
   const newItem: MediaItem = {
     id: 'media-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
     type: item.type,
-    title: item.title || (item.type === 'sora_video' ? 'Generated Sora Video' : item.type === 'ai_image' ? 'Generated AI Image' : 'Uploaded Asset'),
+    title: item.title || (item.type === 'sora_video' ? 'Generated Sora Video' : item.type === 'ai_image' ? 'Generated AI Image' : item.type === 'ai_audio' ? 'Generated AI Voiceover' : 'Uploaded Asset'),
     url: item.url,
     thumbnailUrl: item.thumbnailUrl || (item.type === 'ai_image' ? item.url : undefined),
-    duration: item.duration || (item.type === 'sora_video' ? 5 : 4),
+    duration: item.duration || (item.type === 'sora_video' ? 5 : item.type === 'ai_audio' ? 6 : 4),
     category: item.category || (item.type === 'sora_video' ? 'Sora-2 AI Video' : item.type === 'ai_image' ? 'AI Image' : item.type === 'ai_audio' ? 'AI Voiceover' : 'User Upload'),
     createdAt: Date.now(),
     aspectRatio: item.aspectRatio || '16:9',
@@ -193,18 +236,46 @@ export function saveMediaItem(item: {
   };
 
   // Prevent duplicate exact URLs at the top
-  const filtered = current.filter(i => i.url !== newItem.url);
-  const updated = [newItem, ...filtered];
+  const filtered = current.filter(i => i.url !== newItem.url && i.id !== newItem.id);
+  let updated = [newItem, ...filtered];
+
+  // Immediately store in memory cache
+  memoryMediaCache = updated;
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    // Dispatch a custom event so open components instantly react to newly generated media
-    window.dispatchEvent(new CustomEvent('nepalai_media_library_updated', { detail: newItem }));
   } catch (e) {
-    console.warn('Failed to save item to media library storage', e);
+    console.warn('Storage quota notice, optimizing storage...', e);
+    while (updated.length > 8) {
+      updated.pop();
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        break;
+      } catch (err) {
+        // continue trimming
+      }
+    }
   }
 
+  // Dispatch a custom event so open components instantly react to newly generated media
+  window.dispatchEvent(new CustomEvent('nepalai_media_library_updated', { detail: newItem }));
+
   return newItem;
+}
+
+/**
+ * Retrieve all generated sounds & voiceovers
+ */
+export function getGeneratedSoundList(): MediaItem[] {
+  const all = getMediaLibrary();
+  return all.filter(item => 
+    item.type === 'ai_audio' || 
+    (item as any).type === 'audio' ||
+    item.category?.toLowerCase().includes('voice') ||
+    item.category?.toLowerCase().includes('audio') ||
+    item.url?.startsWith('data:audio') ||
+    item.url?.match(/\.(mp3|wav|ogg|m4a|aac)($|\?)/i)
+  );
 }
 
 /**
@@ -213,10 +284,11 @@ export function saveMediaItem(item: {
 export function removeMediaItem(id: string): MediaItem[] {
   const current = getMediaLibrary();
   const updated = current.filter(i => i.id !== id);
+  memoryMediaCache = updated;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('nepalai_media_library_updated'));
   } catch (e) {}
+  window.dispatchEvent(new CustomEvent('nepalai_media_library_updated', { detail: { removedId: id } }));
   return updated;
 }
 

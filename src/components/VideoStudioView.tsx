@@ -1926,6 +1926,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           onOpenSubtitleEditor={() => setShowSubtitleModal(true)}
           onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
           onOpenBrandWatermark={() => setShowBrandModal(true)}
+          brandOverlayConfig={brandOverlayConfig}
+          setBrandOverlayConfig={setBrandOverlayConfig}
+          subtitles={subtitles}
+          subtitleBurnOptions={subtitleBurnOptions}
+          setSubtitleBurnOptions={setSubtitleBurnOptions}
           scenes={scenes}
           audioTracks={audioTracks}
         />
@@ -1945,6 +1950,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           onStepFrame={handleStepFrame}
           onOpenMediaLibrary={() => setShowGlobalMediaLibrary(true)}
           brandOverlayConfig={brandOverlayConfig}
+          subtitles={subtitles}
+          subtitleBurnOptions={subtitleBurnOptions}
           previewMode={previewMode === 'interactive' ? 'stage' : 'canvas'}
           setPreviewMode={(m) => setPreviewMode(m === 'stage' ? 'interactive' : 'canvas')}
           isMuted={isMuted}
@@ -2065,6 +2072,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             setProjectNotice('Voiceover track removed from timeline');
             setTimeout(() => setProjectNotice(null), 3000);
           }}
+          onDeleteBgm={(id) => {
+            setAudioTracks(prev => prev.filter(t => id ? t.id !== id : t.type !== 'bgm'));
+            if (selectedAudioId === id) setSelectedAudioId('');
+            setProjectNotice('Music track removed from timeline');
+            setTimeout(() => setProjectNotice(null), 3000);
+          }}
           onOpenVoiceStudio={onOpenVoiceStudio}
           onAddMedia={() => setShowGlobalMediaLibrary(true)}
           onAddAudio={() => setShowAudioAddModal(true)}
@@ -2165,6 +2178,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                   setProjectTitle(newProjectName.trim() || 'Untitled Project');
                   setAspectRatio(newProjectRatio);
                   setScenes([]);
+                  setAudioTracks([]);
+                  setSelectedAudioId('');
+                  setSubtitles([]);
                   setSelectedSceneId('');
                   setCurrentTime(0);
                   setIsPlaying(false);

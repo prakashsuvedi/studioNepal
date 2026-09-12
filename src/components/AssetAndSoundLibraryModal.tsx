@@ -20,6 +20,7 @@ import {
   Globe
 } from 'lucide-react';
 import { Scene, AudioTrack, SceneWatermark, TickerConfig, TextStylePreset, TextAnimationOption } from '../types';
+import { getGeneratedSoundList } from '../lib/mediaLibrary';
 
 interface AssetAndSoundLibraryModalProps {
   isOpen: boolean;
@@ -275,7 +276,22 @@ export const AssetAndSoundLibraryModal: React.FC<AssetAndSoundLibraryModalProps>
     }
   };
 
-  const filteredAudio = PREDEFINED_AUDIO_LIBRARY.filter(a => {
+  const userVoiceovers: (AudioTrack & { category: 'bgm' | 'vo' | 'sfx'; description: string })[] = getGeneratedSoundList().map(s => ({
+    id: s.id,
+    title: s.title,
+    artist: s.engine || 'NepalAI Neural TTS',
+    url: s.url,
+    duration: s.duration || 6,
+    volume: 95,
+    genre: 'Neural Voiceover',
+    category: 'vo' as const,
+    type: 'voiceover' as const,
+    description: `Generated voiceover (${Math.round(s.duration || 6)}s)`
+  }));
+
+  const allAudioItems = [...userVoiceovers, ...PREDEFINED_AUDIO_LIBRARY];
+
+  const filteredAudio = allAudioItems.filter(a => {
     const matchesCategory = audioFilter === 'all' || a.category === audioFilter;
     const matchesQuery = !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || a.genre.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesQuery;

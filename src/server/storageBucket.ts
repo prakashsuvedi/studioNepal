@@ -123,9 +123,9 @@ export class StorageBucketService {
     if (sanitizedFilename.endsWith('.mp4') || (mimeType && mimeType.startsWith('video/'))) {
       try {
         const tmpPath = `${filePath}.norm.mp4`;
-        execSync(`ffmpeg -y -i "${filePath}" -c:v copy -c:a aac -ar 48000 -movflags +faststart "${tmpPath}"`, {
+        execSync(`ffmpeg -y -i "${filePath}" -c:v copy -movflags +faststart "${tmpPath}"`, {
           stdio: 'ignore',
-          timeout: 10000,
+          timeout: 15000,
         });
         if (fs.existsSync(tmpPath) && fs.statSync(tmpPath).size > 1000) {
           fs.renameSync(tmpPath, filePath);

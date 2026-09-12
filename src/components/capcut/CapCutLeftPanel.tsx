@@ -37,10 +37,15 @@ import {
   Eye,
   ArrowRightLeft,
   X,
-  Copy
+  Copy,
+  Heading,
+  Shield,
+  Award
 } from 'lucide-react';
 import { Scene, AudioTrack, StarterTemplate } from '../../types';
 import { getStoredMedia, MediaItem, saveMediaItem, deleteMediaItem } from '../../lib/mediaLibrary';
+import { BrandOverlayConfig, WATERMARK_PRESETS } from '../BrandOverlayModal';
+import { SubtitleItem, SubtitleBurnOptions } from '../SubtitleEditorModal';
 
 interface CapCutLeftPanelProps {
   onAddSceneToTimeline: (scene: Scene) => void;
@@ -56,9 +61,14 @@ interface CapCutLeftPanelProps {
   selectedSceneId?: string;
   onUpdateScene?: (sceneId: string, updated: Partial<Scene>) => void;
   onLoadStarterTemplate?: (templateId: string) => void;
+  brandOverlayConfig?: BrandOverlayConfig;
+  setBrandOverlayConfig?: React.Dispatch<React.SetStateAction<BrandOverlayConfig>>;
+  subtitles?: SubtitleItem[];
+  subtitleBurnOptions?: SubtitleBurnOptions;
+  setSubtitleBurnOptions?: React.Dispatch<React.SetStateAction<SubtitleBurnOptions>>;
 }
 
-type TabType = 'media' | 'audio' | 'text' | 'effects' | 'transitions' | 'captions' | 'filters' | 'templates' | 'ai';
+type TabType = 'media' | 'audio' | 'titles' | 'watermark' | 'effects' | 'transitions' | 'captions' | 'filters' | 'templates' | 'ai';
 type SubTabType = 'all' | 'imported' | 'generated' | 'stock';
 type TypeFilter = 'all' | 'video' | 'image';
 
@@ -76,6 +86,11 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   selectedSceneId,
   onUpdateScene,
   onLoadStarterTemplate,
+  brandOverlayConfig,
+  setBrandOverlayConfig,
+  subtitles,
+  subtitleBurnOptions,
+  setSubtitleBurnOptions,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('media');
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('all');
@@ -480,9 +495,74 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     (item as any).type === 'audio' || 
     item.category?.toLowerCase().includes('voice') ||
     item.category?.toLowerCase().includes('audio') ||
+    item.category?.toLowerCase().includes('sound') ||
     item.url?.match(/\.(mp3|wav|ogg|m4a|aac)($|\?)/i) ||
     item.url?.startsWith('data:audio')
   );
+
+  // High-Quality Royalty-Free Music Samples (Nepali & Cinematic)
+  const bgmSampleCatalog: AudioTrack[] = [
+    {
+      id: 'bgm-sample-himalayan-breeze',
+      title: 'Himalayan Morning Breeze',
+      artist: 'Acoustic Bansuri Ensemble',
+      url: '/audio/himalayan_breeze.mp3',
+      duration: 32,
+      volume: 80,
+      genre: 'Himalayan Folk',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-sample-kathmandu-beats',
+      title: 'Kathmandu Urban Lo-Fi',
+      artist: 'Patan Studio Beats',
+      url: '/audio/kathmandu_beats.mp3',
+      duration: 28,
+      volume: 75,
+      genre: 'Lo-Fi Chill',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-sample-temple-dawn',
+      title: 'Pashupati Temple Dawn Chimes',
+      artist: 'Sacred Himalayan Sounds',
+      url: '/audio/temple_bells.mp3',
+      duration: 24,
+      volume: 70,
+      genre: 'Spiritual Ambient',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-sample-mountain-bansuri',
+      title: 'Annapurna Valley Bansuri',
+      artist: 'Traditional Flute Master',
+      url: '/audio/sfx_flute.mp3',
+      duration: 30,
+      volume: 85,
+      genre: 'Acoustic Folk',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-sample-everest-winds',
+      title: 'Everest Glacial Summit Winds',
+      artist: 'Cinematic Soundscapes',
+      url: '/audio/sfx_wind.mp3',
+      duration: 35,
+      volume: 90,
+      genre: 'Epic Cinematic',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-sample-monsoon-rain',
+      title: 'Kathmandu Monsoon Serenade',
+      artist: 'Nepal Nature Records',
+      url: '/audio/sfx_rain.mp3',
+      duration: 30,
+      volume: 70,
+      genre: 'Nature Atmos',
+      type: 'bgm'
+    }
+  ];
 
   // Sound Effects (SFX) Library
   const sfxLibrary: AudioTrack[] = [
@@ -593,10 +673,11 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
           { id: 'media', label: 'Media', icon: Folder },
           { id: 'audio', label: 'Audio', icon: Music },
           { id: 'text', label: 'Text', icon: Type },
+          { id: 'watermark', label: 'Brand', icon: Shield },
+          { id: 'captions', label: 'Captions', icon: MessageSquare },
           { id: 'effects', label: 'Effects', icon: Sparkles },
           { id: 'transitions', label: 'Transitions', icon: Scissors },
           { id: 'filters', label: 'Filters', icon: Palette },
-          { id: 'captions', label: 'Captions', icon: MessageSquare },
           { id: 'templates', label: 'Templates', icon: LayoutTemplate },
           { id: 'ai', label: 'AI Studio', icon: Zap },
         ].map(tab => {
@@ -629,15 +710,17 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         <div className="h-8.5 px-3 border-b border-slate-800/80 bg-[#0a0d14] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-bold text-slate-200 capitalize tracking-wide">
-              {activeTab === 'ai' ? 'AI Studio' : `${activeTab}`}
+              {activeTab === 'ai' ? 'AI Studio' : activeTab === 'watermark' ? 'Brand Watermark' : `${activeTab}`}
             </span>
             <span className="px-1.5 py-0.2 rounded bg-slate-800 text-[9px] font-mono text-cyan-400 font-bold">
               {activeTab === 'media' ? filteredMedia.length :
-               activeTab === 'audio' ? (audioTracks.length + sfxLibrary.length + importedVoiceovers.length) :
+               activeTab === 'audio' ? (audioTracks.length + sfxLibrary.length + importedVoiceovers.length + bgmSampleCatalog.length) :
                activeTab === 'effects' ? vfxPresets.length :
                activeTab === 'transitions' ? transitionPresets.length :
                activeTab === 'filters' ? filterPresets.length :
-               activeTab === 'text' ? textPresets.length : ''}
+               activeTab === 'text' ? textPresets.length :
+               activeTab === 'watermark' ? (brandOverlayConfig?.enabled ? 'ACTIVE' : 'OFF') :
+               activeTab === 'captions' ? (subtitles?.length || 0) : ''}
             </span>
           </div>
           {activeTab === 'media' && (
@@ -1065,7 +1148,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               <div className="flex items-center justify-between mb-1.5">
                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
                   <Mic className="w-3 h-3 text-emerald-400" />
-                  <span>Voiceovers & Imported Audio</span>
+                  <span>Generated Sound List & Voiceovers</span>
                 </h4>
                 <span className="px-1.5 py-0.2 bg-emerald-950/60 border border-emerald-800/60 text-[9px] text-emerald-300 font-mono rounded">
                   {importedVoiceovers.length}
@@ -1181,6 +1264,58 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                       <button
                         onClick={() => onAddAudioToTimeline(track)}
                         className="p-1 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white rounded transition cursor-pointer font-bold"
+                        title="Add to Timeline"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Himalayan & Cultural Royalty-Free Music Catalog */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
+                  <Music className="w-3 h-3 text-cyan-400" />
+                  <span>Himalayan & Cinematic Catalog</span>
+                </h4>
+                <span className="px-1.5 py-0.2 bg-cyan-950/60 border border-cyan-800/60 text-[9px] text-cyan-300 font-mono rounded">
+                  {bgmSampleCatalog.length}
+                </span>
+              </div>
+              <div className="space-y-1">
+                {bgmSampleCatalog.map(track => {
+                  const isPreviewPlaying = playingAudioUrl === track.url;
+                  return (
+                    <div
+                      key={track.id}
+                      className="p-1.5 bg-slate-950 border border-slate-800/90 rounded-md flex items-center justify-between hover:border-cyan-500/50 transition group"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <button
+                          onClick={() => togglePlayAudioPreview(track.url)}
+                          className={`w-6 h-6 rounded flex items-center justify-center shrink-0 transition cursor-pointer ${
+                            isPreviewPlaying 
+                              ? 'bg-cyan-500 text-slate-950 font-black' 
+                              : 'bg-cyan-950/60 text-cyan-400 hover:bg-cyan-800/80 hover:text-white'
+                          }`}
+                          title={isPreviewPlaying ? 'Pause' : 'Play'}
+                        >
+                          {isPreviewPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
+                        </button>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold text-slate-200 truncate max-w-[130px]">{track.title}</p>
+                          <p className="text-[9px] text-cyan-400 font-mono truncate max-w-[130px]">
+                            {track.artist} • {track.duration}s
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => onAddAudioToTimeline(track)}
+                        className="p-1 bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-slate-950 rounded transition cursor-pointer font-bold"
                         title="Add to Timeline"
                       >
                         <Plus className="w-3 h-3" />
@@ -1424,35 +1559,295 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
           </div>
         )}
 
+        {/* ==================== WATERMARK & BRANDING TAB ==================== */}
+        {activeTab === 'watermark' && (
+          <div className="space-y-3">
+            {/* Header / Master Switch */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${brandOverlayConfig?.enabled ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-900 text-slate-500'}`}>
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Brand Watermark</h4>
+                    <p className="text-[10px] text-slate-400">Live overlay & export burn</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({
+                        ...prev,
+                        enabled: !prev.enabled
+                      }));
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    brandOverlayConfig?.enabled
+                      ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                  }`}
+                >
+                  {brandOverlayConfig?.enabled ? 'ACTIVE' : 'OFF'}
+                </button>
+              </div>
+
+              {brandOverlayConfig?.enabled && (
+                <div className="text-[10px] text-cyan-300/80 bg-cyan-950/30 border border-cyan-800/40 px-2 py-1 rounded">
+                  Watermark is visible on preview and will burn into downloaded MP4.
+                </div>
+              )}
+            </div>
+
+            {/* Presets Grid */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Studio Presets</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {WATERMARK_PRESETS.map(preset => {
+                  const isSelected = brandOverlayConfig?.logoUrl === preset.url;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        if (setBrandOverlayConfig) {
+                          setBrandOverlayConfig(prev => ({
+                            ...prev,
+                            enabled: true,
+                            logoUrl: preset.url,
+                            brandText: preset.text,
+                            showBrandText: true
+                          }));
+                        }
+                      }}
+                      className={`p-2 rounded-lg border text-left flex items-center gap-2 transition cursor-pointer ${
+                        isSelected
+                          ? 'bg-cyan-950/40 border-cyan-400 text-white'
+                          : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      <img
+                        src={preset.url}
+                        alt={preset.name}
+                        className="w-6 h-6 rounded object-cover shrink-0 border border-slate-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold truncate">{preset.name.split(' ')[0]}</p>
+                        <p className="text-[9px] text-slate-500 truncate">{preset.text}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Position & Scale & Opacity */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+              {/* Position */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-semibold text-slate-300 block">Screen Placement</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'top-left', label: 'Top Left' },
+                    { id: 'top-right', label: 'Top Right' },
+                    { id: 'bottom-left', label: 'Bottom Left' },
+                    { id: 'bottom-right', label: 'Bottom Right' }
+                  ].map(pos => (
+                    <button
+                      key={pos.id}
+                      onClick={() => {
+                        if (setBrandOverlayConfig) {
+                          setBrandOverlayConfig(prev => ({
+                            ...prev,
+                            position: pos.id as any
+                          }));
+                        }
+                      }}
+                      className={`py-1 px-2 rounded text-[10px] font-bold border transition cursor-pointer ${
+                        brandOverlayConfig?.position === pos.id
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Opacity Slider */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-slate-300 text-xs">
+                  <span className="font-semibold text-[11px]">Opacity</span>
+                  <span className="font-mono text-cyan-400 font-bold">{brandOverlayConfig?.opacityPercent ?? 85}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="20"
+                  max="100"
+                  value={brandOverlayConfig?.opacityPercent ?? 85}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({ ...prev, opacityPercent: val }));
+                    }
+                  }}
+                  className="w-full accent-cyan-400 h-1 bg-slate-900 rounded cursor-pointer"
+                />
+              </div>
+
+              {/* Scale Slider */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-slate-300 text-xs">
+                  <span className="font-semibold text-[11px]">Scale Size</span>
+                  <span className="font-mono text-cyan-400 font-bold">{brandOverlayConfig?.scalePercent ?? 25}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="50"
+                  value={brandOverlayConfig?.scalePercent ?? 25}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({ ...prev, scalePercent: val }));
+                    }
+                  }}
+                  className="w-full accent-cyan-400 h-1 bg-slate-900 rounded cursor-pointer"
+                />
+              </div>
+
+              {/* Brand Text Input */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] text-slate-300">
+                  <span className="font-semibold">Brand Text</span>
+                  <label className="flex items-center gap-1 cursor-pointer text-[10px] text-cyan-400">
+                    <input
+                      type="checkbox"
+                      checked={brandOverlayConfig?.showBrandText ?? true}
+                      onChange={e => {
+                        const checked = e.target.checked;
+                        if (setBrandOverlayConfig) {
+                          setBrandOverlayConfig(prev => ({ ...prev, showBrandText: checked }));
+                        }
+                      }}
+                      className="accent-cyan-400 rounded"
+                    />
+                    <span>Show Text</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  placeholder="हाम्रोAI Studio..."
+                  value={brandOverlayConfig?.brandText ?? ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({ ...prev, brandText: val }));
+                    }
+                  }}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-cyan-500"
+                />
+              </div>
+            </div>
+
+            {/* Launch Full Modal */}
+            {onOpenBrandWatermark && (
+              <button
+                onClick={onOpenBrandWatermark}
+                className="w-full py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Open Advanced Watermark Studio</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ==================== CAPTIONS TAB ==================== */}
         {activeTab === 'captions' && (
           <div className="space-y-3">
+            {/* Auto Generator Box */}
             <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
-              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Auto-Generate Subtitles</span>
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Subtitles & Captions</span>
+                </h4>
+                <span className="px-1.5 py-0.2 bg-cyan-950/60 border border-cyan-800/60 text-[9px] text-cyan-300 font-mono rounded">
+                  {subtitles?.length || 0} Lines
+                </span>
+              </div>
               <p className="text-[11px] text-slate-400">
-                Generate synchronized Devanagari and English captions from your scene scripts.
+                Synchronized Devanagari (नेपाली) & English captions overlaid on video.
               </p>
+
+              {/* Subtitle Burn Switch */}
+              {subtitleBurnOptions && setSubtitleBurnOptions && (
+                <div className="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800/80">
+                  <span className="text-[11px] font-semibold text-slate-300">Burn into Video Output</span>
+                  <button
+                    onClick={() => {
+                      setSubtitleBurnOptions(prev => ({
+                        ...prev,
+                        burnIn: !prev.burnIn
+                      }));
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                      subtitleBurnOptions.burnIn
+                        ? 'bg-emerald-500 text-slate-950'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {subtitleBurnOptions.burnIn ? 'ENABLED' : 'OFF'}
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={() => {
                   if (onOpenSubtitleEditor) {
                     onOpenSubtitleEditor();
                   }
                 }}
-                className="w-full py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold text-xs rounded-lg shadow-sm transition active:scale-95 cursor-pointer"
+                className="w-full py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold text-xs rounded-lg shadow-sm transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
               >
-                Launch Subtitle Studio & Burner
+                <Sparkles className="w-3.5 h-3.5 text-slate-950 fill-current" />
+                <span>Open Full Subtitle Studio</span>
               </button>
             </div>
 
-            {/* Quick Caption Adder */}
+            {/* Subtitles Preview List */}
+            {subtitles && subtitles.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sequence Subtitles</span>
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-0.5 custom-scrollbar">
+                  {subtitles.map((sub, idx) => (
+                    <div
+                      key={sub.id || idx}
+                      className="p-2 bg-slate-950 border border-slate-800/80 rounded-lg flex flex-col gap-0.5"
+                    >
+                      <div className="flex items-center justify-between text-[9px] font-mono text-cyan-400">
+                        <span>#{idx + 1} • {sub.startTimeSec.toFixed(1)}s - {sub.endTimeSec.toFixed(1)}s</span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-100">{sub.devanagariText || sub.text}</p>
+                      {sub.devanagariText && sub.text && sub.devanagariText !== sub.text && (
+                        <p className="text-[10px] text-slate-400 italic">{sub.text}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Caption Adder for Active Clip */}
             <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
-              <h4 className="text-xs font-bold text-slate-200">Active Clip Caption</h4>
+              <h4 className="text-xs font-bold text-slate-200">Active Clip Caption Text</h4>
               <input
                 type="text"
-                placeholder="Type Nepali or English subtitle..."
+                placeholder="Type Nepali or English subtitle for active clip..."
                 value={selectedScene?.textOverlay || ''}
                 onChange={(e) => {
                   if (selectedScene && onUpdateScene) {

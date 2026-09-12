@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { execFile } from 'child_process';
+import { execFile, execSync } from 'child_process';
 import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
@@ -242,12 +242,43 @@ export async function ensureSampleMediaFiles(): Promise<void> {
     return '';
   }
 
-  // Generate real cinematic videos with fast keyframe indexing (g=15)
+  // 1. Generate audio files FIRST (fast & lightweight)
+  for (const audio of audioFiles) {
+    const targetPublic = path.join(publicAudioDir, audio.filename);
+    const targetDist = path.join(distAudioDir, audio.filename);
+
+    if (fs.existsSync(targetPublic) && fs.statSync(targetPublic).size > 1000) {
+      if (fs.existsSync(distAudioDir) && (!fs.existsSync(targetDist) || fs.statSync(targetDist).size < 1000)) {
+        try { fs.copyFileSync(targetPublic, targetDist); } catch {}
+      }
+      continue;
+    }
+
+    try {
+      const cmdStr = `ffmpeg -y ${audio.command.map(arg => arg.includes(' ') || arg.includes('=') || arg.includes(',') ? `"${arg}"` : arg).join(' ')} "${targetPublic}"`;
+      execSync(cmdStr);
+      console.log(`[SampleMedia] Generated audio soundscape: ${audio.filename}`);
+      if (fs.existsSync(distAudioDir)) {
+        try { fs.copyFileSync(targetPublic, targetDist); } catch {}
+      }
+    } catch (err: any) {
+      console.error(`[SampleMedia] Error generating audio ${audio.filename}:`, err?.stderr?.toString() || err?.message || err);
+    }
+  }
+
+  // 2. Generate cinematic sample videos with fast keyframe indexing (g=15)
   for (const item of videoFiles) {
     const targetPublic = path.join(publicSamplesDir, item.filename);
     const targetDist = path.join(distSamplesDir, item.filename);
     const thumbPublic = path.join(publicSamplesDir, item.filename.replace(/\.mp4$/, '_thumb.jpg'));
     const thumbDist = path.join(distSamplesDir, item.filename.replace(/\.mp4$/, '_thumb.jpg'));
+
+    if (fs.existsSync(targetPublic) && fs.statSync(targetPublic).size > 10000) {
+      if (fs.existsSync(distSamplesDir) && (!fs.existsSync(targetDist) || fs.statSync(targetDist).size < 10000)) {
+        try { fs.copyFileSync(targetPublic, targetDist); } catch {}
+      }
+      continue;
+    }
 
     const baseName = item.filename.replace(/\.mp4$/, '');
     const localImg = await getLocalSourceImage(item.imageUrl, baseName);
@@ -262,6 +293,7 @@ export async function ensureSampleMediaFiles(): Promise<void> {
         zoompanFilter = 'scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1,zoompan=z=1.15:d=180:x=\'if(lte(on,1),iw-iw/zoom,max(0,x-2))\':y=\'ih/2-(ih/zoom/2)\':s=1920x1080:fps=30,setsar=1';
       }
 
+      let args: string[];
       if (localImg && fs.existsSync(localImg)) {
         try {
           fs.copyFileSync(localImg, thumbPublic);
@@ -270,7 +302,7 @@ export async function ensureSampleMediaFiles(): Promise<void> {
           }
         } catch {}
 
-        const args = [
+        args = [
           '-y',
           '-loop', '1',
           '-i', localImg,
@@ -295,32 +327,33 @@ export async function ensureSampleMediaFiles(): Promise<void> {
           '-movflags', '+faststart',
           targetPublic,
         ];
-
-        await execFileAsync('ffmpeg', args);
-        console.log(`[SampleMedia] Generated fast-streaming MP4: ${item.filename}`);
-
-        if (fs.existsSync(distSamplesDir)) {
-          try { fs.copyFileSync(targetPublic, targetDist); } catch {}
-        }
+      } else {
+        // Fallback: generate high-quality lavfi motion video if image download failed
+        args = [
+          '-y',
+          '-f', 'lavfi',
+          '-i', `color=c=0x0f172a:s=1920x1080:d=${item.duration}:r=30`,
+          '-f', 'lavfi',
+          '-i', `sine=frequency=${item.audioFreq}:duration=${item.duration}`,
+          '-c:v', 'libx264',
+          '-pix_fmt', 'yuv420p',
+          '-preset', 'ultrafast',
+          '-g', '15',
+          '-c:a', 'aac',
+          '-b:a', '128k',
+          '-movflags', '+faststart',
+          targetPublic,
+        ];
       }
-    } catch (err: any) {
-      console.warn(`[SampleMedia] Notice generating video ${item.filename}:`, err?.message || err);
-    }
-  }
 
-  // Generate audio files
-  for (const audio of audioFiles) {
-    const targetPublic = path.join(publicAudioDir, audio.filename);
-    const targetDist = path.join(distAudioDir, audio.filename);
-
-    try {
-      const args = ['-y', ...audio.command, targetPublic];
       await execFileAsync('ffmpeg', args);
-      if (fs.existsSync(distAudioDir)) {
+      console.log(`[SampleMedia] Generated fast-streaming MP4: ${item.filename}`);
+
+      if (fs.existsSync(distSamplesDir)) {
         try { fs.copyFileSync(targetPublic, targetDist); } catch {}
       }
     } catch (err: any) {
-      console.warn(`[SampleMedia] Notice generating audio ${audio.filename}:`, err?.message || err);
+      console.warn(`[SampleMedia] Notice generating video ${item.filename}:`, err?.message || err);
     }
   }
 }

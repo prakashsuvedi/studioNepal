@@ -19,6 +19,7 @@ import {
 import { Scene, BrandOverlayConfig } from '../../types';
 import { getCompositionAtTime } from '../../lib/timelineComposition';
 import { LivePreviewCanvas } from '../LivePreviewCanvas';
+import { SubtitleItem, SubtitleBurnOptions } from '../SubtitleEditorModal';
 
 interface CapCutPlayerPanelProps {
   scenes: Scene[];
@@ -39,6 +40,8 @@ interface CapCutPlayerPanelProps {
   onToggleCurrentTicker?: () => void;
   isMuted?: boolean;
   setIsMuted?: (muted: boolean) => void;
+  subtitles?: SubtitleItem[];
+  subtitleBurnOptions?: SubtitleBurnOptions;
 }
 
 export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
@@ -60,6 +63,8 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
   onToggleCurrentTicker,
   isMuted = false,
   setIsMuted,
+  subtitles,
+  subtitleBurnOptions,
 }) => {
   const [internalMuted, setInternalMuted] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
@@ -199,6 +204,8 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
                 safeAreaMode={safeAreaMode}
                 isMuted={effectiveMuted}
                 playbackSpeed={playbackSpeed}
+                subtitles={subtitles}
+                subtitleBurnOptions={subtitleBurnOptions}
               />
             ) : (
               <div className="relative w-full h-full overflow-hidden bg-black flex items-center justify-center">

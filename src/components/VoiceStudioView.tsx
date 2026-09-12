@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mic, Play, Pause, Square, Volume2, Volume1, Sparkles, Check, Download, Music, AlertCircle, 
   ArrowRight, Save, Library, Smile, Clock, FileText, RotateCcw, Compass, 
-  UserCheck, HelpCircle, ChevronRight, VolumeX, Flame, Heart, Headphones, Scissors, Upload
+  UserCheck, HelpCircle, ChevronRight, VolumeX, Flame, Heart, Headphones, Scissors, Upload, Trash2
 } from 'lucide-react';
 import { UserSession, UserTrialQuota } from '../types';
 import { apiGenerateAudio, apiGetAudioSuggestions } from '../lib/api';
 import { VoiceWaveformVisualizer } from './VoiceWaveformVisualizer';
-import { saveMediaItem } from '../lib/mediaLibrary';
+import { saveMediaItem, getGeneratedSoundList, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
 
 interface VoiceStudioViewProps {
   initialText?: string;
@@ -196,6 +196,71 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   // Audio state
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [activeAudioElement, setActiveAudioElement] = useState<HTMLAudioElement | null>(null);
+
+  // Persistent Generated Sound List (synced with storage and Video Studio)
+  const [generatedSounds, setGeneratedSounds] = useState<MediaItem[]>(() => getGeneratedSoundList());
+  const [playingSoundId, setPlayingSoundId] = useState<string | null>(null);
+  const activeSoundAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setGeneratedSounds(getGeneratedSoundList());
+    };
+    window.addEventListener('nepalai_media_library_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('nepalai_media_library_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      if (activeSoundAudioRef.current) {
+        activeSoundAudioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const handleTogglePlayGeneratedSound = (sound: MediaItem) => {
+    if (playingSoundId === sound.id) {
+      if (activeSoundAudioRef.current) {
+        activeSoundAudioRef.current.pause();
+      }
+      setPlayingSoundId(null);
+    } else {
+      if (activeSoundAudioRef.current) {
+        activeSoundAudioRef.current.pause();
+      }
+      const audio = new Audio(sound.url);
+      activeSoundAudioRef.current = audio;
+      audio.onended = () => setPlayingSoundId(null);
+      audio.onerror = () => setPlayingSoundId(null);
+      audio.play().catch(e => {
+        console.warn('Playback notice:', e);
+        setPlayingSoundId(null);
+      });
+      setPlayingSoundId(sound.id);
+    }
+  };
+
+  const handleDeleteGeneratedSound = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playingSoundId === id && activeSoundAudioRef.current) {
+      activeSoundAudioRef.current.pause();
+      setPlayingSoundId(null);
+    }
+    removeMediaItem(id);
+    setGeneratedSounds(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleAttachGeneratedSound = (sound: MediaItem) => {
+    if (onAttachAudioTrack) {
+      onAttachAudioTrack(
+        sound.title,
+        sound.duration || 6,
+        sound.url,
+        sound.prompt || text
+      );
+      setAttachedSuccess(true);
+      setTimeout(() => setAttachedSuccess(false), 3500);
+    }
+  };
 
   // Native Audio Player preview component states
   const [playerCurrentTime, setPlayerCurrentTime] = useState(0);
@@ -884,15 +949,17 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         };
         setSyncedAssets(prev => [newAsset, ...prev]);
 
-        // Automatically save to Media Library so it appears instantly in Video Studio's Audio tab & Import list
-        saveMediaItem({
+        // Automatically save to Media Library so it appears instantly in Video Studio's Audio tab & Generated Sound List
+        const savedItem = saveMediaItem({
           type: 'ai_audio',
-          title: `[Voiceover] ${selectedVoice.name} - ${(textToSynthesize || text).slice(0, 22)}...`,
+          title: `[Voiceover] ${selectedVoice.name} - ${(textToSynthesize || text).slice(0, 24)}...`,
           url: data.result.url,
           duration: data.result.duration || Math.max(4, Math.ceil((textToSynthesize || text).length / 14)),
           category: 'AI Voiceover',
-          engine: data.result.format || 'Azure Speech Neural (eastus)'
+          engine: data.result.format || `${selectedVoice.name} Neural (${selectedVoice.language})`,
+          prompt: textToSynthesize || text
         });
+        setGeneratedSounds(prev => [savedItem, ...prev.filter(s => s.id !== savedItem.id)]);
 
       }
     } catch (e: any) {
@@ -1071,6 +1138,18 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setSyncedAssets(prev => [newAsset, ...prev]);
+
+        // Store batch voiceover in generated sound list
+        const savedBatchItem = saveMediaItem({
+          type: 'ai_audio',
+          title: `[Batch Voiceover] ${selectedVoice.name} - ${item.text.slice(0, 24)}...`,
+          url: data.result.url,
+          duration: data.result.duration || Math.max(4, Math.ceil(item.text.length / 14)),
+          category: 'AI Voiceover',
+          engine: data.result.format || `${selectedVoice.name} Neural`,
+          prompt: item.text
+        });
+        setGeneratedSounds(prev => [savedBatchItem, ...prev.filter(s => s.id !== savedBatchItem.id)]);
       } else {
         throw new Error('No audio URL returned');
       }
@@ -1927,9 +2006,122 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             {attachedSuccess && (
               <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-xs text-emerald-600 flex items-center gap-2 animate-in fade-in duration-200">
                 <Check className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
-                <span className="font-semibold">Successfully attached track to Video Studio! Navigate to Video Studio to edit.</span>
+                <span className="font-semibold">Successfully attached voiceover to Video Studio! It is now available on your audio timeline.</span>
               </div>
             )}
+
+            {/* Dedicated Generated Sound List */}
+            <div id="generated-sound-list" className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <Volume2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                        Generated Sound List
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                        {generatedSounds.length} {generatedSounds.length === 1 ? 'sound' : 'sounds'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Voiceovers stored from Text-to-Speech. Available directly in Video Studio's Audio section.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {generatedSounds.length === 0 ? (
+                <div className="p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-2 bg-slate-50/50 dark:bg-slate-950/40">
+                  <Music className="w-8 h-8 text-slate-400 mx-auto opacity-50" />
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    No generated sounds stored yet.
+                  </p>
+                  <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                    Click "Preview Neural TTS" above to synthesize and store your first neural voiceover in this list.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {generatedSounds.map((sound) => {
+                    const isCurrentlyPlaying = playingSoundId === sound.id;
+                    return (
+                      <div
+                        key={sound.id}
+                        className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 ${
+                          isCurrentlyPlaying
+                            ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-500/50'
+                            : 'bg-slate-50/80 dark:bg-slate-950/60 border-slate-200/70 dark:border-slate-800/70 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePlayGeneratedSound(sound)}
+                            className={`p-2.5 rounded-xl transition shrink-0 cursor-pointer shadow-sm ${
+                              isCurrentlyPlaying
+                                ? 'bg-emerald-600 text-white animate-pulse'
+                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white border border-slate-200 dark:border-slate-700'
+                            }`}
+                            title={isCurrentlyPlaying ? 'Pause sound' : 'Play preview'}
+                          >
+                            {isCurrentlyPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                          </button>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate block">
+                                {sound.title}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shrink-0">
+                                {Math.round(sound.duration || 6)}s
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                              <span className="truncate">{sound.engine || 'Neural TTS'}</span>
+                              <span>•</span>
+                              <span>{new Date(sound.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <a
+                            href={sound.url}
+                            download={`${sound.title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30)}.wav`}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
+                            title="Download Audio"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAttachGeneratedSound(sound)}
+                            className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] transition shadow-xs flex items-center gap-1 cursor-pointer"
+                            title="Add to Video Studio timeline"
+                          >
+                            <ArrowRight className="w-3 h-3" />
+                            <span>Add to Video Studio</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteGeneratedSound(sound.id, e)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                            title="Delete sound"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
               </div>
             )}
@@ -2640,41 +2832,68 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
           {/* Section 3: Synced Assets & Projects Portfolio */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 space-y-4 shadow-sm">
-            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <Save className="w-3.5 h-3.5 text-indigo-500" />
-              Project Assets Portfolio
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                <Save className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Generated Sound List</span>
+              </h3>
+              <span className="px-1.5 py-0.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-mono rounded-full font-bold">
+                {generatedSounds.length}
+              </span>
+            </div>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Every successfully synthesized audio file is saved and auto-synced with the active workspace's video asset database.
+              Every synthesized voiceover is automatically stored and synchronized with Video Studio's Audio section.
             </p>
 
-            <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-              {syncedAssets.length === 0 ? (
-                <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl text-center text-slate-400 border border-dashed border-slate-200 text-xs">
-                  No assets saved in this session. Generate voice previews to compile your portfolio.
+            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              {generatedSounds.length === 0 ? (
+                <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl text-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 text-xs">
+                  No generated sounds yet. Synthesize audio to populate this list.
                 </div>
               ) : (
-                syncedAssets.map(asset => (
-                  <div key={asset.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 rounded-xl flex items-center justify-between gap-3 text-xs">
-                    <div className="overflow-hidden">
-                      <span className="font-bold text-slate-800 dark:text-white block truncate">{asset.title}</span>
-                      <span className="text-[9px] text-slate-400 block mt-0.5">
-                        {asset.voice} • {asset.date}
-                      </span>
+                generatedSounds.map(sound => {
+                  const isCurrentlyPlaying = playingSoundId === sound.id;
+                  return (
+                    <div key={sound.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 rounded-xl flex items-center justify-between gap-2.5 text-xs">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePlayGeneratedSound(sound)}
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition cursor-pointer ${
+                            isCurrentlyPlaying
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white'
+                          }`}
+                          title={isCurrentlyPlaying ? 'Pause' : 'Play preview'}
+                        >
+                          {isCurrentlyPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
+                        </button>
+                        <div className="overflow-hidden min-w-0 flex-1">
+                          <span className="font-bold text-slate-800 dark:text-white block truncate">{sound.title}</span>
+                          <span className="text-[9px] text-slate-400 block mt-0.5">
+                            {Math.round(sound.duration || 6)}s • {sound.engine || 'Neural TTS'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleAttachGeneratedSound(sound)}
+                          className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-[10px] rounded transition cursor-pointer"
+                          title="Attach to Video Studio"
+                        >
+                          Use
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteGeneratedSound(sound.id, e)}
+                          className="p-1 text-slate-400 hover:text-rose-500 transition cursor-pointer"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        if (onAttachAudioTrack) {
-                          onAttachAudioTrack(asset.title, 8, asset.url, text);
-                        }
-                      }}
-                      className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-[10px] rounded"
-                      title="Push track as active video background track"
-                    >
-                      Use
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

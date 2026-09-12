@@ -3,6 +3,7 @@ import {
   Sliders, 
   Sparkles, 
   Volume2, 
+  VolumeX, 
   Palette, 
   Clock, 
   Type, 
@@ -676,9 +677,9 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                       })}
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/60"
                     >
-                      <option value="slow">Slow (Smooth)</option>
-                      <option value="medium">Medium</option>
-                      <option value="fast">Fast</option>
+                      <option value="slow">Slow (Smooth 60px/s)</option>
+                      <option value="medium">Medium (Broadcast 110px/s)</option>
+                      <option value="fast">Fast (Urgent 180px/s)</option>
                     </select>
                   </div>
 
@@ -701,6 +702,58 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                     >
                       <option value="bottom">Bottom Lower-Third</option>
                       <option value="top">Top Header Banner</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Fine Options: Size & Background Style */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300 block text-[11px]">Banner Size</label>
+                    <select
+                      value={selectedScene.tickerConfig?.fontSize || 'medium'}
+                      onChange={e => onUpdateScene({
+                        tickerConfig: {
+                          ...(selectedScene.tickerConfig || {
+                            enabled: true,
+                            text: '',
+                            style: 'breaking_red',
+                            speed: 'medium',
+                            position: 'bottom',
+                          }),
+                          fontSize: e.target.value as any,
+                        }
+                      })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/60"
+                    >
+                      <option value="small">Compact (24px)</option>
+                      <option value="medium">Standard (34px)</option>
+                      <option value="large">Broadcast Large (44px)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300 block text-[11px]">Backdrop Style</label>
+                    <select
+                      value={selectedScene.tickerConfig?.backgroundStyle || 'gradient'}
+                      onChange={e => onUpdateScene({
+                        tickerConfig: {
+                          ...(selectedScene.tickerConfig || {
+                            enabled: true,
+                            text: '',
+                            style: 'breaking_red',
+                            speed: 'medium',
+                            position: 'bottom',
+                          }),
+                          backgroundStyle: e.target.value as any,
+                        }
+                      })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/60"
+                    >
+                      <option value="gradient">Studio Gradient</option>
+                      <option value="glass">Frosted Glass</option>
+                      <option value="solid">High-Contrast Solid</option>
+                      <option value="neon">Cyber Glow</option>
                     </select>
                   </div>
                 </div>
@@ -883,44 +936,140 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
         {/* AUDIO TAB */}
         {activeTab === 'audio' && (
           <div className="space-y-4">
-            {/* BGM Volume */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-slate-300">
-                <span className="font-semibold">BGM Soundtrack Vol</span>
-                <span className="font-mono text-purple-400 font-bold">{bgmVolume}%</span>
+            {/* 1. Selected Clip Native Audio Controls */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400">
+                    {selectedScene.isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-200">Clip Audio Track</h4>
+                    <p className="text-[10px] text-slate-400 truncate max-w-[130px]">{selectedScene.title}</p>
+                  </div>
+                </div>
+
+                {/* Mute toggle button */}
+                <button
+                  onClick={() => onUpdateScene({ isMuted: !selectedScene.isMuted })}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    selectedScene.isMuted
+                      ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                  }`}
+                  title={selectedScene.isMuted ? 'Unmute Clip Audio' : 'Mute Clip Audio'}
+                >
+                  {selectedScene.isMuted ? (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5" />
+                      <span>MUTED</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Mute</span>
+                    </>
+                  )}
+                </button>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={bgmVolume}
-                onChange={e => setBgmVolume(Number(e.target.value))}
-                className="w-full accent-purple-400 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
-              />
+
+              {/* Clip Volume Slider */}
+              <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
+                <div className="flex items-center justify-between text-slate-300 text-xs">
+                  <span className="font-semibold">Clip Volume</span>
+                  <span className="font-mono text-cyan-400 font-bold">
+                    {selectedScene.isMuted ? '0% (Muted)' : `${selectedScene.volume ?? 100}%`}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={selectedScene.isMuted ? 0 : (selectedScene.volume ?? 100)}
+                  onChange={e => {
+                    const vol = Number(e.target.value);
+                    onUpdateScene({
+                      volume: vol,
+                      isMuted: vol === 0
+                    });
+                  }}
+                  className="w-full accent-cyan-400 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
+                />
+
+                {/* Volume Quick Presets */}
+                <div className="grid grid-cols-5 gap-1 pt-1">
+                  {[
+                    { label: '0%', val: 0 },
+                    { label: '25%', val: 25 },
+                    { label: '50%', val: 50 },
+                    { label: '80%', val: 80 },
+                    { label: '100%', val: 100 },
+                  ].map(p => (
+                    <button
+                      key={p.label}
+                      onClick={() => onUpdateScene({
+                        volume: p.val,
+                        isMuted: p.val === 0
+                      })}
+                      className={`py-1 rounded text-[10px] font-bold border transition cursor-pointer ${
+                        (!selectedScene.isMuted && (selectedScene.volume ?? 100) === p.val) || (selectedScene.isMuted && p.val === 0)
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Voiceover Volume */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-slate-300">
-                <span className="font-semibold">Voiceover / Speech Vol</span>
-                <span className="font-mono text-emerald-400 font-bold">{voVolume}%</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={voVolume}
-                onChange={e => setVoVolume(Number(e.target.value))}
-                className="w-full accent-emerald-400 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
-              />
-            </div>
+            {/* 2. Timeline Master Audio Mix */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+              <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-purple-400" />
+                <span>Timeline Audio Mix</span>
+              </h4>
 
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1 text-[11px]">
-              <div className="flex items-center gap-1.5 text-cyan-400 font-bold">
-                <Volume2 className="w-3.5 h-3.5" />
-                <span>Auto-Ducking Active</span>
+              {/* BGM Volume */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-slate-300 text-xs">
+                  <span className="font-semibold">Music Soundtrack (BGM)</span>
+                  <span className="font-mono text-purple-400 font-bold">{bgmVolume}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={bgmVolume}
+                  onChange={e => setBgmVolume(Number(e.target.value))}
+                  className="w-full accent-purple-400 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
+                />
               </div>
-              <p className="text-slate-400">Background music automatically dips by 40% when speech or voiceover occurs.</p>
+
+              {/* Voiceover Volume */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-slate-300 text-xs">
+                  <span className="font-semibold">Voiceover / Narration</span>
+                  <span className="font-mono text-emerald-400 font-bold">{voVolume}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={voVolume}
+                  onChange={e => setVoVolume(Number(e.target.value))}
+                  className="w-full accent-emerald-400 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              <div className="p-2.5 bg-slate-900/80 border border-slate-800 rounded-lg space-y-1 text-[10px]">
+                <div className="flex items-center gap-1.5 text-cyan-400 font-bold">
+                  <Volume2 className="w-3 h-3" />
+                  <span>Smart Ducking Engine</span>
+                </div>
+                <p className="text-slate-400">Background music automatically lowers when speech or voiceover dialogue is playing.</p>
+              </div>
             </div>
           </div>
         )}

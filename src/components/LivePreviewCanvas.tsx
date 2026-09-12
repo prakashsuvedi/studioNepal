@@ -218,7 +218,11 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     vidA.playbackRate = baseSpeed;
 
     if (isEvenScene) {
-      vidA.muted = isMuted;
+      const sceneMutedA = isMuted || !!deckAScene?.isMuted || deckAScene?.volume === 0;
+      vidA.muted = sceneMutedA;
+      if (!sceneMutedA) {
+        vidA.volume = Math.max(0, Math.min(1, (deckAScene?.volume ?? 100) / 100));
+      }
       if (isPlaying) {
         if (vidA.paused && !vidA.ended) {
           vidA.play().catch(() => {});
@@ -260,7 +264,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         }
       }
     }
-  }, [currentTime, isPlaying, isDeckAVideo, deckASrc, isEvenScene, targetTimeA, isMuted, playbackSpeed, isTransitioning, deckAScene?.speed]);
+  }, [currentTime, isPlaying, isDeckAVideo, deckASrc, isEvenScene, targetTimeA, isMuted, playbackSpeed, isTransitioning, deckAScene?.speed, deckAScene?.isMuted, deckAScene?.volume]);
 
   // Deck B Sync & Preloading Loop (Ultra-smooth rate-guided hardware sync)
   useEffect(() => {
@@ -271,7 +275,11 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     vidB.playbackRate = baseSpeed;
 
     if (!isEvenScene) {
-      vidB.muted = isMuted;
+      const sceneMutedB = isMuted || !!deckBScene?.isMuted || deckBScene?.volume === 0;
+      vidB.muted = sceneMutedB;
+      if (!sceneMutedB) {
+        vidB.volume = Math.max(0, Math.min(1, (deckBScene?.volume ?? 100) / 100));
+      }
       if (isPlaying) {
         if (vidB.paused && !vidB.ended) {
           vidB.play().catch(() => {});
@@ -311,7 +319,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         }
       }
     }
-  }, [currentTime, isPlaying, isDeckBVideo, deckBSrc, isEvenScene, targetTimeB, isMuted, playbackSpeed, isTransitioning, deckBScene?.speed]);
+  }, [currentTime, isPlaying, isDeckBVideo, deckBSrc, isEvenScene, targetTimeB, isMuted, playbackSpeed, isTransitioning, deckBScene?.speed, deckBScene?.isMuted, deckBScene?.volume]);
 
   // Silent Video Error Auto-Recovery Ladder (Masks errors from user and progressively falls back)
   const handleSilentVideoError = async (target: HTMLVideoElement, rawUrl: string, deckKey: 'A' | 'B') => {
@@ -590,10 +598,11 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
       // Badge on left
       const badgeText = activeTicker.badgeText || 'BREAKING';
-      ctx.font = `bold ${Math.round(tickerH * 0.44)}px "Plus Jakarta Sans", sans-serif`;
+      const badgeFontScale = activeTicker.fontSize === 'large' ? 0.5 : activeTicker.fontSize === 'small' ? 0.38 : 0.44;
+      ctx.font = `bold ${Math.round(tickerH * badgeFontScale)}px "Plus Jakarta Sans", sans-serif`;
       const badgeWidth = ctx.measureText(badgeText).width + 24;
 
-      ctx.fillStyle = activeTicker.style === 'gold_luxury' ? '#18181b' : '#f87171';
+      ctx.fillStyle = activeTicker.badgeColor || (activeTicker.style === 'gold_luxury' ? '#18181b' : '#dc2626');
       ctx.fillRect(0, tickerY, badgeWidth, tickerH);
 
       ctx.fillStyle = activeTicker.style === 'gold_luxury' ? '#fef08a' : '#ffffff';
@@ -602,17 +611,17 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
 
       // Scrolling text
       const tickerTextCombined = `${activeTicker.textNepali ? activeTicker.textNepali + '  •  ' : ''}${activeTicker.text || ''}  •  `;
-      ctx.font = `600 ${Math.round(tickerH * 0.44)}px "Plus Jakarta Sans", sans-serif`;
+      ctx.font = `600 ${Math.round(tickerH * badgeFontScale)}px "Plus Jakarta Sans", sans-serif`;
       ctx.textAlign = 'left';
 
-      const speedFactor = activeTicker.speed === 'fast' ? 140 : activeTicker.speed === 'slow' ? 55 : 95;
+      const speedFactor = activeTicker.speedPx || (activeTicker.speed === 'fast' ? 140 : activeTicker.speed === 'slow' ? 55 : 95);
       const textX = width - ((currentTime * speedFactor) % (width + 800));
 
       ctx.save();
       ctx.beginPath();
       ctx.rect(badgeWidth + 8, tickerY, width - badgeWidth - 16, tickerH);
       ctx.clip();
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = activeTicker.textColor || '#ffffff';
       ctx.fillText(tickerTextCombined, textX, tickerY + tickerH * 0.65);
       ctx.restore();
 
@@ -651,7 +660,8 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       let textY = height - 58;
       if (activeScene.textPosition === 'top') textY = 48;
       else if (activeScene.textPosition === 'center') textY = height / 2;
-      else if (activeScene.textPosition === 'lower_third') textY = height - 62;
+      else if (activeScene.textPosition === 'lower_third') textY = height * 0.72;
+      else if (activeScene.textPosition === 'bottom_lifted') textY = height * 0.82;
 
       if (textAnim === 'bounce' || textAnim === 'slide_up' || textAnim === 'kinetic_bounce') {
         const offsetY = Math.sin(sceneProgress * Math.PI * 3) * (1 - sceneProgress) * 16;
@@ -737,6 +747,10 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
           subY = 24;
         } else if (subtitleBurnOptions?.position === 'center') {
           subY = (height - subBoxH) / 2;
+        } else if (subtitleBurnOptions?.position === 'lower_third') {
+          subY = Math.round(height * 0.74 - subBoxH);
+        } else if (subtitleBurnOptions?.position === 'bottom_lifted') {
+          subY = Math.round(height * 0.82 - subBoxH);
         }
 
         const subX = (width - subBoxW) / 2;
@@ -927,7 +941,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
               ref={deckAVideoRef}
               src={deckASrc}
               playsInline
-              muted={!isEvenScene || isMuted}
+              muted={!isEvenScene || isMuted || !!deckAScene?.isMuted || deckAScene?.volume === 0}
               preload="auto"
               className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
               style={{
@@ -972,7 +986,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
               ref={deckBVideoRef}
               src={deckBSrc}
               playsInline
-              muted={isEvenScene || isMuted}
+              muted={isEvenScene || isMuted || !!deckBScene?.isMuted || deckBScene?.volume === 0}
               preload="auto"
               className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
               style={{

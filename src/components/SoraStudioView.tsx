@@ -20,9 +20,26 @@ import {
   Trash2,
   Plus,
   CheckCircle2,
-  FolderHeart
+  FolderHeart,
+  Users,
+  Camera,
+  Layers,
+  Tv,
+  Clapperboard,
+  Sparkle
 } from 'lucide-react';
 import { saveMediaItem, getMediaLibrary, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
+import {
+  CHARACTER_DNA_LIST,
+  PODCAST_STUDIO_PACKS,
+  NARRATIVE_STORYBOARDS,
+  BROADCAST_FORMAT_PRESETS,
+  CharacterDNA,
+  PodcastStudioPack,
+  NarrativeStoryboardPack,
+  StoryboardSceneItem,
+  BroadcastFormatPreset
+} from '../data/soraProductionPacks';
 
 interface SoraStudioViewProps {
   initialPrompt?: string;
@@ -102,6 +119,19 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const [historyAddedId, setHistoryAddedId] = useState<string | null>(null);
   const [previewingItem, setPreviewingItem] = useState<MediaItem | null>(null);
 
+  // Production Modes & Storyboard States
+  const [productionMode, setProductionMode] = useState<'single' | 'podcast' | 'storyboard' | 'broadcast'>('single');
+  const [activePodcastPack, setActivePodcastPack] = useState<PodcastStudioPack>(PODCAST_STUDIO_PACKS[0]);
+  const [activeStoryboardPack, setActiveStoryboardPack] = useState<NarrativeStoryboardPack>(NARRATIVE_STORYBOARDS[0]);
+  const [storyboardScenes, setStoryboardScenes] = useState<StoryboardSceneItem[]>(NARRATIVE_STORYBOARDS[0].scenes);
+  const [selectedCharacterDna, setSelectedCharacterDna] = useState<string>('sagar');
+  const [batchProcessingSceneId, setBatchProcessingSceneId] = useState<string | null>(null);
+  const [storyboardAddedSuccess, setStoryboardAddedSuccess] = useState(false);
+
+  React.useEffect(() => {
+    setStoryboardScenes(activeStoryboardPack.scenes);
+  }, [activeStoryboardPack]);
+
   React.useEffect(() => {
     const handleUpdate = () => {
       setHistoryVideos(getMediaLibrary().filter(m => m.type === 'sora_video'));
@@ -139,6 +169,148 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     navigator.clipboard.writeText(prompt);
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
+  };
+
+  // Inject Character Visual DNA into prompt for consistent multi-scene look
+  const handleInjectCharacterDna = (charId: string) => {
+    const charObj = CHARACTER_DNA_LIST.find(c => c.id === charId);
+    if (!charObj) return;
+    if (!prompt.includes(charObj.name)) {
+      setPrompt(prev => prev.trim() ? `${charObj.visualDescription}, ${prev.trim()}` : charObj.visualDescription);
+    }
+  };
+
+  // Select a Podcast Studio Camera Angle
+  const handleSelectPodcastAngle = (angle: any) => {
+    setPrompt(angle.prompt);
+    setVideoSubtitle(angle.subtitle);
+    setSeconds((angle.recommendedDuration || 4).toString() as '4' | '8');
+    setResolution(activePodcastPack.aspectRatio === '9:16' ? '720x1280' : '1280x720');
+  };
+
+  // Select a Broadcast Format Preset
+  const handleSelectBroadcastPreset = (preset: BroadcastFormatPreset) => {
+    setPrompt(preset.samplePrompt);
+    setVideoSubtitle(preset.subtitle);
+    setResolution(preset.resolution);
+    setSeconds(preset.defaultDuration);
+  };
+
+  // Generate a specific scene inside the Storyboard
+  const handleGenerateStoryboardScene = async (sceneItem: StoryboardSceneItem, sceneIndex: number) => {
+    setBatchProcessingSceneId(sceneItem.id);
+    setIsGenerating(true);
+    setJobProgress(15);
+    setGenError(null);
+
+    if (onStartGlobalLoading) {
+      onStartGlobalLoading({
+        type: 'video',
+        title: `Synthesizing ${sceneItem.title}...`,
+        subtitle: `Generating ${sceneItem.recommendedDuration}s photorealistic video via Azure Sora-2`,
+        progress: 15,
+      });
+    }
+
+    try {
+      const effectiveUserId = user?.id || 'usr_admin_01';
+      const data = await apiGenerateVideo(
+        effectiveUserId,
+        sceneItem.prompt,
+        sceneItem.recommendedDuration || 4,
+        'sora-2',
+        {
+          resolution: activeStoryboardPack.aspectRatio === '9:16' ? '720x1280' : '1280x720',
+          aspectRatio: activeStoryboardPack.aspectRatio,
+        }
+      );
+
+      let finalUrl = data.result?.url;
+
+      if (data.result?.status === 'in_progress' && data.result?.jobId) {
+        const jobId = data.result.jobId;
+        let done = false;
+        let retries = 0;
+        const maxRetries = 40;
+
+        while (!done && retries < maxRetries) {
+          retries++;
+          await new Promise((r) => setTimeout(r, 3000));
+          try {
+            const statusData = await apiCheckVideoStatus(jobId);
+            const p = Math.min(98, Math.max(30, statusData.progress || 30 + retries * 2));
+            setJobProgress(p);
+            if (statusData.status === 'completed' && statusData.url) {
+              finalUrl = statusData.url;
+              done = true;
+              break;
+            } else if (statusData.status === 'failed') {
+              break;
+            }
+          } catch (pollErr) {
+            console.warn('Sora scene polling notice:', pollErr);
+          }
+        }
+      }
+
+      if (finalUrl) {
+        setVideoResultUrl(finalUrl);
+        setStoryboardScenes(prev => prev.map((s, idx) => idx === sceneIndex ? { ...s, videoUrl: finalUrl } : s));
+
+        saveMediaItem({
+          type: 'sora_video',
+          title: `Storyboard: ${sceneItem.title}`,
+          url: finalUrl,
+          duration: sceneItem.recommendedDuration || 4,
+          category: 'Storyboard Scene',
+          aspectRatio: activeStoryboardPack.aspectRatio,
+          prompt: sceneItem.prompt,
+          resolution: activeStoryboardPack.aspectRatio === '9:16' ? '720x1280' : '1280x720',
+          engine: 'Azure Sora-2'
+        });
+      }
+      if (onUsageUpdated && data.trialUsage) {
+        onUsageUpdated(data.trialUsage, data.remainingCredits);
+      }
+    } catch (err: any) {
+      console.error('Failed to generate storyboard scene', err);
+      setGenError(err.message || 'Scene generation failed');
+    } finally {
+      setIsGenerating(false);
+      setBatchProcessingSceneId(null);
+      if (onStopGlobalLoading) onStopGlobalLoading();
+    }
+  };
+
+  // Add Entire Storyboard Sequence to Video Studio Timeline
+  const handleSendStoryboardToTimeline = () => {
+    storyboardScenes.forEach((s, idx) => {
+      const sceneUrl = s.videoUrl || videoResultUrl || '/samples/ForBiggerBlazes.mp4';
+      const newScene: Scene = {
+        id: 'scene-storyboard-' + Math.random().toString(36).substring(2, 9),
+        assetId: 'media-sb-' + Date.now() + '-' + idx,
+        title: s.title,
+        duration: s.recommendedDuration || 4,
+        prompt: s.prompt,
+        promptNepali: s.subtitleNe || s.prompt,
+        mediaUrl: sceneUrl,
+        thumbnailUrl: sceneUrl.endsWith('.mp4') ? sceneUrl.replace(/\.mp4$/, '_thumb.jpg') : undefined,
+        mediaType: 'video',
+        aspectRatio: activeStoryboardPack.aspectRatio,
+        motion: idx % 2 === 0 ? 'zoom_in' : 'pan_right',
+        transition: idx === 0 ? 'cut' : 'dissolve',
+        textOverlay: s.subtitleEn.slice(0, 36),
+        textNepali: s.subtitleNe.slice(0, 36),
+        textPosition: 'lower_third',
+        textColor: '#ffffff',
+        textFont: 'devanagari',
+        filter: 'cinematic',
+        volume: 85
+      };
+      onAddSceneToVideo(newScene);
+    });
+    setStoryboardAddedSuccess(true);
+    setTimeout(() => setStoryboardAddedSuccess(false), 4000);
   };
 
   // Generate Sora Video
@@ -354,6 +526,314 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 6 Columns: Sora Prompt & Parameters */}
         <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4 shadow-sm">
+          {/* Production Mode Selector Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setProductionMode('single')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                productionMode === 'single'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Single Shot</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProductionMode('podcast')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                productionMode === 'podcast'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-rose-500" />
+              <span>🎙️ Podcast Multi-Cam</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProductionMode('storyboard')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                productionMode === 'storyboard'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Clapperboard className="w-3.5 h-3.5 text-amber-500" />
+              <span>🎬 Story & Movie</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProductionMode('broadcast')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                productionMode === 'broadcast'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Tv className="w-3.5 h-3.5 text-emerald-500" />
+              <span>📺 Broadcast Presets</span>
+            </button>
+          </div>
+
+          {/* 1. Podcast Multi-Camera Studio Mode Panel */}
+          {productionMode === 'podcast' && (
+            <div className="p-3.5 bg-gradient-to-r from-rose-500/5 via-indigo-500/5 to-purple-500/5 rounded-xl border border-rose-200/60 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-rose-600" />
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Podcast Studio Multi-Camera Anchor
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {PODCAST_STUDIO_PACKS.map(pack => (
+                    <button
+                      key={pack.id}
+                      type="button"
+                      onClick={() => setActivePodcastPack(pack)}
+                      className={`text-[10.5px] px-2.5 py-1 rounded-lg font-bold transition cursor-pointer border ${
+                        activePodcastPack.id === pack.id
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      {pack.badge}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                {activePodcastPack.description} Click any camera angle below to load synchronized framing:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {activePodcastPack.cameraAngles.map(angle => (
+                  <button
+                    key={angle.id}
+                    type="button"
+                    onClick={() => handleSelectPodcastAngle(angle)}
+                    className="p-2.5 rounded-lg bg-white hover:bg-rose-50/70 border border-slate-200 hover:border-rose-300 text-left transition cursor-pointer group shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="text-xs font-bold text-slate-900 group-hover:text-rose-700">
+                        {angle.title}
+                      </span>
+                      <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 group-hover:bg-rose-100 text-slate-600 group-hover:text-rose-700 font-mono font-bold">
+                        {angle.recommendedDuration}s
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block leading-tight">
+                      {angle.subtitle}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Story & Movie Storyboard Mode Panel */}
+          {productionMode === 'storyboard' && (
+            <div className="p-3.5 bg-gradient-to-r from-amber-500/5 via-indigo-500/5 to-emerald-500/5 rounded-xl border border-amber-200/60 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Clapperboard className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Narrative Storyboard & Visual Consistency
+                  </span>
+                </div>
+                <select
+                  value={activeStoryboardPack.id}
+                  onChange={(e) => {
+                    const pack = NARRATIVE_STORYBOARDS.find(p => p.id === e.target.value);
+                    if (pack) setActiveStoryboardPack(pack);
+                  }}
+                  className="text-[11px] bg-white border border-slate-200 rounded-lg p-1.5 font-bold text-slate-800"
+                >
+                  {NARRATIVE_STORYBOARDS.map(pack => (
+                    <option key={pack.id} value={pack.id}>
+                      {pack.badge} • {pack.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-[11px] text-slate-600 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-slate-800">Visual Style:</span>
+                  <span className="italic text-slate-500">{activeStoryboardPack.visualStyle}</span>
+                </div>
+                <p className="text-[10.5px] text-slate-500">{activeStoryboardPack.description}</p>
+              </div>
+
+              {/* Storyboard Scene Queue */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Sequential Scene Progression ({storyboardScenes.length} Scenes)
+                </span>
+                <div className="space-y-2">
+                  {storyboardScenes.map((scene, idx) => (
+                    <div
+                      key={scene.id}
+                      className="p-2.5 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2.5 shadow-2xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900">
+                            {scene.title}
+                          </span>
+                          <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-600">
+                            {scene.framing} • {scene.recommendedDuration}s
+                          </span>
+                          {scene.videoUrl && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 font-bold">
+                              ✓ Rendered
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10.5px] text-slate-500 truncate mt-0.5">
+                          "{scene.subtitleEn}"
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPrompt(scene.prompt);
+                            setVideoSubtitle(scene.subtitleEn);
+                            setSeconds((scene.recommendedDuration || 4).toString() as '4' | '8');
+                            setResolution(activeStoryboardPack.aspectRatio === '9:16' ? '720x1280' : '1280x720');
+                          }}
+                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition cursor-pointer"
+                          title="Load into main prompt builder"
+                        >
+                          Load
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateStoryboardScene(scene, idx)}
+                          disabled={isGenerating}
+                          className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-[10px] font-bold text-white transition flex items-center gap-1 cursor-pointer"
+                        >
+                          {batchProcessingSceneId === scene.id ? (
+                            <>
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                              <span>Rendering...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3 h-3" />
+                              <span>{scene.videoUrl ? 'Re-render' : 'Render'}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Send Storyboard to Video Timeline Button */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={handleSendStoryboardToTimeline}
+                  className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>🎞️ Send All {storyboardScenes.length} Scenes to Video Studio Timeline</span>
+                </button>
+                {storyboardAddedSuccess && (
+                  <div className="mt-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
+                    <span className="font-bold">✓ Storyboard scenes queued into Video Studio!</span>
+                    {onNavigateToTimeline && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToTimeline}
+                        className="text-[11px] underline font-bold hover:text-emerald-950"
+                      >
+                        Open Timeline →
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Broadcast Format Presets Panel */}
+          {productionMode === 'broadcast' && (
+            <div className="p-3.5 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-indigo-500/5 rounded-xl border border-emerald-200/60 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Tv className="w-4 h-4 text-emerald-600" />
+                  Broadcast & Streaming Format Master Presets
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {BROADCAST_FORMAT_PRESETS.map(preset => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleSelectBroadcastPreset(preset)}
+                    className="p-2.5 rounded-lg bg-white hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition cursor-pointer group shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="text-xs font-bold text-slate-900 group-hover:text-emerald-700">
+                        {preset.title}
+                      </span>
+                      <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 group-hover:bg-emerald-100 text-slate-600 group-hover:text-emerald-800 font-mono font-bold">
+                        {preset.aspectRatio}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block leading-tight">
+                      {preset.subtitle}
+                    </span>
+                    <span className="text-[9.5px] text-emerald-700 font-medium block mt-1">
+                      💡 {preset.pacingNote}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Character Visual DNA Injector Bar */}
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase text-slate-700 tracking-wider flex items-center gap-1">
+                <Sparkle className="w-3 h-3 text-amber-500" />
+                <span>Character Visual DNA (Maintain Consistency)</span>
+              </span>
+              <span className="text-[9.5px] text-slate-400 font-medium">1-Click Prompt Inject</span>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {CHARACTER_DNA_LIST.map(char => (
+                <button
+                  key={char.id}
+                  type="button"
+                  onClick={() => handleInjectCharacterDna(char.id)}
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 hover:text-amber-800 text-slate-700 border border-slate-200 font-medium transition flex items-center gap-1 cursor-pointer"
+                  title={char.visualDescription}
+                >
+                  <span>{char.avatarEmoji}</span>
+                  <span className="font-bold">{char.name}</span>
+                  <span className="text-slate-400">({char.role.split(' ')[0]})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Single Unified Prompt & Model Input */}
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">

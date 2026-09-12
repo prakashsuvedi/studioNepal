@@ -105,6 +105,46 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     }
   };
 
+  const [showFloatingCta, setShowFloatingCta] = useState<boolean>(false);
+
+  // Persistent floating CTA visibility trigger on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 380) {
+        setShowFloatingCta(true);
+      } else {
+        setShowFloatingCta(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Subtle scroll-triggered fade-in animations on feature cards
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('opacity-100', 'translate-y-0');
+            entry.target.classList.remove('opacity-0', 'translate-y-6', 'translate-y-8');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.08,
+        rootMargin: '0px 0px -30px 0px',
+      }
+    );
+
+    const cards = document.querySelectorAll('.scroll-fade-in');
+    cards.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [activePersona, lang]);
+
   useEffect(() => {
     fetch('/api/payment/pricing-config')
       .then(res => res.json())
@@ -351,7 +391,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         {/* 6-Pillar Ecosystem Grid below the Player */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-8 sm:mt-12 text-left">
           {/* Card 1 */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-red-500/40 shadow-xl backdrop-blur-xl transition group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 ease-out p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-red-500/40 shadow-xl backdrop-blur-xl group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-rose-700 flex items-center justify-center shadow-lg shadow-red-950/50 mb-2.5">
               <Youtube className="w-4 h-4 text-white" />
             </div>
@@ -360,7 +400,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Card 2 */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-amber-500/40 shadow-xl backdrop-blur-xl transition group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-100 ease-out p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-amber-500/40 shadow-xl backdrop-blur-xl group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-950/50 mb-2.5">
               <Mic className="w-4 h-4 text-white" />
             </div>
@@ -369,7 +409,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Card 3 */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-cyan-500/40 shadow-xl backdrop-blur-xl transition group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-200 ease-out p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-cyan-500/40 shadow-xl backdrop-blur-xl group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-950/50 mb-2.5">
               <Video className="w-4 h-4 text-white" />
             </div>
@@ -378,7 +418,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Card 4 */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-pink-500/40 shadow-xl backdrop-blur-xl transition group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-300 ease-out p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-pink-500/40 shadow-xl backdrop-blur-xl group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg shadow-pink-950/50 mb-2.5">
               <Instagram className="w-4 h-4 text-white" />
             </div>
@@ -387,7 +427,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Card 5 */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-emerald-500/40 shadow-xl backdrop-blur-xl transition group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-400 ease-out p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-emerald-500/40 shadow-xl backdrop-blur-xl group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-950/50 mb-2.5">
               <QrCode className="w-4 h-4 text-white" />
             </div>
@@ -396,7 +436,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Card 6 */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-indigo-500/40 shadow-xl backdrop-blur-xl transition group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-500 ease-out p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800/90 hover:border-indigo-500/40 shadow-xl backdrop-blur-xl group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-700 flex items-center justify-center shadow-lg shadow-indigo-950/50 mb-2.5">
               <DollarSign className="w-4 h-4 text-white" />
             </div>
@@ -941,7 +981,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Step 1 */}
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-rose-500/50 transition duration-300 relative group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 ease-out p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-rose-500/50 relative group">
             <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center justify-center font-black text-base mb-4">
               १
             </div>
@@ -958,7 +998,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Step 2 */}
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 transition duration-300 relative group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-150 ease-out p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 relative group">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-base mb-4">
               २
             </div>
@@ -975,7 +1015,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Step 3 */}
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-indigo-500/50 transition duration-300 relative group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-300 ease-out p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-indigo-500/50 relative group">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 flex items-center justify-center font-black text-base mb-4">
               ३
             </div>
@@ -992,7 +1032,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Step 4 */}
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/50 transition duration-300 relative group">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-450 ease-out p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/50 relative group">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-base mb-4">
               ४
             </div>
@@ -1300,7 +1340,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
           {/* Sasta Pass Tier (50 NPR) */}
-          <div className="p-5 rounded-2xl bg-amber-950/20 border-2 border-amber-500/60 flex flex-col justify-between space-y-5 relative shadow-lg shadow-amber-950/20 hover:border-amber-400 transition">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 ease-out p-5 rounded-2xl bg-amber-950/20 border-2 border-amber-500/60 flex flex-col justify-between space-y-5 relative shadow-lg shadow-amber-950/20 hover:border-amber-400">
             <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
               सस्तो पास (रू ५०)
             </span>
@@ -1350,7 +1390,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Free Trial Tier */}
-          <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-700 transition">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-100 ease-out p-5 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-700">
             <div className="space-y-3">
               <span className="px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 text-xs font-semibold">
                 Free Trial
@@ -1392,7 +1432,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Starter Plan */}
-          <div className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-700 transition">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-200 ease-out p-5 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-700">
             <div className="space-y-3">
               <span className="px-2.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold">
                 Starter Tier
@@ -1435,7 +1475,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Creator Plan (Most Popular) */}
-          <div className="p-5 rounded-2xl bg-gradient-to-b from-rose-950/40 via-slate-900 to-slate-900 border-2 border-rose-500/60 flex flex-col justify-between space-y-5 shadow-xl shadow-rose-950/30 relative hover:border-rose-400 transition">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-300 ease-out p-5 rounded-2xl bg-gradient-to-b from-rose-950/40 via-slate-900 to-slate-900 border-2 border-rose-500/60 flex flex-col justify-between space-y-5 shadow-xl shadow-rose-950/30 relative hover:border-rose-400">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-md">
               Most Popular
             </div>
@@ -1482,7 +1522,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
 
           {/* Pro Studio / Agency Tier */}
-          <div className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-700 transition">
+          <div className="scroll-fade-in opacity-0 translate-y-6 transition-all duration-700 delay-400 ease-out p-5 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-5 hover:border-slate-700">
             <div className="space-y-3">
               <span className="px-2.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-semibold">
                 Pro Agency
@@ -1612,6 +1652,55 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
         </div>
       </footer>
+      {/* PERSISTENT FLOATING 'START CREATING' CTA DOCK */}
+      <div
+        id="persistent-floating-cta-dock"
+        className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ease-out pointer-events-auto ${
+          showFloatingCta
+            ? 'opacity-100 translate-y-0 scale-100'
+            : 'opacity-0 translate-y-12 scale-95 pointer-events-none'
+        }`}
+      >
+        <div className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 pl-3 sm:pl-4 rounded-2xl bg-slate-950/90 border border-slate-700/80 shadow-2xl shadow-cyan-950/40 backdrop-blur-xl ring-1 ring-white/10">
+          <div className="hidden md:flex items-center gap-2 pr-2 border-r border-slate-800">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span className="text-xs font-semibold text-slate-200 whitespace-nowrap">
+              {lang === 'ne' ? 'नेपालएआई स्टुडियो २.०' : lang === 'hi' ? 'नेपालएआई स्टूडियो 2.0' : 'NepalAI Studio 2.0'}
+            </span>
+          </div>
+
+          {user ? (
+            <button
+              onClick={onLaunchStudio}
+              className="px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-rose-950/40 transition active:scale-95 cursor-pointer flex items-center gap-2 whitespace-nowrap"
+            >
+              <Film className="w-4 h-4" />
+              <span>{t.launchStudioCta}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenAuth('user')}
+              className="px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-rose-950/40 transition active:scale-95 cursor-pointer flex items-center gap-2 whitespace-nowrap"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>{lang === 'ne' ? 'भिडियो बनाउन सुरु गर्नुहोस्' : lang === 'hi' ? 'वीडियो बनाना शुरू करें' : 'Start Creating Now'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          <button
+            onClick={() => onSelectPlan('sasta_50_npr')}
+            className="px-3 sm:px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <Zap className="w-3.5 h-3.5 fill-slate-950" />
+            <span>{t.sastaCta}</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

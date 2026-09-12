@@ -22,7 +22,8 @@ import {
   LayoutTemplate,
   Sliders,
   Terminal,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import { HardwareAccelerationIndicator } from '../HardwareAccelerationIndicator';
 
@@ -36,12 +37,14 @@ interface CapCutTopBarProps {
   canUndo: boolean;
   canRedo: boolean;
   onExport: () => void;
+  onOpenRenderPreview?: () => void;
   onSave?: () => void;
   onNewProject?: () => void;
   onClearTimeline?: () => void;
   onImportProject?: () => void;
   onOpenStoryboards?: () => void;
   onOpenDebugger?: () => void;
+  onOpenSocialPublisher?: () => void;
   errorCount?: number;
   autoSaveTime?: string;
   scenesCount?: number;
@@ -57,12 +60,14 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
   canUndo,
   canRedo,
   onExport,
+  onOpenRenderPreview,
   onSave,
   onNewProject,
   onClearTimeline,
   onImportProject,
   onOpenStoryboards,
   onOpenDebugger,
+  onOpenSocialPublisher,
   errorCount = 0,
   autoSaveTime = 'Just now',
   scenesCount = 0,
@@ -163,6 +168,19 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                 </button>
               )}
 
+              {onOpenRenderPreview && (
+                <button
+                  onClick={() => {
+                    setShowMenuDropdown(false);
+                    onOpenRenderPreview();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-cyan-300 font-semibold"
+                >
+                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Real-Time Render Preview...</span>
+                </button>
+              )}
+
               {onOpenDebugger && (
                 <button
                   onClick={() => {
@@ -173,6 +191,19 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                 >
                   <Terminal className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Rendering Debugger...</span>
+                </button>
+              )}
+
+              {onOpenSocialPublisher && (
+                <button
+                  onClick={() => {
+                    setShowMenuDropdown(false);
+                    onOpenSocialPublisher();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-rose-300 font-medium"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Social Publish Center...</span>
                 </button>
               )}
 
@@ -291,6 +322,30 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
             1:1
           </button>
         </div>
+
+        {/* Real-time Render Preview Quick Access */}
+        {onOpenRenderPreview && (
+          <button
+            onClick={onOpenRenderPreview}
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-white border border-cyan-500/40 hover:border-cyan-400 font-semibold text-xs rounded-md shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+            title="Open Real-time Render Preview Modal"
+          >
+            <Eye className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden lg:inline">Preview</span>
+          </button>
+        )}
+
+        {/* Social Publisher Suite Quick Access */}
+        {onOpenSocialPublisher && (
+          <button
+            onClick={onOpenSocialPublisher}
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-rose-300 hover:text-white border border-rose-500/30 hover:border-rose-500/60 font-semibold text-xs rounded-md shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+            title="Open Multi-Platform Social Publisher (YouTube, TikTok, Reels, X)"
+          >
+            <Share2 className="w-3.5 h-3.5 text-rose-400" />
+            <span className="hidden md:inline">Publish</span>
+          </button>
+        )}
 
         {/* Export Button (CapCut Signature Cyan CTA) */}
         <button

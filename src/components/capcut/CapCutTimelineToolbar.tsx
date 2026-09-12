@@ -15,7 +15,8 @@ import {
   Layers, 
   Music, 
   Film,
-  MousePointer
+  MousePointer,
+  Eye
 } from 'lucide-react';
 
 interface CapCutTimelineToolbarProps {
@@ -25,6 +26,7 @@ interface CapCutTimelineToolbarProps {
   onAddMedia?: () => void;
   onAddAudio?: () => void;
   onAddSceneTemplate?: () => void;
+  onOpenRenderPreview?: () => void;
   zoomLevel: number;
   setZoomLevel: (zoom: number) => void;
   isSnapping: boolean;
@@ -39,6 +41,7 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   onAddMedia,
   onAddAudio,
   onAddSceneTemplate,
+  onOpenRenderPreview,
   zoomLevel,
   setZoomLevel,
   isSnapping,
@@ -118,6 +121,17 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
           >
             <LayoutTemplate className="w-3 h-3 text-amber-400" />
             <span>+ Template</span>
+          </button>
+        )}
+
+        {onOpenRenderPreview && (
+          <button
+            onClick={onOpenRenderPreview}
+            className="flex items-center gap-1 px-2.5 py-1 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-500/30 rounded-md text-[11px] font-semibold transition cursor-pointer shadow-xs"
+            title="Real-Time Render Preview with Timeline Simulation"
+          >
+            <Eye className="w-3 h-3 text-cyan-400" />
+            <span className="hidden sm:inline">Render Preview</span>
           </button>
         )}
       </div>

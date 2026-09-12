@@ -484,9 +484,26 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     }
   ];
 
-  // Combined media items for search & filter
-  const allMedia = [...mediaItems, ...stockMedia];
-  const totalVideos = allMedia.filter(i => i.type === 'sora_video' || (i as any).type === 'video' || i.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i)).length;
+  // Helper to accurately identify audio / voiceover items
+  const isAudioItem = (item: MediaItem) => {
+    return (
+      item.type === 'ai_audio' ||
+      (item as any).type === 'audio' ||
+      (item as any).type === 'voiceover' ||
+      (item.title && item.title.toLowerCase().startsWith('[voiceover]')) ||
+      (item.title && item.title.toLowerCase().includes('voiceover')) ||
+      (item.category && item.category.toLowerCase().includes('voice')) ||
+      (item.category && item.category.toLowerCase().includes('audio')) ||
+      (item.category && item.category.toLowerCase().includes('sound')) ||
+      Boolean(item.url && item.url.match(/\.(mp3|wav|ogg|m4a|aac)($|\?)/i)) ||
+      Boolean(item.url && item.url.startsWith('data:audio'))
+    );
+  };
+
+  // Combined visual media items (Videos and Images ONLY) for the Media Tab
+  const visualMediaItems = mediaItems.filter(item => !isAudioItem(item));
+  const allMedia = [...visualMediaItems, ...stockMedia];
+  const totalVideos = allMedia.filter(i => i.type === 'sora_video' || (i as any).type === 'video' || (i.url && i.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i))).length;
   const totalImages = allMedia.length - totalVideos;
 
   const filteredMedia = allMedia.filter(item => {
@@ -495,7 +512,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
       (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
     if (!matchesSearch) return false;
 
-    const isVid = item.type === 'sora_video' || (item as any).type === 'video' || item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i);
+    const isVid = item.type === 'sora_video' || (item as any).type === 'video' || (item.url && item.url.match(/\.(mp4|webm|mov|ogg)($|\?)/i));
 
     // Type filter
     if (typeFilter === 'video' && !isVid) return false;
@@ -503,21 +520,13 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
 
     // Subtab filter
     if (activeSubTab === 'imported') return item.type === 'upload';
-    if (activeSubTab === 'generated') return item.type === 'sora_video' || item.type === 'ai_image' || item.type === 'ai_audio';
+    if (activeSubTab === 'generated') return item.type === 'sora_video' || item.type === 'ai_image';
     if (activeSubTab === 'stock') return (item.category && item.category.startsWith('Stock')) || item.id.startsWith('stock-');
     return true;
   });
 
-  // User-generated and imported voiceovers/audio from media library
-  const importedVoiceovers = mediaItems.filter(item => 
-    item.type === 'ai_audio' || 
-    (item as any).type === 'audio' || 
-    item.category?.toLowerCase().includes('voice') ||
-    item.category?.toLowerCase().includes('audio') ||
-    item.category?.toLowerCase().includes('sound') ||
-    item.url?.match(/\.(mp3|wav|ogg|m4a|aac)($|\?)/i) ||
-    item.url?.startsWith('data:audio')
-  );
+  // User-generated and imported voiceovers/audio from media library (Strictly for the Audio Tab)
+  const importedVoiceovers = mediaItems.filter(item => isAudioItem(item));
 
   // High-Quality Royalty-Free Music Samples (Nepali & Cinematic)
   const bgmSampleCatalog: AudioTrack[] = [
@@ -1167,7 +1176,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               <div className="flex items-center justify-between mb-1.5">
                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
                   <Mic className="w-3 h-3 text-emerald-400" />
-                  <span>Generated Sound List & Voiceovers</span>
+                  <span>AI Voiceovers & Speech</span>
                 </h4>
                 <span className="px-1.5 py-0.2 bg-emerald-950/60 border border-emerald-800/60 text-[9px] text-emerald-300 font-mono rounded">
                   {importedVoiceovers.length}
@@ -1180,14 +1189,15 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                   {onOpenVoiceStudio && (
                     <button
                       onClick={onOpenVoiceStudio}
-                      className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-[10px] text-emerald-300 rounded font-semibold transition cursor-pointer"
+                      className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-[10px] text-emerald-300 rounded font-semibold transition cursor-pointer flex items-center gap-1 mx-auto"
                     >
-                      + Generate Voice in Voice Studio
+                      <Mic className="w-3 h-3" />
+                      <span>Generate Voiceover</span>
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="space-y-1 max-h-48 overflow-y-auto pr-0.5 custom-scrollbar">
+                <div className="space-y-1 max-h-52 overflow-y-auto pr-0.5 custom-scrollbar">
                   {importedVoiceovers.map(item => {
                     const isPreviewPlaying = playingAudioUrl === item.url;
                     return (
@@ -1200,17 +1210,20 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                             onClick={() => togglePlayAudioPreview(item.url)}
                             className={`w-6 h-6 rounded flex items-center justify-center shrink-0 transition cursor-pointer ${
                               isPreviewPlaying
-                                ? 'bg-emerald-500 text-white'
+                                ? 'bg-emerald-500 text-white shadow-sm'
                                 : 'bg-emerald-950/60 text-emerald-400 hover:bg-emerald-800/80 hover:text-white'
                             }`}
-                            title={isPreviewPlaying ? 'Pause' : 'Play Preview'}
+                            title={isPreviewPlaying ? 'Pause' : 'Play Voiceover Preview'}
                           >
                             {isPreviewPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
                           </button>
                           <div className="min-w-0">
-                            <p className="text-[11px] font-bold text-slate-200 truncate max-w-[120px]">{item.title}</p>
+                            <p className="text-[11px] font-bold text-slate-200 truncate max-w-[125px] flex items-center gap-1" title={item.title}>
+                              <Volume2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                              <span className="truncate">{item.title.replace(/^\[voiceover\]\s*/i, '')}</span>
+                            </p>
                             <p className="text-[9px] text-emerald-400 font-mono flex items-center gap-1">
-                              <span>{item.category || 'AI Voiceover'}</span>
+                              <span>{item.engine || item.category || 'AI Voiceover'}</span>
                               <span>•</span>
                               <span>{Math.round(item.duration || 6)}s</span>
                             </p>
@@ -1222,7 +1235,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                             onClick={() => {
                               onAddAudioToTimeline({
                                 id: item.id,
-                                title: item.title,
+                                title: item.title.replace(/^\[voiceover\]\s*/i, ''),
                                 artist: item.engine || 'NepalAI Voiceover',
                                 url: item.url,
                                 duration: item.duration || 8,
@@ -1239,7 +1252,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                           <button
                             onClick={(e) => handleDeleteMedia(item.id, e)}
                             className="p-1 text-slate-600 hover:text-rose-400 rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
-                            title="Delete"
+                            title="Delete Voiceover"
                           >
                             <Trash2 className="w-2.5 h-2.5" />
                           </button>

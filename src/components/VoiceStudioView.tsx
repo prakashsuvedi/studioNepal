@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mic, Play, Pause, Square, Volume2, Volume1, Sparkles, Check, Download, Music, AlertCircle, 
   ArrowRight, Save, Library, Smile, Clock, FileText, RotateCcw, Compass, 
-  UserCheck, HelpCircle, ChevronRight, VolumeX, Flame, Heart, Headphones, Scissors, Upload, Trash2
+  UserCheck, HelpCircle, ChevronRight, VolumeX, Flame, Heart, Headphones, Scissors, Upload, Trash2,
+  Sliders, Radio, Layers, Activity, SlidersHorizontal, Users, Wand2, Mic2, Clapperboard, AudioWaveform
 } from 'lucide-react';
 import { UserSession, UserTrialQuota } from '../types';
 import { apiGenerateAudio, apiGetAudioSuggestions } from '../lib/api';
 import { VoiceWaveformVisualizer } from './VoiceWaveformVisualizer';
 import { saveMediaItem, getGeneratedSoundList, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
+import { studioMastering, MasterRackSettings, DEFAULT_MASTER_SETTINGS } from '../lib/studioMastering';
 
 interface VoiceStudioViewProps {
   initialText?: string;
@@ -33,6 +35,10 @@ interface VoiceItem {
 }
 
 const VOICES: VoiceItem[] = [
+  // Flagship Pure Neural Voices (Real Natural Azure TTS)
+  { id: 'hemkala_pure_ne', name: 'Hemkala (Pure Neural • Real Natural)', demographic: 'young_adult', gender: 'Female', language: 'Nepali', role: 'Primary Narrator', description: 'Official Azure ne-NP-HemkalaNeural. 100% unaltered native acoustic prosody, broadcast master clarity.', sampleText: 'नमस्ते! म हेमकला हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।', pitchShift: 'Natural (0%)', speedShift: '1.0x' },
+  { id: 'sagar_pure_ne', name: 'Sagar (Pure Neural • Real Natural)', demographic: 'adult', gender: 'Male', language: 'Nepali', role: 'Primary Narrator', description: 'Official Azure ne-NP-SagarNeural. 100% unaltered native baritone cadence, authentic broadcast delivery.', sampleText: 'नमस्ते! म सागर हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।', pitchShift: 'Natural (0%)', speedShift: '1.0x' },
+
   // Children
   { id: 'kanti_child_ne', name: 'Kanti (Nepali Girl)', demographic: 'children', gender: 'Female', language: 'Nepali', role: 'Secondary Character', description: 'Sweet, bright, authentic natural child voiceover.', sampleText: 'सानी नानी कान्ति ! नेपाली बाल कथा वाचनको लागि उत्तम।', pitchShift: 'Natural', speedShift: '1.0x' },
   { id: 'sanjok_child_ne', name: 'Sanjok (Nepali Boy)', demographic: 'children', gender: 'Male', language: 'Nepali', role: 'Secondary Character', description: 'Energetic, cheerful natural young boy voice.', sampleText: 'नमस्ते अंकल, नमस्ते आन्टी ! म नयाँ कथा सुनाउँछु है।', pitchShift: 'Natural', speedShift: '1.0x' },
@@ -64,6 +70,14 @@ const VOICES: VoiceItem[] = [
 
 const getVoiceSampleText = (voice: VoiceItem, lang: 'ne' | 'en'): string => {
   const sampleMap: Record<string, { ne: string, en: string }> = {
+    hemkala_pure_ne: {
+      ne: 'नमस्ते! म हेमकला हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।',
+      en: 'Namaste! I am Hemkala. This is my genuine, crystal-clear, and natural Nepali neural voice.'
+    },
+    sagar_pure_ne: {
+      ne: 'नमस्ते! म सागर हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।',
+      en: 'Namaste! I am Sagar. This is my genuine, crystal-clear, and natural Nepali neural voice.'
+    },
     kanti_child_ne: {
       ne: 'सानी नानी कान्ति ! नेपाली बाल कथा वाचनको लागि उत्तम।',
       en: 'Little girl Kanti! Perfect for Nepali children story reading.'
@@ -137,6 +151,264 @@ const getVoiceSampleText = (voice: VoiceItem, lang: 'ne' | 'en'): string => {
   return voice.sampleText;
 };
 
+export interface VoiceAvatarMeta {
+  emoji: string;
+  avatarTitle: string;
+  tag: string;
+  bgGradient: string;
+  borderColor: string;
+  textColor: string;
+  badgeBg: string;
+}
+
+export const getVoiceAvatarMeta = (voice: VoiceItem): VoiceAvatarMeta => {
+  const id = voice.id.toLowerCase();
+  
+  if (id === 'kanti_child_ne') {
+    return {
+      emoji: '👧🏽',
+      avatarTitle: 'Kanti (Nepali Girl)',
+      tag: 'Nepali Girl (Child)',
+      bgGradient: 'from-amber-500/20 via-pink-500/15 to-rose-500/20',
+      borderColor: 'border-pink-500/40',
+      textColor: 'text-pink-400',
+      badgeBg: 'bg-pink-500/20 text-pink-300 border-pink-500/30'
+    };
+  }
+  if (id === 'sanjok_child_ne') {
+    return {
+      emoji: '👦🏽',
+      avatarTitle: 'Sanjok (Nepali Boy)',
+      tag: 'Nepali Boy (Child)',
+      bgGradient: 'from-sky-500/20 via-cyan-500/15 to-indigo-500/20',
+      borderColor: 'border-sky-500/40',
+      textColor: 'text-sky-400',
+      badgeBg: 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+    };
+  }
+  if (id === 'ana_child_en') {
+    return {
+      emoji: '👧🏼',
+      avatarTitle: 'Ana (English Girl)',
+      tag: 'English Girl (Child)',
+      bgGradient: 'from-fuchsia-500/20 via-purple-500/15 to-pink-500/20',
+      borderColor: 'border-fuchsia-500/40',
+      textColor: 'text-fuchsia-400',
+      badgeBg: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30'
+    };
+  }
+  if (id === 'rohan_teen_ne') {
+    return {
+      emoji: '🧑🏽',
+      avatarTitle: 'Rohan (Nepali Teen Boy)',
+      tag: 'Nepali Teen Boy',
+      bgGradient: 'from-indigo-500/20 via-blue-500/15 to-teal-500/20',
+      borderColor: 'border-indigo-500/40',
+      textColor: 'text-indigo-400',
+      badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+    };
+  }
+  if (id === 'emily_teen_en') {
+    return {
+      emoji: '👱🏼‍♀️',
+      avatarTitle: 'Emily (English Teen Girl)',
+      tag: 'English Teen Girl',
+      bgGradient: 'from-violet-500/20 via-pink-500/15 to-rose-500/20',
+      borderColor: 'border-violet-500/40',
+      textColor: 'text-violet-400',
+      badgeBg: 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+    };
+  }
+  if (id === 'guru_elder_ne') {
+    return {
+      emoji: '👴🏽',
+      avatarTitle: 'Guru-ba (Nepali Hajurbuwa)',
+      tag: 'Hajurbuwa Elder',
+      bgGradient: 'from-amber-600/25 via-emerald-600/20 to-stone-600/30',
+      borderColor: 'border-amber-500/50',
+      textColor: 'text-amber-300',
+      badgeBg: 'bg-amber-500/25 text-amber-200 border-amber-500/40'
+    };
+  }
+  if (id === 'aama_elder_ne') {
+    return {
+      emoji: '👵🏽',
+      avatarTitle: 'Aama (Nepali Hajuraama)',
+      tag: 'Hajuraama Elder',
+      bgGradient: 'from-orange-500/25 via-rose-500/20 to-amber-600/25',
+      borderColor: 'border-orange-500/50',
+      textColor: 'text-orange-300',
+      badgeBg: 'bg-orange-500/25 text-orange-200 border-orange-500/40'
+    };
+  }
+  if (id === 'arthur_elder_en') {
+    return {
+      emoji: '👴🏼',
+      avatarTitle: 'Arthur (Senior Narrator)',
+      tag: 'Senior Master',
+      bgGradient: 'from-slate-600/30 via-stone-600/20 to-amber-700/25',
+      borderColor: 'border-slate-500/40',
+      textColor: 'text-slate-300',
+      badgeBg: 'bg-slate-500/20 text-slate-200 border-slate-500/30'
+    };
+  }
+  if (id === 'hemkala_pure_ne') {
+    return {
+      emoji: '👩🏽',
+      avatarTitle: 'Hemkala (Pure Neural Master)',
+      tag: 'Female Flagship 48kHz HD',
+      bgGradient: 'from-emerald-500/25 via-teal-500/20 to-rose-500/20',
+      borderColor: 'border-emerald-500/50',
+      textColor: 'text-emerald-300',
+      badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+    };
+  }
+  if (id === 'sagar_pure_ne') {
+    return {
+      emoji: '👨🏽',
+      avatarTitle: 'Sagar (Pure Neural Master)',
+      tag: 'Male Baritone 48kHz HD',
+      bgGradient: 'from-indigo-600/25 via-blue-600/20 to-teal-500/20',
+      borderColor: 'border-indigo-500/50',
+      textColor: 'text-indigo-300',
+      badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+    };
+  }
+  if (id === 'sita_ne') {
+    return {
+      emoji: '👩🏽',
+      avatarTitle: 'Sita (Nepali Female)',
+      tag: 'Female Narrator',
+      bgGradient: 'from-rose-500/20 via-pink-500/15 to-orange-500/20',
+      borderColor: 'border-rose-500/40',
+      textColor: 'text-rose-400',
+      badgeBg: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+    };
+  }
+  if (id === 'aarav_ne') {
+    return {
+      emoji: '👨🏽',
+      avatarTitle: 'Aarav (Nepali Male)',
+      tag: 'Male Narrator',
+      bgGradient: 'from-blue-500/20 via-indigo-500/15 to-cyan-500/20',
+      borderColor: 'border-blue-500/40',
+      textColor: 'text-blue-400',
+      badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+    };
+  }
+  if (id === 'maya_en') {
+    return {
+      emoji: '👩🏼',
+      avatarTitle: 'Maya (US Presentation)',
+      tag: 'Female US',
+      bgGradient: 'from-purple-500/20 via-indigo-500/15 to-blue-500/20',
+      borderColor: 'border-purple-500/40',
+      textColor: 'text-purple-400',
+      badgeBg: 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+    };
+  }
+  if (id === 'david_en') {
+    return {
+      emoji: '👨🏼',
+      avatarTitle: 'David (Cinematic Storyteller)',
+      tag: 'Cinematic Voice',
+      bgGradient: 'from-amber-600/20 via-red-600/15 to-stone-600/20',
+      borderColor: 'border-amber-500/40',
+      textColor: 'text-amber-300',
+      badgeBg: 'bg-amber-500/20 text-amber-200 border-amber-500/30'
+    };
+  }
+  if (id === 'jenny_en') {
+    return {
+      emoji: '👱🏼‍♀️',
+      avatarTitle: 'Jenny (Conversational)',
+      tag: 'Conversational',
+      bgGradient: 'from-teal-500/20 via-cyan-500/15 to-blue-500/20',
+      borderColor: 'border-teal-500/40',
+      textColor: 'text-teal-400',
+      badgeBg: 'bg-teal-500/20 text-teal-300 border-teal-500/30'
+    };
+  }
+  if (id === 'emma_en') {
+    return {
+      emoji: '👩💼',
+      avatarTitle: 'Emma (Corporate Trainer)',
+      tag: 'Corporate Female',
+      bgGradient: 'from-sky-500/20 via-indigo-500/15 to-slate-500/20',
+      borderColor: 'border-sky-500/40',
+      textColor: 'text-sky-400',
+      badgeBg: 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+    };
+  }
+  if (id.includes('ambient_cafe')) {
+    return {
+      emoji: '☕',
+      avatarTitle: 'Kathmandu Cafe Atmosphere',
+      tag: 'Ambient Soundscape',
+      bgGradient: 'from-amber-700/20 via-stone-700/20 to-orange-700/20',
+      borderColor: 'border-amber-600/40',
+      textColor: 'text-amber-400',
+      badgeBg: 'bg-amber-600/20 text-amber-300 border-amber-600/30'
+    };
+  }
+  if (id.includes('ambient')) {
+    return {
+      emoji: '🏔️',
+      avatarTitle: 'Himalayan Atmosphere',
+      tag: 'Ambient Soundscape',
+      bgGradient: 'from-cyan-600/20 via-blue-600/20 to-slate-600/20',
+      borderColor: 'border-cyan-500/40',
+      textColor: 'text-cyan-400',
+      badgeBg: 'bg-cyan-600/20 text-cyan-300 border-cyan-600/30'
+    };
+  }
+
+  // Fallbacks based on demographic & gender
+  if (voice.demographic === 'children') {
+    return {
+      emoji: voice.gender === 'Female' ? '👧🏽' : '👦🏽',
+      avatarTitle: `${voice.name} (Child)`,
+      tag: voice.gender === 'Female' ? 'Girl Character' : 'Boy Character',
+      bgGradient: 'from-amber-500/20 to-pink-500/20',
+      borderColor: 'border-amber-500/30',
+      textColor: 'text-amber-400',
+      badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+    };
+  }
+  if (voice.demographic === 'elderly') {
+    return {
+      emoji: voice.gender === 'Female' ? '👵🏽' : '👴🏽',
+      avatarTitle: `${voice.name} (${voice.gender === 'Female' ? 'Hajuraama' : 'Hajurbuwa'})`,
+      tag: voice.gender === 'Female' ? 'Hajuraama Elder' : 'Hajurbuwa Elder',
+      bgGradient: 'from-amber-600/25 to-stone-600/25',
+      borderColor: 'border-amber-500/40',
+      textColor: 'text-amber-300',
+      badgeBg: 'bg-amber-500/20 text-amber-200 border-amber-500/30'
+    };
+  }
+  if (voice.demographic === 'teen') {
+    return {
+      emoji: voice.gender === 'Female' ? '👱🏼‍♀️' : '🧑🏽',
+      avatarTitle: `${voice.name} (Teen)`,
+      tag: voice.gender === 'Female' ? 'Teen Girl' : 'Teen Boy',
+      bgGradient: 'from-indigo-500/20 to-violet-500/20',
+      borderColor: 'border-indigo-500/30',
+      textColor: 'text-indigo-400',
+      badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+    };
+  }
+
+  return {
+    emoji: voice.gender === 'Female' ? '👩🏽' : voice.gender === 'Male' ? '👨🏽' : '🎙️',
+    avatarTitle: voice.name,
+    tag: `${voice.gender} Narrator`,
+    bgGradient: 'from-rose-500/20 to-indigo-500/20',
+    borderColor: 'border-rose-500/30',
+    textColor: 'text-rose-400',
+    badgeBg: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+  };
+};
+
 interface ToneAnalysisResult {
   tone: string;
   description: string;
@@ -144,6 +416,105 @@ interface ToneAnalysisResult {
   recommendedVoiceId: string;
   recommendedStyle: string;
   recommendedEmotion: string;
+}
+
+export interface ProductionPreset {
+  id: string;
+  title: string;
+  badge: string;
+  subtitle: string;
+  voiceId: string;
+  rate: number;
+  emotion: 'neutral' | 'happy' | 'sad' | 'energetic' | 'horror';
+  formatStyle: 'general' | 'drama' | 'documentary' | 'story' | 'talk' | 'quick_talk';
+  sampleScriptNe: string;
+  sampleScriptEn: string;
+  acousticRoom: 'dry' | 'booth' | 'warm_studio' | 'hall' | 'radio';
+  ambientBed: 'none' | 'himalayan_drone' | 'mountain_flute' | 'studio_room' | 'peaceful_rain';
+}
+
+export const PRODUCTION_PRESETS: ProductionPreset[] = [
+  {
+    id: 'documentary',
+    title: 'Documentary & Heritage',
+    badge: '🎬 Master Doc',
+    subtitle: 'Measured cadence, 48kHz baritone narrator with natural breathing pauses',
+    voiceId: 'sagar_pure_ne',
+    rate: 0.95,
+    emotion: 'neutral',
+    formatStyle: 'documentary',
+    sampleScriptNe: 'हिमालयको काखमा फैलिएको यो रमणीय उपत्यका प्राकृतिक र सांस्कृतिक सौन्दर्यले भरिपूर्ण छ। [Pause: 600ms] युगौंदेखि चल्दै आएका परम्परा, मन्दिर र जीवनशैली आज पनि यहाँ जीवन्त छन्। [Pause: 500ms] यो अनुपम धरोहर हामी सबैको साझा गौरव हो।',
+    sampleScriptEn: 'Nestled deep within the Himalayas, this ancient valley preserves a rare cultural heritage. [Pause: 600ms] Centuries of tradition and breathtaking landscapes meet in quiet reverence.',
+    acousticRoom: 'warm_studio',
+    ambientBed: 'himalayan_drone',
+  },
+  {
+    id: 'podcast_talk',
+    title: 'Studio Talk & Podcast',
+    badge: '🎙️ Studio Host',
+    subtitle: 'Warm, articulate, conversational delivery for interviews and talk shows',
+    voiceId: 'hemkala_pure_ne',
+    rate: 1.0,
+    emotion: 'happy',
+    formatStyle: 'talk',
+    sampleScriptNe: 'नमस्ते साथीहरू! नेपालएआई स्टुडियो पोडकास्टको आजको विशेष अंकमा तपाईंलाई हार्दिक स्वागत छ। [Pause: 400ms] आज हामी आधुनिक डिजिटल मिडिया र आर्टिफिसियल इन्टेलिजेन्सको प्रभावबारे कुराकानी गर्नेछौं।',
+    sampleScriptEn: 'Welcome back to the studio! In today\'s episode, we explore the creative horizon where artificial intelligence meets professional storytelling.',
+    acousticRoom: 'booth',
+    ambientBed: 'studio_room',
+  },
+  {
+    id: 'storytelling',
+    title: 'Voiceover Storytelling',
+    badge: '📖 Deep Narrative',
+    subtitle: 'Expressive dramatic cadence with cinematic tension and heritage warmth',
+    voiceId: 'guru_elder_ne',
+    rate: 0.92,
+    emotion: 'neutral',
+    formatStyle: 'story',
+    sampleScriptNe: 'धेरै वर्ष पहिलेको कुरा हो... [Pause: 800ms] डाँडापारिको सानो गाउँमा एउटा पुरानो मन्दिर थियो। [Pause: 500ms] त्यहाँका मानिसहरू सधैं शान्ति र एकतामा बाँचेका थिए, तर एकदिन अनौठो रहस्य सुरु भयो।',
+    sampleScriptEn: 'Long ago, beyond the mist-covered hills... [Pause: 800ms] there stood a quiet sanctuary where ancient legends still whispered in the morning breeze.',
+    acousticRoom: 'hall',
+    ambientBed: 'mountain_flute',
+  },
+  {
+    id: 'broadcast_news',
+    title: 'Broadcast News & Report',
+    badge: '📰 Clear News',
+    subtitle: 'Authoritative, articulate, standard news desk delivery',
+    voiceId: 'sita_ne',
+    rate: 1.05,
+    emotion: 'neutral',
+    formatStyle: 'general',
+    sampleScriptNe: 'नमस्कार, नेपालएआई स्टुडियो ब्रोडकास्टमा स्वागत छ। [Pause: 350ms] आजको मुख्य समाचारमा प्रविधि क्षेत्रको पछिल्लो विकास र नयाँ सिर्जनात्मक अनुसन्धानलाई प्रस्तुत गर्दैछौं।',
+    sampleScriptEn: 'Good evening. This is the top headline from our studio desk, covering the latest breakthroughs and market updates across the nation.',
+    acousticRoom: 'booth',
+    ambientBed: 'none',
+  },
+  {
+    id: 'commercial_promo',
+    title: 'High-Impact Commercial',
+    badge: '⚡ Promo / Ad',
+    subtitle: 'Punchy, enthusiastic conversion voice for reels and marketing',
+    voiceId: 'david_en',
+    rate: 1.15,
+    emotion: 'energetic',
+    formatStyle: 'quick_talk',
+    sampleScriptNe: '[Emphasis: Strong] के तपाईं आफ्नो भिडियोलाई नयाँ उचाइमा पुर्‍याउन चाहनुहुन्छ? [Pause: 300ms] आजै नेपालएआई स्टुडियो प्रयोग गर्नुहोस् र उत्कृष्ट सामग्री सिर्जना गर्नुहोस्!',
+    sampleScriptEn: '[Emphasis: Strong] Ready to transform your creative workflow? [Pause: 300ms] Generate cinema-grade video and studio voiceovers in seconds with NepalAI Studio!',
+    acousticRoom: 'booth',
+    ambientBed: 'none',
+  },
+];
+
+export interface DialogueLineItem {
+  id: string;
+  speakerTag: string;
+  voiceId: string;
+  text: string;
+  emotion: 'neutral' | 'happy' | 'sad' | 'energetic' | 'horror';
+  isProcessing: boolean;
+  audioUrl?: string;
+  duration?: number;
 }
 
 export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({ 
@@ -164,7 +535,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   }, [initialText]);
 
   const [language, setLanguage] = useState<'ne' | 'en'>('ne');
-  const [selectedVoiceId, setSelectedVoiceId] = useState('sita_ne');
+  const [selectedVoiceId, setSelectedVoiceId] = useState('hemkala_pure_ne');
   const [activeDemographicTab, setActiveDemographicTab] = useState<'all' | 'children' | 'teen' | 'young_adult' | 'adult' | 'elderly' | 'ambient'>('all');
   
   // Emotional and Genre toggles
@@ -196,6 +567,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   // Audio state
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [activeAudioElement, setActiveAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
 
   // Persistent Generated Sound List (synced with storage and Video Studio)
   const [generatedSounds, setGeneratedSounds] = useState<MediaItem[]>(() => getGeneratedSoundList());
@@ -299,7 +671,221 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   } | null>(null);
 
   const [voicesList, setVoicesList] = useState<VoiceItem[]>(VOICES);
-  const [activeEditorTab, setActiveEditorTab] = useState<'single' | 'batch' | 'clone'>('single');
+  const [activeEditorTab, setActiveEditorTab] = useState<'single' | 'dialogue' | 'batch' | 'clone'>('single');
+
+  // Studio Master Rack state
+  const [masterSettings, setMasterSettings] = useState<MasterRackSettings>(DEFAULT_MASTER_SETTINGS);
+  const [showMasterRack, setShowMasterRack] = useState(false);
+
+  // Active Production Preset ID
+  const [activePresetId, setActivePresetId] = useState<string | null>('documentary');
+
+  // Sync mastering rack settings & ducking
+  useEffect(() => {
+    studioMastering.updateSettings(masterSettings);
+  }, [masterSettings]);
+
+  useEffect(() => {
+    studioMastering.duckAmbient(isPlaying);
+  }, [isPlaying]);
+
+  // Dialogue Director (Screenplay Studio) state
+  const [dialogueScriptText, setDialogueScriptText] = useState<string>(
+`[Sagar]: नमस्ते र नेपालएआई स्टुडियो पोडकास्टको नयाँ अंकमा तपाईंलाई हार्दिक स्वागत छ।
+[Hemkala]: धन्यवाद सागर जी! आज हामी आधुनिक डिजिटल मिडिया र आर्टिफिसियल इन्टेलिजेन्सको प्रभावबारे छलफल गर्नेछौं।
+[Sagar]: बिल्कुल, अब नेपाली सिर्जनाकर्ताहरूले उच्च गुणस्तरको अडियो र भिडियो आफ्नै भाषामा निर्माण गर्न सक्छन्।
+[Guru-ba]: धेरै राम्रो बाबु, प्रविधिले हाम्रो भाषा र संस्कृतिलाई विश्वसामु चिनाउन मद्दत गर्दछ।`
+  );
+  const [dialogueSpeakerMap, setDialogueSpeakerMap] = useState<Record<string, string>>({
+    Sagar: 'sagar_pure_ne',
+    Hemkala: 'hemkala_pure_ne',
+    'Guru-ba': 'guru_elder_ne',
+    Aarav: 'aarav_ne',
+    Sita: 'sita_ne',
+    Kanti: 'kanti_child_ne',
+    David: 'david_en',
+  });
+  const [dialogueLines, setDialogueLines] = useState<DialogueLineItem[]>([]);
+  const [activePlayingDialogueId, setActivePlayingDialogueId] = useState<string | null>(null);
+  const [isSynthesizingAllDialogue, setIsSynthesizingAllDialogue] = useState(false);
+  const dialogueAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Dialogue Script Parser
+  const parseDialogueScript = (rawText: string, currentSpeakerVoiceMap: Record<string, string>) => {
+    const rawLines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const updatedMap = { ...currentSpeakerVoiceMap };
+
+    const defaultFallbacks: Record<string, string> = {
+      sagar: 'sagar_pure_ne',
+      hemkala: 'hemkala_pure_ne',
+      sita: 'sita_ne',
+      aarav: 'aarav_ne',
+      guruba: 'guru_elder_ne',
+      guru: 'guru_elder_ne',
+      aama: 'aama_elder_ne',
+      kanti: 'kanti_child_ne',
+      sanjok: 'sanjok_child_ne',
+      rohan: 'rohan_teen_ne',
+      emily: 'emily_teen_en',
+      david: 'david_en',
+      maya: 'maya_en',
+    };
+
+    const parsed: DialogueLineItem[] = rawLines.map((line, idx) => {
+      const match = line.match(/^\[(.*?)\]\s*:\s*(.*)$/) || line.match(/^([A-Za-z0-9_\-\u0900-\u097F]+)\s*:\s*(.*)$/);
+      if (match) {
+        const tag = match[1].trim();
+        const content = match[2].trim();
+        const tagKey = tag.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        if (!updatedMap[tag]) {
+          updatedMap[tag] = defaultFallbacks[tagKey] || (tagKey.includes('fem') || tagKey.includes('woman') || tagKey.includes('girl') ? 'hemkala_pure_ne' : 'sagar_pure_ne');
+        }
+
+        return {
+          id: `dlg_${idx}_${Date.now()}`,
+          speakerTag: tag,
+          voiceId: updatedMap[tag],
+          text: content,
+          emotion: 'neutral',
+          isProcessing: false,
+        };
+      } else {
+        const defaultTag = 'Narrator';
+        if (!updatedMap[defaultTag]) {
+          updatedMap[defaultTag] = 'sagar_pure_ne';
+        }
+        return {
+          id: `dlg_${idx}_${Date.now()}`,
+          speakerTag: defaultTag,
+          voiceId: updatedMap[defaultTag],
+          text: line,
+          emotion: 'neutral',
+          isProcessing: false,
+        };
+      }
+    });
+
+    setDialogueSpeakerMap(updatedMap);
+    setDialogueLines(parsed);
+  };
+
+  useEffect(() => {
+    if (dialogueScriptText) {
+      parseDialogueScript(dialogueScriptText, dialogueSpeakerMap);
+    }
+  }, []);
+
+  const handleAddNaturalBreathPauses = () => {
+    const withPauses = text
+      .replace(/([।!?\.\n]+)\s*(?!\[Pause)/g, '$1 [Pause: 500ms] ')
+      .replace(/(,\s*)(?!\[Pause)/g, '$1 [Pause: 250ms] ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    setText(withPauses);
+  };
+
+  const handleApplyProductionPreset = (preset: ProductionPreset) => {
+    setActivePresetId(preset.id);
+    setSelectedVoiceId(preset.voiceId);
+    setRate(preset.rate);
+    setEmotion(preset.emotion);
+    setFormatStyle(preset.formatStyle);
+    setText(language === 'ne' ? preset.sampleScriptNe : preset.sampleScriptEn);
+    setMasterSettings(prev => ({
+      ...prev,
+      enabled: true,
+      acousticRoom: preset.acousticRoom,
+      ambientBed: preset.ambientBed,
+    }));
+  };
+
+  const handleSynthesizeDialogueLine = async (lineIdx: number) => {
+    const line = dialogueLines[lineIdx];
+    if (!line || !line.text) return;
+
+    setDialogueLines(prev => prev.map((l, i) => i === lineIdx ? { ...l, isProcessing: true } : l));
+
+    try {
+      const targetUserId = user?.id || 'usr_guest_' + Date.now();
+      const voice = voicesList.find(v => v.id === line.voiceId) || selectedVoice;
+      
+      const data = await apiGenerateAudio(
+        targetUserId,
+        line.text,
+        voice.id,
+        voice.language === 'Nepali' ? 'ne-NP' : 'en-US',
+        line.emotion || 'neutral',
+        'general'
+      );
+
+      if (data?.result?.url) {
+        setDialogueLines(prev => prev.map((l, i) => i === lineIdx ? {
+          ...l,
+          isProcessing: false,
+          audioUrl: data.result.url,
+          duration: data.result.duration || Math.max(3, Math.ceil(line.text.length / 14))
+        } : l));
+
+        const savedItem = saveMediaItem({
+          type: 'ai_audio',
+          title: `[Dialogue] ${line.speakerTag}: ${line.text.slice(0, 24)}...`,
+          url: data.result.url,
+          duration: data.result.duration || Math.max(3, Math.ceil(line.text.length / 14)),
+          category: 'AI Voiceover',
+          engine: `${voice.name} Neural`,
+          prompt: line.text
+        });
+        setGeneratedSounds(prev => [savedItem, ...prev.filter(s => s.id !== savedItem.id)]);
+      }
+    } catch (e: any) {
+      console.warn('Dialogue line notice:', e);
+      setDialogueLines(prev => prev.map((l, i) => i === lineIdx ? { ...l, isProcessing: false } : l));
+    }
+  };
+
+  const handleSynthesizeAllDialogue = async () => {
+    if (isSynthesizingAllDialogue || dialogueLines.length === 0) return;
+    setIsSynthesizingAllDialogue(true);
+    if (onStartGlobalLoading) {
+      onStartGlobalLoading({
+        title: 'Synthesizing Dialogue Table Read',
+        subtitle: `Generating ${dialogueLines.length} character audio cues with Neural TTS`,
+        type: 'voice'
+      });
+    }
+
+    try {
+      for (let i = 0; i < dialogueLines.length; i++) {
+        await handleSynthesizeDialogueLine(i);
+      }
+    } finally {
+      setIsSynthesizingAllDialogue(false);
+      if (onStopGlobalLoading) onStopGlobalLoading();
+    }
+  };
+
+  const handleTogglePlayDialogueLine = (line: DialogueLineItem) => {
+    if (!line.audioUrl) return;
+
+    if (activePlayingDialogueId === line.id) {
+      if (dialogueAudioRef.current) {
+        dialogueAudioRef.current.pause();
+      }
+      setActivePlayingDialogueId(null);
+    } else {
+      if (dialogueAudioRef.current) {
+        dialogueAudioRef.current.pause();
+      }
+      const audio = new Audio(line.audioUrl);
+      dialogueAudioRef.current = audio;
+      studioMastering.attachToAudioElement(audio, masterSettings);
+      audio.onended = () => setActivePlayingDialogueId(null);
+      audio.onerror = () => setActivePlayingDialogueId(null);
+      audio.play().catch(console.warn);
+      setActivePlayingDialogueId(line.id);
+    }
+  };
 
   // Batch Processing State
   const [batchText, setBatchText] = useState<string>('');
@@ -409,8 +995,9 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       } else {
         setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to generate sample voiceover:', err);
+      setAudioError(`Voice preview notice: ${err.message || 'Unable to play voice sample'}`);
       setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
     }
   };
@@ -854,6 +1441,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
   const handleSpeak = async () => {
     setAudioError(null);
+
+    const cleanText = text.replace(/\[.*?\]/g, '').trim();
+    if (!cleanText && !text.trim()) {
+      setAudioError('Please enter a voice script or choose a preset sample above before synthesizing.');
+      return;
+    }
+
     setIsSynthesizing(true);
 
     if (onStartGlobalLoading) {
@@ -878,6 +1472,8 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       const speedMatch = textToSynthesize.match(/\[Speed:\s*([^\]]+)\]/i);
       if (speedMatch) {
         extractedSpeed = speedMatch[1].trim();
+      } else if (rate !== 1.0) {
+        extractedSpeed = `${rate}x`;
       }
 
       const volumeMatch = textToSynthesize.match(/\[Volume:\s*([^\]]+)\]/i);
@@ -888,6 +1484,8 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       const pitchMatch = textToSynthesize.match(/\[Pitch:\s*([^\]]+)\]/i);
       if (pitchMatch) {
         extractedPitch = pitchMatch[1].trim();
+      } else if (pitch !== 1.0) {
+        extractedPitch = `${pitch > 1.0 ? '+' : ''}${Math.round((pitch - 1.0) * 100)}%`;
       } else if (pitchVal !== 0) {
         extractedPitch = `${pitchVal > 0 ? '+' : ''}${pitchVal}%`;
       }
@@ -917,7 +1515,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         }
 
         const audio = new Audio(data.result.url);
-        audio.playbackRate = rate;
+        // Attach Studio Master FX Rack & Room Acoustics
+        studioMastering.attachToAudioElement(audio, masterSettings);
+
+        // Play at authentic 1.0x neural rate by default, preserving natural vocal resonance and acoustics
+        audio.playbackRate = 1.0;
         if ('preservesPitch' in audio) {
           audio.preservesPitch = true;
         } else if ('webkitPreservesPitch' in audio) {
@@ -928,17 +1530,15 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         audio.onended = () => setIsPlaying(false);
         audio.onerror = () => {
           setIsPlaying(false);
-          fallbackWebSpeech();
         };
 
         setActiveAudioElement(audio);
         await audio.play().catch(e => {
           console.warn('Audio play notice:', e);
-          fallbackWebSpeech();
         });
         setIsPlaying(true);
 
-        // Sync Asset to user Project automatically
+        // Sync Asset to user Project reference
         const newAsset = {
           id: 'asset_' + Date.now(),
           title: `Voiceover: ${(textToSynthesize || text).slice(0, 20)}...`,
@@ -948,23 +1548,10 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setSyncedAssets(prev => [newAsset, ...prev]);
-
-        // Automatically save to Media Library so it appears instantly in Video Studio's Audio tab & Generated Sound List
-        const savedItem = saveMediaItem({
-          type: 'ai_audio',
-          title: `[Voiceover] ${selectedVoice.name} - ${(textToSynthesize || text).slice(0, 24)}...`,
-          url: data.result.url,
-          duration: data.result.duration || Math.max(4, Math.ceil((textToSynthesize || text).length / 14)),
-          category: 'AI Voiceover',
-          engine: data.result.format || `${selectedVoice.name} Neural (${selectedVoice.language})`,
-          prompt: textToSynthesize || text
-        });
-        setGeneratedSounds(prev => [savedItem, ...prev.filter(s => s.id !== savedItem.id)]);
-
       }
     } catch (e: any) {
-      console.error(e);
-      fallbackWebSpeech();
+      console.error('Audio generation notice:', e);
+      setAudioError(e.message || 'Voiceover generation could not be completed. Please check connection and try again.');
       if (e.message?.includes('trial') || e.message?.includes('credit') || e.message?.includes('limit')) {
         if (onTriggerPaywall) onTriggerPaywall(e.message);
       }
@@ -976,31 +1563,26 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     }
   };
 
-  const fallbackWebSpeech = () => {
-    if ('speechSynthesis' in window && text) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text.replace(/\[.*?\]/g, ''));
-        utterance.lang = language === 'ne' ? 'ne-NP' : 'en-US';
-        utterance.rate = rate;
-        utterance.pitch = pitch;
-        utterance.onstart = () => setIsPlaying(true);
-        utterance.onend = () => setIsPlaying(false);
-        utterance.onerror = () => setIsPlaying(false);
-        window.speechSynthesis.speak(utterance);
-      } catch (err) {
-        console.warn('SpeechSynthesis fallback error:', err);
-      }
-    }
+  const handleSaveToGeneratedSoundList = () => {
+    if (!generatedAudioUrl) return;
+    const cleanScript = text.replace(/\[.*?\]/g, '').trim();
+    const savedItem = saveMediaItem({
+      type: 'ai_audio',
+      title: `[Voiceover] ${selectedVoice.name} - ${(cleanScript || text).slice(0, 24)}...`,
+      url: generatedAudioUrl,
+      duration: playerDuration || Math.max(4, Math.ceil((cleanScript || text).length / 14)),
+      category: 'AI Voiceover',
+      engine: `${selectedVoice.name} Neural (${selectedVoice.language})`,
+      prompt: text
+    });
+    setGeneratedSounds(prev => [savedItem, ...prev.filter(s => s.id !== savedItem.id)]);
+    setSaveSuccessMsg(true);
+    setTimeout(() => setSaveSuccessMsg(false), 3000);
   };
 
   const handleStop = () => {
     if (activeAudioElement) {
       activeAudioElement.pause();
-      setIsPlaying(false);
-    }
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
       setIsPlaying(false);
     }
   };
@@ -1225,13 +1807,36 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     }
   };
 
+  const handleClonedAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRecordedBlob(file);
+    const url = URL.createObjectURL(file);
+    setClonedAudioUrl(url);
+    if (!newClonedVoiceName) {
+      setNewClonedVoiceName(file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_\s]/g, ' '));
+    }
+  };
+
   const handleSaveClonedVoice = () => {
     if (!newClonedVoiceName.trim()) {
       alert('Please enter a voice name');
       return;
     }
 
-    const customId = 'cloned_' + Date.now();
+    // Determine acoustic base ID matching demographic & gender
+    let basePrefix = 'hemkala_pure_ne';
+    if (clonedVoiceDemographic === 'children') {
+      basePrefix = clonedVoiceGender === 'Female' ? 'kanti_child_ne' : 'sanjok_child_ne';
+    } else if (clonedVoiceDemographic === 'elderly') {
+      basePrefix = clonedVoiceGender === 'Female' ? 'aama_elder_ne' : 'guru_elder_ne';
+    } else if (clonedVoiceDemographic === 'teen') {
+      basePrefix = clonedVoiceGender === 'Female' ? 'emily_teen_en' : 'rohan_teen_ne';
+    } else {
+      basePrefix = clonedVoiceGender === 'Male' ? 'sagar_pure_ne' : 'hemkala_pure_ne';
+    }
+
+    const customId = `${basePrefix}_clone_${Date.now()}`;
     const clonedVoice: VoiceItem = {
       id: customId,
       name: `${newClonedVoiceName.trim()} (Cloned)`,
@@ -1239,7 +1844,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       gender: clonedVoiceGender,
       language: 'Nepali',
       role: 'Primary Narrator',
-      description: 'Custom voice clone created from browser microphone recording.',
+      description: 'Custom neural voice clone trained with high-fidelity acoustic profile.',
       sampleText: 'नमस्ते ! यो मेरो आफ्नै आवाजको क्लोन प्रोफाइल हो।',
       pitchShift: 'Custom',
       speedShift: '1.0x'
@@ -1253,7 +1858,6 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     setNewClonedVoiceName('');
     setRecordingSeconds(0);
     setActiveEditorTab('single');
-    alert(`Voice clone '${newClonedVoiceName}' successfully generated! You can now select it in the Voice Directory.`);
   };
 
   const handleAttachToVideo = () => {
@@ -1420,6 +2024,17 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                 <span>Single Script</span>
               </button>
               <button
+                onClick={() => setActiveEditorTab('dialogue')}
+                className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 ${
+                  activeEditorTab === 'dialogue'
+                    ? 'border-rose-500 text-rose-600 dark:text-rose-400 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Dialogue Director</span>
+              </button>
+              <button
                 onClick={() => setActiveEditorTab('batch')}
                 className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 ${
                   activeEditorTab === 'batch'
@@ -1445,6 +2060,54 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
             {activeEditorTab === 'single' && (
               <div className="space-y-5">
+                {/* Studio Production & Pacing Presets */}
+                <div className="space-y-2 p-3 bg-gradient-to-r from-rose-500/5 via-indigo-500/5 to-purple-500/5 dark:from-rose-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 rounded-xl border border-rose-200/40 dark:border-rose-900/30">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <Clapperboard className="w-3.5 h-3.5 text-rose-500" />
+                      Studio Production & Pacing Presets (Documentary / Story / Talk)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleAddNaturalBreathPauses}
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 font-bold flex items-center gap-1 shadow-xs transition cursor-pointer"
+                      title="Auto-insert natural breath pauses after punctuation"
+                    >
+                      <Wand2 className="w-3 h-3 text-indigo-500" />
+                      <span>Auto-Insert Natural Breath Pauses</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    {PRODUCTION_PRESETS.map((preset) => {
+                      const isSelected = activePresetId === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleApplyProductionPreset(preset)}
+                          className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 text-rose-900 dark:text-rose-200 shadow-xs'
+                              : 'bg-white dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold">{preset.badge}</span>
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>}
+                          </div>
+                          <span className="text-[10.5px] font-semibold mt-1 leading-tight block truncate">
+                            {preset.title}
+                          </span>
+                          <span className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">
+                            {preset.rate}x • {preset.formatStyle}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Header: Script Selection & Controls */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -1452,33 +2115,67 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                       <FileText className="w-3.5 h-3.5 text-rose-500" />
                       Voiceover Script Screenwriter
                     </span>
-                <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
-                  <button
-                    onClick={() => {
-                      setLanguage('ne');
-                      setSelectedVoiceId('sita_ne');
-                      setText('नमस्ते! नेपालएआई स्टुडियोमा तपाईंलाई हार्दिक स्वागत छ।');
-                    }}
-                    className={`text-[10px] px-3 py-1 rounded-md font-semibold transition-all ${
-                      language === 'ne' ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    नेपाली (Nepali)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setLanguage('en');
-                      setSelectedVoiceId('maya_en');
-                      setText('Welcome to NepalAI Studio, the premier video production platform powered by AI.');
-                    }}
-                    className={`text-[10px] px-3 py-1 rounded-md font-semibold transition-all ${
-                      language === 'en' ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    English
-                  </button>
+                    <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
+                      <button
+                        onClick={() => {
+                          setLanguage('ne');
+                          setSelectedVoiceId('hemkala_pure_ne');
+                          setText('नमस्ते! नेपालएआई स्टुडियोमा तपाईंलाई हार्दिक स्वागत छ।');
+                        }}
+                        className={`text-[10px] px-3 py-1 rounded-md font-semibold transition-all ${
+                          language === 'ne' ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        नेपाली (Nepali)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLanguage('en');
+                          setSelectedVoiceId('maya_en');
+                          setText('Welcome to NepalAI Studio, the premier video production platform powered by AI.');
+                        }}
+                        className={`text-[10px] px-3 py-1 rounded-md font-semibold transition-all ${
+                          language === 'en' ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        English
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Selected Character Pill */}
+                  {(() => {
+                    const avatar = getVoiceAvatarMeta(selectedVoice);
+                    return (
+                      <div className={`p-2.5 rounded-xl bg-gradient-to-r ${avatar.bgGradient} border ${avatar.borderColor} flex items-center justify-between gap-2`}>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-slate-900/90 border border-slate-700 flex items-center justify-center text-lg shrink-0">
+                            <span>{avatar.emoji}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white truncate">{selectedVoice.name}</span>
+                              <span className={`text-[8.5px] px-1.5 py-0.2 rounded-full font-bold border ${avatar.badgeBg}`}>
+                                {avatar.tag}
+                              </span>
+                              {(selectedVoice.id === 'hemkala_pure_ne' || selectedVoice.id === 'sagar_pure_ne') && (
+                                <span className="text-[8px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold border border-emerald-500/30 uppercase">
+                                  ✨ Pure Neural 48kHz HD
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-300 block truncate">
+                              {selectedVoice.description}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700 shrink-0 uppercase font-bold">
+                          {selectedVoice.gender} • {selectedVoice.language}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
-              </div>
 
               {/* Granular Audio Direction Controls (Markup Toolbar) */}
               <div className="space-y-1.5">
@@ -1756,7 +2453,6 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   </div>
                 </div>
               )}
-            </div>
 
             {/* Emotional and Genre Style Selections */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
@@ -1844,6 +2540,27 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </div>
             </div>
 
+            {/* Error Notification Banner */}
+            {audioError && (
+              <div className="p-3.5 bg-rose-950/40 border border-rose-500/50 rounded-xl flex items-start justify-between gap-3 text-xs text-rose-200 shadow-lg animate-in fade-in">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block text-rose-300">Voiceover Synthesis Notice</span>
+                    <span className="text-slate-300">{audioError}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAudioError(null)}
+                  className="text-rose-400 hover:text-white text-xs font-bold px-2 py-0.5 rounded bg-rose-900/40 hover:bg-rose-800 transition cursor-pointer"
+                  title="Dismiss error notice"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* Controls Row */}
             <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
               <button
@@ -1888,120 +2605,322 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </button>
             </div>
 
-            {/* Custom Native Premium Audio Player with Full Playback Controls */}
-            {generatedAudioUrl && (
-              <div id="neural-preview-player" className="p-5 bg-slate-950 text-white rounded-xl space-y-4 border border-slate-800 shadow-xl animate-in fade-in duration-300">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-rose-500/10 rounded-lg text-rose-400">
-                      <Volume2 className="w-5 h-5 shrink-0" />
+            {/* Custom Native Premium Audio Player with Full Playback Controls & Relevant Character Avatar */}
+            {generatedAudioUrl && (() => {
+              const avatar = getVoiceAvatarMeta(selectedVoice);
+              return (
+                <div id="neural-preview-player" className="p-5 bg-slate-950 text-white rounded-2xl space-y-4 border border-slate-800 shadow-2xl animate-in fade-in duration-300">
+                  {/* Character Avatar Banner */}
+                  <div className={`p-4 rounded-xl bg-gradient-to-r ${avatar.bgGradient} border ${avatar.borderColor} flex items-center justify-between gap-4 flex-wrap`}>
+                    <div className="flex items-center gap-3.5">
+                      {/* Character Avatar with Ripple Wave on Playback */}
+                      <div className="relative">
+                        <div className={`w-14 h-14 rounded-2xl bg-slate-900/90 border-2 ${avatar.borderColor} flex items-center justify-center text-3xl shadow-lg transition-transform ${
+                          isPlaying ? 'scale-105 ring-4 ring-rose-500/30' : ''
+                        }`}>
+                          <span>{avatar.emoji}</span>
+                        </div>
+                        {isPlaying && (
+                          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-white/40"></span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Character Details & Tags */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-white block">{selectedVoice.name}</span>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${avatar.badgeBg}`}>
+                            {avatar.tag}
+                          </span>
+                          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-900/80 text-slate-300 border border-slate-700 uppercase">
+                            {selectedVoice.language}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 font-medium line-clamp-1">
+                          {selectedVoice.description}
+                        </p>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-semibold pt-0.5">
+                          <span className="text-indigo-300">Project: {selectedProject}</span>
+                          <span>•</span>
+                          <span className="text-rose-300">Emotion: {emotion}</span>
+                          <span>•</span>
+                          <span className="text-emerald-300">Style: {formatStyle}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xs font-bold text-white block">Active Vocal Preview Playback</span>
-                      <span className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider">
-                        Workspace Project: {selectedProject}
+
+                    {/* Status Pill */}
+                    <div className="shrink-0 flex items-center gap-2">
+                      <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold border flex items-center gap-1.5 ${
+                        isPlaying ? 'bg-rose-500 text-white border-rose-400 animate-pulse' : 'bg-slate-900/90 text-slate-300 border-slate-700'
+                      }`}>
+                        {isPlaying ? (
+                          <>
+                            <Volume2 className="w-3.5 h-3.5 animate-bounce" />
+                            <span>Speaking...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Headphones className="w-3.5 h-3.5" />
+                            <span>Preview Ready</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   </div>
-                  <span className="text-[10px] bg-indigo-900 border border-indigo-700 px-2 py-0.5 rounded text-indigo-200 font-bold uppercase">
-                    Synced: {selectedVoice.name}
-                  </span>
-                </div>
 
-                {/* Scrubber timeline bar */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                    <span>{new Date(playerCurrentTime * 1000).toISOString().substr(14, 5)}</span>
-                    <span>{new Date(playerDuration * 1000).toISOString().substr(14, 5)}</span>
+                  {/* Scrubber timeline bar */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                      <span>{new Date(playerCurrentTime * 1000).toISOString().substr(14, 5)}</span>
+                      <span>{new Date(playerDuration * 1000).toISOString().substr(14, 5)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={playerDuration || 100}
+                      step={0.05}
+                      value={playerCurrentTime}
+                      onChange={(e) => handlePlayerSeek(parseFloat(e.target.value))}
+                      className="w-full accent-rose-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={playerDuration || 100}
-                    step={0.05}
-                    value={playerCurrentTime}
-                    onChange={(e) => handlePlayerSeek(parseFloat(e.target.value))}
-                    className="w-full accent-rose-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
-                  />
-                </div>
 
-                {/* Main player controls row */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-                  {/* Play/Pause & Mute Toggle */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={togglePlayerPlay}
-                      className="p-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white transition shadow-md"
-                      title={isPlaying ? "Pause Preview" : "Play Preview"}
-                    >
-                      {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
-                    </button>
+                  {/* Main player controls row */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+                    {/* Play/Pause & Mute Toggle */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={togglePlayerPlay}
+                        className="p-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white transition shadow-md"
+                        title={isPlaying ? "Pause Preview" : "Play Preview"}
+                      >
+                        {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                      </button>
 
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={togglePlayerMute}
+                          className="p-2 text-slate-400 hover:text-white transition"
+                          title={playerIsMuted ? "Unmute" : "Mute"}
+                        >
+                          {playerIsMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume1 className="w-4 h-4" />}
+                        </button>
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.1}
+                          value={playerIsMuted ? 0 : playerVolume}
+                          onChange={(e) => handlePlayerVolumeChange(parseFloat(e.target.value))}
+                          className="w-16 accent-rose-500 cursor-pointer h-1 bg-slate-800 rounded-lg appearance-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Playback rate speed control */}
+                    <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg">
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase mr-1">Speed:</span>
+                      {([0.75, 1.0, 1.25, 1.5] as const).map(spd => (
+                        <button
+                          type="button"
+                          key={spd}
+                          onClick={() => handlePlayerRateChange(spd)}
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+                            playerPlaybackRate === spd ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {spd}x
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Actions (Save to Sound List, Download MP3 & Export SRT) */}
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={togglePlayerMute}
-                        className="p-2 text-slate-400 hover:text-white transition"
-                        title={playerIsMuted ? "Unmute" : "Mute"}
+                        onClick={handleSaveToGeneratedSoundList}
+                        className={`p-2 rounded-lg transition border flex items-center gap-1.5 text-[10px] font-bold cursor-pointer ${
+                          saveSuccessMsg 
+                            ? 'bg-emerald-600 text-white border-emerald-500' 
+                            : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800/80'
+                        }`}
+                        title="Save this synthesized voice to Generated Sound List and Media Library"
                       >
-                        {playerIsMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume1 className="w-4 h-4" />}
+                        {saveSuccessMsg ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                        <span>{saveSuccessMsg ? 'Saved to List' : 'Save to Sound List'}</span>
                       </button>
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.1}
-                        value={playerIsMuted ? 0 : playerVolume}
-                        onChange={(e) => handlePlayerVolumeChange(parseFloat(e.target.value))}
-                        className="w-16 accent-rose-500 cursor-pointer h-1 bg-slate-800 rounded-lg appearance-none"
-                      />
+
+                      <a
+                        href={generatedAudioUrl}
+                        download={`nepalai_voiceover_${Date.now()}.mp3`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700 flex items-center gap-1.5 text-[10px] font-bold"
+                        title="Download MP3"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>MP3</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setShowMasterRack(prev => !prev)}
+                        className={`p-2 rounded-lg transition border flex items-center gap-1.5 text-[10px] font-bold cursor-pointer ${
+                          showMasterRack || masterSettings.enabled
+                            ? 'bg-rose-950/60 text-rose-300 border-rose-500/60'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                        }`}
+                        title="Open Studio Master EQ, Dynamics & Room Acoustics Rack"
+                      >
+                        <Sliders className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Master FX {masterSettings.enabled ? 'ON' : 'OFF'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleExportSrt}
+                        className="p-2 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-200 hover:text-white transition border border-indigo-800/80 flex items-center gap-1.5 text-[10px] font-bold cursor-pointer"
+                        title="Export script timing tags as .SRT subtitles file"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Export .SRT</span>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Playback rate speed control */}
-                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase mr-1">Speed:</span>
-                    {([0.75, 1.0, 1.25, 1.5] as const).map(spd => (
-                      <button
-                        type="button"
-                        key={spd}
-                        onClick={() => handlePlayerRateChange(spd)}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
-                          playerPlaybackRate === spd ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {spd}x
-                      </button>
-                    ))}
-                  </div>
+                  {/* Studio Master Rack Panel */}
+                  {showMasterRack && (
+                    <div className="p-4 bg-slate-900/95 rounded-xl border border-slate-800 space-y-3 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Sliders className="w-4 h-4 text-rose-500" />
+                          <span className="text-xs font-bold text-white uppercase tracking-wider">
+                            Studio Mastering Rack & Room Acoustics
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setMasterSettings(prev => ({ ...prev, enabled: !prev.enabled }))}
+                          className={`text-[10px] px-2.5 py-1 rounded-full font-extrabold transition cursor-pointer border ${
+                            masterSettings.enabled
+                              ? 'bg-rose-600 text-white border-rose-500'
+                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                          }`}
+                        >
+                          {masterSettings.enabled ? '● MASTER ACTIVE' : '○ BYPASSED'}
+                        </button>
+                      </div>
 
-                  {/* Actions (Download MP3 & Export SRT) */}
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={generatedAudioUrl}
-                      download={`nepalai_voiceover_${Date.now()}.mp3`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700 flex items-center gap-1.5 text-[10px] font-bold"
-                      title="Download MP3"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>MP3</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={handleExportSrt}
-                      className="p-2 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-200 hover:text-white transition border border-indigo-800/80 flex items-center gap-1.5 text-[10px] font-bold cursor-pointer"
-                      title="Export script timing tags as .SRT subtitles file"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Export .SRT</span>
-                    </button>
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                        {/* Acoustic Room Presets */}
+                        <div className="space-y-1.5 p-2.5 bg-slate-950/70 rounded-lg border border-slate-800">
+                          <label className="text-[10px] font-bold text-slate-300 uppercase block">
+                            🏛️ Acoustic Room
+                          </label>
+                          <select
+                            value={masterSettings.acousticRoom}
+                            onChange={(e) => setMasterSettings(prev => ({ ...prev, acousticRoom: e.target.value as any }))}
+                            className="w-full text-[11px] bg-slate-900 border border-slate-700 rounded-md p-1.5 text-white font-medium focus:ring-1 focus:ring-rose-500"
+                          >
+                            <option value="dry">Dry Vocal Booth (Crisp Direct)</option>
+                            <option value="booth">Treated Studio Booth</option>
+                            <option value="warm_studio">Warm Broadcast Studio</option>
+                            <option value="hall">Cinematic Hall / Auditorium</option>
+                            <option value="radio">Vintage Radio AM/FM Bandpass</option>
+                          </select>
+                          <span className="text-[9px] text-slate-400 block">
+                            Convolver reverberation simulating acoustic physical spaces.
+                          </span>
+                        </div>
+
+                        {/* Tone & Dynamics (EQ & Compressor) */}
+                        <div className="space-y-1.5 p-2.5 bg-slate-950/70 rounded-lg border border-slate-800">
+                          <label className="text-[10px] font-bold text-slate-300 uppercase block">
+                            🎚️ Clarity & Dynamics
+                          </label>
+                          <div className="space-y-1">
+                            <label className="flex items-center gap-1.5 text-[10.5px] text-slate-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={masterSettings.lowCut80Hz}
+                                onChange={(e) => setMasterSettings(prev => ({ ...prev, lowCut80Hz: e.target.checked }))}
+                                className="rounded text-rose-600 focus:ring-0 w-3.5 h-3.5"
+                              />
+                              <span>80Hz High-Pass (Rumble Cut)</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[10.5px] text-slate-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={masterSettings.presenceBoost}
+                                onChange={(e) => setMasterSettings(prev => ({ ...prev, presenceBoost: e.target.checked }))}
+                                className="rounded text-rose-600 focus:ring-0 w-3.5 h-3.5"
+                              />
+                              <span>3.2kHz Vocal Presence Boost</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[10.5px] text-slate-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={masterSettings.compressor}
+                                onChange={(e) => setMasterSettings(prev => ({ ...prev, compressor: e.target.checked }))}
+                                className="rounded text-rose-600 focus:ring-0 w-3.5 h-3.5"
+                              />
+                              <span>Broadcast Dynamics Leveler</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Cinematic Ambient Bed & Auto-Ducking */}
+                        <div className="space-y-1.5 p-2.5 bg-slate-950/70 rounded-lg border border-slate-800">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold text-slate-300 uppercase">
+                              🎵 Cinematic Ambient Bed
+                            </label>
+                            {masterSettings.ambientBed !== 'none' && (
+                              <span className="text-[8.5px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                                🦆 Auto-Ducking Active
+                              </span>
+                            )}
+                          </div>
+                          <select
+                            value={masterSettings.ambientBed}
+                            onChange={(e) => setMasterSettings(prev => ({ ...prev, ambientBed: e.target.value as any }))}
+                            className="w-full text-[11px] bg-slate-900 border border-slate-700 rounded-md p-1.5 text-white font-medium focus:ring-1 focus:ring-rose-500"
+                          >
+                            <option value="none">None (Clean Voiceover)</option>
+                            <option value="himalayan_drone">🏔️ Himalayan Harmonic Drone</option>
+                            <option value="mountain_flute">🪈 Mountain Flute Bed</option>
+                            <option value="studio_room">☕ Warm Studio Room Tone</option>
+                            <option value="peaceful_rain">🌧️ Peaceful Himalayan Rain</option>
+                          </select>
+                          {masterSettings.ambientBed !== 'none' && (
+                            <div className="flex items-center gap-2 pt-1">
+                              <span className="text-[9px] text-slate-400">Bed Vol:</span>
+                              <input
+                                type="range"
+                                min={0}
+                                max={0.5}
+                                step={0.02}
+                                value={masterSettings.ambientVolume}
+                                onChange={(e) => setMasterSettings(prev => ({ ...prev, ambientVolume: parseFloat(e.target.value) }))}
+                                className="w-full accent-amber-500 cursor-pointer h-1 bg-slate-800 rounded-lg appearance-none"
+                              />
+                              <span className="text-[9px] font-mono text-slate-300 w-7">
+                                {Math.round(masterSettings.ambientVolume * 200)}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {attachedSuccess && (
               <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-xs text-emerald-600 flex items-center gap-2 animate-in fade-in duration-200">
@@ -2126,6 +3045,279 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </div>
             )}
 
+            {activeEditorTab === 'dialogue' && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                {/* Header & Quick Screenplay Presets */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                        <Users className="w-4 h-4 text-rose-500" />
+                        Multi-Speaker Dialogue Director (Screenplay Studio)
+                      </h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Write screenplays with speaker tags (e.g. <code className="font-mono text-rose-500 font-bold">[Sagar]:</code> or <code className="font-mono text-rose-500 font-bold">[Hemkala]:</code>). Assign unique neural voices to each character and render table reads.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dialogue Quick Script Presets */}
+                  <div className="p-3 bg-gradient-to-r from-rose-500/5 via-indigo-500/5 to-purple-500/5 dark:from-rose-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 rounded-xl border border-rose-200/40 dark:border-rose-900/30 space-y-2">
+                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">
+                      Quick Screenplay Presets
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const script = `[Sagar]: नमस्ते र नेपालएआई स्टुडियो पोडकास्टको नयाँ अंकमा तपाईंलाई हार्दिक स्वागत छ।\n[Hemkala]: धन्यवाद सागर जी! आज हामी आधुनिक डिजिटल मिडिया र आर्टिफिसियल इन्टेलिजेन्सको प्रभावबारे छलफल गर्नेछौं।\n[Sagar]: बिल्कुल, अब नेपाली सिर्जनाकर्ताहरूले उच्च गुणस्तरको अडियो र भिडियो आफ्नै भाषामा निर्माण गर्न सक्छन्।\n[Hemkala]: यसले नेपाली भाषा र संस्कृतिलाई विश्वसामु चिनाउन ठूलो मद्दत गर्नेछ।`;
+                          setDialogueScriptText(script);
+                          parseDialogueScript(script, dialogueSpeakerMap);
+                        }}
+                        className="p-2 rounded-lg bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 text-left transition cursor-pointer"
+                      >
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">🎙️ Studio Talk Show</span>
+                        <span className="text-[9px] text-slate-400">Sagar & Hemkala</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const script = `[Sagar]: हिमालयको काखमा अवस्थित यो पुरानो उपत्यका शान्ति र सौन्दर्यको अनुपम नमुना हो।\n[Guru-ba]: हो बाबु, हाम्रा पुर्खाहरूले यहाँ प्रकृतिसँग मिलेर बाँच्ने कला सिकाएका थिए।\n[Sagar]: ती कथाहरू र परम्परा आज पनि यहाँका ढुङ्गा र मन्दिरहरूमा गुञ्जिरहेका छन्।\n[Guru-ba]: यो धरोहरलाई नयाँ पुस्ताले जोगाइराख्नु पर्छ।`;
+                          setDialogueScriptText(script);
+                          parseDialogueScript(script, dialogueSpeakerMap);
+                        }}
+                        className="p-2 rounded-lg bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 text-left transition cursor-pointer"
+                      >
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">🎬 Himalayan Documentary</span>
+                        <span className="text-[9px] text-slate-400">Sagar & Guru-ba</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const script = `[Aarav]: कान्ति नानी, आज विद्यालयमा के के सिक्यौ त?\n[Kanti]: दाई, आज हामीले नेपाली इतिहास र कम्प्युटर प्रविधिबारे धेरै नयाँ कुरा सिक्यौं!\n[Sita]: कति राम्रो! राम्रोसँग पढ्नु र नयाँ प्रविधि सिक्नु आजको आवश्यकता हो।\n[Kanti]: हस आमा, म सधैं लगनशील भएर पढ्छु!`;
+                          setDialogueScriptText(script);
+                          parseDialogueScript(script, dialogueSpeakerMap);
+                        }}
+                        className="p-2 rounded-lg bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 text-left transition cursor-pointer"
+                      >
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">📖 Village Tale</span>
+                        <span className="text-[9px] text-slate-400">Aarav, Kanti & Sita</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Screenplay Input */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Screenplay Script (Speaker Tagged)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => parseDialogueScript(dialogueScriptText, dialogueSpeakerMap)}
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>Parse & Cast Characters</span>
+                    </button>
+                  </div>
+                  <textarea
+                    value={dialogueScriptText}
+                    onChange={(e) => {
+                      setDialogueScriptText(e.target.value);
+                      parseDialogueScript(e.target.value, dialogueSpeakerMap);
+                    }}
+                    rows={6}
+                    className="w-full text-xs font-mono p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-hidden focus:ring-2 focus:ring-rose-500 leading-relaxed text-slate-900 dark:text-slate-100"
+                    placeholder="[Sagar]: नमस्ते साथीहरू...\n[Hemkala]: धन्यवाद सागर जी..."
+                  />
+                </div>
+
+                {/* Speaker Character Casting Bar */}
+                {Object.keys(dialogueSpeakerMap).length > 0 && (
+                  <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-rose-500" />
+                      Character Voice Casting ({Object.keys(dialogueSpeakerMap).length} Characters Detected)
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                      {Object.keys(dialogueSpeakerMap).map((speakerTag) => {
+                        const currentVoiceId = dialogueSpeakerMap[speakerTag];
+                        const voiceObj = voicesList.find(v => v.id === currentVoiceId) || selectedVoice;
+                        const avatar = getVoiceAvatarMeta(voiceObj);
+                        return (
+                          <div key={speakerTag} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm shrink-0">
+                              {avatar.emoji}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[11px] font-bold text-slate-900 dark:text-white block truncate">
+                                [{speakerTag}]
+                              </span>
+                              <select
+                                value={currentVoiceId}
+                                onChange={(e) => {
+                                  const newVoiceId = e.target.value;
+                                  const updatedMap = { ...dialogueSpeakerMap, [speakerTag]: newVoiceId };
+                                  setDialogueSpeakerMap(updatedMap);
+                                  parseDialogueScript(dialogueScriptText, updatedMap);
+                                }}
+                                className="w-full text-[10px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded p-1 text-slate-700 dark:text-slate-200 font-medium"
+                              >
+                                {voicesList.map(v => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.name} ({v.language})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Parsed Dialogue Table Read Lines */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5 text-rose-500" />
+                      Table Read Line Cues ({dialogueLines.length} Cues)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSynthesizeAllDialogue}
+                        disabled={isSynthesizingAllDialogue || dialogueLines.length === 0}
+                        className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10.5px] transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs"
+                      >
+                        {isSynthesizingAllDialogue ? (
+                          <>
+                            <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span>Rendering Lines...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>⚡ Synthesize All Lines</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {dialogueLines.length === 0 ? (
+                    <div className="p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center text-xs text-slate-400">
+                      No dialogue lines parsed. Enter a script with speaker tags above.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                      {dialogueLines.map((line, idx) => {
+                        const voiceObj = voicesList.find(v => v.id === line.voiceId) || selectedVoice;
+                        const avatar = getVoiceAvatarMeta(voiceObj);
+                        const isLinePlaying = activePlayingDialogueId === line.id;
+                        return (
+                          <div
+                            key={line.id}
+                            className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 ${
+                              isLinePlaying
+                                ? 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-500/50'
+                                : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg shrink-0 border border-slate-200 dark:border-slate-700">
+                                {avatar.emoji}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-rose-600 dark:text-rose-400">
+                                    [{line.speakerTag}]
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    • {voiceObj.name}
+                                  </span>
+                                  {line.audioUrl && (
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 font-mono font-bold">
+                                      {line.duration || 3}s Ready
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-800 dark:text-slate-200 mt-0.5 leading-relaxed truncate">
+                                  {line.text}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {line.audioUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePlayDialogueLine(line)}
+                                  className={`p-2 rounded-lg transition font-bold text-xs flex items-center gap-1 cursor-pointer ${
+                                    isLinePlaying
+                                      ? 'bg-amber-500 text-slate-950'
+                                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-700 dark:text-slate-200'
+                                  }`}
+                                  title={isLinePlaying ? 'Pause line' : 'Play line'}
+                                >
+                                  {isLinePlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSynthesizeDialogueLine(idx)}
+                                  disabled={line.isProcessing}
+                                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-700 dark:text-slate-200 font-bold text-[10px] transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                >
+                                  {line.isProcessing ? (
+                                    <span className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></span>
+                                  ) : (
+                                    <Sparkles className="w-3 h-3" />
+                                  )}
+                                  <span>Render</span>
+                                </button>
+                              )}
+
+                              {line.audioUrl && onAttachAudioTrack && (
+                                <button
+                                  type="button"
+                                  onClick={() => onAttachAudioTrack({
+                                    id: 'trk_' + Date.now(),
+                                    name: `[${line.speakerTag}] ${line.text.slice(0, 16)}...`,
+                                    type: 'audio',
+                                    muted: false,
+                                    clips: [{
+                                      id: 'clp_' + Date.now(),
+                                      title: `[${line.speakerTag}] ${line.text.slice(0, 20)}...`,
+                                      url: line.audioUrl!,
+                                      start: 0,
+                                      duration: line.duration || 4,
+                                      volume: 1.0,
+                                      fadeIn: 0.1,
+                                      fadeOut: 0.1
+                                    }]
+                                  })}
+                                  className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-600 hover:text-white text-indigo-600 dark:text-indigo-400 transition cursor-pointer"
+                                  title="Add line clip to Video Studio timeline"
+                                >
+                                  <Music className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeEditorTab === 'batch' && (
               <div className="space-y-4 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between">
@@ -2140,22 +3332,53 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   </div>
                 </div>
 
-                {/* Upload section */}
-                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-950/40 transition relative">
-                  <input
-                    type="file"
-                    accept=".txt"
-                    onChange={handleBatchFileUpload}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
-                  <div className="space-y-2">
-                    <Upload className="w-8 h-8 text-slate-400 mx-auto" />
-                    <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                      Drag and drop your script .txt file here, or click to browse
+                {/* Upload section & Quick Presets */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-5 text-center hover:bg-slate-50 dark:hover:bg-slate-950/40 transition relative flex flex-col items-center justify-center">
+                    <input
+                      type="file"
+                      accept=".txt"
+                      onChange={handleBatchFileUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
+                    <p className="text-xs text-slate-700 dark:text-slate-300 font-bold">
+                      Upload Script File (.txt)
                     </p>
                     <p className="text-[10px] text-slate-400">
-                      Supports plain text (.txt) files. Paragraphs split automatically.
+                      Auto-splits on paragraph line breaks
                     </p>
+                  </div>
+
+                  {/* 1-Click Quick Presets */}
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 flex flex-col justify-center">
+                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">
+                      Quick Script Presets
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sampleNepali = `नमस्ते! नेपालएआई स्टुडियोमा तपाईंलाई हार्दिक स्वागत छ। यो दृश्य एकको परिचय खण्ड हो।\n\nहाम्रो उच्च गुणस्तरको न्युरल आवाज प्रविधिले तपाईंको भिडियोलाई जीवन्त बनाउँछ।\n\nआजै आफ्नो उत्कृष्ट कथा र सामग्री निर्माण सुरु गर्नुहोस्। धन्यवाद!`;
+                        setBatchText(sampleNepali);
+                        parseBatchParagraphs(sampleNepali);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 transition flex items-center justify-between cursor-pointer"
+                    >
+                      <span>🎬 3-Scene Nepali Story</span>
+                      <ArrowRight className="w-3 h-3 text-indigo-500" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sampleAd = `Are you ready to transform your creative workflow with cutting-edge artificial intelligence?\n\nCreate ultra-realistic voiceovers in native Nepali and English in seconds.\n\nExport directly to your timeline and publish high-converting content effortlessly.`;
+                        setBatchText(sampleAd);
+                        parseBatchParagraphs(sampleAd);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 transition flex items-center justify-between cursor-pointer"
+                    >
+                      <span>📢 Commercial Promo Script</span>
+                      <ArrowRight className="w-3 h-3 text-indigo-500" />
+                    </button>
                   </div>
                 </div>
 
@@ -2323,6 +3546,32 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
                   {/* Profile Meta Info Form */}
                   <div className="space-y-4">
+                    {/* Live Avatar Preview */}
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-2xl shrink-0">
+                        {clonedVoiceDemographic === 'children' ? (clonedVoiceGender === 'Female' ? '👧🏽' : '👦🏽') :
+                         clonedVoiceDemographic === 'elderly' ? (clonedVoiceGender === 'Female' ? '👵🏽' : '👴🏽') :
+                         clonedVoiceDemographic === 'teen' ? (clonedVoiceGender === 'Female' ? '👱🏼‍♀️' : '🧑🏽') :
+                         (clonedVoiceGender === 'Female' ? '👩🏽' : '👨🏽')}
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                          {newClonedVoiceName.trim() || 'New Voice Clone'}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-500 font-bold uppercase">
+                            {clonedVoiceDemographic}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-500 font-bold uppercase">
+                            {clonedVoiceGender}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-500 font-bold uppercase">
+                            Neural 48kHz
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                         Voice Profile Name:
@@ -2344,13 +3593,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                         <select
                           value={clonedVoiceDemographic}
                           onChange={(e) => setClonedVoiceDemographic(e.target.value as any)}
-                          className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950"
+                          className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 cursor-pointer"
                         >
-                          <option value="children">Children</option>
-                          <option value="teen">Teens</option>
-                          <option value="young_adult">Mid-20s</option>
-                          <option value="adult">30s-40s</option>
-                          <option value="elderly">Senior</option>
+                          <option value="children">Children (Girl/Boy)</option>
+                          <option value="teen">Teens (Young)</option>
+                          <option value="young_adult">Mid-20s (Adult)</option>
+                          <option value="adult">30s-40s (Mature)</option>
+                          <option value="elderly">Senior (Hajurbuwa/Hajuraama)</option>
                         </select>
                       </div>
 
@@ -2361,7 +3610,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                         <select
                           value={clonedVoiceGender}
                           onChange={(e) => setClonedVoiceGender(e.target.value as any)}
-                          className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950"
+                          className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 cursor-pointer"
                         >
                           <option value="Female">Female</option>
                           <option value="Male">Male</option>
@@ -2370,14 +3619,28 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                       </div>
                     </div>
 
+                    {/* Or upload audio sample */}
+                    <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center relative hover:bg-slate-50 dark:hover:bg-slate-950/40 transition">
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleClonedAudioUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <span className="text-[10px] text-indigo-500 font-bold flex items-center justify-center gap-1">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Or upload audio file (.mp3, .wav, .m4a)</span>
+                      </span>
+                    </div>
+
                     <button
                       type="button"
                       onClick={handleSaveClonedVoice}
                       disabled={!recordedBlob || !newClonedVoiceName.trim()}
-                      className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 text-white font-bold text-xs transition shadow-md flex items-center justify-center gap-1.5"
+                      className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 text-white font-bold text-xs transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Sparkles className="w-4 h-4" />
-                      <span>Generate Cloned Profile</span>
+                      <span>Create & Activate Voice Clone</span>
                     </button>
                   </div>
                 </div>
@@ -2664,16 +3927,15 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                       </div>
                     )}
 
-                    {/* Icon Representation */}
-                    <div className={`p-2 rounded-lg shrink-0 ${
-                      voice.demographic === 'children' ? 'bg-amber-100 text-amber-700' :
-                      voice.demographic === 'teen' ? 'bg-indigo-100 text-indigo-700' :
-                      voice.demographic === 'elderly' ? 'bg-emerald-100 text-emerald-700' :
-                      voice.demographic === 'ambient' ? 'bg-slate-100 text-slate-700' :
-                      'bg-rose-100 text-rose-700'
-                    }`}>
-                      <Mic className="w-4 h-4" />
-                    </div>
+                    {/* Relevant Character Avatar Representation */}
+                    {(() => {
+                      const avMeta = getVoiceAvatarMeta(voice);
+                      return (
+                        <div className={`w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-lg border ${avMeta.borderColor} bg-gradient-to-br ${avMeta.bgGradient} shadow-xs`}>
+                          <span>{avMeta.emoji}</span>
+                        </div>
+                      );
+                    })()}
 
                     {/* Voice Details */}
                     <div className="space-y-1 overflow-hidden flex-1">
@@ -2684,6 +3946,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                         }`}>
                           {voice.language}
                         </span>
+                        {(voice.id === 'hemkala_pure_ne' || voice.id === 'sagar_pure_ne') && (
+                          <span className="text-[7.5px] px-1.5 py-0.2 rounded bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-extrabold uppercase tracking-wider">
+                            ✨ Pure Neural 48kHz HD
+                          </span>
+                        )}
                       </div>
 
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">

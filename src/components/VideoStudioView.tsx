@@ -98,6 +98,7 @@ import { RenderQueueModal } from './RenderQueueModal';
 import { TransitionManagerModal } from './TransitionManagerModal';
 import { AiStoryboardModal } from './AiStoryboardModal';
 import { ProjectExportModal } from './ProjectExportModal';
+import { RenderPreviewModal } from './RenderPreviewModal';
 import { GlobalMediaLibraryModal } from './GlobalMediaLibraryModal';
 import { ScenePreviewModal } from './ScenePreviewModal';
 import { StoryboardPdfModal } from './StoryboardPdfModal';
@@ -201,12 +202,45 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
   // New Modals state
   const [showRenderQueueModal, setShowRenderQueueModal] = useState(false);
+  const [showRenderPreviewModal, setShowRenderPreviewModal] = useState(false);
   const [showAiStoryboardModal, setShowAiStoryboardModal] = useState(false);
   const [showTransitionManagerModal, setShowTransitionManagerModal] = useState(false);
   const [showProjectExportModal, setShowProjectExportModal] = useState(false);
   const [showGlobalMediaLibrary, setShowGlobalMediaLibrary] = useState(false);
   const [showStoryboardPdfModal, setShowStoryboardPdfModal] = useState(false);
   const [transitionTargetSceneIndex, setTransitionTargetSceneIndex] = useState(0);
+
+  // Non-intrusive auto-save toast state
+  const [showAutoSaveToast, setShowAutoSaveToast] = useState(false);
+  const [autoSaveToastInfo, setAutoSaveToastInfo] = useState<{ time: string; count: number }>({ time: '', count: 0 });
+  const scenesInitialMountRef = useRef(false);
+  const autoSaveToastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Trigger non-intrusive Auto-saved toast notification whenever scenes state updates
+  useEffect(() => {
+    if (!scenesInitialMountRef.current) {
+      scenesInitialMountRef.current = true;
+      return;
+    }
+
+    if (autoSaveToastTimerRef.current) {
+      clearTimeout(autoSaveToastTimerRef.current);
+    }
+
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setAutoSaveToastInfo({ time: timeStr, count: scenes.length });
+    setShowAutoSaveToast(true);
+
+    autoSaveToastTimerRef.current = setTimeout(() => {
+      setShowAutoSaveToast(false);
+    }, 2600);
+
+    return () => {
+      if (autoSaveToastTimerRef.current) {
+        clearTimeout(autoSaveToastTimerRef.current);
+      }
+    };
+  }, [scenes]);
 
   // Multi-scene Batch Selection & Tagging state
   const [selectedSceneIds, setSelectedSceneIds] = useState<string[]>([]);
@@ -1883,6 +1917,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         }}
         onOpenStoryboards={() => setShowAiStoryboardModal(true)}
         onOpenDebugger={() => setShowRenderingDebugger(true)}
+        onOpenSocialPublisher={() => setShowSocialPublisherModal(true)}
+        onOpenRenderPreview={() => setShowRenderPreviewModal(true)}
         errorCount={debuggerErrorCount}
         autoSaveTime={lastAutoSavedTime || 'Just now'}
       />
@@ -2047,6 +2083,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onAddMedia={() => setShowGlobalMediaLibrary(true)}
         onAddAudio={() => setShowAudioAddModal(true)}
         onAddSceneTemplate={() => setShowSceneTemplatesModal(true)}
+        onOpenRenderPreview={() => setShowRenderPreviewModal(true)}
         zoomLevel={pixelsPerSecond}
         setZoomLevel={(z) => setTimelineZoom(z / 36)}
         isSnapping={snapEnabled}
@@ -2055,7 +2092,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       />
 
       {/* 4. Bottom Deck: CapCut Multi-Track Timeline */}
-      <div className="h-44 sm:h-48 shrink-0 flex flex-col bg-[#090b12]">
+      <div className="h-44 sm:h-48 shrink-0 flex flex-col bg-[#090b12] relative">
         <CapCutTimelineDeck
           scenes={scenes}
           selectedSceneId={selectedSceneId}
@@ -2130,6 +2167,70 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             setTimeout(() => setProjectNotice(null), 3000);
           }}
         />
+
+        {/* Real-time Render Preview Timeline Blur-Overlay */}
+        {showRenderPreviewModal && (
+          <div className="absolute inset-0 z-30 backdrop-blur-md bg-slate-950/80 border-t border-cyan-500/50 flex items-center justify-between px-4 sm:px-6 py-2 sm:py-3 animate-in fade-in duration-200">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/10">
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse text-cyan-300" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white truncate">
+                    Real-Time Render Preview Active
+                  </span>
+                  <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-[9px] font-bold uppercase tracking-wider">
+                    Timeline Synced
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 truncate">
+                  Simulating multi-layer compositor pass • Audio mix & subtitle burn-in previewing
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+              {/* Simulated Frame Progress on Timeline */}
+              <div className="hidden lg:flex flex-col items-end gap-1 w-44">
+                <div className="flex items-center justify-between w-full text-[10px] font-mono text-slate-400">
+                  <span>Frame Export Pass</span>
+                  <span className="text-cyan-400 font-bold">
+                    {totalDuration > 0 ? `${Math.round((currentTime / totalDuration) * 100)}%` : '100%'}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 rounded-full transition-all duration-75"
+                    style={{
+                      width: totalDuration > 0 ? `${Math.min(100, Math.round((currentTime / totalDuration) * 100))}%` : '0%',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowRenderPreviewModal(false);
+                    setShowProjectExportModal(true);
+                  }}
+                  className="px-3 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
+                  <span className="hidden sm:inline">Commit Export</span>
+                  <span className="sm:hidden">Export</span>
+                </button>
+                <button
+                  onClick={() => setShowRenderPreviewModal(false)}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* New Project Dialog Modal */}
@@ -2678,6 +2779,43 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onPostToYouTube={() => setShowYouTubePublisherModal(true)}
         onPostToSocial={() => setShowSocialPublisherModal(true)}
       />
+
+      {/* Real-time Render Preview Modal */}
+      <RenderPreviewModal
+        isOpen={showRenderPreviewModal}
+        onClose={() => setShowRenderPreviewModal(false)}
+        onCommitExport={() => {
+          setShowRenderPreviewModal(false);
+          setShowProjectExportModal(true);
+        }}
+        scenes={scenes}
+        projectTitle={projectTitle}
+        totalDuration={totalDuration}
+        aspectRatio={aspectRatio}
+        audioTracks={audioTracks}
+        brandOverlayConfig={brandOverlayConfig}
+        subtitles={subtitles}
+        subtitleBurnOptions={subtitleBurnOptions}
+        bgmVolume={bgmVolume}
+        voVolume={voVolume}
+        currentTime={currentTime}
+        onSeek={(t) => setCurrentTime(t)}
+      />
+
+      {/* Non-intrusive Auto-Saved Toast in Corner */}
+      {showAutoSaveToast && (
+        <div 
+          className="fixed bottom-6 right-6 z-60 bg-slate-900/95 hover:bg-slate-900 border border-emerald-500/40 text-emerald-300 shadow-xl shadow-emerald-950/40 backdrop-blur-md px-3.5 py-2 rounded-full flex items-center gap-2.5 text-xs font-medium animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-auto transition cursor-default select-none"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-xs shadow-emerald-400 shrink-0" />
+          <span className="font-bold text-slate-100">Auto-saved</span>
+          <span className="text-slate-400 text-[11px] font-mono">
+            {autoSaveToastInfo.count} {autoSaveToastInfo.count === 1 ? 'scene' : 'scenes'} • {autoSaveToastInfo.time}
+          </span>
+        </div>
+      )}
 
       {/* Rendering & Media Decoding Debugger Modal */}
       <RenderingDebuggerModal

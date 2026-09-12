@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { Scene } from '../types';
 import { YouTubeConnectModal, YouTubeChannelInfo } from './YouTubeConnectModal';
+import { TikTokConnectModal, TikTokAccountInfo } from './TikTokConnectModal';
 
 export interface SocialPublisherModalProps {
   isOpen: boolean;
@@ -67,12 +68,27 @@ const INITIAL_PLATFORM_ACCOUNTS: PlatformAccount[] = [
     formatName: 'YouTube Shorts (9:16) / Video',
     maxTitleLen: 100,
     maxDescLen: 5000,
-    connected: true,
-    handle: '@NepalAI_Studio',
-    displayName: 'NepalAI Official Channel',
-    avatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80',
-    followerCount: '12.4K Subscribers',
+    connected: false,
+    handle: '',
+    displayName: '',
+    avatarUrl: '',
+    followerCount: '',
     scopes: ['https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/youtube.readonly'],
+  },
+  {
+    id: 'tiktok',
+    name: 'TikTok Creator Hub',
+    brandColor: '#000000',
+    bgGradient: 'from-stone-900 via-neutral-900 to-cyan-950',
+    formatName: 'TikTok Feed Video (9:16)',
+    maxTitleLen: 150,
+    maxDescLen: 2200,
+    connected: false,
+    handle: '',
+    displayName: '',
+    avatarUrl: '',
+    followerCount: '',
+    scopes: ['video.upload', 'user.info.basic'],
   },
   {
     id: 'instagram',
@@ -82,11 +98,11 @@ const INITIAL_PLATFORM_ACCOUNTS: PlatformAccount[] = [
     formatName: 'Instagram Reel (9:16) / Post (1:1)',
     maxTitleLen: 2200,
     maxDescLen: 2200,
-    connected: true,
-    handle: '@nepalai.reels',
-    displayName: 'NepalAI Studio Official',
-    avatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80',
-    followerCount: '19.8K Followers',
+    connected: false,
+    handle: '',
+    displayName: '',
+    avatarUrl: '',
+    followerCount: '',
     scopes: ['instagram_basic', 'instagram_content_publish'],
   },
   {
@@ -97,11 +113,11 @@ const INITIAL_PLATFORM_ACCOUNTS: PlatformAccount[] = [
     formatName: 'Facebook Video Feed (16:9 / 9:16)',
     maxTitleLen: 255,
     maxDescLen: 5000,
-    connected: true,
-    handle: 'NepalAI Official Studio',
-    displayName: 'NepalAI Creative Page',
-    avatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80',
-    followerCount: '34.2K Followers',
+    connected: false,
+    handle: '',
+    displayName: '',
+    avatarUrl: '',
+    followerCount: '',
     scopes: ['pages_show_list', 'pages_read_engagement', 'publish_video'],
   },
   {
@@ -112,27 +128,12 @@ const INITIAL_PLATFORM_ACCOUNTS: PlatformAccount[] = [
     formatName: 'Pinterest Video Pin (9:16 / 2:3)',
     maxTitleLen: 100,
     maxDescLen: 500,
-    connected: true,
-    handle: '@nepalai_pins',
-    displayName: 'NepalAI Design & Video Vault',
-    avatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80',
-    followerCount: '15.6K Monthly Views',
+    connected: false,
+    handle: '',
+    displayName: '',
+    avatarUrl: '',
+    followerCount: '',
     scopes: ['boards:read', 'pins:read', 'pins:write'],
-  },
-  {
-    id: 'tiktok',
-    name: 'TikTok',
-    brandColor: '#000000',
-    bgGradient: 'from-stone-900 via-neutral-900 to-cyan-950',
-    formatName: 'TikTok Feed Video',
-    maxTitleLen: 150,
-    maxDescLen: 2200,
-    connected: true,
-    handle: '@nepalai_tok',
-    displayName: 'NepalAI Creator Hub',
-    avatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80',
-    followerCount: '45.1K Followers',
-    scopes: ['video.upload', 'user.info.basic'],
   },
   {
     id: 'x',
@@ -142,11 +143,11 @@ const INITIAL_PLATFORM_ACCOUNTS: PlatformAccount[] = [
     formatName: 'X Video Tweet',
     maxTitleLen: 280,
     maxDescLen: 280,
-    connected: true,
-    handle: '@NepalAI_Official',
-    displayName: 'NepalAI Creative Studio',
-    avatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80',
-    followerCount: '28.9K Followers',
+    connected: false,
+    handle: '',
+    displayName: '',
+    avatarUrl: '',
+    followerCount: '',
     scopes: ['tweet.write', 'users.read', 'media.upload'],
   },
 ];
@@ -172,7 +173,7 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
   totalDuration,
 }) => {
   const [platformAccounts, setPlatformAccounts] = useState<PlatformAccount[]>(INITIAL_PLATFORM_ACCOUNTS);
-  const [selectedPlatformIds, setSelectedPlatformIds] = useState<string[]>(['youtube', 'x', 'tiktok', 'instagram']);
+  const [selectedPlatformIds, setSelectedPlatformIds] = useState<string[]>(['youtube', 'tiktok']);
   
   // Metadata fields
   const [title, setTitle] = useState(projectTitle || 'NepalAI Cinematic Production');
@@ -222,24 +223,50 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
     }
   });
 
-  // Restore YouTube Channel Connection from Local Storage on Mount
-  useEffect(() => {
-    if (youtubeToken && youtubeChannel) {
-      setPlatformAccounts(prev => prev.map(p => {
-        if (p.id === 'youtube') {
-          return {
-            ...p,
-            connected: true,
-            displayName: youtubeChannel.title || p.displayName,
-            handle: youtubeChannel.handle || p.handle,
-            avatarUrl: youtubeChannel.avatar || p.avatarUrl,
-            followerCount: youtubeChannel.subscriberCount || p.followerCount,
-          };
-        }
-        return p;
-      }));
+  // TikTok Dedicated OAuth & Creator State
+  const [isTikTokConnectOpen, setIsTikTokConnectOpen] = useState(false);
+  const [tiktokToken, setTiktokToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('nepalai_tiktok_token');
+    } catch {
+      return null;
     }
-  }, [youtubeToken, youtubeChannel]);
+  });
+  const [tiktokAccount, setTiktokAccount] = useState<TikTokAccountInfo | null>(() => {
+    try {
+      const saved = localStorage.getItem('nepalai_tiktok_account');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Restore YouTube and TikTok Connections from Local Storage on Mount
+  useEffect(() => {
+    setPlatformAccounts(prev => prev.map(p => {
+      if (p.id === 'youtube' && youtubeToken && youtubeChannel) {
+        return {
+          ...p,
+          connected: true,
+          displayName: youtubeChannel.title || 'YouTube Channel',
+          handle: youtubeChannel.handle || '@YouTubeCreator',
+          avatarUrl: youtubeChannel.avatar || '',
+          followerCount: youtubeChannel.subscriberCount || 'Connected Channel',
+        };
+      }
+      if (p.id === 'tiktok' && tiktokToken && tiktokAccount) {
+        return {
+          ...p,
+          connected: true,
+          displayName: tiktokAccount.displayName || 'TikTok Creator',
+          handle: tiktokAccount.handle || '@TikTokCreator',
+          avatarUrl: tiktokAccount.avatar || '',
+          followerCount: tiktokAccount.followerCount || 'Connected Creator',
+        };
+      }
+      return p;
+    }));
+  }, [youtubeToken, youtubeChannel, tiktokToken, tiktokAccount]);
 
   // Handle YouTube Channel Connect Callback
   const handleYouTubeConnected = (token: string, channel: YouTubeChannelInfo) => {
@@ -259,8 +286,8 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
           connected: true,
           displayName: channel.title,
           handle: channel.handle,
-          avatarUrl: channel.avatar || p.avatarUrl,
-          followerCount: channel.subscriberCount || p.followerCount,
+          avatarUrl: channel.avatar || '',
+          followerCount: channel.subscriberCount || 'Active Channel',
         };
       }
       return p;
@@ -281,8 +308,60 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
         return {
           ...p,
           connected: false,
-          handle: '@nepalai_channel',
-          displayName: 'NepalAI Official',
+          handle: '',
+          displayName: '',
+          avatarUrl: '',
+          followerCount: '',
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Handle TikTok Connect Callback
+  const handleTikTokConnected = (token: string, account: TikTokAccountInfo) => {
+    setTiktokToken(token);
+    setTiktokAccount(account);
+    try {
+      localStorage.setItem('nepalai_tiktok_token', token);
+      localStorage.setItem('nepalai_tiktok_account', JSON.stringify(account));
+    } catch (err) {
+      console.warn('Failed to persist TikTok account info:', err);
+    }
+
+    setPlatformAccounts(prev => prev.map(p => {
+      if (p.id === 'tiktok') {
+        return {
+          ...p,
+          connected: true,
+          displayName: account.displayName,
+          handle: account.handle,
+          avatarUrl: account.avatar || '',
+          followerCount: account.followerCount || 'Active Creator',
+        };
+      }
+      return p;
+    }));
+  };
+
+  // Handle TikTok Disconnect
+  const handleTikTokDisconnect = () => {
+    setTiktokToken(null);
+    setTiktokAccount(null);
+    try {
+      localStorage.removeItem('nepalai_tiktok_token');
+      localStorage.removeItem('nepalai_tiktok_account');
+    } catch {}
+
+    setPlatformAccounts(prev => prev.map(p => {
+      if (p.id === 'tiktok') {
+        return {
+          ...p,
+          connected: false,
+          handle: '',
+          displayName: '',
+          avatarUrl: '',
+          followerCount: '',
         };
       }
       return p;
@@ -321,6 +400,10 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
       setIsYouTubeConnectOpen(true);
       return;
     }
+    if (platformId === 'tiktok') {
+      setIsTikTokConnectOpen(true);
+      return;
+    }
     setConnectingPlatformId(platformId);
     const target = platformAccounts.find(p => p.id === platformId);
     if (target) {
@@ -336,7 +419,9 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
           ...p,
           connected: true,
           handle: customHandleInput.startsWith('@') ? customHandleInput : `@${customHandleInput}`,
-          displayName: `${customHandleInput} (Connected Account)`
+          displayName: `${customHandleInput.replace(/^@/, '')} (Connected)`,
+          avatarUrl: '',
+          followerCount: 'Connected Account'
         };
       }
       return p;
@@ -349,7 +434,18 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
       handleYouTubeDisconnect();
       return;
     }
-    setPlatformAccounts(prev => prev.map(p => p.id === platformId ? { ...p, connected: false } : p));
+    if (platformId === 'tiktok') {
+      handleTikTokDisconnect();
+      return;
+    }
+    setPlatformAccounts(prev => prev.map(p => p.id === platformId ? {
+      ...p,
+      connected: false,
+      handle: '',
+      displayName: '',
+      avatarUrl: '',
+      followerCount: ''
+    } : p));
   };
 
   // Trigger Multi-Platform Social Publishing Engine with Backend Integration
@@ -366,7 +462,7 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
     });
     setPublishProgress(initialProgress);
 
-    // 1. Check if YouTube is selected -> dispatch real backend upload to /api/youtube/upload
+    // 1. YouTube Data API v3 upload
     if (selectedPlatformIds.includes('youtube')) {
       const activeVideoUrl = scenes[selectedThumbnailSceneIndex]?.mediaUrl || scenes[0]?.mediaUrl || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1080&auto=format&fit=crop&q=80';
       const effectiveToken = youtubeToken || 'demo_token';
@@ -376,10 +472,8 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
         youtube: { status: 'uploading', percent: 25 },
       }));
 
-      // Asynchronously perform real YouTube Data API v3 upload
       (async () => {
         try {
-          // Pre-processing and session establishment
           setPublishProgress(prev => ({
             ...prev,
             youtube: { status: 'uploading', percent: 60 },
@@ -425,7 +519,60 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
       })();
     }
 
-    // 2. Multi-platform staggered timer for other platforms
+    // 2. TikTok Creator API v2 upload
+    if (selectedPlatformIds.includes('tiktok')) {
+      const activeVideoUrl = scenes[selectedThumbnailSceneIndex]?.mediaUrl || scenes[0]?.mediaUrl || '';
+      const effectiveToken = tiktokToken || 'tt_demo_token';
+
+      setPublishProgress(prev => ({
+        ...prev,
+        tiktok: { status: 'uploading', percent: 30 },
+      }));
+
+      (async () => {
+        try {
+          setPublishProgress(prev => ({
+            ...prev,
+            tiktok: { status: 'uploading', percent: 70 },
+          }));
+
+          const ttRes = await fetch('/api/tiktok/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: effectiveToken,
+              title: `${title} ${hashtags.map(t => `#${t}`).join(' ')}`,
+              videoUrl: activeVideoUrl,
+            }),
+          });
+
+          const ttData = await ttRes.json();
+
+          if (!ttRes.ok || !ttData.success) {
+            throw new Error(ttData.error || 'TikTok video upload request was not accepted');
+          }
+
+          const liveTtUrl = ttData.postUrl || `https://tiktok.com/@creator/video/${ttData.publishId}`;
+
+          setPublishProgress(prev => ({
+            ...prev,
+            tiktok: { status: 'done', percent: 100, liveUrl: liveTtUrl },
+          }));
+        } catch (err: any) {
+          console.warn('TikTok upload endpoint error:', err);
+          setPublishProgress(prev => ({
+            ...prev,
+            tiktok: {
+              status: 'error',
+              percent: 100,
+              errorMsg: err.message || 'TikTok publishing failed. Please reconnect account.',
+            },
+          }));
+        }
+      })();
+    }
+
+    // 3. Multi-platform timer for remaining platforms
     let currentStep = 0;
     const totalSteps = 8;
 
@@ -436,10 +583,9 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
       setPublishProgress(prev => {
         const next = { ...prev };
         selectedPlatformIds.forEach((pId, idx) => {
-          // Do not overwrite YouTube progress - it is driven by the real network call
-          if (pId === 'youtube') return;
+          // Do not overwrite YouTube or TikTok progress - driven by real network calls
+          if (pId === 'youtube' || pId === 'tiktok') return;
 
-          // Stagger progress per platform
           const pPercent = Math.min(100, Math.max(0, stepPercent - idx * 8));
           let status: 'pending' | 'uploading' | 'processing' | 'done' = 'uploading';
 
@@ -449,9 +595,10 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
           else {
             status = 'done';
             const randomId = Math.floor(100000 + Math.random() * 900000);
-            if (pId === 'x') next[pId].liveUrl = `https://x.com/NepalAI_Official/status/${randomId}981`;
-            if (pId === 'tiktok') next[pId].liveUrl = `https://tiktok.com/@nepalai_tok/video/${randomId}456`;
+            if (pId === 'x') next[pId].liveUrl = `https://x.com/creator/status/${randomId}981`;
             if (pId === 'instagram') next[pId].liveUrl = `https://instagram.com/reels/C${randomId}`;
+            if (pId === 'facebook') next[pId].liveUrl = `https://facebook.com/watch/?v=${randomId}`;
+            if (pId === 'pinterest') next[pId].liveUrl = `https://pinterest.com/pin/${randomId}`;
           }
 
           next[pId] = {
@@ -579,6 +726,14 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                               Manage
                             </button>
                           )}
+                          {platform.id === 'tiktok' && (
+                            <button
+                              onClick={() => setIsTikTokConnectOpen(true)}
+                              className="text-[10px] text-cyan-300 hover:text-white px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60 font-medium transition cursor-pointer"
+                            >
+                              Manage
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <button
@@ -586,6 +741,8 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                           className={`px-2.5 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 cursor-pointer ${
                             platform.id === 'youtube'
                               ? 'bg-red-600 hover:bg-red-500 text-white shadow-sm'
+                              : platform.id === 'tiktok'
+                              ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm'
                               : 'bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40'
                           }`}
                         >
@@ -593,6 +750,11 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                             <>
                               <Youtube className="w-3 h-3" />
                               <span>Connect YouTube</span>
+                            </>
+                          ) : platform.id === 'tiktok' ? (
+                            <>
+                              <Video className="w-3 h-3" />
+                              <span>Connect TikTok</span>
                             </>
                           ) : (
                             <span>+ Login OAuth</span>
@@ -616,20 +778,22 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
                             {platform.handle}
                           </span>
                           <span className="text-slate-400 text-[10px] hidden sm:inline">
-                            ({platform.followerCount})
+                            {platform.followerCount ? `(${platform.followerCount})` : ''}
                           </span>
                         </div>
                         <button
                           onClick={() => handleDisconnectOAuth(platform.id)}
                           className="text-[10px] text-slate-400 hover:text-rose-400 transition underline shrink-0 cursor-pointer"
                         >
-                          {platform.id === 'youtube' ? 'Switch Channel' : 'Switch'}
+                          {platform.id === 'youtube' ? 'Switch Channel' : platform.id === 'tiktok' ? 'Switch Account' : 'Switch'}
                         </button>
                       </div>
                     ) : (
                       <p className="text-[10px] text-amber-400 italic pt-1">
                         {platform.id === 'youtube'
                           ? 'Connect your YouTube channel to enable direct Shorts publishing.'
+                          : platform.id === 'tiktok'
+                          ? 'Connect your TikTok creator account to enable direct feed publishing.'
                           : 'Client login required. Click "Login OAuth" to authenticate your account.'}
                       </p>
                     )}
@@ -1142,6 +1306,16 @@ export const SocialPublisherModal: React.FC<SocialPublisherModalProps> = ({
         currentChannel={youtubeChannel}
         isConnected={Boolean(youtubeToken && youtubeChannel)}
         onDisconnect={handleYouTubeDisconnect}
+      />
+
+      {/* TIKTOK DEDICATED OAUTH & CREATOR CONNECTION MODAL */}
+      <TikTokConnectModal
+        isOpen={isTikTokConnectOpen}
+        onClose={() => setIsTikTokConnectOpen(false)}
+        onConnected={handleTikTokConnected}
+        currentAccount={tiktokAccount}
+        isConnected={Boolean(tiktokToken && tiktokAccount)}
+        onDisconnect={handleTikTokDisconnect}
       />
     </div>
   );

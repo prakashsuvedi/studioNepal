@@ -650,18 +650,18 @@ export async function serverGenerateVideo(
 function parseAudioMarkupTags(escapedText: string): string {
   let parsed = escapedText;
   
-  // Replace pauses: [Pause: 1s] -> <break time="1s"/>
+  // Replace pauses: [Pause: 1s] -> <break time="1s"/>, [Pause: 500ms] -> <break time="500ms"/>
   parsed = parsed.replace(/\[Pause:\s*([0-9\.]+(?:s|ms))\]/gi, (match, p1) => {
     return `<break time="${p1.toLowerCase()}"/>`;
   });
   
   // Replace Speed wraps: [Speed: Fast] ... [/Speed]
-  parsed = parsed.replace(/\[Speed:\s*(fast|slow|medium|x-fast|x-slow)\]([\s\S]*?)\[\/Speed\]/gi, (match, rate, content) => {
+  parsed = parsed.replace(/\[Speed:\s*(fast|slow|medium|x-fast|x-slow|\+?[0-9\.]+%?|\-[0-9\.]+%?)\]([\s\S]*?)\[\/Speed\]/gi, (match, rate, content) => {
     return `<prosody rate="${rate.toLowerCase()}">${content}</prosody>`;
   });
   
   // Replace Volume wraps: [Volume: Loud] ... [/Volume]
-  parsed = parsed.replace(/\[Volume:\s*(loud|soft|medium|x-loud|x-soft)\]([\s\S]*?)\[\/Volume\]/gi, (match, vol, content) => {
+  parsed = parsed.replace(/\[Volume:\s*(loud|soft|medium|x-loud|x-soft|\+?[0-9\.]+dB|\-[0-9\.]+dB)\]([\s\S]*?)\[\/Volume\]/gi, (match, vol, content) => {
     return `<prosody volume="${vol.toLowerCase()}">${content}</prosody>`;
   });
 
@@ -674,48 +674,6 @@ function parseAudioMarkupTags(escapedText: string): string {
   parsed = parsed.replace(/\[Pitch:\s*([+\-]?[0-9\.]+%|low|high|medium|x-low|x-high|default)\]([\s\S]*?)\[\/Pitch\]/gi, (match, pitch, content) => {
     return `<prosody pitch="${pitch.toLowerCase()}">${content}</prosody>`;
   });
-
-  // Support unclosed / prefix tags for Speed
-  let speedOpenCount = 0;
-  parsed = parsed.replace(/\[Speed:\s*(fast|slow|medium|x-fast|x-slow)\]/gi, (match, rate) => {
-    speedOpenCount++;
-    return `<prosody rate="${rate.toLowerCase()}">`;
-  });
-
-  // Support unclosed / prefix tags for Volume
-  let volumeOpenCount = 0;
-  parsed = parsed.replace(/\[Volume:\s*(loud|soft|medium|x-loud|x-soft)\]/gi, (match, vol) => {
-    volumeOpenCount++;
-    return `<prosody volume="${vol.toLowerCase()}">`;
-  });
-
-  // Support unclosed / prefix tags for Emphasis
-  let emphasisOpenCount = 0;
-  parsed = parsed.replace(/\[Emphasis:\s*(strong|moderate|reduced)\]/gi, (match, level) => {
-    emphasisOpenCount++;
-    return `<emphasis level="${level.toLowerCase()}">`;
-  });
-
-  // Support unclosed / prefix tags for Pitch
-  let pitchOpenCount = 0;
-  parsed = parsed.replace(/\[Pitch:\s*([+\-]?[0-9\.]+%|low|high|medium|x-low|x-high|default)\]/gi, (match, pitch) => {
-    pitchOpenCount++;
-    return `<prosody pitch="${pitch.toLowerCase()}">`;
-  });
-
-  // Close any unclosed tags at the end of the text in correct nested order
-  for (let i = 0; i < pitchOpenCount; i++) {
-    parsed += '</prosody>';
-  }
-  for (let i = 0; i < emphasisOpenCount; i++) {
-    parsed += '</emphasis>';
-  }
-  for (let i = 0; i < volumeOpenCount; i++) {
-    parsed += '</prosody>';
-  }
-  for (let i = 0; i < speedOpenCount; i++) {
-    parsed += '</prosody>';
-  }
 
   // Strip unmatched closing tags
   parsed = parsed.replace(/\[\/(Speed|Volume|Emphasis|Pitch)\]/gi, '');
@@ -731,26 +689,9 @@ function applyPhoneticRules(text: string, phoneticDict: string, language: string
   
   let processed = text;
   
-  if (phoneticDict === 'en-ipa' || phoneticDict === 'ipa') {
-    // If the user selected English (IPA), we can map key Nepali/common words in the script to high-quality IPA phonemes
-    // using SSML <phoneme alphabet="ipa" ph="..."> so Azure TTS outputs highly accurate English-phonetic pronunciation.
-    const ipaMappings: Record<string, string> = {
-      'नेपाल': 'neˈpal',
-      'नमस्ते': 'nʌˈmʌste',
-      'स्टुडियो': 'ˈstudijo',
-      'कान्ति': 'ˈkɑːnti',
-      'संजोग': 'sʌnd͡zoɡ',
-      'सिर्जना': 'sirˈdzʌnɑː',
-      'प्रविधि': 'prʌˈwidʰi',
-    };
-    
-    for (const [word, ipa] of Object.entries(ipaMappings)) {
-      const regex = new RegExp(word, 'g');
-      processed = processed.replace(regex, `<phoneme alphabet="ipa" ph="${ipa}">${word}</phoneme>`);
-    }
-  } else if (phoneticDict === 'ne-deva' || phoneticDict === 'devanagari') {
-    // If the user selected Nepali (Devanagari), we can transliterate or replace key English words with their Devanagari phonology equivalents
-    // so the Devanagari TTS engine pronounces them correctly instead of trying to spell them out or mispronounce them.
+  if (phoneticDict === 'ne-deva' || phoneticDict === 'devanagari') {
+    // If the user selected Nepali (Devanagari), replace common English technical / brand loanwords with standard Devanagari phonetics
+    // so the native Nepali neural model pronounces them smoothly and naturally
     const devaMappings: Record<string, string> = {
       'nepalai': 'नेपाल एआई',
       'nepal ai': 'नेपाल एआई',
@@ -805,24 +746,50 @@ export async function serverGenerateAudio(
 
   const region = process.env.AZURE_SPEECH_REGION || 'eastus';
 
-  // Normalize language tag for Azure SSML BCP-47 compliance (e.g. ne-NP, en-US)
-  const langStr = String(language || 'ne-NP');
-  const normLang = (langStr === 'ne' || langStr === 'ne-NP') ? 'ne-NP' : ((langStr === 'en' || langStr === 'en-US') ? 'en-US' : langStr);
+  // Automatically detect Devanagari script in text to guarantee optimal native neural synthesis
+  const hasDevanagari = /[\u0900-\u097F]/.test(text);
+  const langStr = String(language || (hasDevanagari ? 'ne-NP' : 'ne-NP'));
+  const normLang = hasDevanagari ? 'ne-NP' : ((langStr === 'ne' || langStr === 'ne-NP') ? 'ne-NP' : ((langStr === 'en' || langStr === 'en-US') ? 'en-US' : langStr));
 
   // Determine Azure Speech Neural Voice Name & default demographics
   let azureVoice = normLang === 'en-US' ? 'en-US-AvaMultilingualNeural' : 'ne-NP-HemkalaNeural';
+  let defaultCharacterPitch: string | undefined = undefined;
   
   if (normLang === 'ne-NP') {
-    if (voiceId.includes('aakash') || voiceId.includes('sagar') || voiceId.includes('male') || voiceId.includes('rohan') || voiceId.includes('sanjok') || voiceId.includes('guru') || voiceId.includes('aarav')) {
+    if (voiceId.includes('hemkala') || voiceId.includes('sita') || voiceId.includes('female') || voiceId.includes('aama') || voiceId.includes('kanti')) {
+      azureVoice = 'ne-NP-HemkalaNeural';
+      // Specific demographic tuning for secondary characters only
+      if (voiceId.includes('kanti') || voiceId.includes('child')) {
+        defaultCharacterPitch = '+12%';
+      } else if (voiceId.includes('aama') || voiceId.includes('elder')) {
+        defaultCharacterPitch = '-6%';
+      }
+    } else if (voiceId.includes('sagar') || voiceId.includes('aarav') || voiceId.includes('aakash') || voiceId.includes('male') || voiceId.includes('rohan') || voiceId.includes('sanjok') || voiceId.includes('guru')) {
       azureVoice = 'ne-NP-SagarNeural';
+      // Specific demographic tuning for secondary characters only
+      if (voiceId.includes('sanjok') || voiceId.includes('child')) {
+        defaultCharacterPitch = '+12%';
+      } else if (voiceId.includes('guru') || voiceId.includes('elder')) {
+        defaultCharacterPitch = '-6%';
+      } else if (voiceId.includes('rohan') || voiceId.includes('teen')) {
+        defaultCharacterPitch = '+4%';
+      }
     } else {
       azureVoice = 'ne-NP-HemkalaNeural';
+    }
+
+    // If pure or unmodified flagship voice is requested, ensure absolutely no pitch deviation
+    if (voiceId.includes('pure') || voiceId === 'hemkala_pure_ne' || voiceId === 'sagar_pure_ne' || voiceId === 'sita_ne' || voiceId === 'aarav_ne') {
+      defaultCharacterPitch = undefined;
     }
   } else if (normLang === 'en-US') {
     if (voiceId.includes('ana')) {
       azureVoice = 'en-US-AnaNeural'; // Native Child Voice
     } else if (voiceId.includes('andrew') || voiceId.includes('guy') || voiceId.includes('male') || voiceId.includes('david') || voiceId.includes('arthur')) {
       azureVoice = 'en-US-AndrewMultilingualNeural';
+      if (voiceId.includes('arthur') || voiceId.includes('elder')) {
+        defaultCharacterPitch = '-6%';
+      }
     } else if (voiceId.includes('emma')) {
       azureVoice = 'en-US-EmmaMultilingualNeural';
     } else if (voiceId.includes('jenny')) {
@@ -830,40 +797,6 @@ export async function serverGenerateAudio(
     } else {
       azureVoice = 'en-US-AvaMultilingualNeural';
     }
-  }
-
-  // Preserve 100% natural neural prosody (pitch 0%) so acoustic models retain authentic human warmth, breath cadence, and zero robotic artifacting
-  let defaultPitch = "0%";
-  let defaultRate = "0%";
-  
-  if (voiceId.includes('kanti') || voiceId.includes('sanjok') || voiceId.includes('child')) {
-    defaultRate = "+4%";
-  } else if (voiceId.includes('rohan') || voiceId.includes('emily') || voiceId.includes('teen')) {
-    defaultRate = "+2%";
-  } else if (voiceId.includes('guru') || voiceId.includes('aama') || voiceId.includes('old') || voiceId.includes('arthur')) {
-    defaultRate = "-7%";
-  } else if (voiceId.includes('ambient') || voiceId.includes('background')) {
-    defaultRate = "-4%";
-  }
-
-  // Adjust for emotional state properties using subtle, natural cadences
-  if (emotion === 'happy') {
-    defaultRate = defaultRate === "0%" ? "+4%" : defaultRate;
-  } else if (emotion === 'sad') {
-    defaultRate = defaultRate === "0%" ? "-8%" : defaultRate;
-  } else if (emotion === 'energetic') {
-    defaultRate = defaultRate === "0%" ? "+8%" : defaultRate;
-  } else if (emotion === 'horror') {
-    defaultRate = defaultRate === "0%" ? "-10%" : defaultRate;
-  }
-
-  // Adjust for genre formats
-  if (deliveryStyle === 'documentary') {
-    defaultRate = defaultRate === "0%" ? "-6%" : defaultRate;
-  } else if (deliveryStyle === 'drama') {
-    defaultRate = defaultRate === "0%" ? "-5%" : defaultRate;
-  } else if (deliveryStyle === 'quick_talk' || deliveryStyle === 'quick') {
-    defaultRate = defaultRate === "0%" ? "+20%" : defaultRate;
   }
 
   // Helper for formatting rate attributes without generating invalid '+fast' or '+slow' SSML
@@ -895,91 +828,52 @@ export async function serverGenerateAudio(
         innerText = applyPhoneticRules(innerText, phoneticDict, normLang);
       }
 
-      // Ensure bare ampersands are escaped for valid SSML XML compliance
-      innerText = innerText.replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;');
+      // Ensure bare XML characters are escaped for valid SSML XML compliance
+      innerText = innerText
+        .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;')
+        .replace(/<(?!\/?(?:speak|voice|prosody|break|emphasis|phoneme|mstts:express-as)\b[^>]*>)/gi, '&lt;');
 
-      // Wrap in dynamic prosody properties only when explicitly requested
-      let overridePitch = pitch && pitch !== '0%' ? pitch : defaultPitch;
-      let overrideRate = defaultRate;
-      let overrideVolume = "0dB";
-      let hasOverride = false;
-
-      if (pitch && pitch !== '0%') {
-        hasOverride = true;
-      }
-
-      if (speed) {
+      // Only apply <prosody> tag when user explicitly modifies speed, volume, or pitch
+      let prosodyAttributes = '';
+      if (speed && speed !== 'normal' && speed !== 'medium' && speed !== '1.0' && speed !== '1.0x' && speed !== '0%') {
         const spdLc = speed.toLowerCase();
-        if (spdLc === 'slow') {
-          overrideRate = '-12%';
-          hasOverride = true;
-        } else if (spdLc === 'fast') {
-          overrideRate = '+15%';
-          hasOverride = true;
-        } else if (spdLc === 'medium') {
-          overrideRate = '0%';
-          hasOverride = true;
-        } else if (spdLc === 'x-slow') {
-          overrideRate = '-25%';
-          hasOverride = true;
-        } else if (spdLc === 'x-fast') {
-          overrideRate = '+28%';
-          hasOverride = true;
-        } else if (spdLc.startsWith('+') || spdLc.startsWith('-') || spdLc.endsWith('%')) {
-          overrideRate = speed;
-          hasOverride = true;
-        }
+        let rateVal = speed;
+        if (spdLc === 'slow' || spdLc === '0.8x') rateVal = '-15%';
+        else if (spdLc === 'fast' || spdLc === '1.2x') rateVal = '+15%';
+        else if (spdLc === 'x-slow' || spdLc === '0.5x') rateVal = '-25%';
+        else if (spdLc === 'x-fast' || spdLc === '1.5x') rateVal = '+28%';
+        prosodyAttributes += ` rate="${formatRateAttr(rateVal)}"`;
       }
 
-      if (volume) {
+      if (volume && volume !== 'medium' && volume !== '0dB' && volume !== '100%') {
         const volLc = volume.toLowerCase();
-        if (volLc === 'soft') {
-          overrideVolume = '-4dB';
-          hasOverride = true;
-        } else if (volLc === 'loud') {
-          overrideVolume = '+4dB';
-          hasOverride = true;
-        } else if (volLc === 'medium') {
-          overrideVolume = '0dB';
-          hasOverride = true;
-        } else if (volLc === 'x-soft') {
-          overrideVolume = '-8dB';
-          hasOverride = true;
-        } else if (volLc === 'x-loud') {
-          overrideVolume = '+8dB';
-          hasOverride = true;
-        } else if (volLc.startsWith('+') || volLc.startsWith('-') || volLc.endsWith('db')) {
-          overrideVolume = volume;
-          hasOverride = true;
-        }
+        let volVal = volume;
+        if (volLc === 'soft') volVal = '-4dB';
+        else if (volLc === 'loud') volVal = '+4dB';
+        else if (volLc === 'x-soft') volVal = '-8dB';
+        else if (volLc === 'x-loud') volVal = '+8dB';
+        prosodyAttributes += ` volume="${volVal.toLowerCase()}"`;
       }
 
-      if (hasOverride) {
-        let prosodyAttributes = '';
-        if (overrideRate && overrideRate !== '0%') {
-          prosodyAttributes += ` rate="${formatRateAttr(overrideRate)}"`;
-        }
-        if (overrideVolume && overrideVolume !== '0dB') {
-          prosodyAttributes += ` volume="${overrideVolume.toLowerCase()}"`;
-        }
-        if (overridePitch && overridePitch !== '0%') {
-          prosodyAttributes += ` pitch="${overridePitch}"`;
-        }
+      const activePitch = (pitch && pitch !== '0%' && pitch !== 'default' && pitch !== '1.0' && pitch !== '1.0x' && pitch !== 'Natural')
+        ? pitch
+        : defaultCharacterPitch;
 
-        if (prosodyAttributes) {
-          innerText = `<prosody${prosodyAttributes}>${innerText}</prosody>`;
-        }
-      } else if (defaultPitch !== "0%" || defaultRate !== "0%") {
-        innerText = `<prosody pitch="${defaultPitch}" rate="${formatRateAttr(defaultRate)}">${innerText}</prosody>`;
+      if (activePitch) {
+        prosodyAttributes += ` pitch="${activePitch}"`;
       }
 
-      const ssml = `<speak version='1.0' xml:lang='${normLang}' xmlns="http://www.w3.org/2001/10/synthesis">
+      if (prosodyAttributes) {
+        innerText = `<prosody${prosodyAttributes}>${innerText}</prosody>`;
+      }
+
+      const ssml = `<speak version='1.0' xml:lang='${normLang}' xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts">
   <voice xml:lang='${normLang}' name='${azureVoice}'>
     ${innerText}
   </voice>
 </speak>`;
 
-      // Use broadcast-grade 48kHz 192kbps studio MP3 format for crystal-clear natural presence
+      // Use broadcast-grade 48kHz 192kbps studio MP3 format for crystal-clear natural human presence
       let ttsRes = await fetch(azureTtsEndpoint, {
         method: 'POST',
         headers: {
@@ -992,7 +886,7 @@ export async function serverGenerateAudio(
         signal: AbortSignal.timeout(12000),
       });
 
-      // Graceful retry with clean plain SSML if custom tags returned 400 Bad Request
+      // Graceful fallback with clean plain SSML if custom tags returned 400 Bad Request
       if (!ttsRes.ok && ttsRes.status === 400) {
         console.warn('Azure Speech 400 Bad Request detected on customized SSML, retrying with sanitized SSML...');
         const cleanSSMLText = text.replace(/\[[^\]]*\]/g, '').replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;').trim() || 'नमस्ते';
@@ -1003,14 +897,16 @@ export async function serverGenerateAudio(
           headers: {
             'Ocp-Apim-Subscription-Key': speechKey.trim(),
             'Content-Type': 'application/ssml+xml',
-            'X-Microsoft-OutputFormat': 'audio-24khz-160kbitrate-mono-mp3',
+            'X-Microsoft-OutputFormat': 'audio-48khz-192kbitrate-mono-mp3',
             'User-Agent': 'NepalAI-Studio-Speech',
           },
           body: fallbackSSML,
           signal: AbortSignal.timeout(12000),
         });
-      } else if (!ttsRes.ok) {
-        console.warn(`Azure 48kHz audio requested, status ${ttsRes.status}, falling back to 24kHz`);
+      }
+
+      // If 48kHz is not supported in a particular edge condition, fallback to 24kHz
+      if (!ttsRes.ok) {
         ttsRes = await fetch(azureTtsEndpoint, {
           method: 'POST',
           headers: {
@@ -1039,7 +935,7 @@ export async function serverGenerateAudio(
           duration: Math.min(300, Math.max(3, Math.round(text.length / 12))),
           voice: azureVoice,
           language,
-          format: 'Azure Cognitive Speech (eastus) 24kHz HD MP3',
+          format: 'Azure Cognitive Speech (eastus) 48kHz Studio MP3',
         };
       } else {
         const errText = await ttsRes.text().catch(() => '');
@@ -1050,37 +946,113 @@ export async function serverGenerateAudio(
     }
   }
 
-  // 2. High-Fidelity Neural Fallback: Google Translate Neural TTS (Authentic Nepali & English)
-  try {
-    const langCode = language === 'ne-NP' ? 'ne' : 'en';
-    const textWithoutBrackets = text.replace(/\[[^\]]*\]/g, '').trim();
-    const cleanText = encodeURIComponent(textWithoutBrackets.slice(0, 250));
-    const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langCode}&client=tw-ob&q=${cleanText}`;
+  // 2. High-Fidelity Hugging Face Neural Text-to-Speech (MMS Nepali / SpeechT5)
+  const hfKey = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
+  if (hfKey && hfKey.trim().length > 5) {
+    try {
+      const hfModel = (normLang === 'ne-NP' || normLang === 'ne')
+        ? 'facebook/mms-tts-nep'
+        : 'microsoft/speecht5_tts';
+      const hfUrl = `https://api-inference.huggingface.co/models/${hfModel}`;
+      const cleanInput = text.replace(/\[[^\]]*\]/g, '').trim().slice(0, 400);
 
-    const gRes = await fetch(googleTtsUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-      signal: AbortSignal.timeout(7000),
-    });
+      const hfRes = await fetch(hfUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${hfKey.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: cleanInput }),
+        signal: AbortSignal.timeout(10000),
+      });
 
-    if (gRes.ok) {
-      const gBuf = Buffer.from(await gRes.arrayBuffer());
-      if (gBuf.byteLength > 1000) {
-        const filename = `tts_neural_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.mp3`;
-        const savedMedia = await storageBucket.saveMedia(filename, gBuf, 'audio/mpeg');
-        const base64 = gBuf.toString('base64');
-
-        return {
-          url: savedMedia.url || `/api/storage/file/${filename}`,
-          storageUrl: savedMedia.url,
-          filename: savedMedia.filename,
-          duration: Math.min(300, Math.max(3, Math.round(text.length / 12))),
-          voice: language === 'ne-NP' ? 'ne-NP-SagarNeural (Neural Stream)' : 'en-US-AvaNeural (Neural Stream)',
-          language,
-          format: 'NepalAI Neural TTS Audio Stream (MP3 44.1kHz)',
-        };
+      if (hfRes.ok) {
+        const hfBuf = Buffer.from(await hfRes.arrayBuffer());
+        if (hfBuf.byteLength > 800) {
+          const filename = `hf_tts_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.wav`;
+          const savedMedia = await storageBucket.saveMedia(filename, hfBuf, 'audio/wav');
+          return {
+            url: savedMedia.url || `/api/storage/file/${filename}`,
+            storageUrl: savedMedia.url,
+            filename: savedMedia.filename,
+            duration: Math.min(300, Math.max(3, Math.round(text.length / 12))),
+            voice: normLang === 'ne-NP' ? 'Meta MMS Nepali Neural TTS' : 'SpeechT5 Neural TTS',
+            language,
+            format: 'Hugging Face Neural TTS (WAV 48kHz)',
+          };
+        }
       }
+    } catch (hfErr) {
+      console.warn('Hugging Face TTS notice:', hfErr);
+    }
+  }
+
+  // 3. High-Fidelity Neural Fallback: Google Translate Neural TTS (Authentic Natural Nepali & English)
+  try {
+    const isNepali = language === 'ne-NP' || normLang === 'ne-NP';
+    const langCode = isNepali ? 'ne' : 'en';
+    const textWithoutBrackets = text.replace(/\[[^\]]*\]/g, '').trim();
+
+    // Chunk longer text by sentences or ~150 chars so Google TTS does not truncate or fail
+    const sentences = textWithoutBrackets
+      .split(/(?<=[।.!?\n])\s+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const textChunks: string[] = [];
+    let currentChunk = '';
+    for (const s of (sentences.length > 0 ? sentences : [textWithoutBrackets])) {
+      if ((currentChunk + ' ' + s).length <= 180) {
+        currentChunk = currentChunk ? currentChunk + ' ' + s : s;
+      } else {
+        if (currentChunk) textChunks.push(currentChunk);
+        if (s.length > 180) {
+          for (let i = 0; i < s.length; i += 180) {
+            textChunks.push(s.slice(i, i + 180));
+          }
+          currentChunk = '';
+        } else {
+          currentChunk = s;
+        }
+      }
+    }
+    if (currentChunk) textChunks.push(currentChunk);
+
+    const audioBuffers: Buffer[] = [];
+    for (const chunk of textChunks.slice(0, 10)) {
+      if (!chunk.trim()) continue;
+      const cleanText = encodeURIComponent(chunk.trim());
+      const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langCode}&client=tw-ob&q=${cleanText}`;
+
+      const gRes = await fetch(googleTtsUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        },
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (gRes.ok) {
+        const gBuf = Buffer.from(await gRes.arrayBuffer());
+        if (gBuf.byteLength > 200) {
+          audioBuffers.push(gBuf);
+        }
+      }
+    }
+
+    if (audioBuffers.length > 0) {
+      const combinedBuf = Buffer.concat(audioBuffers);
+      const filename = `tts_neural_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.mp3`;
+      const savedMedia = await storageBucket.saveMedia(filename, combinedBuf, 'audio/mpeg');
+
+      return {
+        url: savedMedia.url || `/api/storage/file/${filename}`,
+        storageUrl: savedMedia.url,
+        filename: savedMedia.filename,
+        duration: Math.min(300, Math.max(3, Math.round(text.length / 12))),
+        voice: isNepali ? 'Nepali Natural Neural Voice' : 'English Natural Neural Voice',
+        language,
+        format: 'NepalAI Neural TTS Stream (MP3 44.1kHz)',
+      };
     }
   } catch (gErr) {
     console.warn('Google Neural TTS fallback notice:', gErr);

@@ -629,10 +629,24 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     }
 
     // 4. Draw Animated Kinetic Typography & Captions
-    let textToDraw = activeScene.kineticConfig?.primaryText || activeScene.textOverlay;
-    if (activeScene.textNepali || activeScene.kineticConfig?.secondaryTextNepali) {
-      const nep = activeScene.kineticConfig?.secondaryTextNepali || activeScene.textNepali;
-      textToDraw = (nep ? `${nep}  ` : '') + (textToDraw ? `(${textToDraw})` : '');
+    const primary = (activeScene.kineticConfig?.primaryText || activeScene.textOverlay || '').trim();
+    const nep = (activeScene.kineticConfig?.secondaryTextNepali || activeScene.textNepali || '').trim();
+    let textToDraw = '';
+
+    if (primary && nep) {
+      if (primary.toLowerCase() === nep.toLowerCase()) {
+        textToDraw = primary;
+      } else {
+        const hasDevanagari = /[\u0900-\u097F]/.test(nep);
+        const hasLatin = /[a-zA-Z]/.test(primary);
+        if (hasDevanagari && hasLatin) {
+          textToDraw = `${nep} (${primary})`;
+        } else {
+          textToDraw = nep || primary;
+        }
+      }
+    } else {
+      textToDraw = primary || nep;
     }
 
     if (textToDraw) {
@@ -658,10 +672,17 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       ctx.textAlign = 'center';
 
       let textY = height - 58;
-      if (activeScene.textPosition === 'top') textY = 48;
-      else if (activeScene.textPosition === 'center') textY = height / 2;
-      else if (activeScene.textPosition === 'lower_third') textY = height * 0.72;
-      else if (activeScene.textPosition === 'bottom_lifted') textY = height * 0.82;
+      if (typeof activeScene.textCustomYPercent === 'number') {
+        textY = Math.round(height * (activeScene.textCustomYPercent / 100));
+      } else if (activeScene.textPosition === 'top') {
+        textY = 48;
+      } else if (activeScene.textPosition === 'center') {
+        textY = height / 2;
+      } else if (activeScene.textPosition === 'lower_third') {
+        textY = height * 0.72;
+      } else if (activeScene.textPosition === 'bottom_lifted') {
+        textY = height * 0.82;
+      }
 
       if (textAnim === 'bounce' || textAnim === 'slide_up' || textAnim === 'kinetic_bounce') {
         const offsetY = Math.sin(sceneProgress * Math.PI * 3) * (1 - sceneProgress) * 16;

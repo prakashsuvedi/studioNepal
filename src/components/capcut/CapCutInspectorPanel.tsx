@@ -25,17 +25,20 @@ import {
   Video,
   Play,
   Upload,
-  Link2
+  Link2,
+  Plus
 } from 'lucide-react';
 import { Scene, AudioTrack, CameraMotion, TransitionType, ColorFilter, ColorAdjustments, TickerConfig } from '../../types';
 import { extractVideoThumbnailAndDuration } from '../../lib/mediaLibrary';
 
 interface CapCutInspectorPanelProps {
   selectedScene: Scene | null;
+  scenes?: Scene[];
   onUpdateScene: (updated: Partial<Scene>) => void;
   onDuplicateScene?: () => void;
   onDeleteScene?: () => void;
   onApplyTickerToAll?: (config?: TickerConfig) => void;
+  onExtendTickerToSubsequent?: (fromSceneId: string) => void;
   bgmTrack?: AudioTrack;
   voTrack?: AudioTrack;
   bgmVolume: number;
@@ -48,10 +51,12 @@ type InspectorTab = 'basic' | 'ticker' | 'speed' | 'animation' | 'color' | 'audi
 
 export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
   selectedScene,
+  scenes = [],
   onUpdateScene,
   onDuplicateScene,
   onDeleteScene,
   onApplyTickerToAll,
+  onExtendTickerToSubsequent,
   bgmTrack,
   voTrack,
   bgmVolume,
@@ -368,15 +373,32 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
             </div>
 
             {/* Subtitle / Text Overlay */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-800">
-              <label className="font-semibold text-slate-300 block">Text Overlay / Subtitle</label>
-              <input
-                type="text"
-                value={selectedScene.textOverlay || ''}
-                onChange={e => onUpdateScene({ textOverlay: e.target.value, textNepali: e.target.value })}
-                placeholder="English / Devanagari text overlay..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/60"
-              />
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-300 block text-xs">Text Overlay / Subtitle</label>
+                <input
+                  type="text"
+                  value={selectedScene.textOverlay || ''}
+                  onChange={e => onUpdateScene({ textOverlay: e.target.value })}
+                  placeholder="English or Nepali subtitle..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/60"
+                />
+              </div>
+
+              {/* Optional Devanagari translation field */}
+              <div className="space-y-1">
+                <label className="text-[11px] text-slate-400 block font-medium">Devanagari Subtitle (Optional Bilingual)</label>
+                <input
+                  type="text"
+                  value={selectedScene.textNepali || ''}
+                  onChange={e => onUpdateScene({ textNepali: e.target.value })}
+                  placeholder="वैकल्पिक नेपाली अनुवाद (खाली छोड्न सक्नुहुन्छ)..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500/60 font-sans"
+                />
+                <p className="text-[10px] text-slate-500">
+                  Leave blank to show only the primary text without bilingual parentheses.
+                </p>
+              </div>
             </div>
 
             {/* Quick Ticker Switch & Remover inside Basic */}
@@ -445,17 +467,26 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
             </div>
 
             {/* Position */}
-            <div className="space-y-1.5">
-              <label className="font-semibold text-slate-300 block">Text Position</label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-300 block text-xs">Text & Subtitle Position</label>
+                <span className="text-[10px] font-mono text-cyan-400">
+                  {selectedScene.textCustomYPercent !== undefined
+                    ? `${selectedScene.textCustomYPercent}% height`
+                    : selectedScene.textPosition || 'lower_third (74%)'}
+                </span>
+              </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'top', label: 'Top Header' },
-                  { id: 'center', label: 'Center' },
-                  { id: 'lower_third', label: 'Lower Third' }
+                  { id: 'top', label: 'Top (12%)', y: 12 },
+                  { id: 'center', label: 'Center (50%)', y: 50 },
+                  { id: 'lower_third', label: 'Lower 3rd (74%)', y: 74 },
+                  { id: 'bottom_lifted', label: 'Lifted (82%)', y: 82 },
+                  { id: 'bottom', label: 'Bottom (88%)', y: 88 }
                 ].map(pos => (
                   <button
                     key={pos.id}
-                    onClick={() => onUpdateScene({ textPosition: pos.id as any })}
+                    onClick={() => onUpdateScene({ textPosition: pos.id as any, textCustomYPercent: pos.y })}
                     className={`py-1.5 rounded-lg border text-center font-medium transition cursor-pointer text-[10px] ${
                       (selectedScene.textPosition || 'lower_third') === pos.id
                         ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
@@ -465,6 +496,25 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                     {pos.label}
                   </button>
                 ))}
+              </div>
+
+              {/* Fine-tune vertical height slider */}
+              <div className="pt-1 space-y-1">
+                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <span>Custom Height Placement</span>
+                  <span>5% (Top) — 95% (Bottom)</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="95"
+                  value={selectedScene.textCustomYPercent ?? (selectedScene.textPosition === 'top' ? 12 : selectedScene.textPosition === 'center' ? 50 : selectedScene.textPosition === 'bottom_lifted' ? 82 : selectedScene.textPosition === 'bottom' ? 88 : 74)}
+                  onChange={e => {
+                    const yVal = Number(e.target.value);
+                    onUpdateScene({ textCustomYPercent: yVal });
+                  }}
+                  className="w-full accent-cyan-400 h-1 bg-slate-950 rounded cursor-pointer"
+                />
               </div>
             </div>
 
@@ -758,35 +808,95 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                   </div>
                 </div>
 
-                {/* Batch Actions */}
-                {onApplyTickerToAll && (
-                  <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                {/* Batch & Continuous Ticker Actions */}
+                <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Extend / Sequence Actions
+                  </span>
+                  {onExtendTickerToSubsequent && (
+                    <button
+                      onClick={() => onExtendTickerToSubsequent(selectedScene.id)}
+                      className="w-full py-1.5 px-2 rounded-lg bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/40 text-cyan-200 font-semibold transition text-[11px] flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Extend Ticker to All Subsequent Clips →</span>
+                    </button>
+                  )}
+                  {onApplyTickerToAll && (
                     <button
                       onClick={() => onApplyTickerToAll(selectedScene.tickerConfig)}
-                      className="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition text-[11px]"
+                      className="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition text-[11px] cursor-pointer"
                     >
-                      Apply This Ticker to All Scenes
+                      Apply Ticker to All Clips (Continuous)
                     </button>
+                  )}
+                  <button
+                    onClick={removeTicker}
+                    className="w-full py-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/40 border border-rose-800/40 text-rose-300 font-semibold transition text-[11px] cursor-pointer"
+                  >
+                    Remove Ticker from This Clip
+                  </button>
+                  {onApplyTickerToAll && (
                     <button
                       onClick={() => onApplyTickerToAll(undefined)}
-                      className="w-full py-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/40 border border-rose-800/40 text-rose-300 font-semibold transition text-[11px]"
+                      className="w-full py-1 text-slate-500 hover:text-rose-400 font-medium transition text-[10px] cursor-pointer text-center"
                     >
-                      Remove Ticker from All Scenes
+                      Remove Ticker from All Clips
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="p-6 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl space-y-2">
-                <Radio className="w-8 h-8 opacity-40 mx-auto text-slate-400" />
-                <p className="text-slate-300 font-medium">No Ticker on this Clip</p>
-                <p className="text-[11px] text-slate-500">Enable ticker to add a customized animated breaking news or lower-third banner.</p>
-                <button
-                  onClick={() => toggleTicker(true)}
-                  className="mt-2 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition text-xs cursor-pointer inline-block"
-                >
-                  + Add Ticker Banner
-                </button>
+              <div className="space-y-3">
+                {(() => {
+                  const currentSceneIndex = scenes.findIndex(s => s.id === selectedScene.id);
+                  const earlierTickerScene = currentSceneIndex > 0
+                    ? [...scenes.slice(0, currentSceneIndex)].reverse().find(s => s.tickerConfig?.enabled)
+                    : null;
+
+                  return (
+                    <>
+                      {earlierTickerScene ? (
+                        <div className="p-3 bg-cyan-950/30 border border-cyan-500/40 rounded-xl space-y-2 text-left">
+                          <div className="flex items-center gap-2 text-cyan-300 text-xs font-bold">
+                            <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Ticker Found on Earlier Clip #{scenes.indexOf(earlierTickerScene) + 1}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 line-clamp-1 italic">
+                            "{earlierTickerScene.tickerConfig?.text || earlierTickerScene.tickerConfig?.textNepali || 'Active news banner'}"
+                          </p>
+                          <button
+                            onClick={() => {
+                              onUpdateScene({
+                                tickerConfig: {
+                                  ...earlierTickerScene.tickerConfig!,
+                                  enabled: true
+                                }
+                              });
+                            }}
+                            className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-cyan-500/30 cursor-pointer"
+                          >
+                            <span>Extend Earlier Clip's Ticker to This Clip</span>
+                          </button>
+                        </div>
+                      ) : null}
+
+                      <div className="p-5 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl space-y-2">
+                        <Radio className="w-8 h-8 opacity-40 mx-auto text-slate-400" />
+                        <p className="text-slate-300 font-medium text-xs">No Ticker on this Clip</p>
+                        <p className="text-[11px] text-slate-500">
+                          Create a custom scrolling broadcast ticker banner or lower-third for this clip.
+                        </p>
+                        <button
+                          onClick={() => toggleTicker(true)}
+                          className="mt-1 px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition text-xs cursor-pointer inline-flex items-center gap-1 shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add New Ticker Banner</span>
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -794,22 +904,88 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
 
         {/* SPEED TAB */}
         {activeTab === 'speed' && (
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className="font-semibold text-slate-300 block">Playback Speed</label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[0.5, 1, 1.5, 2].map(speed => (
-                  <button
-                    key={speed}
-                    onClick={() => {
-                      const newDuration = Math.max(1, Math.round((selectedScene.duration / speed) * 10) / 10);
-                      onUpdateScene({ duration: newDuration });
-                    }}
-                    className="py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-slate-200 text-center font-mono font-bold transition"
-                  >
-                    {speed}x
-                  </button>
-                ))}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-300 block text-xs">Clip Speed (Playback Rate)</label>
+                <span className="font-mono text-xs font-bold text-cyan-400">
+                  {(selectedScene.playbackRate ?? selectedScene.speed ?? 1).toFixed(2)}x
+                </span>
+              </div>
+
+              {/* Speed Preset Buttons */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { rate: 0.5, label: '0.5x Slow' },
+                  { rate: 0.75, label: '0.75x' },
+                  { rate: 1.0, label: '1.0x Normal' },
+                  { rate: 1.25, label: '1.25x' },
+                  { rate: 1.5, label: '1.5x' },
+                  { rate: 2.0, label: '2.0x Fast' },
+                ].map(({ rate, label }) => {
+                  const currentRate = selectedScene.playbackRate ?? selectedScene.speed ?? 1;
+                  const isActive = Math.abs(currentRate - rate) < 0.05;
+                  return (
+                    <button
+                      key={rate}
+                      onClick={() => {
+                        onUpdateScene({
+                          playbackRate: rate,
+                          speed: rate,
+                        });
+                      }}
+                      className={`py-2 rounded-lg border text-center font-mono text-xs font-bold transition cursor-pointer ${
+                        isActive
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm shadow-cyan-500/20'
+                          : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300 hover:bg-slate-900'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Smooth Custom Speed Slider */}
+              <div className="pt-2 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Fine-Tune Speed Slider</span>
+                  <span>0.25x (Slow-Mo) — 3.0x (Timelapse)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.25"
+                  max="3.0"
+                  step="0.05"
+                  value={selectedScene.playbackRate ?? selectedScene.speed ?? 1}
+                  onChange={e => {
+                    const rate = parseFloat(e.target.value);
+                    onUpdateScene({
+                      playbackRate: rate,
+                      speed: rate,
+                    });
+                  }}
+                  className="w-full accent-cyan-400 h-1.5 bg-slate-950 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              {/* Feedback stats card */}
+              <div className="p-2.5 bg-slate-950/80 border border-slate-800 rounded-lg text-[11px] text-slate-400 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span>Current Clip Speed:</span>
+                  <span className="text-white font-bold font-mono">
+                    {(selectedScene.playbackRate ?? selectedScene.speed ?? 1).toFixed(2)}x
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Timeline Duration:</span>
+                  <span className="text-white font-bold font-mono">
+                    {selectedScene.duration.toFixed(1)}s
+                  </span>
+                </div>
+                <p className="text-[10px] text-cyan-300/80 pt-1">
+                  Speed adjustments immediately reflect in live preview playback and the final exported video.
+                </p>
               </div>
             </div>
           </div>

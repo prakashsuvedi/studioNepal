@@ -1658,6 +1658,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         bitrate: 'balanced',
         brandOverlayConfig,
         subtitles,
+        subtitleBurnOptions,
+        vfxConfig,
         onProgress: (p, step) => {
           setExportProgress(p);
           if (onStartGlobalLoading) {
@@ -1979,6 +1981,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         {/* Right: Inspector Properties Panel */}
         <CapCutInspectorPanel
           selectedScene={selectedScene || scenes[0] || null}
+          scenes={scenes}
           onUpdateScene={(updatedProps) => {
             const targetId = selectedSceneId || scenes[0]?.id;
             if (!targetId) return;
@@ -1996,6 +1999,30 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             const remaining = scenes.filter(s => s.id !== selectedSceneId);
             setScenes(remaining);
             setSelectedSceneId(remaining[0]?.id || '');
+          }}
+          onApplyTickerToAll={(tickerConfig) => {
+            pushToHistory(scenes);
+            setScenes(prev => prev.map(s => ({
+              ...s,
+              tickerConfig: tickerConfig ? { ...tickerConfig, enabled: true } : undefined
+            })));
+            setProjectNotice(tickerConfig ? 'Applied ticker to all clips in sequence!' : 'Removed ticker from all clips.');
+            setTimeout(() => setProjectNotice(null), 2500);
+          }}
+          onExtendTickerToSubsequent={(fromSceneId) => {
+            const sourceIndex = scenes.findIndex(s => s.id === fromSceneId);
+            if (sourceIndex === -1) return;
+            const sourceTicker = scenes[sourceIndex].tickerConfig;
+            if (!sourceTicker) return;
+            pushToHistory(scenes);
+            setScenes(prev => prev.map((s, idx) => {
+              if (idx >= sourceIndex) {
+                return { ...s, tickerConfig: { ...sourceTicker, enabled: true } };
+              }
+              return s;
+            }));
+            setProjectNotice(`Extended ticker across clip #${sourceIndex + 1} to #${scenes.length}!`);
+            setTimeout(() => setProjectNotice(null), 2500);
           }}
           bgmTrack={bgmTrack}
           voTrack={voTrack}
@@ -2290,6 +2317,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         audioTracks={audioTracks}
         brandOverlayConfig={brandOverlayConfig}
         subtitles={subtitles}
+        subtitleBurnOptions={subtitleBurnOptions}
+        vfxConfig={vfxConfig}
       />
 
       {/* Global Media Library Modal */}

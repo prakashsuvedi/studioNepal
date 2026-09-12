@@ -16,8 +16,8 @@ import {
   Play,
   AlertCircle
 } from 'lucide-react';
-import { Scene, AudioTrack, BrandOverlayConfig } from '../types';
-import { SubtitleItem } from './SubtitleEditorModal';
+import { Scene, AudioTrack, BrandOverlayConfig, VfxConfig } from '../types';
+import { SubtitleItem, SubtitleBurnOptions } from './SubtitleEditorModal';
 import { RenderAuditLogger, RenderAuditEntry } from '../lib/renderAuditLogger';
 import { RenderSummaryOverlay } from './RenderSummaryOverlay';
 import { renderTimelineToVideoBlob } from '../lib/videoCombiner';
@@ -32,6 +32,8 @@ interface ProjectExportModalProps {
   audioTracks?: AudioTrack[];
   brandOverlayConfig?: BrandOverlayConfig;
   subtitles?: SubtitleItem[];
+  subtitleBurnOptions?: SubtitleBurnOptions;
+  vfxConfig?: VfxConfig;
 }
 
 export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
@@ -44,6 +46,8 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
   audioTracks = [],
   brandOverlayConfig,
   subtitles = [],
+  subtitleBurnOptions,
+  vfxConfig,
 }) => {
   const [format, setFormat] = useState<'mp4' | 'webm' | 'gif'>('mp4');
   const [resolution, setResolution] = useState<'1080p' | '4k' | '720p'>('1080p');
@@ -95,6 +99,8 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
         bitrate,
         brandOverlayConfig,
         subtitles,
+        subtitleBurnOptions,
+        vfxConfig,
         onProgress: (progress, step) => {
           setExportProgress(progress);
           setExportStep(step);

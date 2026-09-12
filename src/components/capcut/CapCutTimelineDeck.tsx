@@ -27,7 +27,8 @@ import {
   Edit2,
   Clock,
   Layers,
-  RotateCw
+  RotateCw,
+  Move
 } from 'lucide-react';
 import { Scene, AudioTrack, TransitionType } from '../../types';
 import { computeSceneTimings } from '../../lib/timelineComposition';
@@ -144,6 +145,8 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
   // Inline Subtitle Quick Editor
   const [editingSubtitleSceneId, setEditingSubtitleSceneId] = useState<string | null>(null);
   const [subtitleInput, setSubtitleInput] = useState<string>('');
+  const [subtitlePosition, setSubtitlePosition] = useState<'bottom' | 'lower_third' | 'bottom_lifted' | 'center' | 'top'>('bottom');
+  const [subtitleCustomY, setSubtitleCustomY] = useState<number>(88);
 
   // Track lock & visibility toggles
   const [isVideoTrackLocked, setIsVideoTrackLocked] = useState(false);
@@ -730,6 +733,8 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                           onSelectScene(scene.id);
                           setEditingSubtitleSceneId(scene.id);
                           setSubtitleInput(scene.textNepali || scene.textOverlay || '');
+                          setSubtitlePosition(scene.textPosition || 'bottom');
+                          setSubtitleCustomY(scene.textCustomYPercent ?? 88);
                         }}
                         className="w-full h-5 rounded bg-amber-500/20 border border-amber-500/40 px-1.5 flex items-center justify-between text-[9px] font-bold text-amber-200 truncate cursor-pointer hover:bg-amber-500/30 transition group/sub"
                         title={scene.textNepali || scene.textOverlay}
@@ -747,6 +752,8 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                           onSelectScene(scene.id);
                           setEditingSubtitleSceneId(scene.id);
                           setSubtitleInput('');
+                          setSubtitlePosition(scene.textPosition || 'bottom');
+                          setSubtitleCustomY(scene.textCustomYPercent ?? 88);
                         }}
                         className="w-full h-5 rounded border border-dashed border-slate-800/80 hover:border-amber-500/40 hover:bg-amber-950/20 text-[8px] text-slate-500 hover:text-amber-300 flex items-center justify-center gap-1 transition cursor-pointer"
                         title="Add Subtitle to this scene"
@@ -1063,15 +1070,63 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
               </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-300">Caption Text</label>
-              <textarea
-                value={subtitleInput}
-                onChange={(e) => setSubtitleInput(e.target.value)}
-                placeholder="Type caption (e.g. सगरमाथाको मनमोहक दृश्य / Majestic Everest sunrise)..."
-                rows={3}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
-              />
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Caption Text</label>
+                <textarea
+                  value={subtitleInput}
+                  onChange={(e) => setSubtitleInput(e.target.value)}
+                  placeholder="Type caption (e.g. सगरमाथाको मनमोहक दृश्य / Majestic Everest sunrise)..."
+                  rows={3}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                />
+              </div>
+
+              {/* Position Presets */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-400 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Move className="w-3 h-3 text-amber-400" />
+                    <span>Vertical Position</span>
+                  </span>
+                  <span className="font-mono text-cyan-400">{subtitleCustomY}%</span>
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { id: 'top', label: 'Top', y: 15 },
+                    { id: 'center', label: 'Center', y: 50 },
+                    { id: 'lower_third', label: 'Lower 1/3', y: 72 },
+                    { id: 'bottom', label: 'Bottom', y: 88 },
+                  ].map(pos => (
+                    <button
+                      key={pos.id}
+                      type="button"
+                      onClick={() => {
+                        setSubtitlePosition(pos.id as any);
+                        setSubtitleCustomY(pos.y);
+                      }}
+                      className={`py-1 px-1.5 rounded-lg text-[10px] font-medium border transition cursor-pointer ${
+                        subtitlePosition === pos.id
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-900'
+                      }`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={95}
+                  value={subtitleCustomY}
+                  onChange={(e) => {
+                    setSubtitleCustomY(Number(e.target.value));
+                    setSubtitlePosition('bottom');
+                  }}
+                  className="w-full accent-amber-500 cursor-pointer h-1 bg-slate-800 rounded-lg appearance-none"
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-800">
@@ -1098,7 +1153,9 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                     if (onUpdateScene) {
                       onUpdateScene(editingSubtitleSceneId, {
                         textOverlay: subtitleInput,
-                        textNepali: subtitleInput
+                        textNepali: subtitleInput,
+                        textPosition: subtitlePosition,
+                        textCustomYPercent: subtitleCustomY
                       });
                     }
                     setEditingSubtitleSceneId(null);

@@ -41,6 +41,7 @@ export interface SubtitleBurnOptions {
   textColor: string;
   backgroundColor: string;
   position: 'bottom' | 'lower_third' | 'bottom_lifted' | 'center' | 'top';
+  customYPercent?: number; // 5 to 95 percent vertical position
   bilingualDevanagari: boolean;
 }
 
@@ -369,18 +370,44 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-400 font-semibold">Screen Position</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-400 font-semibold text-xs">Screen Position</label>
+                    <span className="text-[11px] font-mono text-emerald-400">
+                      {burnOptions.customYPercent !== undefined ? `${burnOptions.customYPercent}% from top` : burnOptions.position}
+                    </span>
+                  </div>
                   <select
                     value={burnOptions.position}
-                    onChange={(e) => setBurnOptions(prev => ({ ...prev, position: e.target.value as any }))}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white font-medium"
+                    onChange={(e) => {
+                      const pos = e.target.value as any;
+                      const defY = pos === 'top' ? 12 : pos === 'center' ? 50 : pos === 'lower_third' ? 74 : pos === 'bottom_lifted' ? 82 : 88;
+                      setBurnOptions(prev => ({ ...prev, position: pos, customYPercent: defY }));
+                    }}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white font-medium text-xs"
                   >
-                    <option value="bottom">Bottom Overlay (Standard 10%)</option>
-                    <option value="lower_third">Lower-Third (Broadcast / TV 22%)</option>
-                    <option value="bottom_lifted">Lifted Bottom (Reels / Safe Margin 18%)</option>
-                    <option value="center">Center Punch (Viral / Impact)</option>
-                    <option value="top">Top Header Banner (10%)</option>
+                    <option value="bottom">Bottom Overlay (Standard 88%)</option>
+                    <option value="bottom_lifted">Lifted Bottom (Reels / Safe Margin 82%)</option>
+                    <option value="lower_third">Lower-Third (Broadcast / TV 74%)</option>
+                    <option value="center">Center Punch (Viral / Impact 50%)</option>
+                    <option value="top">Top Header Banner (12%)</option>
                   </select>
+                  <div className="pt-1.5 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>Fine-Tune Vertical Height</span>
+                      <span>5% (Top) — 95% (Bottom)</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="95"
+                      value={burnOptions.customYPercent ?? (burnOptions.position === 'top' ? 12 : burnOptions.position === 'center' ? 50 : burnOptions.position === 'lower_third' ? 74 : burnOptions.position === 'bottom_lifted' ? 82 : 88)}
+                      onChange={e => {
+                        const yVal = Number(e.target.value);
+                        setBurnOptions(prev => ({ ...prev, customYPercent: yVal }));
+                      }}
+                      className="w-full accent-emerald-400 h-1 bg-slate-800 rounded cursor-pointer"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1">

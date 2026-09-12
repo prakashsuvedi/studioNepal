@@ -111,6 +111,25 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   // File input ref for fast local importing
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioInputRef = useRef<HTMLInputElement | null>(null);
+  const logoFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleLogoUpload = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (dataUrl && setBrandOverlayConfig) {
+        setBrandOverlayConfig(prev => ({
+          ...prev,
+          enabled: true,
+          logoUrl: dataUrl,
+          brandText: file.name.replace(/\.[^/.]+$/, ''),
+          showBrandText: false,
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const selectedScene = scenes.find(s => s.id === selectedSceneId) || scenes[0];
 
@@ -1601,6 +1620,65 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               )}
             </div>
 
+            {/* Hidden Logo File Input */}
+            <input
+              type="file"
+              ref={logoFileInputRef}
+              accept="image/png,image/webp,image/svg+xml,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleLogoUpload(file);
+                e.target.value = '';
+              }}
+            />
+
+            {/* Custom Transparent Logo Uploader */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Custom Logo Upload</span>
+                </span>
+                <span className="text-[10px] text-cyan-400 font-mono">PNG / WEBP / SVG</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Upload your company or brand transparent logo to position across the video clips.
+              </p>
+
+              {brandOverlayConfig?.logoUrl ? (
+                <div className="flex items-center gap-2.5 p-2 bg-slate-900 border border-slate-800 rounded-lg">
+                  <div className="w-10 h-10 rounded-lg bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:8px_8px] bg-slate-950 border border-slate-700 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                    <img
+                      src={brandOverlayConfig.logoUrl}
+                      alt="Brand Logo"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">
+                      {brandOverlayConfig.brandText || 'Custom Logo'}
+                    </p>
+                    <p className="text-[10px] text-emerald-400 font-medium">Ready for rendering</p>
+                  </div>
+                  <button
+                    onClick={() => logoFileInputRef.current?.click()}
+                    className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold transition cursor-pointer"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : null}
+
+              <button
+                onClick={() => logoFileInputRef.current?.click()}
+                className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/40 hover:to-blue-600/40 border border-cyan-500/50 text-cyan-200 hover:text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-98"
+              >
+                <Upload className="w-4 h-4 text-cyan-400" />
+                <span>Upload Transparent Logo</span>
+              </button>
+            </div>
+
             {/* Presets Grid */}
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Studio Presets</span>
@@ -1648,9 +1726,10 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               {/* Position */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-semibold text-slate-300 block">Screen Placement</span>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   {[
                     { id: 'top-left', label: 'Top Left' },
+                    { id: 'center', label: 'Center' },
                     { id: 'top-right', label: 'Top Right' },
                     { id: 'bottom-left', label: 'Bottom Left' },
                     { id: 'bottom-right', label: 'Bottom Right' }
@@ -1665,8 +1744,8 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                           }));
                         }
                       }}
-                      className={`py-1 px-2 rounded text-[10px] font-bold border transition cursor-pointer ${
-                        brandOverlayConfig?.position === pos.id
+                      className={`py-1.5 px-2 rounded text-[10px] font-bold border transition cursor-pointer ${
+                        (brandOverlayConfig?.position || 'top-right') === pos.id
                           ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
                       }`}
@@ -1843,22 +1922,107 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
             )}
 
             {/* Quick Caption Adder for Active Clip */}
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
-              <h4 className="text-xs font-bold text-slate-200">Active Clip Caption Text</h4>
-              <input
-                type="text"
-                placeholder="Type Nepali or English subtitle for active clip..."
-                value={selectedScene?.textOverlay || ''}
-                onChange={(e) => {
-                  if (selectedScene && onUpdateScene) {
-                    onUpdateScene(selectedScene.id, {
-                      textOverlay: e.target.value,
-                      textNepali: e.target.value
-                    });
-                  }
-                }}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-500"
-              />
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-200">Active Clip Subtitle / Caption</h4>
+                {selectedScene && (
+                  <span className="text-[10px] text-cyan-400 font-mono">
+                    Clip #{scenes.findIndex(s => s.id === selectedScene.id) + 1}
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-semibold block">Subtitle Text</label>
+                <input
+                  type="text"
+                  placeholder="Type subtitle for active clip..."
+                  value={selectedScene?.textOverlay || ''}
+                  onChange={(e) => {
+                    if (selectedScene && onUpdateScene) {
+                      onUpdateScene(selectedScene.id, {
+                        textOverlay: e.target.value
+                      });
+                    }
+                  }}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              {/* Subtitle Positioning Controls */}
+              <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-slate-300 block">Position on Screen</label>
+                  <span className="text-[10px] font-mono text-cyan-400">
+                    {selectedScene?.textCustomYPercent !== undefined
+                      ? `${selectedScene.textCustomYPercent}% height`
+                      : selectedScene?.textPosition || 'bottom (88%)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1">
+                  {[
+                    { id: 'top', label: 'Top (12%)', y: 12 },
+                    { id: 'center', label: 'Center (50%)', y: 50 },
+                    { id: 'lower_third', label: 'Lower 3rd (74%)', y: 74 },
+                    { id: 'bottom_lifted', label: 'Lifted (82%)', y: 82 },
+                    { id: 'bottom', label: 'Bottom (88%)', y: 88 }
+                  ].map(pos => (
+                    <button
+                      key={pos.id}
+                      onClick={() => {
+                        if (selectedScene && onUpdateScene) {
+                          onUpdateScene(selectedScene.id, {
+                            textPosition: pos.id as any,
+                            textCustomYPercent: pos.y
+                          });
+                        }
+                        if (setSubtitleBurnOptions) {
+                          setSubtitleBurnOptions(prev => ({
+                            ...prev,
+                            position: pos.id as any,
+                            customYPercent: pos.y
+                          }));
+                        }
+                      }}
+                      className={`py-1 px-1.5 rounded text-[10px] font-medium border transition cursor-pointer text-center ${
+                        (selectedScene?.textPosition || 'bottom') === pos.id
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 font-bold'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Fine-tune vertical position slider */}
+                <div className="pt-1 space-y-1">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Vertical Height Custom</span>
+                    <span>5% (Top) — 95% (Bottom)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="95"
+                    value={selectedScene?.textCustomYPercent ?? (selectedScene?.textPosition === 'top' ? 12 : selectedScene?.textPosition === 'center' ? 50 : selectedScene?.textPosition === 'lower_third' ? 74 : selectedScene?.textPosition === 'bottom_lifted' ? 82 : 88)}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      if (selectedScene && onUpdateScene) {
+                        onUpdateScene(selectedScene.id, {
+                          textCustomYPercent: val
+                        });
+                      }
+                      if (setSubtitleBurnOptions) {
+                        setSubtitleBurnOptions(prev => ({
+                          ...prev,
+                          customYPercent: val
+                        }));
+                      }
+                    }}
+                    className="w-full accent-cyan-400 h-1 bg-slate-900 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -136,7 +136,11 @@ export type ColorFilter =
   | 'warm' 
   | 'cool' 
   | 'vintage' 
-  | 'vibrant';
+  | 'vibrant'
+  | 'warm_gold'
+  | 'mist'
+  | 'cyberpunk'
+  | 'bw';
 
 export interface BrandOverlayConfig {
   enabled: boolean;
@@ -145,6 +149,8 @@ export interface BrandOverlayConfig {
   scalePercent: number; // 5 to 50
   opacityPercent: number; // 10 to 100
   marginPx?: number;
+  customXPercent?: number; // custom horizontal position
+  customYPercent?: number; // custom vertical position
   brandText?: string;
   showBrandText?: boolean;
 }
@@ -266,6 +272,7 @@ export interface Scene {
   textOverlay: string;
   textNepali?: string;
   textPosition: 'bottom' | 'center' | 'top' | 'lower_third' | 'bottom_lifted';
+  textCustomYPercent?: number; // 5 to 95 percent vertical position
   textColor: string;
   textFont: 'sans' | 'devanagari' | 'mono';
   textStyle?: TextStylePreset;
@@ -274,6 +281,7 @@ export interface Scene {
   tickerConfig?: TickerConfig;
   brandLogo?: SceneWatermark;
   filter: ColorFilter;
+  vfxConfig?: VfxConfig;
   colorAdjustments?: ColorAdjustments;
   volume: number; // 0 - 100
   isMuted?: boolean; // mute clip audio

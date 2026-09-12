@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Shield, 
   Check, 
@@ -11,13 +11,15 @@ import {
   Sparkles, 
   Type,
   Layers,
-  Award
+  Award,
+  FileCheck
 } from 'lucide-react';
+import { saveMediaItem } from '../lib/mediaLibrary';
 
 export interface BrandOverlayConfig {
   enabled: boolean;
   logoUrl: string;
-  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
   scalePercent: number; // 10 to 50
   opacityPercent: number; // 20 to 100
   marginPx: number; // 8 to 48
@@ -68,6 +70,8 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
   aspectRatio,
 }) => {
   const [config, setConfig] = useState<BrandOverlayConfig>(initialConfig);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!isOpen) return null;
 
@@ -76,7 +80,37 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
     onClose();
   };
 
-  const getPositionStyle = () => {
+  const handleFileUpload = (file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const cleanName = file.name.replace(/\.[^/.]+$/, '').trim();
+      setConfig(prev => ({
+        ...prev,
+        enabled: true,
+        logoUrl: dataUrl,
+        brandText: prev.brandText || cleanName,
+      }));
+      // Also save to user media library for future sessions
+      try {
+        saveMediaItem({
+          title: file.name,
+          type: 'upload',
+          category: 'Brand Watermarks',
+          url: dataUrl,
+          thumbnailUrl: dataUrl,
+          aspectRatio: '1:1',
+          prompt: 'Uploaded transparent brand watermark logo asset'
+        });
+      } catch (e) {
+        console.warn('Could not save logo to media library:', e);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const getPositionStyle = (): React.CSSProperties => {
     const margin = `${config.marginPx}px`;
     switch (config.position) {
       case 'top-left':
@@ -85,6 +119,8 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
         return { top: margin, right: margin };
       case 'bottom-left':
         return { bottom: margin, left: margin };
+      case 'center':
+        return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
       case 'bottom-right':
       default:
         return { bottom: margin, right: margin };
@@ -149,21 +185,109 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
               {/* Left Column: Watermark Controls */}
               <div className="space-y-4">
                 
+                {/* Hidden Logo File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/png,image/webp,image/svg+xml,image/jpeg"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
+                    e.target.value = '';
+                  }}
+                />
+
+                {/* Upload Transparent Logo Button & Dropzone */}
+                <div className="space-y-2 bg-slate-950 p-3.5 rounded-xl border border-amber-500/30">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <Upload className="w-4 h-4 text-amber-400" />
+                      <span>Upload Transparent Logo</span>
+                    </label>
+                    <span className="text-[10px] text-amber-400 font-mono font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+                      PNG / WEBP / SVG
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Upload your brand watermark with a transparent background for crisp positioning across all clips.
+                  </p>
+
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1.5 ${
+                      isDragging 
+                        ? 'border-amber-400 bg-amber-950/40 text-amber-300 scale-[1.01]' 
+                        : 'border-slate-800 hover:border-amber-500/60 bg-slate-900/60 hover:bg-slate-900 text-slate-300'
+                    }`}
+                  >
+                    <div className="p-2 rounded-full bg-amber-500/10 text-amber-400">
+                      <Upload className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs font-semibold text-white">
+                      Click to Browse or Drag & Drop Logo
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Transparent PNG or Vector SVG recommended
+                    </div>
+                  </div>
+
+                  {config.logoUrl && (
+                    <div className="flex items-center gap-3 p-2 bg-slate-900 border border-slate-800 rounded-lg">
+                      <div className="w-10 h-10 rounded-lg bg-[radial-gradient(#475569_1px,transparent_1px)] [background-size:8px_8px] bg-slate-950 border border-slate-700 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                        <img
+                          src={config.logoUrl}
+                          alt="Brand Logo"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white truncate">
+                          {config.brandText || 'Custom Brand Logo'}
+                        </p>
+                        <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          <span>Logo Active for Overlay</span>
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        className="px-2.5 py-1 rounded bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 text-amber-200 text-[10px] font-bold transition cursor-pointer"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Logo Preset Selection */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                    <ImageIcon className="w-4 h-4 text-amber-400" />
-                    <span>Select Logo / Monogram Preset</span>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-slate-400" />
+                    <span>Or Select Preset Emblem</span>
                   </label>
 
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {WATERMARK_PRESETS.map((preset) => {
                       const isSelected = config.logoUrl === preset.url;
                       return (
                         <button
                           key={preset.id}
                           onClick={() => setConfig(prev => ({ ...prev, logoUrl: preset.url, brandText: preset.text }))}
-                          className={`p-2 rounded-xl border text-center transition flex flex-col items-center gap-1.5 ${
+                          className={`p-1.5 rounded-xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
                             isSelected
                               ? 'bg-amber-950/60 border-amber-500 ring-1 ring-amber-500/50'
                               : 'bg-slate-950 border-slate-800 hover:border-slate-700'
@@ -172,10 +296,10 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
                           <img
                             src={preset.url}
                             alt={preset.name}
-                            className="w-8 h-8 rounded-full object-cover border border-amber-500/40"
+                            className="w-7 h-7 rounded-full object-cover border border-amber-500/40"
                           />
-                          <span className="text-[10px] text-slate-300 font-semibold truncate w-full">
-                            {preset.text}
+                          <span className="text-[9px] text-slate-300 font-semibold truncate w-full">
+                            {preset.name.split(' ')[0]}
                           </span>
                         </button>
                       );
@@ -185,7 +309,7 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
 
                 {/* Custom Image URL */}
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold">Custom Logo Image URL</label>
+                  <label className="text-xs text-slate-400 font-semibold">Or Image URL</label>
                   <input
                     type="text"
                     value={config.logoUrl}
@@ -195,26 +319,28 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
                   />
                 </div>
 
-                {/* Fixed Position Selector */}
+                {/* 5-Position Screen Placement Selector */}
                 <div className="space-y-1.5">
                   <label className="text-xs text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
                     <Move className="w-3.5 h-3.5" />
-                    <span>Watermark Position</span>
+                    <span>Logo Screen Placement (5 Positions)</span>
                   </label>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {[
-                      { id: 'top-left', label: '↖ Top-Left' },
-                      { id: 'top-right', label: '↗ Top-Right' },
-                      { id: 'bottom-left', label: '↙ Bottom-Left' },
-                      { id: 'bottom-right', label: '↘ Bottom-Right' },
+                      { id: 'top-left', label: 'Top-Left' },
+                      { id: 'center', label: 'Center' },
+                      { id: 'top-right', label: 'Top-Right' },
+                      { id: 'bottom-left', label: 'Bottom-Left' },
+                      { id: 'bottom-right', label: 'Bottom-Right' },
                     ].map(pos => (
                       <button
                         key={pos.id}
+                        type="button"
                         onClick={() => setConfig(prev => ({ ...prev, position: pos.id as any }))}
-                        className={`p-2 rounded-lg text-xs font-semibold border transition ${
+                        className={`p-2 rounded-lg text-xs font-semibold border transition cursor-pointer ${
                           config.position === pos.id
-                            ? 'bg-amber-600 text-white border-amber-500 shadow'
+                            ? 'bg-amber-600 text-white border-amber-500 shadow-md font-bold'
                             : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-900'
                         }`}
                       >
@@ -330,7 +456,7 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
                       <img
                         src={config.logoUrl}
                         alt="Watermark"
-                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-400 shadow-lg"
+                        className="max-w-[54px] max-h-[54px] object-contain drop-shadow-lg"
                       />
                     ) : null}
                     {config.showBrandText && config.brandText && (

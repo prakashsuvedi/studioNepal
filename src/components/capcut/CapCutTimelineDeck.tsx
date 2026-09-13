@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { Scene, AudioTrack, TransitionType } from '../../types';
 import { computeSceneTimings } from '../../lib/timelineComposition';
+import { TimelineAudioWaveform } from './TimelineAudioWaveform';
 
 export const TIMELINE_TRANSITIONS: { id: TransitionType; label: string; icon: string; desc: string }[] = [
   { id: 'cut', label: 'Cut (None)', icon: '✂️', desc: 'Direct instant cut' },
@@ -783,7 +784,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isVoMuted ? 'bg-slate-500' : isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'}`}></span>
-                    <span className="font-bold text-[10px] truncate max-w-xs">
+                    <span className="font-bold text-[10px] truncate max-w-xs shrink-0">
                       {voTrack.title}
                     </span>
                     {isVoBuffering && (
@@ -792,15 +793,17 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                         <span>Buffering...</span>
                       </span>
                     )}
-                    <div className="flex items-center gap-0.5 opacity-75 pl-1.5">
-                      {[4, 10, 6, 14, 8, 12, 5, 11, 7, 13, 6, 10].map((h, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-0.5 rounded-full transition-all duration-150 ${isVoMuted ? 'bg-slate-600' : 'bg-emerald-400'}`} 
-                          style={{ height: isPlaying && !isVoMuted ? `${Math.max(2, (h * ((i % 3) + 1)) % 14)}px` : `${Math.min(12, h)}px` }} 
-                        />
-                      ))}
-                    </div>
+                    <TimelineAudioWaveform
+                      trackId={voTrack.id}
+                      type="voiceover"
+                      duration={totalDuration}
+                      pixelsPerSecond={pixelsPerSecond}
+                      isMuted={isVoMuted}
+                      volume={voVolume}
+                      isPlaying={isPlaying}
+                      currentTime={currentTime}
+                      height={14}
+                    />
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
                     <span className="font-mono text-[8px] font-bold text-emerald-400">{isVoMuted ? 'MUTED' : `${voVolume}%`}</span>
@@ -864,7 +867,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isBgmMuted ? 'bg-slate-500' : isPlaying ? 'bg-purple-400 animate-pulse' : 'bg-purple-500'}`}></span>
-                    <span className="font-bold text-[10px] truncate max-w-xs">
+                    <span className="font-bold text-[10px] truncate max-w-xs shrink-0">
                       {currentBgm.title}
                     </span>
                     {isBgmBuffering && (
@@ -873,15 +876,17 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                         <span>Buffering...</span>
                       </span>
                     )}
-                    <div className="flex items-center gap-0.5 opacity-75 pl-1.5">
-                      {[6, 12, 8, 13, 5, 11, 7, 12, 6, 10, 8, 11].map((h, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-0.5 rounded-full transition-all duration-150 ${isBgmMuted ? 'bg-slate-600' : 'bg-purple-400'}`} 
-                          style={{ height: isPlaying && !isBgmMuted ? `${Math.max(2, (h * ((i % 2) + 1.2)) % 14)}px` : `${Math.min(12, h)}px` }} 
-                        />
-                      ))}
-                    </div>
+                    <TimelineAudioWaveform
+                      trackId={currentBgm.id}
+                      type="bgm"
+                      duration={totalDuration}
+                      pixelsPerSecond={pixelsPerSecond}
+                      isMuted={isBgmMuted}
+                      volume={bgmVolume}
+                      isPlaying={isPlaying}
+                      currentTime={currentTime}
+                      height={14}
+                    />
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
                     <span className="font-mono text-[8px] font-bold text-purple-400">{isBgmMuted ? 'MUTED' : `${bgmVolume}%`}</span>

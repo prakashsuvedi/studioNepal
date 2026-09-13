@@ -303,6 +303,9 @@ class Database {
     const user = this.getUserById(userId);
     const isAdmin = user?.role === 'admin';
 
+    const userTier = user?.tier || 'free_trial';
+    const defaultMaxChat = isAdmin ? 999999 : userTier === 'pro_studio' ? 500 : userTier === 'creator' ? 150 : userTier === 'starter' ? 50 : 20;
+
     if (!this.store.trialUsage[userId]) {
       this.store.trialUsage[userId] = {
         userId,
@@ -316,6 +319,8 @@ class Database {
         audioDurationSeconds: 0,
         rendersCount: 0,
         maxRenders: isAdmin ? 99999 : 20,
+        chatCount: 0,
+        maxChat: defaultMaxChat,
         totalTokensUsed: 0,
         lastUsedAt: new Date().toISOString(),
         lastResetDate: today,
@@ -325,11 +330,16 @@ class Database {
     } else {
       // Daily reset check: Reset free daily quota every 24h / calendar day for all users
       const usage = this.store.trialUsage[userId];
+      usage.maxChat = defaultMaxChat;
+      if (typeof usage.chatCount !== 'number') {
+        usage.chatCount = 0;
+      }
       if (usage.lastResetDate !== today) {
         usage.imagesCount = 0;
         usage.videoCount = 0;
         usage.audioCount = 0;
         usage.rendersCount = 0;
+        usage.chatCount = 0;
         usage.videoDurationSeconds = 0;
         usage.audioDurationSeconds = 0;
         usage.lastResetDate = today;

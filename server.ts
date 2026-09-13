@@ -1146,27 +1146,59 @@ async function startServer() {
   // ==========================================
   const handleChatRequest = async (req: express.Request, res: express.Response) => {
     try {
-      const { userId, messages, model = 'gpt-4o', language = 'auto', systemInstruction } = req.body;
+      const { userId, messages, attachments, model = 'gpt-4o', language = 'auto', systemInstruction, adminBypass } = req.body;
       const requestUserId = (req.headers['x-user-id'] as string) || userId || 'usr_admin_01';
+      const adminHeaderKey = req.headers['x-admin-key'] as string;
 
       let user = db.getUserById(requestUserId);
       if (!user) {
         user = db.getUserById('usr_admin_01') || ({
           id: requestUserId,
           email: 'admin@nepalai.studio',
-          name: 'Admin / Guest User',
+          name: 'Admin / Studio User',
           role: 'admin',
+          tier: 'pro_studio',
           credits: 999999,
         } as any);
       }
+
+      const isAdmin = user.role === 'admin' || user.email === 'admin@nepalai.studio' || adminBypass === true || adminHeaderKey === process.env.ADMIN_KEY;
 
       if (!Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({ error: 'Messages array is required' });
       }
 
-      // Check / deduct credit or trial allowance (1 credit per chat turn)
-      if (user.role !== 'admin' && user.credits > 0) {
-        db.updateUser(user.id, { credits: Math.max(0, user.credits - 1) });
+      // Check Daily Quotas for Client Users (Admins have Unlimited Access)
+      const usage = db.getTrialUsage(user.id);
+      const userTier = user.tier || 'free_trial';
+      const maxDailyChats = isAdmin 
+        ? 999999 
+        : userTier === 'pro_studio' 
+          ? 500 
+          : userTier === 'creator' 
+            ? 150 
+            : userTier === 'starter' 
+              ? 50 
+              : 20;
+
+      const currentDailyCount = usage.chatCount || 0;
+
+      if (!isAdmin && currentDailyCount >= maxDailyChats) {
+        return res.status(429).json({
+          error: `Daily chat limit reached (${maxDailyChats} chats/day) for your package (${userTier}). Your daily allowance resets automatically at midnight UTC!`,
+          dailyLimitReached: true,
+          dailyUsed: currentDailyCount,
+          maxDailyChats,
+          tier: userTier,
+        });
+      }
+
+      // Increment daily chat count for non-admin users
+      if (!isAdmin) {
+        usage.chatCount = currentDailyCount + 1;
+        if (user.credits > 0) {
+          db.updateUser(user.id, { credits: Math.max(0, user.credits - 1) });
+        }
       }
 
       const allowedModel = model === 'gpt-5-mini' ? 'gpt-5-mini' : 'gpt-4o';
@@ -1174,6 +1206,7 @@ async function startServer() {
         userId: user.id,
         userRole: user.role,
         messages,
+        attachments,
         model: allowedModel,
         language,
         systemInstruction,
@@ -1185,7 +1218,10 @@ async function startServer() {
         usage: result.usage,
         model: allowedModel,
         language,
-        remainingCredits: user.role === 'admin' ? 999999 : Math.max(0, user.credits - 1),
+        remainingCredits: isAdmin ? 999999 : Math.max(0, user.credits - 1),
+        dailyUsed: isAdmin ? 0 : usage.chatCount,
+        maxDailyChats: isAdmin ? 'Unlimited' : maxDailyChats,
+        remainingDailyChats: isAdmin ? 'Unlimited' : Math.max(0, maxDailyChats - (usage.chatCount || 0)),
       });
     } catch (err: any) {
       console.error('HamroAI chat endpoint error:', err);

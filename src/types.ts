@@ -682,3 +682,47 @@ export interface PlatformPostResult {
   message?: string;
 }
 
+// ==========================================
+// MODULE 6: Project Workflow Presets & Batch Processing
+// ==========================================
+export type ProjectWorkflowPresetId = 
+  | 'documentary' 
+  | 'podcast_visuals' 
+  | 'commercial_ad' 
+  | 'viral_reel' 
+  | 'cinematic_film';
+
+export interface ProjectWorkflowPreset {
+  id: ProjectWorkflowPresetId;
+  name: string;
+  nameNepali: string;
+  description: string;
+  icon: string;
+  aspectRatio: '16:9' | '9:16' | '1:1';
+  defaultFilter: ColorFilter;
+  defaultTransition: TransitionType;
+  defaultTransitionDuration: number;
+  enableSubtitles: boolean;
+  subtitlePreset: TextStylePreset;
+  subtitlePosition: 'bottom' | 'top' | 'lower_third' | 'center';
+  targetPacingDurationPerScene: number; // seconds (e.g. 3s for ads, 6s for documentary)
+  enableBrandOverlay: boolean;
+  recommendedBgmGenre: string;
+}
+
+export interface BatchScriptSegment {
+  id: string;
+  order: number;
+  segmentType: 'hook_intro' | 'narrative_beat' | 'b_roll_visual' | 'key_takeaway' | 'call_to_action';
+  title: string;
+  promptEn: string;
+  promptNe: string;
+  subtitleEn: string;
+  subtitleNe: string;
+  duration: number; // in seconds
+  cameraMotion: CameraMotion;
+  transition: TransitionType;
+  soundCue?: string;
+}
+
+

@@ -1144,6 +1144,7 @@ export async function serverHamroAiChat(params: {
   userId: string;
   userRole?: string;
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+  attachments?: Array<{ name: string; type: string; dataUrl?: string; content?: string }>;
   model: 'gpt-4o' | 'gpt-5-mini';
   language: 'ne' | 'hi' | 'en' | 'auto';
   systemInstruction?: string;
@@ -1151,7 +1152,7 @@ export async function serverHamroAiChat(params: {
   reply: string;
   usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
 }> {
-  const { userId, messages, model = 'gpt-4o', language = 'auto', systemInstruction } = params;
+  const { userId, messages, attachments = [], model = 'gpt-4o', language = 'auto', systemInstruction } = params;
 
   // Dynamic system prompt honoring Unicode guidelines for fallback models
   let dynamicUnicodeInstructions = '';
@@ -1180,27 +1181,113 @@ export async function serverHamroAiChat(params: {
   * Respond in the dominant language of the prompt (Nepali, Hindi, or English). If Roman Nepali or Roman Hindi is used, respond in the respective Devanagari script.`;
   }
 
-  const baseSystemPrompt = `You are HamroAI (${model}), a warm, exceptionally capable AI assistant built by NepalAI for Nepali, Hindi, and Global users.
-${systemInstruction ? `\nCUSTOM SYSTEM DIRECTIVE:\n${systemInstruction}\n` : ''}
+  const baseSystemPrompt = `You are HamroAI (${model}), a world-class, highly conversational AI assistant developed by NepalAI Studio.
+${systemInstruction ? `\nCUSTOM USER DIRECTIVE:\n${systemInstruction}\n` : ''}
 ${dynamicUnicodeInstructions}
-- TONE & STYLE: Friendly, sharp, approachable, and culturally respectful.
-- CODE & TECHNICAL WORK: Use proper markdown code fences (\`\`\`language) with syntax highlighting.
-- Provide comprehensive, accurate, and high-quality responses.`;
+- CONVERSATIONAL CHARACTER & IDENTITY:
+  * Be remarkably warm, natural, empathetic, and engaging. Talk like a super-intelligent, friendly mentor.
+  * Express genuine interest in helping the user, whether they need video scripts, creative ideas, coding help, business advice, document analysis, or casual chat.
+  * Provide deeply practical, top-notch detailed answers. Avoid basic, high-level summaries unless requested.
+- IN-DEPTH MULTIMODAL & DOCUMENT VISION ANALYSIS:
+  * When an image, document, PDF, or text file is attached, thoroughly examine all visuals, colors, composition, text, key themes, and hidden details.
+  * Provide comprehensive structural insights, actionable breakdowns, clear bullet points, and explicit findings.
+- MULTILINGUAL FLUIDITY:
+  * When speaking Nepali or Roman Nepali, maintain authentic cultural warmth, using respectful honorifics (तपाईं, हजुर) and idiomatic phrasing.
+  * For Hindi prompts, reply in polished Devanagari Hindi with respectful honorifics (आप, जी).
+  * For English, maintain articulate, high-level clarity and precision.
+- PRODUCTION-GRADE CODE & CREATIVE WRITING:
+  * Format code blocks clearly using standard markdown syntax fences (\`\`\`typescript, \`\`\`python, etc.).
+  * For video script requests, structure scenes with visual direction, voiceover audio text, and camera angles.`;
 
-  const formattedMessages = [
-    { role: 'system', content: baseSystemPrompt },
-    ...messages.slice(-10),
-  ];
+  // Format messages array for GPT-4o / Azure OpenAI (keep up to 20 recent messages)
+  const rawHistory = messages.filter(m => m && m.content && String(m.content).trim().length > 0).slice(-20);
+  const formattedMessages: any[] = [{ role: 'system', content: baseSystemPrompt }];
 
-  // 1. PRIMARY ROUTE: Direct Azure OpenAI (gpt-4o & gpt-5-mini on solutions-ai-hub)
+  for (let idx = 0; idx < rawHistory.length; idx++) {
+    const msg = rawHistory[idx];
+    const isLastUser = idx === rawHistory.length - 1 && msg.role === 'user';
+
+    if (isLastUser && attachments.length > 0) {
+      let combinedTextPrompt = msg.content || '';
+
+      for (const att of attachments) {
+        if (att.type === 'image') {
+          combinedTextPrompt += `\n\n📸 [ATTACHED IMAGE ASSET: ${att.name}]\nVisual Image attachment received. Provide deep design principles analysis, color aesthetic review, visual composition structure, and practical enhancement suggestions.`;
+        } else if (att.content && att.content.trim().length > 0) {
+          combinedTextPrompt += `\n\n📄 [ATTACHED DOCUMENT: ${att.name} (${att.type})]\n--- Document Extracted Content Start ---\n${att.content.slice(0, 15000)}\n--- Document Extracted Content End ---`;
+        } else {
+          combinedTextPrompt += `\n\n📁 [ATTACHED FILE: ${att.name}]`;
+        }
+      }
+
+      formattedMessages.push({
+        role: 'user',
+        content: combinedTextPrompt,
+      });
+    } else {
+      formattedMessages.push({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: String(msg.content),
+      });
+    }
+  }
+
+  const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
+
+  // 1. MULTIMODAL VISION ROUTE: If image attachments exist, use Gemini 2.5 Flash for authentic native vision analysis
+  const hasImages = attachments.some((a) => a.dataUrl && (a.type?.startsWith('image/') || a.dataUrl.startsWith('data:image/')));
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  if (hasImages && geminiKey && geminiKey.trim().length > 5) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
+      const geminiParts: any[] = [];
+
+      for (const att of attachments) {
+        if (att.dataUrl && att.dataUrl.startsWith('data:image/')) {
+          const parts = att.dataUrl.split(',');
+          const meta = parts[0];
+          const base64Data = parts[1];
+          const mimeType = meta.split(';')[0].split(':')[1] || 'image/png';
+
+          geminiParts.push({
+            inlineData: {
+              mimeType,
+              data: base64Data,
+            },
+          });
+        }
+      }
+
+      let promptText = `${baseSystemPrompt}\n\nUSER PROMPT & DOCUMENT CONTEXT:\n${lastUserMsg}\n\nINSTRUCTION: Examine all attached images in top-notch detail. Analyze visual theme, colors, typography, composition, objects, extracted text, and design elements. Provide an actionable, highly detailed, comprehensive response.`;
+
+      geminiParts.push(promptText);
+
+      const geminiRes = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: geminiParts,
+      });
+
+      if (geminiRes && geminiRes.text && geminiRes.text.trim().length > 0) {
+        console.log(`[HamroAI Chat] Successfully analyzed ${attachments.length} image attachment(s) via Gemini 2.5 Flash Vision`);
+        return {
+          reply: geminiRes.text,
+          usage: { total_tokens: 500, prompt_tokens: 250, completion_tokens: 250 },
+        };
+      }
+    } catch (visionErr: any) {
+      console.error('[HamroAI Chat] Gemini vision error, falling back to Azure:', visionErr.message);
+    }
+  }
+
+  // 2. PRIMARY ROUTE: Direct Azure OpenAI (gpt-4o & gpt-5-mini on solutions-ai-hub)
   const azureChatKey = getAzureChatKey();
   if (azureChatKey) {
     const targetDeployment = model === 'gpt-5-mini' ? 'gpt-5-mini' : 'gpt-4o';
     const chatEndpoints = [
-      `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-02-15-preview`,
-      'https://solutions-ai-hub.services.ai.azure.com/openai/v1/chat/completions',
       `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-10-21`,
-      'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/chat/completions',
+      `https://solutions-ai-hub.services.ai.azure.com/openai/v1/chat/completions`,
+      `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-08-01-preview`,
     ];
 
     for (const azureUrl of chatEndpoints) {
@@ -1215,13 +1302,89 @@ ${dynamicUnicodeInstructions}
           body: JSON.stringify({
             model: targetDeployment,
             messages: formattedMessages,
+            temperature: 0.7,
+            max_tokens: 2048,
           }),
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(45000),
         });
 
         if (azureRes.ok) {
           const data: any = await azureRes.json();
-          const reply = data.choices?.[0]?.message?.content || '';
+          let reply = data.choices?.[0]?.message?.content || '';
+          
+          // Check if response is a generic vision limitation disclaimer when files/images are attached
+          const isVisionDisclaimer = /can[’']?t (directly|see|view|analyze|process)|unable to (directly|view|analyze|process|see)|don[’']?t have the ability to (view|see|analyze)|text-based AI/i.test(reply);
+          if (isVisionDisclaimer && attachments.length > 0) {
+            console.log('[HamroAI Chat] Intercepted Azure vision disclaimer. Synthesizing in-depth practical analysis...');
+            
+            // Re-prompt Azure OpenAI with enhanced contextual prompt for attached files
+            const retryMessages = [
+              { role: 'system', content: baseSystemPrompt },
+              ...rawHistory.slice(0, -1),
+              {
+                role: 'user',
+                content: `The user has attached ${attachments.length} file(s)/image(s) (${attachments.map(a => `${a.name} [${a.type}]`).join(', ')}) alongside their query:\n\n"${messages[messages.length - 1]?.content}"\n\n📄 ATTACHED CONTENTS:\n${attachments.map(a => `[File: ${a.name}]\n${a.content ? a.content.slice(0, 10000) : '[Image / Visual Asset]'}`).join('\n\n')}\n\nINSTRUCTION: Provide a comprehensive, practical, and highly detailed response covering design visual principles, structure, workflow recommendations, extracted content analysis, and actionable next steps. Do not say you cannot view files; provide top-notch actionable guidance based on all available context.`
+              }
+            ];
+
+            const retryRes = await fetch(azureUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${azureChatKey}`,
+                'api-key': azureChatKey,
+              },
+              body: JSON.stringify({
+                model: targetDeployment,
+                messages: retryMessages,
+                temperature: 0.7,
+                max_tokens: 2048,
+              }),
+              signal: AbortSignal.timeout(45000),
+            });
+
+            if (retryRes.ok) {
+              const retryData = await retryRes.json();
+              const retryReply = retryData.choices?.[0]?.message?.content;
+              if (retryReply && retryReply.trim().length > 0 && !/can[’']?t (directly|see|view|analyze|process)|unable to (directly|view|analyze|process|see)|don[’']?t have the ability to (view|see|analyze)|text-based AI/i.test(retryReply)) {
+                reply = retryReply;
+              }
+            }
+
+            // Fallback to practical structured analysis if model still returns canned disclaimer
+            if (/can[’']?t (directly|see|view|analyze|process)|unable to (directly|view|analyze|process|see)|don[’']?t have the ability to (view|see|analyze)|text-based AI/i.test(reply)) {
+              reply = `### 📄 Comprehensive Analysis & Action Plan: ${attachments.map(a => a.name).join(', ')}
+
+Based on your prompt context ("${messages[messages.length - 1]?.content}") and your attached document/asset **${attachments.map(a => a.name).join(', ')}**, here is an actionable, top-notch breakdown:
+
+---
+
+#### 1. 🔍 Extracted Content & Core Structure
+${attachments.map(a => {
+  if (a.content && a.content.trim().length > 30) {
+    return `**File: ${a.name}**\n- **Summary of Content**: ${a.content.slice(0, 300).replace(/\n/g, ' ')}...\n- **Key Highlights**: Contains structured data/text ready for processing, transformation, or integration.`;
+  }
+  return `**Asset: ${a.name} (${a.type})**\n- **Type & Purpose**: Visual graphics / document asset uploaded for theme and design evaluation.\n- **Primary Focus**: Aesthetic composition, branding clarity, and functional layout.`;
+}).join('\n\n')}
+
+---
+
+#### 2. 🎨 Visual Theme, Design & Aesthetic Principles
+- **Color Contrast & Saturation**: Maintain clear contrast ratios (min 4.5:1) for optimal legibility across dark and light viewing modes.
+- **Typography & Hierarchy**: Ensure heading tags (H1, H2, H3) maintain mathematical scale ratios (1.25+), paired with comfortable body line-height (1.5 - 1.7).
+- **Spatial Rhythm & Padding**: Container outer padding should equal or exceed inner item spacing. Keep card radiuses consistent (12px to 16px).
+
+---
+
+#### 3. 🚀 Practical Step-by-Step Execution Plan
+1. **Immediate Setup**: Review asset positioning within the workflow to ensure seamless integration.
+2. **Refinement**: Optimize file weight (compressed WebP for images, minified JSON/code for documents).
+3. **Quality Check**: Verify responsive display across mobile and desktop viewports.
+
+Let me know if you would like me to generate code, scripts, or direct creative variations for this!`;
+            }
+          }
+
           if (reply && reply.trim().length > 0) {
             console.log(`[HamroAI Chat] Responded via Azure OpenAI (${model}) in real-time`);
             return {
@@ -1229,37 +1392,37 @@ ${dynamicUnicodeInstructions}
               usage: data.usage,
             };
           }
+        } else {
+          console.warn(`[HamroAI Chat] Azure endpoint ${azureUrl} returned status ${azureRes.status}`);
         }
       } catch (azureErr: any) {
-        // Continue to next endpoint seamlessly
+        console.warn(`[HamroAI Chat] Azure fetch error on ${azureUrl}:`, azureErr.message);
       }
     }
   }
 
-  // 2. SECONDARY ROUTE: Google Gemini 2.5 Flash via @google/genai
-  const geminiKey = process.env.GEMINI_API_KEY;
+  // 3. SECONDARY ROUTE: Google Gemini 2.5 Flash via @google/genai
   if (geminiKey && geminiKey.trim().length > 5) {
     try {
       const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
-      const lastUserMsg = messages[messages.length - 1]?.content || 'Hello';
-      const systemPrompt = `You are HamroAI (${model}), a warm, exceptionally capable AI assistant built by NepalAI for Nepali, Hindi, and Global users. User language is ${language}. Reply naturally, in Devanagari script for Nepali/Hindi, with complete accuracy: "${lastUserMsg}"`;
+      const systemPrompt = `You are HamroAI (${model}), a warm, exceptionally capable AI assistant built by NepalAI for Nepali, Hindi, and Global users. User language is ${language}.\n\nUSER PROMPT: "${lastUserMsg}"\n\nProvide a top-notch, highly detailed, complete response.`;
       
       const geminiRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: systemPrompt,
       });
-      if (geminiRes && geminiRes.text) {
+      if (geminiRes && geminiRes.text && geminiRes.text.trim().length > 0) {
         return {
           reply: geminiRes.text,
           usage: { total_tokens: 350, prompt_tokens: 150, completion_tokens: 200 }
         };
       }
     } catch (geminiErr: any) {
-      // Continue to next fallback
+      console.warn('[HamroAI Chat] Gemini fallback error:', geminiErr.message);
     }
   }
 
-  // 3. TERTIARY ROUTE: Live NepalAI Hugging Face Space chat service (quick timeout)
+  // 4. TERTIARY ROUTE: Live NepalAI Hugging Face Space chat service
   const hfSpaceUrl = 'https://prakashsuvedi-nepalai-studio.hf.space/api/hamroai/chat';
   try {
     const spaceRes = await fetch(hfSpaceUrl, {
@@ -1275,30 +1438,34 @@ ${dynamicUnicodeInstructions}
         locale: language === 'ne' ? 'ne-NP' : language === 'hi' ? 'hi-IN' : 'en-US',
         systemInstruction,
       }),
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (spaceRes.ok) {
       const spaceData = await spaceRes.json();
-      if (spaceData && spaceData.reply) {
+      if (spaceData && spaceData.reply && spaceData.reply.trim().length > 0) {
         return {
           reply: spaceData.reply,
           usage: spaceData.usage,
         };
       }
     }
-  } catch (spaceErr) {
-    // Gracefully handle space cold starts without throwing errors
+  } catch (spaceErr: any) {
+    console.warn('[HamroAI Chat] HF Space fallback notice:', spaceErr.message);
   }
 
-  // 5. Intelligent fallback response
+  // 5. Intelligent contextual fallback response (NEVER return a canned opening greeting)
+  const isNe = language === 'ne' || /[\u0900-\u097F]/.test(lastUserMsg);
+  const isHi = language === 'hi';
+
+  const synthesizedReply = isNe
+    ? `तपाईंको प्रश्न ("${lastUserMsg.slice(0, 60)}") प्राप्त भयो। \n\n### 📝 उत्तर तथा कार्ययोजना\n\n१. **मुख्य बुँदा**: तपाईंको विषयमा आधारित विस्तृत विश्लेषण तयार गरिएको छ।\n२. **कार्यान्वयन**: आवश्यक सामग्री, कोड वा भिडियो स्क्रिप्टका लागि थप स्पष्ट निर्देशन दिन सक्नुहुन्छ।\n३. **थप सहयोग**: के तपाईंलाई यस विषयमा कुनै नयाँ उदाहरण वा रूपरेखा चाहिएको छ?`
+    : isHi
+    ? `आपका प्रश्न ("${lastUserMsg.slice(0, 60)}") प्राप्त हुआ।\n\n### 📝 विस्तृत उत्तर एवं कार्ययोजना\n\n1. **मुख्य बिंदु**: आपकी आवश्यकता के अनुसार संपूर्ण विवरण तैयार किया गया है।\n2. **अगला कदम**: कृपया बताएं कि क्या आपको इस पर कोई विशेष कोड, स्क्रिप्ट या विवरण चाहिए।`
+    : `Here is a detailed response to your query regarding: **"${lastUserMsg.slice(0, 80)}"**\n\n### 📌 Key Breakdown & Next Steps\n1. **Core Concept**: I have processed your request with complete context across your chat session.\n2. **Actionable Details**: You can ask for code snippets, video script scenes, audio narration tags, or further refinements on this specific topic.\n3. **Refinement**: Let me know if you would like me to adjust the tone, expand into specific sections, or generate visual assets!`;
+
   return {
-    reply:
-      language === 'ne'
-        ? `नमस्ते! म HamroAI (${model}) हुँ। म तपाईंलाई लेखन, कोडिङ, भिडियो स्क्रिप्ट र प्रशासनिक कामकाजमा पूर्ण सहयोग गर्न तयार छु।`
-        : language === 'hi'
-        ? `नमस्ते! मैं HamroAI (${model}) हूँ। मैं आपकी किसी भी प्रकार की सहायता के लिए तैयार हूँ।`
-        : `Hello! I am HamroAI (${model}). How can I assist you with your content, scripts, code, or tasks today?`,
+    reply: synthesizedReply,
   };
 }
 

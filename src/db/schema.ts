@@ -33,6 +33,8 @@ export interface TrialUsage {
   audioDurationSeconds: number; // max 240s
   rendersCount: number;
   maxRenders: number;
+  chatCount?: number;
+  maxChat?: number;
   totalTokensUsed: number;
   lastUsedAt: string;
   lastResetDate?: string; // YYYY-MM-DD

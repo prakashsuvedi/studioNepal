@@ -4,6 +4,7 @@ import { apiGetHfStatus } from '../lib/api';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { NepalAiLogo } from './NepalAiLogo';
 import { 
   Film, 
   Image as ImageIcon, 
@@ -155,32 +156,10 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-2 cursor-pointer group shrink-0"
               title="NepalAI Studio - Home"
             >
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-slate-900 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.2)] group-hover:border-cyan-400/60 group-hover:scale-105 transition duration-150 shrink-0">
-                <img 
-                  src="/logo.jpg" 
-                  alt="NepalAI Logo" 
-                  className="w-full h-full object-cover" 
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent && !parent.querySelector('.logo-fallback')) {
-                      const fallbackEl = document.createElement('div');
-                      fallbackEl.className = 'logo-fallback w-full h-full bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black';
-                      fallbackEl.innerText = 'NAI';
-                      parent.appendChild(fallbackEl);
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white group-hover:text-cyan-300 transition">
-                  NepalAI
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 hidden md:inline">
-                  Studio 2.0
-                </span>
-              </div>
+              <NepalAiLogo size="md" />
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 hidden lg:inline">
+                2.0
+              </span>
             </div>
 
             {/* Primary Navigation Menus */}

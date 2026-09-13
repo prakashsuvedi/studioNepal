@@ -52,6 +52,7 @@ import { ViralTemplatesSection } from './ViralTemplatesSection';
 import { ViralTemplate } from '../data/viralTemplates';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { NepalAiLogo } from './NepalAiLogo';
 
 interface LandingPageViewProps {
   user: UserSession | null;
@@ -247,6 +248,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
       {/* World-Class Interactive Studio Hero Section */}
       <section className="relative pt-4 sm:pt-8 pb-14 sm:pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Top Logo Brand Header */}
+        <div className="flex justify-center mb-6">
+          <NepalAiLogo size="xl" />
+        </div>
+
         {/* Top Floating Engine Status & Local Currency Badge */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6 sm:mb-8">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-xs text-slate-300 backdrop-blur-xl shadow-lg shadow-cyan-950/40">
@@ -1624,11 +1630,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       {/* FOOTER BANNER */}
       <footer className="border-t border-slate-900 py-10 px-4 text-center text-xs text-slate-500 bg-slate-950">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5">
-          <div className="text-left space-y-1">
-            <div className="flex items-center gap-2 text-slate-400">
-              <span className="font-bold text-white text-sm">studio.nepalai.tech</span>
-              <span>•</span>
-              <span>Nepal's Premier AI Video & Creative Suite</span>
+          <div className="text-left space-y-2">
+            <div className="flex items-center gap-3">
+              <NepalAiLogo size="md" />
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-300 font-medium">Nepal's Premier AI Video & Creative Suite</span>
             </div>
             <p className="text-[11px] text-slate-500">
               YouTube Videos • Shorts • Instagram Reels • TikTok • Business Ads • Freelance Earning Studio

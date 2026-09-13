@@ -77,7 +77,9 @@ interface ChatThread {
 
 interface AttachedFile {
   name: string;
+  type: 'image' | 'pdf' | 'doc' | 'text';
   content: string;
+  dataUrl?: string;
   size: number;
 }
 
@@ -135,6 +137,11 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, 'up' | 'down'>>({});
+  const [dailyStats, setDailyStats] = useState<{
+    dailyUsed: number;
+    maxDailyChats: number | string;
+    remainingDailyChats: number | string;
+  } | null>(null);
 
   // Text to Image (GPT-Image-1.5) Modal State
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -281,14 +288,20 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
   // Handle Input typing with optional phonetic Devanagari transliteration
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
-    if (isUnicodeMode && (selectedLanguage === 'ne' || selectedLanguage === 'hi')) {
+    if (isUnicodeMode) {
       if (val.endsWith(' ') || val.endsWith(',') || val.endsWith('.') || val.endsWith('?') || val.endsWith('\n')) {
-        const transliterated = transliterateDevanagari(val, selectedLanguage);
+        const transliterated = transliterateDevanagari(val, selectedLanguage === 'hi' ? 'hi' : 'ne');
         setInputPrompt(transliterated);
         return;
       }
     }
     setInputPrompt(val);
+  };
+
+  const transliterateCurrentPrompt = () => {
+    if (!inputPrompt) return;
+    const transliterated = transliterateDevanagari(inputPrompt, selectedLanguage === 'hi' ? 'hi' : 'ne');
+    setInputPrompt(transliterated);
   };
 
   const insertSymbol = (symbol: string) => {
@@ -301,15 +314,58 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
     if (!files || files.length === 0) return;
 
     Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
-        setAttachedFiles((prev) => [
-          ...prev,
-          { name: file.name, content: content || '', size: file.size },
-        ]);
-      };
-      reader.readAsText(file);
+      const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string;
+          setAttachedFiles((prev) => [
+            ...prev,
+            {
+              name: file.name,
+              type: 'image',
+              content: `[Attached Image: ${file.name}]`,
+              dataUrl,
+              size: file.size,
+            },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      } else if (isPdf) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const raw = event.target?.result as string;
+          const textExcerpt = (typeof raw === 'string' ? raw : '').replace(/[^\x20-\x7E\x0A\x0D]/g, ' ').replace(/\s+/g, ' ').trim();
+          setAttachedFiles((prev) => [
+            ...prev,
+            {
+              name: file.name,
+              type: 'pdf',
+              content: textExcerpt.length > 30 ? textExcerpt : `[Attached PDF Document: ${file.name}]`,
+              dataUrl: typeof raw === 'string' && raw.startsWith('data:') ? raw : undefined,
+              size: file.size,
+            },
+          ]);
+        };
+        reader.readAsText(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target?.result as string;
+          setAttachedFiles((prev) => [
+            ...prev,
+            {
+              name: file.name,
+              type: 'doc',
+              content: content || '',
+              size: file.size,
+            },
+          ]);
+        };
+        reader.readAsText(file);
+      }
     });
 
     // Reset input
@@ -324,14 +380,18 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
   };
 
   const handleSendMessage = async (customPrompt?: string) => {
-    let textToSend = (customPrompt !== undefined ? customPrompt : inputPrompt).trim();
+    let rawText = (customPrompt !== undefined ? customPrompt : inputPrompt).trim();
     
-    // If files are attached, prepend file context
-    if (attachedFiles.length > 0) {
-      const fileContext = attachedFiles
-        .map((f) => `--- Attached File: ${f.name} ---\n${f.content.slice(0, 3000)}`)
-        .join('\n\n');
-      textToSend = `${textToSend}\n\n${fileContext}`;
+    // Auto-transliterate if Unicode mode is active
+    if (isUnicodeMode && rawText) {
+      rawText = transliterateDevanagari(rawText, selectedLanguage === 'hi' ? 'hi' : 'ne');
+    }
+
+    let textToSend = rawText;
+    const currentAttachments = [...attachedFiles];
+
+    if (!textToSend && currentAttachments.length > 0) {
+      textToSend = `Detailed analysis request for ${currentAttachments.length} attached file(s).`;
     }
 
     if (!textToSend || isLoading) return;
@@ -383,8 +443,8 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
       if (onStartGlobalLoading) {
         onStartGlobalLoading({
           type: 'hamroai',
-          title: `HamroAI (${selectedModel.toUpperCase()}) Generating Response...`,
-          subtitle: `Processing ${selectedLanguage === 'ne' ? 'Nepali Devanagari' : selectedLanguage === 'hi' ? 'Hindi Devanagari' : 'English'} with Unicode enforcement`,
+          title: `HamroAI (${selectedModel.toUpperCase()}) Analyzing Prompt & Attachments...`,
+          subtitle: `Processing ${currentAttachments.length > 0 ? `${currentAttachments.length} attachment(s) & ` : ''}${selectedLanguage === 'ne' ? 'Nepali Devanagari' : selectedLanguage === 'hi' ? 'Hindi Devanagari' : 'English'} with Unicode enforcement`,
         });
       }
 
@@ -393,13 +453,29 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
         content: m.content,
       }));
 
+      const attachmentPayload = currentAttachments.map((f) => ({
+        name: f.name,
+        type: f.type,
+        dataUrl: f.dataUrl,
+        content: f.content,
+      }));
+
       const res = await apiSendHamroAiChat({
         userId: user.id,
         messages: historyPayload,
+        attachments: attachmentPayload,
         model: selectedModel,
         language: selectedLanguage,
         systemInstruction: customSystemInstruction || undefined,
       });
+
+      if (res.dailyUsed !== undefined && res.maxDailyChats !== undefined) {
+        setDailyStats({
+          dailyUsed: res.dailyUsed,
+          maxDailyChats: res.maxDailyChats,
+          remainingDailyChats: res.remainingDailyChats ?? 'Unlimited',
+        });
+      }
 
       if (onStopGlobalLoading) {
         onStopGlobalLoading();
@@ -1111,6 +1187,21 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               </button>
             </div>
 
+            {/* Daily Quota / Admin Status Badge */}
+            <div className="flex items-center px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+              {user?.role === 'admin' ? (
+                <span className="text-emerald-400 font-bold">Admin: Unlimited</span>
+              ) : (
+                <span className="text-slate-300">
+                  Daily Quota:{' '}
+                  <strong className="text-cyan-300">
+                    {dailyStats?.dailyUsed ?? 0} / {dailyStats?.maxDailyChats ?? (user?.tier === 'pro_studio' ? 500 : user?.tier === 'creator' ? 150 : user?.tier === 'starter' ? 50 : 20)}
+                  </strong>
+                </span>
+              )}
+            </div>
+
             {/* Language Selector Dropdown */}
             <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl px-2.5 py-1 text-xs gap-2 shadow-sm">
               <Languages className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
@@ -1659,33 +1750,47 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
         <div className="p-3 md:p-4 z-10 w-full">
           <div className="max-w-4xl mx-auto">
             
-            {/* Attached Files Preview Chips */}
+            {/* Attached Files Preview Chips & Image Thumbnails */}
             {attachedFiles.length > 0 && (
               <div className="flex items-center gap-2 mb-2 overflow-x-auto py-1">
                 {attachedFiles.map((file, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-slate-800/90 border border-slate-700 rounded-xl text-xs text-slate-200 shadow-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/90 border border-slate-700/90 rounded-2xl text-xs text-slate-200 shadow-md group shrink-0"
                   >
-                    <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                    <span className="truncate max-w-[140px]">{file.name}</span>
+                    {file.type === 'image' && file.dataUrl ? (
+                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 flex-shrink-0">
+                        <img src={file.dataUrl} alt={file.name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className={`p-1.5 rounded-lg ${file.type === 'pdf' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'}`}>
+                        <FileText className="w-4 h-4" />
+                      </div>
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-xs text-white truncate max-w-[150px]">{file.name}</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-mono">
+                        {file.type} • {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
                     <button
                       onClick={() => removeAttachment(idx)}
-                      className="text-slate-500 hover:text-red-400 ml-1"
+                      className="text-slate-500 hover:text-red-400 p-1 rounded-md hover:bg-slate-800 transition ml-1 cursor-pointer"
+                      title="Remove attachment"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Hidden File Input */}
+            {/* Hidden File Input (Images, PDFs, Docs, Code) */}
             <input
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".txt,.md,.json,.csv,.js,.ts,.tsx,.py,.html,.css"
+              accept="image/*,.pdf,.doc,.docx,.txt,.md,.json,.csv,.js,.ts,.tsx,.py,.html,.css,.rtf"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -1807,17 +1912,35 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   
                   {/* Unicode Pill Toggle */}
                   <button
-                    onClick={() => setIsUnicodeMode(!isUnicodeMode)}
+                    onClick={() => {
+                      const nextMode = !isUnicodeMode;
+                      setIsUnicodeMode(nextMode);
+                      if (nextMode && inputPrompt) {
+                        transliterateCurrentPrompt();
+                      }
+                    }}
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-xl transition text-xs font-semibold cursor-pointer ${
                       isUnicodeMode
                         ? 'bg-purple-600/20 text-purple-300 border border-purple-500/40 shadow-xs'
                         : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
                     }`}
-                    title="Phonetic Roman-to-Devanagari Unicode transliteration on space"
+                    title="Phonetic Roman-to-Devanagari Unicode transliteration (Translates on space & submit)"
                   >
-                    <div className={`w-2 h-2 rounded-full ${isUnicodeMode ? 'bg-purple-400' : 'bg-slate-500'}`} />
+                    <div className={`w-2 h-2 rounded-full ${isUnicodeMode ? 'bg-purple-400 animate-pulse' : 'bg-slate-500'}`} />
                     <span>Unicode: {isUnicodeMode ? 'ON' : 'OFF'}</span>
                   </button>
+
+                  {/* Manual Transliterate Button */}
+                  {inputPrompt.trim().length > 0 && (
+                    <button
+                      onClick={transliterateCurrentPrompt}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer"
+                      title="Convert Romanized text to Devanagari Unicode right now"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>क Convert</span>
+                    </button>
+                  )}
 
                   {/* Attach Button */}
                   <button

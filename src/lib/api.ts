@@ -389,6 +389,7 @@ export async function apiAdminUpdateUser(
 export async function apiSendHamroAiChat(params: {
   userId: string;
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+  attachments?: Array<{ name: string; type: string; dataUrl?: string; content?: string }>;
   model: 'gpt-4o' | 'gpt-5-mini';
   language: 'ne' | 'hi' | 'en' | 'auto';
   systemInstruction?: string;
@@ -398,6 +399,10 @@ export async function apiSendHamroAiChat(params: {
   usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
   model: string;
   language: string;
+  remainingCredits?: number;
+  dailyUsed?: number;
+  maxDailyChats?: number | string;
+  remainingDailyChats?: number | string;
 }> {
   const res = await fetch('/api/hamroai/chat', {
     method: 'POST',

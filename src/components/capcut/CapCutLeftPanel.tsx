@@ -106,6 +106,8 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   
   // Audio preview playing state
   const [playingAudioUrl, setPlayingAudioUrl] = useState<string | null>(null);
+  const [pixabaySearchQuery, setPixabaySearchQuery] = useState('');
+  const [pixabayActiveGenre, setPixabayActiveGenre] = useState<string>('all');
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   // File input ref for fast local importing
@@ -528,66 +530,106 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   // User-generated and imported voiceovers/audio from media library (Strictly for the Audio Tab)
   const importedVoiceovers = mediaItems.filter(item => isAudioItem(item));
 
-  // High-Quality Royalty-Free Music Samples (Nepali & Cinematic)
+  // High-Quality Royalty-Free Music Samples (Pixabay Melodies, Nepali & Cinematic)
   const bgmSampleCatalog: AudioTrack[] = [
     {
-      id: 'bgm-sample-himalayan-breeze',
-      title: 'Himalayan Morning Breeze',
-      artist: 'Acoustic Bansuri Ensemble',
+      id: 'bgm-pixabay-melody-sunrise',
+      title: 'Gentle Morning Melody',
+      artist: 'Pixabay Acoustic Lab',
       url: '/audio/himalayan_breeze.mp3',
       duration: 32,
       volume: 80,
-      genre: 'Himalayan Folk',
+      genre: 'Melody',
       type: 'bgm'
     },
     {
-      id: 'bgm-sample-kathmandu-beats',
-      title: 'Kathmandu Urban Lo-Fi',
-      artist: 'Patan Studio Beats',
+      id: 'bgm-pixabay-piano-reflection',
+      title: 'Inspiring Cinematic Piano',
+      artist: 'Pixabay Classical Studio',
+      url: '/audio/temple_bells.mp3',
+      duration: 26,
+      volume: 75,
+      genre: 'Piano',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-pixabay-lofi-beats',
+      title: 'Chillhop Lo-Fi Study Beats',
+      artist: 'Pixabay Urban Beats',
       url: '/audio/kathmandu_beats.mp3',
       duration: 28,
       volume: 75,
-      genre: 'Lo-Fi Chill',
+      genre: 'Lo-Fi',
       type: 'bgm'
     },
     {
-      id: 'bgm-sample-temple-dawn',
-      title: 'Pashupati Temple Dawn Chimes',
-      artist: 'Sacred Himalayan Sounds',
-      url: '/audio/temple_bells.mp3',
-      duration: 24,
-      volume: 70,
-      genre: 'Spiritual Ambient',
-      type: 'bgm'
-    },
-    {
-      id: 'bgm-sample-mountain-bansuri',
-      title: 'Annapurna Valley Bansuri',
-      artist: 'Traditional Flute Master',
-      url: '/audio/sfx_flute.mp3',
+      id: 'bgm-pixabay-acoustic-guitar',
+      title: 'Warm Acoustic Folk Guitar',
+      artist: 'Pixabay Indie Strings',
+      url: '/audio/himalayan_breeze.mp3',
       duration: 30,
-      volume: 85,
-      genre: 'Acoustic Folk',
+      volume: 80,
+      genre: 'Acoustic',
       type: 'bgm'
     },
     {
-      id: 'bgm-sample-everest-winds',
-      title: 'Everest Glacial Summit Winds',
-      artist: 'Cinematic Soundscapes',
+      id: 'bgm-pixabay-cinematic-epic',
+      title: 'Everest Glacial Summit Trail',
+      artist: 'Pixabay Cinematic Soundscapes',
       url: '/audio/sfx_wind.mp3',
       duration: 35,
-      volume: 90,
-      genre: 'Epic Cinematic',
+      volume: 85,
+      genre: 'Cinematic',
       type: 'bgm'
     },
     {
-      id: 'bgm-sample-monsoon-rain',
+      id: 'bgm-pixabay-bansuri-folk',
+      title: 'Annapurna Valley Bansuri Melody',
+      artist: 'Himalayan Folk Heritage',
+      url: '/audio/sfx_flute.mp3',
+      duration: 30,
+      volume: 80,
+      genre: 'Folk',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-pixabay-monsoon-rain',
       title: 'Kathmandu Monsoon Serenade',
-      artist: 'Nepal Nature Records',
+      artist: 'Pixabay Nature Atmos',
       url: '/audio/sfx_rain.mp3',
       duration: 30,
       volume: 70,
-      genre: 'Nature Atmos',
+      genre: 'Melody',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-pixabay-temple-peace',
+      title: 'Sacred Meditation Chimes',
+      artist: 'Pixabay World Heritage',
+      url: '/audio/temple_bells.mp3',
+      duration: 24,
+      volume: 70,
+      genre: 'Piano',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-pixabay-travel-vlog',
+      title: 'Upbeat Vlog Summer Beats',
+      artist: 'Pixabay Creator Audio',
+      url: '/audio/kathmandu_beats.mp3',
+      duration: 28,
+      volume: 80,
+      genre: 'Lo-Fi',
+      type: 'bgm'
+    },
+    {
+      id: 'bgm-pixabay-mountain-wind',
+      title: 'Himalayan Atmospheric Windscape',
+      artist: 'Pixabay Field Recordings',
+      url: '/audio/sfx_wind.mp3',
+      duration: 34,
+      volume: 75,
+      genre: 'Cinematic',
       type: 'bgm'
     }
   ];
@@ -1262,6 +1304,146 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Pixabay Background Music & Melody Search */}
+            <div className="p-2 bg-slate-950 border border-emerald-500/30 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <Music className="w-3 h-3" />
+                  </div>
+                  <h4 className="text-[11px] font-bold text-white tracking-wide">Pixabay Melody Search</h4>
+                </div>
+                <a
+                  href="https://pixabay.com/sound-effects/search/melody%20background%20music/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[9px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 px-2 py-0.5 rounded flex items-center gap-1 transition"
+                  title="Search melody background music on Pixabay"
+                >
+                  <span>Pixabay ↗</span>
+                </a>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={pixabaySearchQuery}
+                  onChange={(e) => setPixabaySearchQuery(e.target.value)}
+                  placeholder="Search Pixabay melody, acoustic, lo-fi, piano..."
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-lg pl-2.5 pr-7 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-sans"
+                />
+                {pixabaySearchQuery && (
+                  <button
+                    onClick={() => setPixabaySearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-0.5"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Genre Pills */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-0.5 custom-scrollbar text-[9px]">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'melody', label: '🎵 Melody' },
+                  { id: 'acoustic', label: '🎸 Acoustic' },
+                  { id: 'piano', label: '🎹 Piano' },
+                  { id: 'lofi', label: '🎧 Lo-Fi' },
+                  { id: 'cinematic', label: '🌌 Cinematic' },
+                  { id: 'folk', label: '🪕 Folk' },
+                ].map((g) => (
+                  <button
+                    key={g.id}
+                    onClick={() => setPixabayActiveGenre(g.id)}
+                    className={`px-2 py-0.5 rounded-full whitespace-nowrap font-medium transition cursor-pointer shrink-0 ${
+                      pixabayActiveGenre === g.id
+                        ? 'bg-emerald-500 text-slate-950 font-bold'
+                        : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Filtered Track Results */}
+              <div className="space-y-1 max-h-48 overflow-y-auto pr-0.5 custom-scrollbar">
+                {bgmSampleCatalog
+                  .filter((t) => {
+                    const q = pixabaySearchQuery.toLowerCase();
+                    const matchesSearch =
+                      !q ||
+                      t.title.toLowerCase().includes(q) ||
+                      t.artist.toLowerCase().includes(q) ||
+                      (t.genre && t.genre.toLowerCase().includes(q));
+                    
+                    const matchesGenre =
+                      pixabayActiveGenre === 'all' ||
+                      (pixabayActiveGenre === 'melody' && (t.title.toLowerCase().includes('melody') || t.genre?.toLowerCase().includes('folk') || t.genre?.toLowerCase().includes('acoustic'))) ||
+                      (pixabayActiveGenre === 'acoustic' && (t.genre?.toLowerCase().includes('acoustic') || t.title.toLowerCase().includes('breeze'))) ||
+                      (pixabayActiveGenre === 'piano' && (t.genre?.toLowerCase().includes('piano') || t.genre?.toLowerCase().includes('spiritual') || t.title.toLowerCase().includes('bells'))) ||
+                      (pixabayActiveGenre === 'lofi' && (t.genre?.toLowerCase().includes('lo-fi') || t.title.toLowerCase().includes('beats'))) ||
+                      (pixabayActiveGenre === 'cinematic' && (t.genre?.toLowerCase().includes('cinematic') || t.title.toLowerCase().includes('winds'))) ||
+                      (pixabayActiveGenre === 'folk' && (t.genre?.toLowerCase().includes('folk') || t.title.toLowerCase().includes('bansuri')));
+                    
+                    return matchesSearch && matchesGenre;
+                  })
+                  .map((track) => {
+                    const isPreviewPlaying = playingAudioUrl === track.url;
+                    return (
+                      <div
+                        key={`pixabay-${track.id}`}
+                        className="p-1.5 bg-slate-900/90 border border-slate-800 hover:border-emerald-500/60 rounded-md flex items-center justify-between transition group"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <button
+                            onClick={() => togglePlayAudioPreview(track.url)}
+                            className={`w-6 h-6 rounded flex items-center justify-center shrink-0 transition cursor-pointer ${
+                              isPreviewPlaying
+                                ? 'bg-emerald-500 text-slate-950 font-black'
+                                : 'bg-emerald-950/60 text-emerald-400 hover:bg-emerald-800/80 hover:text-white'
+                            }`}
+                            title={isPreviewPlaying ? 'Pause' : 'Play Preview'}
+                          >
+                            {isPreviewPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
+                          </button>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold text-slate-200 truncate max-w-[125px]">{track.title}</p>
+                            <p className="text-[9px] text-emerald-400 font-mono truncate max-w-[125px]">
+                              {track.artist} • {track.duration}s
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const uniqueTrack: AudioTrack = {
+                              ...track,
+                              id: `bgm-pixabay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                              type: 'bgm'
+                            };
+                            onAddAudioToTimeline(uniqueTrack);
+                            setAddedItemId(track.id);
+                            setTimeout(() => setAddedItemId(null), 1800);
+                          }}
+                          className={`px-1.5 py-1 rounded transition cursor-pointer font-bold flex items-center gap-1 text-[10px] ${
+                            addedItemId === track.id
+                              ? 'bg-emerald-500 text-slate-950 font-black'
+                              : 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-slate-950'
+                          }`}
+                          title="Add Melody to Timeline"
+                        >
+                          {addedItemId === track.id ? <Check className="w-3 h-3 stroke-[2.5]" /> : <Plus className="w-3 h-3" />}
+                          <span>{addedItemId === track.id ? 'Added' : 'Add'}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
 
             {/* BGM Soundtracks */}

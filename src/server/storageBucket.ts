@@ -230,15 +230,53 @@ export class StorageBucketService {
   }
 
   /**
-   * Read file synchronously from local disk
+   * Read file synchronously from local disk with path-traversal hardening
    */
   public getLocalFile(filename: string): { buffer: Buffer; exists: boolean; filePath?: string; fileSize?: number } {
-    const sanitized = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
-    const filePath = path.join(LOCAL_STORAGE_DIR, sanitized);
+    const sanitized = path.basename(filename).replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const filePath = path.resolve(LOCAL_STORAGE_DIR, sanitized);
+
+    // Defense against path traversal attack
+    if (!filePath.startsWith(LOCAL_STORAGE_DIR)) {
+      console.warn('[StorageSecurity] Potential path traversal attempt rejected:', filename);
+      return { buffer: Buffer.alloc(0), exists: false };
+    }
+
     if (fs.existsSync(filePath)) {
       return { buffer: fs.readFileSync(filePath), exists: true, filePath, fileSize: fs.statSync(filePath).size };
     }
     return { buffer: Buffer.alloc(0), exists: false };
+  }
+
+  /**
+   * Automated local disk cleanup to purge temporary artifacts older than maxAgeDays
+   */
+  public cleanExpiredCache(maxAgeDays = 7): { deletedFiles: number; freedBytes: number } {
+    let deletedFiles = 0;
+    let freedBytes = 0;
+    try {
+      if (!fs.existsSync(LOCAL_STORAGE_DIR)) return { deletedFiles: 0, freedBytes: 0 };
+      const now = Date.now();
+      const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+      const files = fs.readdirSync(LOCAL_STORAGE_DIR);
+
+      for (const file of files) {
+        const fullPath = path.join(LOCAL_STORAGE_DIR, file);
+        try {
+          const stats = fs.statSync(fullPath);
+          if (now - stats.mtimeMs > maxAgeMs) {
+            freedBytes += stats.size;
+            fs.unlinkSync(fullPath);
+            deletedFiles++;
+          }
+        } catch {
+          // ignore single file stat errors
+        }
+      }
+    } catch (e) {
+      console.warn('[StorageCleanup] Notice during cache cleanup:', e);
+    }
+    return { deletedFiles, freedBytes };
   }
 }
 

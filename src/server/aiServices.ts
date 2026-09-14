@@ -1077,6 +1077,7 @@ export async function serverRenderVideoProject(
     subtitles?: any;
     brandOverlay?: any;
     audioTracks?: any[];
+    aspectRatio?: string;
   },
   scenesCount?: number,
   totalDurationSeconds?: number
@@ -1089,8 +1090,9 @@ export async function serverRenderVideoProject(
     assets = projectNameOrOptions.scenes.map((s: any) => ({
       url: s.mediaUrl || '/samples/everest_sunrise.mp4',
       duration: s.duration || 4,
+      speed: s.speed || 1,
       transition: s.transition || 'fade',
-      mediaType: s.mediaType || 'video',
+      mediaType: s.mediaType || (s.mediaUrl?.match(/\.(mp4|webm|mov|ogg)($|\?)/i) ? 'video' : 'image'),
     }));
     if (projectNameOrOptions.audioTracks && projectNameOrOptions.audioTracks.length > 0) {
       audioTrackUrl = projectNameOrOptions.audioTracks[0]?.url;
@@ -1113,12 +1115,16 @@ export async function serverRenderVideoProject(
   const presetFps = typeof projectNameOrOptions === 'object' && projectNameOrOptions.preset?.fps 
     ? projectNameOrOptions.preset.fps 
     : 30;
+  const projectAspectRatio = typeof projectNameOrOptions === 'object' && projectNameOrOptions.aspectRatio 
+    ? projectNameOrOptions.aspectRatio 
+    : '16:9';
 
   // Execute FFmpeg VideoProcessor stitch pipeline
   const processResult = await videoProcessor.processVideo({
     assets,
     fps: presetFps,
     resolution: presetResolution,
+    aspectRatio: projectAspectRatio,
     audioTrackUrl,
     audioTracks: typeof projectNameOrOptions === 'object' ? projectNameOrOptions.audioTracks : undefined,
   });
@@ -1305,7 +1311,7 @@ ${dynamicUnicodeInstructions}
             temperature: 0.7,
             max_tokens: 2048,
           }),
-          signal: AbortSignal.timeout(45000),
+          signal: AbortSignal.timeout(10000),
         });
 
         if (azureRes.ok) {
@@ -1340,7 +1346,7 @@ ${dynamicUnicodeInstructions}
                 temperature: 0.7,
                 max_tokens: 2048,
               }),
-              signal: AbortSignal.timeout(45000),
+              signal: AbortSignal.timeout(12000),
             });
 
             if (retryRes.ok) {
@@ -1394,6 +1400,10 @@ Let me know if you would like me to generate code, scripts, or direct creative v
           }
         } else {
           console.warn(`[HamroAI Chat] Azure endpoint ${azureUrl} returned status ${azureRes.status}`);
+          if (azureRes.status === 429 || azureRes.status === 401) {
+            console.warn('[HamroAI Chat] Azure rate-limited or unauthorized, immediately failing over to Gemini...');
+            break;
+          }
         }
       } catch (azureErr: any) {
         console.warn(`[HamroAI Chat] Azure fetch error on ${azureUrl}:`, azureErr.message);
@@ -1401,19 +1411,32 @@ Let me know if you would like me to generate code, scripts, or direct creative v
     }
   }
 
-  // 3. SECONDARY ROUTE: Google Gemini 2.5 Flash via @google/genai
+  // 3. SECONDARY ROUTE: Google Gemini 2.5 / 2.0 Flash via @google/genai
   if (geminiKey && geminiKey.trim().length > 5) {
     try {
       const ai = new GoogleGenAI({ apiKey: geminiKey.trim() });
-      const systemPrompt = `You are HamroAI (${model}), a warm, exceptionally capable AI assistant built by NepalAI for Nepali, Hindi, and Global users. User language is ${language}.\n\nUSER PROMPT: "${lastUserMsg}"\n\nProvide a top-notch, highly detailed, complete response.`;
+      const conversationPrompt = `${baseSystemPrompt}\n\nCONVERSATION HISTORY:\n${rawHistory.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n')}\n\nUSER PROMPT: "${lastUserMsg}"\n\nProvide an authentic, highly detailed, and complete response in ${language === 'ne' ? 'Nepali (Devanagari script)' : language === 'hi' ? 'Hindi (Devanagari script)' : 'the requested language'}.`;
       
-      const geminiRes = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: systemPrompt,
-      });
-      if (geminiRes && geminiRes.text && geminiRes.text.trim().length > 0) {
+      let geminiText = '';
+      try {
+        const geminiRes = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: conversationPrompt,
+        });
+        geminiText = geminiRes.text || '';
+      } catch (e1: any) {
+        console.warn('[HamroAI Chat] gemini-2.5-flash notice, trying gemini-2.0-flash:', e1.message);
+        const geminiRes2 = await ai.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: conversationPrompt,
+        });
+        geminiText = geminiRes2.text || '';
+      }
+
+      if (geminiText && geminiText.trim().length > 0) {
+        console.log('[HamroAI Chat] Responded via Google Gemini Flash');
         return {
-          reply: geminiRes.text,
+          reply: geminiText,
           usage: { total_tokens: 350, prompt_tokens: 150, completion_tokens: 200 }
         };
       }

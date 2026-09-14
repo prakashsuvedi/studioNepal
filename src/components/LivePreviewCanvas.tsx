@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Scene, BrandOverlayConfig, TickerConfig, VfxConfig } from '../types';
 import { SubtitleItem, SubtitleBurnOptions } from './SubtitleEditorModal';
-import { Play, Activity, Eye, Film, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { Play, Activity, Eye, Film, Volume2, VolumeX, AlertCircle, Zap } from 'lucide-react';
 import { getCompositionAtTime } from '../lib/timelineComposition';
 import { mediaErrorLogger } from '../lib/mediaErrorLogger';
 import { sanitizeMediaUrl } from '../lib/mediaUrlSanitizer';
@@ -214,7 +214,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     const vidA = deckAVideoRef.current;
     if (!vidA || !isDeckAVideo || !deckASrc) return;
 
-    const baseSpeed = (playbackSpeed || 1) * (deckAScene?.speed || 1);
+    const baseSpeed = (playbackSpeed || 1) * (deckAScene?.speed || deckAScene?.playbackRate || 1);
     vidA.playbackRate = baseSpeed;
 
     if (isEvenScene) {
@@ -271,7 +271,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     const vidB = deckBVideoRef.current;
     if (!vidB || !isDeckBVideo || !deckBSrc) return;
 
-    const baseSpeed = (playbackSpeed || 1) * (deckBScene?.speed || 1);
+    const baseSpeed = (playbackSpeed || 1) * (deckBScene?.speed || deckBScene?.playbackRate || 1);
     vidB.playbackRate = baseSpeed;
 
     if (!isEvenScene) {
@@ -1083,11 +1083,16 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
                 ) : (
                   <Volume2 className="w-3 h-3 text-emerald-400 ml-0.5" />
                 )}
-                {playbackSpeed !== 1 && (
-                  <span className="px-1.5 py-0.5 rounded bg-purple-500/25 text-purple-300 border border-purple-500/50 text-[10px] font-bold">
-                    {playbackSpeed}x
-                  </span>
-                )}
+                {(() => {
+                  const clipSpeed = (playbackSpeed || 1) * (activeScene?.speed || activeScene?.playbackRate || 1);
+                  if (clipSpeed === 1) return null;
+                  return (
+                    <span className="px-1.5 py-0.5 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/60 text-[10px] font-extrabold flex items-center gap-1 shadow-sm">
+                      <Zap className="w-3 h-3 text-cyan-300 fill-current" />
+                      <span>{clipSpeed.toFixed(2)}x Speed</span>
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           )}

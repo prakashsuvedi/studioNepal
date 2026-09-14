@@ -87,6 +87,8 @@ interface CapCutTimelineDeckProps {
   onApplyTransitionToAll?: (transition: TransitionType, duration: number) => void;
   isAudioBuffering?: boolean;
   audioLoadingStatus?: Record<string, 'buffering' | 'ready' | 'error'>;
+  onUpdateAudioTrack?: (trackId: string, updated: Partial<AudioTrack>) => void;
+  onUpdateVoiceoverDuration?: (duration: number) => void;
 }
 
 export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
@@ -126,6 +128,8 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
   onApplyTransitionToAll,
   isAudioBuffering = false,
   audioLoadingStatus = {},
+  onUpdateAudioTrack,
+  onUpdateVoiceoverDuration,
 }) => {
   const rulerRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -612,6 +616,11 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                                 {scene.motion || 'Cut'}
                               </span>
                             )}
+                            {((scene.speed && scene.speed !== 1) || (scene.playbackRate && scene.playbackRate !== 1)) && (
+                              <span className="px-1 bg-cyan-400 text-slate-950 font-black rounded text-[8px] flex items-center gap-0.5 shrink-0 shadow-xs" title={`Clip Speed: ${(scene.speed || scene.playbackRate || 1).toFixed(1)}x`}>
+                                ⚡{(scene.speed || scene.playbackRate || 1).toFixed(1)}x
+                              </span>
+                            )}
                           </div>
                           {widthPx > 35 && <span className="text-[8px] text-slate-400 font-mono">#{idx + 1}</span>}
                         </div>
@@ -773,9 +782,12 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
           <div className="h-8 border-b border-slate-800/60 bg-[#090c14] relative flex items-center">
             {voTrack ? (() => {
               const isVoBuffering = Boolean(voTrack?.url && audioLoadingStatus[voTrack.url] === 'buffering');
+              const voDuration = voTrack.duration || totalDuration;
+              const voWidthPx = Math.max(120, voDuration * pixelsPerSecond);
+
               return (
                 <div 
-                  style={{ left: 0, width: `${Math.max(160, totalDuration * pixelsPerSecond)}px` }}
+                  style={{ left: 0, width: `${voWidthPx}px` }}
                   className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition group ${
                     isVoMuted 
                       ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
@@ -784,8 +796,11 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isVoMuted ? 'bg-slate-500' : isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-500'}`}></span>
-                    <span className="font-bold text-[10px] truncate max-w-xs shrink-0">
+                    <span className="font-bold text-[10px] truncate max-w-[100px] shrink-0">
                       {voTrack.title}
+                    </span>
+                    <span className="text-[8px] font-mono text-emerald-400 font-bold px-1 bg-emerald-950/80 border border-emerald-800/80 rounded shrink-0">
+                      {voDuration.toFixed(1)}s
                     </span>
                     {isVoBuffering && (
                       <span className="flex items-center gap-1 text-[8px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1 py-0.2 rounded font-mono animate-pulse shrink-0">
@@ -796,7 +811,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                     <TimelineAudioWaveform
                       trackId={voTrack.id}
                       type="voiceover"
-                      duration={totalDuration}
+                      duration={voDuration}
                       pixelsPerSecond={pixelsPerSecond}
                       isMuted={isVoMuted}
                       volume={voVolume}
@@ -806,6 +821,41 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                     />
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
+                    {/* Quick Duration Adjusters */}
+                    {onUpdateVoiceoverDuration && (
+                      <div className="hidden group-hover:flex items-center gap-0.5 bg-slate-950/80 px-1 py-0.5 rounded border border-emerald-800/80 text-[8px]">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateVoiceoverDuration(Math.max(1, voDuration - 1));
+                          }}
+                          className="px-1 hover:bg-emerald-800 rounded text-emerald-300 transition"
+                          title="Shorten Voiceover -1s"
+                        >
+                          -1s
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateVoiceoverDuration(voDuration + 1);
+                          }}
+                          className="px-1 hover:bg-emerald-800 rounded text-emerald-300 transition"
+                          title="Extend Voiceover +1s"
+                        >
+                          +1s
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateVoiceoverDuration(voDuration + 5);
+                          }}
+                          className="px-1 hover:bg-emerald-800 rounded text-emerald-300 transition font-bold"
+                          title="Extend Voiceover +5s"
+                        >
+                          +5s
+                        </button>
+                      </div>
+                    )}
                     <span className="font-mono text-[8px] font-bold text-emerald-400">{isVoMuted ? 'MUTED' : `${voVolume}%`}</span>
                     {onDeleteVoiceover && (
                       <button
@@ -820,6 +870,33 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {/* Right Edge Resize Handle for Voiceover */}
+                  {onUpdateVoiceoverDuration && (
+                    <div
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        const startX = e.clientX;
+                        const startDur = voDuration;
+                        const handleMouseMove = (moveEvent: MouseEvent) => {
+                          const deltaX = moveEvent.clientX - startX;
+                          const deltaSec = deltaX / pixelsPerSecond;
+                          const newDur = Math.max(1, Math.round((startDur + deltaSec) * 10) / 10);
+                          onUpdateVoiceoverDuration(newDur);
+                        };
+                        const handleMouseUp = () => {
+                          window.removeEventListener('mousemove', handleMouseMove);
+                          window.removeEventListener('mouseup', handleMouseUp);
+                        };
+                        window.addEventListener('mousemove', handleMouseMove);
+                        window.addEventListener('mouseup', handleMouseUp);
+                      }}
+                      className="absolute right-0 top-0 bottom-0 w-2.5 bg-emerald-400/0 hover:bg-emerald-400/80 cursor-ew-resize opacity-0 group-hover:opacity-100 transition rounded-r z-20 flex items-center justify-center"
+                      title="Drag to adjust voiceover duration"
+                    >
+                      <div className="w-0.5 h-4 bg-slate-950 rounded-full"></div>
+                    </div>
+                  )}
                 </div>
               );
             })() : (
@@ -856,9 +933,12 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                 );
               }
               const isBgmBuffering = Boolean(currentBgm?.url && audioLoadingStatus[currentBgm.url] === 'buffering');
+              const bgmDuration = currentBgm.duration || totalDuration;
+              const bgmWidthPx = Math.max(120, bgmDuration * pixelsPerSecond);
+
               return (
                 <div 
-                  style={{ left: 0, width: `${Math.max(160, totalDuration * pixelsPerSecond)}px` }}
+                  style={{ left: 0, width: `${bgmWidthPx}px` }}
                   className={`absolute h-6 rounded-md border px-2 flex items-center justify-between text-[10px] shadow-xs transition group ${
                     isBgmMuted 
                       ? 'bg-slate-900/50 border-slate-800 text-slate-500 opacity-50' 
@@ -867,8 +947,11 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isBgmMuted ? 'bg-slate-500' : isPlaying ? 'bg-purple-400 animate-pulse' : 'bg-purple-500'}`}></span>
-                    <span className="font-bold text-[10px] truncate max-w-xs shrink-0">
+                    <span className="font-bold text-[10px] truncate max-w-[100px] shrink-0">
                       {currentBgm.title}
+                    </span>
+                    <span className="text-[8px] font-mono text-purple-300 font-bold px-1 bg-purple-950/80 border border-purple-800/80 rounded shrink-0">
+                      {bgmDuration.toFixed(1)}s
                     </span>
                     {isBgmBuffering && (
                       <span className="flex items-center gap-1 text-[8px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1 py-0.2 rounded font-mono animate-pulse shrink-0">
@@ -879,7 +962,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                     <TimelineAudioWaveform
                       trackId={currentBgm.id}
                       type="bgm"
-                      duration={totalDuration}
+                      duration={bgmDuration}
                       pixelsPerSecond={pixelsPerSecond}
                       isMuted={isBgmMuted}
                       volume={bgmVolume}
@@ -889,6 +972,42 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                     />
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
+                    {/* Quick Duration Adjusters */}
+                    {onUpdateAudioTrack && (
+                      <div className="hidden group-hover:flex items-center gap-0.5 bg-slate-950/80 px-1 py-0.5 rounded border border-purple-800/80 text-[8px]">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newDur = Math.max(1, bgmDuration - 1);
+                            onUpdateAudioTrack(currentBgm.id, { duration: newDur });
+                          }}
+                          className="px-1 hover:bg-purple-800 rounded text-purple-300 transition"
+                          title="Shorten Music -1s"
+                        >
+                          -1s
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateAudioTrack(currentBgm.id, { duration: bgmDuration + 1 });
+                          }}
+                          className="px-1 hover:bg-purple-800 rounded text-purple-300 transition"
+                          title="Extend Music +1s"
+                        >
+                          +1s
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateAudioTrack(currentBgm.id, { duration: bgmDuration + 5 });
+                          }}
+                          className="px-1 hover:bg-purple-800 rounded text-purple-300 transition font-bold"
+                          title="Extend Music +5s"
+                        >
+                          +5s
+                        </button>
+                      </div>
+                    )}
                     <span className="font-mono text-[8px] font-bold text-purple-400">{isBgmMuted ? 'MUTED' : `${bgmVolume}%`}</span>
                     {onDeleteBgm && (
                       <button
@@ -903,6 +1022,33 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {/* Right Edge Resize Handle for BGM Music */}
+                  {onUpdateAudioTrack && (
+                    <div
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        const startX = e.clientX;
+                        const startDur = bgmDuration;
+                        const handleMouseMove = (moveEvent: MouseEvent) => {
+                          const deltaX = moveEvent.clientX - startX;
+                          const deltaSec = deltaX / pixelsPerSecond;
+                          const newDur = Math.max(1, Math.round((startDur + deltaSec) * 10) / 10);
+                          onUpdateAudioTrack(currentBgm.id, { duration: newDur });
+                        };
+                        const handleMouseUp = () => {
+                          window.removeEventListener('mousemove', handleMouseMove);
+                          window.removeEventListener('mouseup', handleMouseUp);
+                        };
+                        window.addEventListener('mousemove', handleMouseMove);
+                        window.addEventListener('mouseup', handleMouseUp);
+                      }}
+                      className="absolute right-0 top-0 bottom-0 w-2.5 bg-purple-400/0 hover:bg-purple-400/80 cursor-ew-resize opacity-0 group-hover:opacity-100 transition rounded-r z-20 flex items-center justify-center"
+                      title="Drag to adjust background music duration"
+                    >
+                      <div className="w-0.5 h-4 bg-slate-950 rounded-full"></div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

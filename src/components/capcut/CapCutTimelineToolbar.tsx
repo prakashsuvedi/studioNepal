@@ -22,7 +22,7 @@ import {
   FileText,
   Check
 } from 'lucide-react';
-import { ProjectWorkflowPresetId, ProjectWorkflowPreset } from '../../types';
+import { ProjectWorkflowPresetId, ProjectWorkflowPreset, Scene } from '../../types';
 import { WORKFLOW_PRESETS } from '../../data/workflowPresets';
 
 interface CapCutTimelineToolbarProps {
@@ -41,6 +41,8 @@ interface CapCutTimelineToolbarProps {
   isSnapping: boolean;
   setIsSnapping: (snap: boolean) => void;
   hasSelectedClip: boolean;
+  selectedScene?: Scene | null;
+  onUpdateSelectedScene?: (updated: Partial<Scene>) => void;
 }
 
 export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
@@ -59,6 +61,8 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   isSnapping,
   setIsSnapping,
   hasSelectedClip,
+  selectedScene,
+  onUpdateSelectedScene,
 }) => {
   const [isPresetDropdownOpen, setIsPresetDropdownOpen] = useState(false);
   const activePreset = WORKFLOW_PRESETS.find(p => p.id === selectedWorkflowPresetId) || WORKFLOW_PRESETS[0];
@@ -105,6 +109,62 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         >
           <Copy className="w-3.5 h-3.5" />
         </button>
+
+        {/* Selected Clip Quick Duration & Speed Controls */}
+        {hasSelectedClip && selectedScene && onUpdateSelectedScene && (
+          <>
+            <div className="h-4 w-px bg-slate-800 mx-1"></div>
+            
+            {/* Duration Adjuster */}
+            <div className="flex items-center gap-1 bg-slate-900/90 px-1.5 py-0.5 rounded-md border border-cyan-500/30 text-[11px]">
+              <span className="text-slate-400 font-medium">Len:</span>
+              <button
+                onClick={() => {
+                  const newDur = Math.max(0.5, Number((selectedScene.duration - 0.5).toFixed(1)));
+                  onUpdateSelectedScene({ duration: newDur });
+                }}
+                className="px-1.5 py-0.5 bg-slate-800 hover:bg-cyan-600 hover:text-slate-950 text-cyan-300 rounded font-bold transition cursor-pointer text-[10px]"
+                title="Decrease clip length by 0.5s"
+              >
+                -0.5s
+              </button>
+              <span className="font-mono text-cyan-300 font-bold px-1 min-w-[32px] text-center">
+                {selectedScene.duration.toFixed(1)}s
+              </span>
+              <button
+                onClick={() => {
+                  const newDur = Number((selectedScene.duration + 0.5).toFixed(1));
+                  onUpdateSelectedScene({ duration: newDur });
+                }}
+                className="px-1.5 py-0.5 bg-slate-800 hover:bg-cyan-600 hover:text-slate-950 text-cyan-300 rounded font-bold transition cursor-pointer text-[10px]"
+                title="Increase clip length by 0.5s"
+              >
+                +0.5s
+              </button>
+            </div>
+
+            {/* Clip Speed Selector */}
+            <div className="flex items-center gap-1 bg-slate-900/90 px-1.5 py-0.5 rounded-md border border-cyan-500/30 text-[11px]">
+              <span className="text-slate-400 font-medium">Speed:</span>
+              <select
+                value={selectedScene.speed || selectedScene.playbackRate || 1}
+                onChange={(e) => {
+                  const spd = parseFloat(e.target.value);
+                  onUpdateSelectedScene({ speed: spd, playbackRate: spd });
+                }}
+                className="bg-slate-950 text-cyan-300 font-bold border border-slate-700/80 rounded px-1 py-0.5 text-[10px] cursor-pointer focus:outline-hidden focus:border-cyan-400"
+                title="Change playback speed of this clip"
+              >
+                <option value={0.5}>0.5x</option>
+                <option value={0.75}>0.75x</option>
+                <option value={1}>1.0x</option>
+                <option value={1.25}>1.25x</option>
+                <option value={1.5}>1.5x</option>
+                <option value={2}>2.0x</option>
+              </select>
+            </div>
+          </>
+        )}
 
         <div className="h-4 w-px bg-slate-800 mx-1"></div>
 

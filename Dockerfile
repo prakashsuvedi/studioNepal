@@ -1,4 +1,7 @@
-FROM node:20-slim
+# ==========================================
+# 1. Base Stage: System Dependencies & Node Modules
+# ==========================================
+FROM node:20-slim AS base
 
 WORKDIR /app
 
@@ -18,13 +21,33 @@ RUN npm install
 # Copy source files
 COPY . .
 
-# Build frontend and server backend
+# ==========================================
+# 2. Builder Stage: Compile Frontend & Bundled Server
+# ==========================================
+FROM base AS builder
+
 RUN npm run build
 
-# Environment settings for Hugging Face
+# ==========================================
+# 3. Web Service Target (Used by docker-compose & Cloud Run)
+# ==========================================
+FROM base AS web
+
+COPY --from=builder /app/dist ./dist
+
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-# Start server
 CMD ["npm", "run", "start"]
+
+# ==========================================
+# 4. Standalone Render Worker Target (Used by docker-compose render-worker)
+# ==========================================
+FROM base AS render-worker
+
+COPY --from=builder /app/dist ./dist
+
+ENV NODE_ENV=production
+
+CMD ["npm", "run", "worker"]

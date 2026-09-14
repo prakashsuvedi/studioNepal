@@ -9,7 +9,7 @@
       "tier": "pro_studio",
       "credits": 999999,
       "createdAt": "2026-08-01T10:00:00.000Z",
-      "updatedAt": "2026-09-12T12:27:41.981Z"
+      "updatedAt": "2026-09-14T09:56:55.663Z"
     },
     {
       "id": "usr_client_02",
@@ -131,6 +131,83 @@
       "credits": 500,
       "createdAt": "2026-09-12T14:46:01.824Z",
       "updatedAt": "2026-09-12T14:46:01.824Z"
+    },
+    {
+      "id": "usr_1789380294432_9j438",
+      "email": "idemp_1789380294432@nepalai.studio",
+      "name": "Idempotency Tester",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "starter",
+      "credits": 1000,
+      "createdAt": "2026-09-14T10:04:54.432Z",
+      "updatedAt": "2026-09-14T10:04:54.433Z"
+    },
+    {
+      "id": "usr_1789380378333_7njle",
+      "email": "idemp_1789380378333@nepalai.studio",
+      "name": "Idempotency Tester",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "starter",
+      "credits": 1000,
+      "createdAt": "2026-09-14T10:06:18.333Z",
+      "updatedAt": "2026-09-14T10:06:18.334Z"
+    },
+    {
+      "id": "usr_1789380418429_oxy2d",
+      "email": "idemp_1789380418428@nepalai.studio",
+      "name": "Idempotency Tester",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "starter",
+      "credits": 1000,
+      "createdAt": "2026-09-14T10:06:58.429Z",
+      "updatedAt": "2026-09-14T10:06:58.430Z"
+    },
+    {
+      "id": "usr_1789380468732_5pboy",
+      "email": "idemp_1789380468731@nepalai.studio",
+      "name": "Idempotency Tester",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "starter",
+      "credits": 1000,
+      "createdAt": "2026-09-14T10:07:48.732Z",
+      "updatedAt": "2026-09-14T10:07:48.733Z"
+    },
+    {
+      "id": "usr_1789380506595_vnkvq",
+      "email": "idemp_1789380506595@nepalai.studio",
+      "name": "Idempotency Tester",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "starter",
+      "credits": 1000,
+      "createdAt": "2026-09-14T10:08:26.595Z",
+      "updatedAt": "2026-09-14T10:08:26.596Z"
+    },
+    {
+      "id": "usr_1789380536032_i4ean",
+      "email": "idemp_1789380536032@nepalai.studio",
+      "name": "Idempotency Tester",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "starter",
+      "credits": 1000,
+      "createdAt": "2026-09-14T10:08:56.032Z",
+      "updatedAt": "2026-09-14T10:08:56.033Z"
+    },
+    {
+      "id": "usr_1789380577135_smbag",
+      "email": "idemp_1789380577135@nepalai.studio",
+      "name": "Idempotency Tester",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "role": "user",
+      "tier": "starter",
+      "credits": 1000,
+      "createdAt": "2026-09-14T10:09:37.135Z",
+      "updatedAt": "2026-09-14T10:09:37.136Z"
     }
   ],
   "trialUsage": {
@@ -148,8 +225,10 @@
       "maxRenders": 99999,
       "totalTokensUsed": 70900,
       "lastUsedAt": "2026-09-12T14:46:37.490Z",
-      "lastResetDate": "2026-09-12",
-      "lastResetAt": "2026-09-12T08:46:17.356Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T09:40:59.686Z",
+      "maxChat": 999999,
+      "chatCount": 0
     },
     "usr_client_02": {
       "userId": "usr_client_02",
@@ -165,8 +244,10 @@
       "maxRenders": 50,
       "totalTokensUsed": 52400,
       "lastUsedAt": "2026-09-02T14:15:00.000Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.332Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.546Z",
+      "maxChat": 150,
+      "chatCount": 0
     },
     "usr_client_03": {
       "userId": "usr_client_03",
@@ -182,8 +263,10 @@
       "maxRenders": 1,
       "totalTokensUsed": 4200,
       "lastUsedAt": "2026-09-03T11:20:00.000Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.333Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.547Z",
+      "maxChat": 20,
+      "chatCount": 0
     },
     "usr_client_04": {
       "userId": "usr_client_04",
@@ -199,8 +282,10 @@
       "maxRenders": 10,
       "totalTokensUsed": 21800,
       "lastUsedAt": "2026-09-03T08:10:00.000Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.333Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.547Z",
+      "maxChat": 50,
+      "chatCount": 0
     },
     "usr-google-prakash": {
       "userId": "usr-google-prakash",
@@ -231,8 +316,10 @@
       "maxRenders": 1,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-04T07:43:50.345Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.333Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.548Z",
+      "maxChat": 20,
+      "chatCount": 0
     },
     "usr_1788507920932_feh9u": {
       "userId": "usr_1788507920932_feh9u",
@@ -248,8 +335,10 @@
       "maxRenders": 1,
       "totalTokensUsed": 700,
       "lastUsedAt": "2026-09-04T07:48:58.626Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.334Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.549Z",
+      "maxChat": 20,
+      "chatCount": 0
     },
     "usr_1788664974375_fa6my": {
       "userId": "usr_1788664974375_fa6my",
@@ -265,8 +354,10 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-06T03:22:54.375Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.334Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.550Z",
+      "maxChat": 20,
+      "chatCount": 0
     },
     "usr_smoke_test_prakash": {
       "userId": "usr_smoke_test_prakash",
@@ -299,8 +390,10 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-07T05:17:07.003Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.334Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.550Z",
+      "maxChat": 20,
+      "chatCount": 0
     },
     "user_1": {
       "userId": "user_1",
@@ -333,8 +426,10 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-08T10:51:49.197Z",
-      "lastResetDate": "2026-09-11",
-      "lastResetAt": "2026-09-11T04:07:24.334Z"
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.551Z",
+      "maxChat": 20,
+      "chatCount": 0
     },
     "test": {
       "userId": "test",
@@ -400,7 +495,11 @@
       "rendersCount": 0,
       "maxRenders": 20,
       "totalTokensUsed": 0,
-      "lastUsedAt": "2026-09-12T14:46:01.824Z"
+      "lastUsedAt": "2026-09-12T14:46:01.824Z",
+      "maxChat": 20,
+      "chatCount": 0,
+      "lastResetDate": "2026-09-14",
+      "lastResetAt": "2026-09-14T10:01:52.553Z"
     },
     "usr_test_manual_123": {
       "userId": "usr_test_manual_123",
@@ -418,9 +517,205 @@
       "lastUsedAt": "2026-09-12T14:46:01.825Z",
       "lastResetDate": "2026-09-12",
       "lastResetAt": "2026-09-12T14:46:01.825Z"
+    },
+    "usr_1789380294432_9j438": {
+      "userId": "usr_1789380294432_9j438",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-14T10:04:54.432Z"
+    },
+    "usr_1789380378333_7njle": {
+      "userId": "usr_1789380378333_7njle",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-14T10:06:18.333Z"
+    },
+    "usr_1789380418429_oxy2d": {
+      "userId": "usr_1789380418429_oxy2d",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-14T10:06:58.429Z"
+    },
+    "usr_1789380468732_5pboy": {
+      "userId": "usr_1789380468732_5pboy",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-14T10:07:48.732Z"
+    },
+    "usr_1789380506595_vnkvq": {
+      "userId": "usr_1789380506595_vnkvq",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-14T10:08:26.595Z"
+    },
+    "usr_1789380536032_i4ean": {
+      "userId": "usr_1789380536032_i4ean",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-14T10:08:56.032Z"
+    },
+    "usr_1789380577135_smbag": {
+      "userId": "usr_1789380577135_smbag",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-09-14T10:09:37.135Z"
     }
   },
   "transactions": [
+    {
+      "id": "tx_fonepay_1789380577136_rjrb",
+      "userId": "usr_1789380577135_smbag",
+      "userEmail": "idemp_1789380577135@nepalai.studio",
+      "packageId": "starter",
+      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
+      "amount": 2500,
+      "currency": "NPR",
+      "creditsAdded": 500,
+      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1789380577136_TEST",
+      "status": "succeeded",
+      "createdAt": "2026-09-14T10:09:37.136Z"
+    },
+    {
+      "id": "tx_fonepay_1789380536033_g8rx",
+      "userId": "usr_1789380536032_i4ean",
+      "userEmail": "idemp_1789380536032@nepalai.studio",
+      "packageId": "starter",
+      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
+      "amount": 2500,
+      "currency": "NPR",
+      "creditsAdded": 500,
+      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1789380536033_TEST",
+      "status": "succeeded",
+      "createdAt": "2026-09-14T10:08:56.033Z"
+    },
+    {
+      "id": "tx_fonepay_1789380506596_yydm",
+      "userId": "usr_1789380506595_vnkvq",
+      "userEmail": "idemp_1789380506595@nepalai.studio",
+      "packageId": "starter",
+      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
+      "amount": 2500,
+      "currency": "NPR",
+      "creditsAdded": 500,
+      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1789380506596_TEST",
+      "status": "succeeded",
+      "createdAt": "2026-09-14T10:08:26.596Z"
+    },
+    {
+      "id": "tx_fonepay_1789380468733_oee3",
+      "userId": "usr_1789380468732_5pboy",
+      "userEmail": "idemp_1789380468731@nepalai.studio",
+      "packageId": "starter",
+      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
+      "amount": 2500,
+      "currency": "NPR",
+      "creditsAdded": 500,
+      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1789380468733_TEST",
+      "status": "succeeded",
+      "createdAt": "2026-09-14T10:07:48.733Z"
+    },
+    {
+      "id": "tx_fonepay_1789380418430_oeqm",
+      "userId": "usr_1789380418429_oxy2d",
+      "userEmail": "idemp_1789380418428@nepalai.studio",
+      "packageId": "starter",
+      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
+      "amount": 2500,
+      "currency": "NPR",
+      "creditsAdded": 500,
+      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1789380418430_TEST",
+      "status": "succeeded",
+      "createdAt": "2026-09-14T10:06:58.430Z"
+    },
+    {
+      "id": "tx_fonepay_1789380378334_rpc6",
+      "userId": "usr_1789380378333_7njle",
+      "userEmail": "idemp_1789380378333@nepalai.studio",
+      "packageId": "starter",
+      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
+      "amount": 2500,
+      "currency": "NPR",
+      "creditsAdded": 500,
+      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1789380378334_TEST",
+      "status": "succeeded",
+      "createdAt": "2026-09-14T10:06:18.334Z"
+    },
+    {
+      "id": "tx_fonepay_1789380294433_8ivd",
+      "userId": "usr_1789380294432_9j438",
+      "userEmail": "idemp_1789380294432@nepalai.studio",
+      "packageId": "starter",
+      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
+      "amount": 2500,
+      "currency": "NPR",
+      "creditsAdded": 500,
+      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1789380294433_TEST",
+      "status": "succeeded",
+      "createdAt": "2026-09-14T10:04:54.433Z"
+    },
     {
       "id": "tx_stripe_8841",
       "userId": "usr_client_02",

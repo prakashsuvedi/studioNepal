@@ -51,6 +51,63 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
 
   const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 4), 0);
 
+  // 1. Authoritative Primary Path: High-Performance Server-Side FFmpeg Stitching
+  // Matches exact timeline clips, speeds, aspect ratios, durations, and audio tracks with native H.264 / AAC
+  try {
+    if (onProgress) onProgress(10, 'Connecting to server rendering engine (FFmpeg H.264/AAC)...');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
+    
+    const serverPayload = {
+      userId: 'guest_user',
+      projectName: 'Timeline Video Project',
+      scenes: scenes.map((s) => ({
+        ...s,
+        mediaUrl: s.mediaUrl,
+        duration: s.duration || 4,
+        speed: s.speed || 1,
+        transition: s.transition || 'fade',
+        mediaType: s.mediaType || (s.mediaUrl?.match(/\.(mp4|webm|mov|ogg)($|\?)/i) ? 'video' : 'image'),
+      })),
+      totalDurationSeconds: totalDuration,
+      aspectRatio,
+      preset: {
+        resolution,
+        fps,
+      },
+      brandOverlay: brandOverlayConfig,
+      subtitles,
+      audioTracks: audioTracks.filter((t) => !!t.url),
+    };
+
+    const serverRes = await fetch('/api/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(serverPayload),
+      signal: controller.signal,
+    }).catch(() => null);
+
+    clearTimeout(timeoutId);
+
+    if (serverRes && serverRes.ok) {
+      const serverData = await serverRes.json();
+      const outputUrl = serverData.result?.downloadUrl || serverData.result?.videoUrl;
+      if (outputUrl) {
+        if (onProgress) onProgress(85, 'Finalizing broadcast-grade video stream...');
+        const fileRes = await fetch(outputUrl);
+        if (fileRes.ok) {
+          const blob = await fileRes.blob();
+          if (onProgress) onProgress(100, 'Render complete! Ready for download.');
+          const objectUrl = URL.createObjectURL(blob);
+          return { blob, url: objectUrl };
+        }
+      }
+    }
+  } catch (serverErr) {
+    console.warn('[VideoCombiner] Server FFmpeg rendering notice, continuing with client canvas compositor:', serverErr);
+  }
+
   // Determine exact canvas pixel dimensions
   let width = 1280;
   let height = 720;
@@ -916,8 +973,12 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
       }
     }
 
-    // Progress updates and brief async yield to keep UI responsive
-    if (frame % Math.max(1, Math.floor(totalFrames / 20)) === 0) {
+    // Precise frame pacing so MediaRecorder captures at true real-time cadence
+    const frameIntervalMs = Math.max(10, Math.floor(1000 / fps));
+    await new Promise((r) => setTimeout(r, frameIntervalMs));
+
+    // Periodic progress updates
+    if (frame % Math.max(1, Math.floor(totalFrames / 30)) === 0) {
       const percent = Math.round(30 + (frame / totalFrames) * 65);
       if (onProgress) {
         onProgress(
@@ -925,7 +986,6 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
           `Compositing frame ${frame + 1} of ${totalFrames} (${currentTime.toFixed(1)}s / ${totalDuration.toFixed(1)}s)...`
         );
       }
-      await new Promise((r) => setTimeout(r, 4));
     }
   }
 

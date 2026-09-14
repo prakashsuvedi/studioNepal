@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { User, TrialUsage, Transaction, GenerationLog } from '../db/schema';
+import { postgresDb } from './postgresDb';
+import { ADMIN_WHITELIST_EMAILS } from './credentials';
 
 export interface PricingConfig {
   nprExchangeRate: number; // e.g. 135 NPR = 1 USD
@@ -247,10 +249,7 @@ class Database {
     }
 
     const lower = email.toLowerCase();
-    const isAdmin = lower === 'prakashsuvedi.backup@gmail.com' || 
-                    lower === 'prakashsuvedi@gmail.com' || 
-                    lower.includes('admin') ||
-                    lower.includes('prakashsuvedi');
+    const isAdmin = ADMIN_WHITELIST_EMAILS.includes(lower);
 
     const newUser: User = {
       id: isAdmin ? 'usr_admin_01' : `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -286,6 +285,7 @@ class Database {
     };
 
     this.save(this.store);
+    this.syncUserToPostgres(newUser);
     return newUser;
   }
 
@@ -295,7 +295,58 @@ class Database {
 
     Object.assign(user, updates, { updatedAt: new Date().toISOString() });
     this.save(this.store);
+    this.syncUserToPostgres(user);
     return user;
+  }
+
+  // Non-blocking asynchronous sync to Supabase PostgreSQL
+  public async syncUserToPostgres(user: User) {
+    try {
+      if (!postgresDb.isConnected) return;
+      await postgresDb.query(
+        `INSERT INTO users (id, email, name, picture, role, tier, credits, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           email = EXCLUDED.email,
+           name = EXCLUDED.name,
+           picture = EXCLUDED.picture,
+           role = EXCLUDED.role,
+           tier = EXCLUDED.tier,
+           credits = EXCLUDED.credits,
+           updated_at = NOW()`,
+        [user.id, user.email, user.name || '', user.avatar || '', user.role, user.tier, user.credits]
+      );
+    } catch (e: any) {
+      // Non-blocking sync error catch
+    }
+  }
+
+  public async syncTransactionToPostgres(tx: Transaction) {
+    try {
+      if (!postgresDb.isConnected) return;
+      await postgresDb.query(
+        `INSERT INTO transactions (id, user_id, user_email, package_id, package_name, amount, currency, credits_added, stripe_payment_id, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (id) DO NOTHING`,
+        [tx.id, tx.userId, tx.userEmail, tx.packageId, tx.packageName, tx.amount, tx.currency, tx.creditsAdded, tx.stripePaymentId || '', tx.status]
+      );
+    } catch (e: any) {
+      // Non-blocking sync error catch
+    }
+  }
+
+  public async syncLogToPostgres(log: GenerationLog) {
+    try {
+      if (!postgresDb.isConnected) return;
+      await postgresDb.query(
+        `INSERT INTO generation_logs (id, user_id, type, prompt, status)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (id) DO NOTHING`,
+        [log.id, log.userId, log.type, log.prompt, 'succeeded']
+      );
+    } catch (e: any) {
+      // Non-blocking sync error catch
+    }
   }
 
   public getTrialUsage(userId: string): TrialUsage {
@@ -462,7 +513,7 @@ class Database {
       ? `${resultUrl.substring(0, 80)}...[truncated_base64_media]`
       : resultUrl;
 
-    this.store.generationLogs.unshift({
+    const newLog: GenerationLog = {
       id: `gen_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId,
       type,
@@ -473,7 +524,9 @@ class Database {
       creditsCost: consumedDailyFree ? 0 : costMap[type],
       deductionSource: consumedDailyFree ? 'daily_free' : 'package_credits',
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    this.store.generationLogs.unshift(newLog);
 
     // Keep generation logs bounded to prevent database bloat
     if (this.store.generationLogs.length > 150) {
@@ -481,6 +534,7 @@ class Database {
     }
 
     this.save(this.store);
+    this.syncLogToPostgres(newLog);
   }
 
   // Get user generation history
@@ -634,6 +688,14 @@ class Database {
     const user = this.getUserById(userId);
     if (!user) throw new Error('User not found');
 
+    // Anti-replay idempotency check: reject already-redeemed PRNs
+    const existingTx = this.store.transactions.find(
+      t => t.stripePaymentId === `fonepay_prn_${prn}` || (fonepayTraceId && t.stripePaymentId === fonepayTraceId)
+    );
+    if (existingTx) {
+      throw new Error(`Payment PRN ${prn} has already been credited and verified.`);
+    }
+
     const pricing = this.getPricingConfig();
     const packages = {
       sasta_50_npr: { name: 'Sasta Micro-Pass (3 HD Images, 1x5m Video, 1x5m Audio)', nprPrice: 50, credits: 60 },
@@ -663,6 +725,8 @@ class Database {
 
     this.store.transactions.unshift(tx);
     this.save(this.store);
+    this.syncTransactionToPostgres(tx);
+    this.syncUserToPostgres(user);
     return tx;
   }
 
@@ -684,6 +748,10 @@ class Database {
 
   public getAllTransactions(): Transaction[] {
     return this.store.transactions;
+  }
+
+  public getTransactionsByUser(userId: string): Transaction[] {
+    return this.store.transactions.filter(t => t.userId === userId);
   }
 
   public adminResetTrial(userId: string) {

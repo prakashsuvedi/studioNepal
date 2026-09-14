@@ -8,6 +8,7 @@ export interface VersionSnapshot {
   description: string;
   createdAt: string;
   createdBy: string;
+  ownerId?: string;
   scenesCount: number;
   totalDurationSeconds: number;
   scenesData: any[];
@@ -17,6 +18,7 @@ export interface VersionSnapshot {
 
 class VersionHistoryService {
   private inMemoryVersions: Map<string, VersionSnapshot[]> = new Map();
+  private projectOwners: Map<string, string> = new Map(); // projectId -> ownerId
 
   /**
    * Save a new version snapshot of a video project to Supabase Storage Bucket
@@ -26,10 +28,15 @@ class VersionHistoryService {
     title: string;
     description?: string;
     createdBy: string;
+    ownerId?: string;
     scenes: any[];
     audioTracks?: any[];
   }): Promise<VersionSnapshot> {
-    const { projectId, title, description = 'Automatic autosave snapshot', createdBy, scenes, audioTracks = [] } = params;
+    const { projectId, title, description = 'Automatic autosave snapshot', createdBy, ownerId, scenes, audioTracks = [] } = params;
+
+    if (ownerId && !this.projectOwners.has(projectId)) {
+      this.projectOwners.set(projectId, ownerId);
+    }
 
     const existingVersions = this.inMemoryVersions.get(projectId) || [];
     const versionNumber = existingVersions.length + 1;
@@ -45,6 +52,7 @@ class VersionHistoryService {
       description,
       createdAt: new Date().toISOString(),
       createdBy,
+      ownerId: ownerId || this.projectOwners.get(projectId) || createdBy,
       scenesCount: scenes.length,
       totalDurationSeconds,
       scenesData: scenes,
@@ -77,17 +85,36 @@ class VersionHistoryService {
   }
 
   /**
+   * Check if caller has permission to view or restore a project
+   */
+  public hasAccess(projectId: string, userId?: string, isAdmin?: boolean): boolean {
+    if (isAdmin) return true;
+    const owner = this.projectOwners.get(projectId);
+    // If no owner registered (e.g. open guest project), allow access
+    if (!owner) return true;
+    // If owner matches
+    if (userId && (owner === userId || owner.toLowerCase() === userId.toLowerCase())) return true;
+    return false;
+  }
+
+  /**
    * List all versions for a project
    */
-  public getVersions(projectId: string): VersionSnapshot[] {
+  public getVersions(projectId: string, userId?: string, isAdmin?: boolean): VersionSnapshot[] | null {
+    if (!this.hasAccess(projectId, userId, isAdmin)) {
+      return null;
+    }
     return this.inMemoryVersions.get(projectId) || [];
   }
 
   /**
    * Get specific version snapshot by ID
    */
-  public getVersionById(projectId: string, versionId: string): VersionSnapshot | null {
-    const versions = this.getVersions(projectId);
+  public getVersionById(projectId: string, versionId: string, userId?: string, isAdmin?: boolean): VersionSnapshot | null {
+    if (!this.hasAccess(projectId, userId, isAdmin)) {
+      return null;
+    }
+    const versions = this.inMemoryVersions.get(projectId) || [];
     return versions.find(v => v.id === versionId) || null;
   }
 }

@@ -181,9 +181,9 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
       </div>
 
       {/* Main Viewport Container */}
-      <div className="flex-1 flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden relative bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900/20 via-[#06080d] to-[#06080d]">
+      <div className="flex-1 flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden relative bg-[#05070c]">
         <div 
-          className="relative bg-black rounded-lg overflow-hidden shadow-2xl shadow-black/80 flex items-center justify-center border border-slate-800/80 transition-all duration-150"
+          className="relative bg-black rounded-md overflow-hidden shadow-2xl shadow-black/95 flex items-center justify-center ring-1 ring-white/5 transition-all duration-150"
           style={{
             aspectRatio: aspectRatio === '16:9' ? '16 / 9' : aspectRatio === '9:16' ? '9 / 16' : '1 / 1',
             height: '100%',

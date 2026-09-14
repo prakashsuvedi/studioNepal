@@ -9,12 +9,14 @@ export interface VideoSegmentInput {
   transition?: 'fade' | 'wipe' | 'zoom' | 'dissolve' | 'cut' | string;
   transitionDuration?: number;
   mediaType?: 'video' | 'image';
+  speed?: number;
 }
 
 export interface ProcessVideoOptions {
   assets: VideoSegmentInput[];
   outputFileName?: string;
   resolution?: { width: number; height: number } | string;
+  aspectRatio?: '16:9' | '9:16' | '1:1' | string;
   fps?: number;
   audioTrackUrl?: string;
   audioTracks?: Array<{ url: string; volume?: number; startTime?: number }>;
@@ -140,15 +142,22 @@ export class VideoProcessor {
     if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
 
     // 1. Asynchronously resolve all assets to local file paths
-    const resolvedAssets: Array<{ localPath: string; isImage: boolean; duration: number }> = [];
+    const resolvedAssets: Array<{ localPath: string; isImage: boolean; duration: number; speed: number }> = [];
 
     for (let idx = 0; idx < assets.length; idx++) {
       const asset = assets[idx];
       let rawUrl = (asset.url || '').trim();
       if (!rawUrl) rawUrl = '/samples/everest_sunrise.mp4';
       const dur = asset.duration || 4;
-      const isImg = asset.mediaType === 'image' || rawUrl.match(/\.(png|jpg|jpeg|webp)($|\?)/i) != null;
-      const ext = isImg ? 'jpg' : 'mp4';
+      const speed = asset.speed && Number(asset.speed) > 0 ? Number(asset.speed) : 1;
+      let isImg = asset.mediaType === 'image' || 
+                  (asset.mediaType !== 'video' && (
+                    rawUrl.includes('images.unsplash.com') ||
+                    rawUrl.startsWith('data:image/') ||
+                    /\.(png|jpg|jpeg|webp|gif|bmp|avif)($|\?)/i.test(rawUrl) ||
+                    /format=(jpg|jpeg|png|webp)/i.test(rawUrl)
+                  ));
+      let ext = isImg ? 'jpg' : 'mp4';
 
       let localPath = '';
 
@@ -183,12 +192,20 @@ export class VideoProcessor {
       } else if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         // Fetch remote asset to scratch file
         try {
-          const tempPath = path.join(jobScratchDir, `remote_input_${idx}.${ext}`);
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 8000);
           const res = await fetch(rawUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
           if (res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.startsWith('image/')) {
+              isImg = true;
+              ext = 'jpg';
+            } else if (contentType.startsWith('video/')) {
+              isImg = false;
+              ext = 'mp4';
+            }
+            const tempPath = path.join(jobScratchDir, `remote_input_${idx}.${ext}`);
             const buf = await res.arrayBuffer();
             fs.writeFileSync(tempPath, Buffer.from(buf));
             localPath = tempPath;
@@ -204,7 +221,7 @@ export class VideoProcessor {
         localPath = fs.existsSync(sampleFallback) ? sampleFallback : path.join(process.cwd(), 'public', 'samples', 'ForBiggerBlazes.mp4');
       }
 
-      resolvedAssets.push({ localPath, isImage: isImg, duration: dur });
+      resolvedAssets.push({ localPath, isImage: isImg, duration: dur, speed });
     }
 
     // 2. Resolve audio inputs (supporting SpeechT5 Base64 WAVs, local MP3s, and multiple audio tracks)
@@ -256,16 +273,26 @@ export class VideoProcessor {
     }
 
     // Determine target resolution dimensions
-    let targetW = 1280;
-    let targetH = 720;
+    const is916 = options.aspectRatio === '9:16';
+    const is11 = options.aspectRatio === '1:1';
+
+    let targetW = is916 ? 720 : is11 ? 720 : 1280;
+    let targetH = is916 ? 1280 : is11 ? 720 : 720;
+
     if (typeof resolution === 'string') {
-      if (resolution === '1080p') { targetW = 1920; targetH = 1080; }
-      else if (resolution === '4k') { targetW = 3840; targetH = 2160; }
-      else if (resolution === '720p') { targetW = 1280; targetH = 720; }
-      else if (resolution.includes('x')) {
+      if (resolution === '1080p') {
+        targetW = is916 ? 1080 : is11 ? 1080 : 1920;
+        targetH = is916 ? 1920 : is11 ? 1080 : 1080;
+      } else if (resolution === '4k') {
+        targetW = is916 ? 2160 : is11 ? 2160 : 3840;
+        targetH = is916 ? 3840 : is11 ? 2160 : 2160;
+      } else if (resolution === '720p') {
+        targetW = is916 ? 720 : is11 ? 720 : 1280;
+        targetH = is916 ? 1280 : is11 ? 720 : 720;
+      } else if (resolution.includes('x')) {
         const parts = resolution.split('x');
-        targetW = parseInt(parts[0], 10) || 1280;
-        targetH = parseInt(parts[1], 10) || 720;
+        targetW = parseInt(parts[0], 10) || targetW;
+        targetH = parseInt(parts[1], 10) || targetH;
       }
     } else if (resolution) {
       targetW = resolution.width;
@@ -315,8 +342,10 @@ export class VideoProcessor {
 
         resolvedAssets.forEach((asset, idx) => {
           const segTag = `v${idx}`;
+          const speed = asset.speed && Number(asset.speed) > 0 ? Number(asset.speed) : 1;
+          const ptsFilter = speed !== 1 ? `setpts=(1/${speed})*PTS-STARTPTS` : 'setpts=PTS-STARTPTS';
           filterComplex.push(
-            `[${idx}:v]trim=0:${asset.duration},setpts=PTS-STARTPTS,scale=${targetW}:${targetH}:flags=lanczos:force_original_aspect_ratio=increase,crop=${targetW}:${targetH},setsar=1,fps=${fps}[${segTag}]`
+            `[${idx}:v]trim=0:${asset.duration},${ptsFilter},scale=${targetW}:${targetH}:flags=lanczos:force_original_aspect_ratio=increase,crop=${targetW}:${targetH},setsar=1,fps=${fps}[${segTag}]`
           );
           segmentTags.push(`[${segTag}]`);
         });

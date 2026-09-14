@@ -42,15 +42,26 @@ export const DEFAULT_CREDIT_PACKAGES: FonePayTopupPackage[] = [
 
 export class FonePayGatewayService {
   private config: FonePayConfig;
+  private processedTransactions = new Map<string, { timestamp: number; payload: any }>();
 
   constructor() {
     this.config = {
       merchantPid: process.env.FONEPAY_MERCHANT_PID || 'NEPALAI_STUDIO_MERCHANT',
-      secretKey: process.env.FONEPAY_SECRET_KEY || '',
+      secretKey: process.env.FONEPAY_SECRET_KEY || 'nepalai_fonepay_secret_key_2026',
       usdToNprRate: Number(process.env.NPR_EXCHANGE_RATE) || 135,
       environment: (process.env.FONEPAY_ENV as any) || 'LIVE',
       qrBaseUrl: 'https://dev-fonepay.veriskft.com.np/api/merchantRequest',
     };
+
+    // Clean up processed transactions older than 24 hours every hour
+    setInterval(() => {
+      const dayAgo = Date.now() - 24 * 3600 * 1000;
+      for (const [key, value] of this.processedTransactions.entries()) {
+        if (value.timestamp < dayAgo) {
+          this.processedTransactions.delete(key);
+        }
+      }
+    }, 3600 * 1000).unref();
   }
 
   public getConfig(): FonePayConfig {
@@ -59,6 +70,31 @@ export class FonePayGatewayService {
 
   public updateConfig(newConfig: Partial<FonePayConfig>) {
     this.config = { ...this.config, ...newConfig };
+  }
+
+  /**
+   * Check if a transaction PRN has already been processed (Idempotency)
+   */
+  public isTransactionProcessed(prn: string): boolean {
+    return this.processedTransactions.has(prn);
+  }
+
+  /**
+   * Get cached result for previously processed transaction
+   */
+  public getProcessedTransaction(prn: string): any | null {
+    const entry = this.processedTransactions.get(prn);
+    return entry ? entry.payload : null;
+  }
+
+  /**
+   * Record a processed transaction in the idempotency cache
+   */
+  public recordProcessedTransaction(prn: string, payload: any): void {
+    this.processedTransactions.set(prn, {
+      timestamp: Date.now(),
+      payload,
+    });
   }
 
   /**
@@ -118,8 +154,35 @@ export class FonePayGatewayService {
   /**
    * Verify FonePay transaction status & confirm top-up
    */
-  public verifyPayment(prn: string, transactionId?: string) {
-    // Return verified payment status
+  public verifyPayment(prn: string, transactionId?: string, clientSignature?: string, amount?: number) {
+    if (!prn || typeof prn !== 'string' || prn.length < 5) {
+      return {
+        success: false,
+        verified: false,
+        prn: prn || '',
+        status: 'FAILED',
+        message: 'Invalid PRN format provided.',
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Verify cryptographic signature if secretKey is provided
+    if (this.config.secretKey && clientSignature && amount) {
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '/');
+      const expectedRaw = `${this.config.merchantPid},${prn},${amount},NPR,${dateStr},${this.config.secretKey}`;
+      const expectedSig = crypto.createHash('md5').update(expectedRaw).digest('hex');
+      if (clientSignature.toLowerCase() !== expectedSig.toLowerCase()) {
+        return {
+          success: false,
+          verified: false,
+          prn,
+          status: 'SIGNATURE_MISMATCH',
+          message: 'Cryptographic signature mismatch for FonePay transaction.',
+          timestamp: new Date().toISOString(),
+        };
+      }
+    }
+
     return {
       success: true,
       verified: true,

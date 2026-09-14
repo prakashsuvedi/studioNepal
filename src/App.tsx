@@ -31,9 +31,48 @@ import { Lock, Sparkles, ShieldAlert } from 'lucide-react';
 export default function App() {
   // Navigation & studio state
   const [activeTab, setActiveTab] = useState<StudioTab>('landing');
-  const [scenes, setScenes] = useState<Scene[]>(() => sanitizeScenes(INITIAL_SCENES));
-  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>(INITIAL_AUDIO_TRACKS);
-  const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>(() => {
+    try {
+      const saved = localStorage.getItem('nepalai_video_project_autosave') || sessionStorage.getItem('nepalai_video_project_autosave');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.scenes && Array.isArray(parsed.scenes) && parsed.scenes.length > 0) {
+          return sanitizeScenes(parsed.scenes);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to hydrate scenes from autosave:', e);
+    }
+    return sanitizeScenes(INITIAL_SCENES);
+  });
+  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>(() => {
+    try {
+      const saved = localStorage.getItem('nepalai_video_project_autosave') || sessionStorage.getItem('nepalai_video_project_autosave');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.audioTracks && Array.isArray(parsed.audioTracks) && parsed.audioTracks.length > 0) {
+          return parsed.audioTracks;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to hydrate audioTracks from autosave:', e);
+    }
+    return INITIAL_AUDIO_TRACKS;
+  });
+  const [subtitles, setSubtitles] = useState<SubtitleItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('nepalai_video_project_autosave') || sessionStorage.getItem('nepalai_video_project_autosave');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.subtitles && Array.isArray(parsed.subtitles)) {
+          return parsed.subtitles;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to hydrate subtitles from autosave:', e);
+    }
+    return [];
+  });
   const [sharedVoiceText, setSharedVoiceText] = useState<string>('');
   const [sharedSoraPrompt, setSharedSoraPrompt] = useState<string>('');
   const [sharedImagePrompt, setSharedImagePrompt] = useState<string>('');

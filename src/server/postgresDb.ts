@@ -98,17 +98,210 @@ export class PostgresService {
           status VARCHAR(50),
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
+
+        CREATE TABLE IF NOT EXISTS projects (
+          id VARCHAR(255) PRIMARY KEY,
+          user_id VARCHAR(255),
+          title VARCHAR(255) NOT NULL,
+          aspect_ratio VARCHAR(50) DEFAULT '16:9',
+          scenes JSONB NOT NULL DEFAULT '[]'::jsonb,
+          subtitles JSONB NOT NULL DEFAULT '[]'::jsonb,
+          audio_tracks JSONB NOT NULL DEFAULT '[]'::jsonb,
+          metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+          version INT DEFAULT 1,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        -- Safe column migrations for existing tables
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS user_id VARCHAR(255);
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS owner_user_id VARCHAR(255) DEFAULT 'usr_guest';
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_type VARCHAR(50) DEFAULT 'video';
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS language VARCHAR(50) DEFAULT 'ne';
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS source_external_id VARCHAR(255) DEFAULT 'none';
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS aspect_ratio VARCHAR(50) DEFAULT '16:9';
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS scenes JSONB DEFAULT '[]'::jsonb;
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS subtitles JSONB DEFAULT '[]'::jsonb;
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS audio_tracks JSONB DEFAULT '[]'::jsonb;
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+        ALTER TABLE projects ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
+        DO $$ BEGIN ALTER TABLE projects ALTER COLUMN owner_user_id DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+        DO $$ BEGIN ALTER TABLE projects ALTER COLUMN status SET DEFAULT 'active'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+        DO $$ BEGIN ALTER TABLE projects ALTER COLUMN project_type SET DEFAULT 'video'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+        DO $$ BEGIN ALTER TABLE projects ALTER COLUMN language SET DEFAULT 'ne'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+        DO $$ BEGIN ALTER TABLE projects ALTER COLUMN source_external_id SET DEFAULT 'none'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+        CREATE TABLE IF NOT EXISTS project_snapshots (
+          id VARCHAR(255) PRIMARY KEY,
+          project_id VARCHAR(255) REFERENCES projects(id) ON DELETE CASCADE,
+          version_number INT NOT NULL,
+          title VARCHAR(255),
+          description TEXT,
+          scenes_count INT DEFAULT 0,
+          payload JSONB NOT NULL,
+          created_by VARCHAR(255),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+      `);
+
+      // Bootstrap Supabase RPC Stored Procedures
+      await client.query(`
+        CREATE OR REPLACE FUNCTION save_project_atomic_transaction(
+          p_project_id VARCHAR,
+          p_user_id VARCHAR,
+          p_title VARCHAR,
+          p_aspect_ratio VARCHAR,
+          p_scenes JSONB,
+          p_subtitles JSONB,
+          p_audio_tracks JSONB,
+          p_metadata JSONB,
+          p_create_snapshot BOOLEAN DEFAULT true
+        ) RETURNS JSONB AS $$
+        DECLARE
+          v_version INT := 1;
+          v_result JSONB;
+          v_snapshot_id VARCHAR;
+        BEGIN
+          INSERT INTO projects (id, user_id, status, project_type, language, source_external_id, title, aspect_ratio, scenes, subtitles, audio_tracks, metadata, version, created_at, updated_at)
+          VALUES (p_project_id, p_user_id, 'active', 'video', 'ne', 'none', p_title, p_aspect_ratio, p_scenes, p_subtitles, p_audio_tracks, p_metadata, 1, NOW(), NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            title = EXCLUDED.title,
+            aspect_ratio = EXCLUDED.aspect_ratio,
+            scenes = EXCLUDED.scenes,
+            subtitles = EXCLUDED.subtitles,
+            audio_tracks = EXCLUDED.audio_tracks,
+            metadata = EXCLUDED.metadata,
+            version = projects.version + 1,
+            updated_at = NOW()
+          RETURNING version INTO v_version;
+
+          IF p_create_snapshot THEN
+            v_snapshot_id := 'snap_' || p_project_id || '_v' || v_version || '_' || CAST(EXTRACT(EPOCH FROM NOW())*1000 AS BIGINT);
+            INSERT INTO project_snapshots (id, project_id, version_number, title, scenes_count, payload, created_by, created_at)
+            VALUES (
+              v_snapshot_id,
+              p_project_id,
+              v_version,
+              p_title || ' (v' || v_version || ')',
+              jsonb_array_length(p_scenes),
+              jsonb_build_object(
+                'projectId', p_project_id,
+                'versionNumber', v_version,
+                'title', p_title,
+                'scenes', p_scenes,
+                'subtitles', p_subtitles,
+                'audioTracks', p_audio_tracks,
+                'metadata', p_metadata
+              ),
+              COALESCE(p_user_id, 'system'),
+              NOW()
+            );
+          END IF;
+
+          v_result := jsonb_build_object(
+            'success', true,
+            'projectId', p_project_id,
+            'version', v_version,
+            'snapshotId', v_snapshot_id,
+            'scenesCount', jsonb_array_length(p_scenes),
+            'subtitlesCount', jsonb_array_length(p_subtitles),
+            'timestamp', NOW()
+          );
+
+          RETURN v_result;
+        EXCEPTION WHEN OTHERS THEN
+          RAISE EXCEPTION 'Atomic save failed: %', SQLERRM;
+        END;
+        $$ LANGUAGE plpgsql;
       `);
       client.release();
-      console.log('✅ Supabase PostgreSQL schema verified.');
+      console.log('✅ Supabase PostgreSQL schema and RPC procedures verified.');
     } catch (err: any) {
       console.warn('PostgreSQL schema bootstrap notice:', err?.message || err);
     }
   }
 
-  public async query(text: string, params?: any[]) {
+  /**
+   * Determine if a PostgreSQL error is transient and safe to retry
+   */
+  private isTransientError(err: any): boolean {
+    if (!err) return false;
+    const msg = (err.message || '').toLowerCase();
+    const code = err.code || '';
+    return (
+      code === '57P01' || // admin shutdown
+      code === '08006' || // connection failure
+      code === '08001' || // unable to establish connection
+      code === '08004' || // server rejected connection
+      code === '40001' || // serialization failure / deadlock
+      code === '53300' || // too many connections
+      msg.includes('connection terminated') ||
+      msg.includes('timeout') ||
+      msg.includes('econnreset') ||
+      msg.includes('econnrefused') ||
+      msg.includes('too many clients') ||
+      msg.includes('client has already been released')
+    );
+  }
+
+  /**
+   * Execute an atomic transaction block with automatic BEGIN, COMMIT, ROLLBACK, and exponential backoff retry
+   */
+  public async executeTransaction<T>(
+    callback: (client: pg.PoolClient) => Promise<T>,
+    maxRetries = 3
+  ): Promise<T> {
     if (!this.pool) throw new Error('PostgreSQL pool not initialized');
-    return this.pool.query(text, params);
+
+    let attempt = 0;
+    while (true) {
+      attempt++;
+      let client: pg.PoolClient | null = null;
+      try {
+        client = await this.pool.connect();
+        await client.query('BEGIN');
+        const result = await callback(client);
+        await client.query('COMMIT');
+        return result;
+      } catch (err: any) {
+        if (client) {
+          await client.query('ROLLBACK').catch((rbErr) => console.warn('Rollback warning:', rbErr));
+        }
+        if (attempt >= maxRetries || !this.isTransientError(err)) {
+          throw err;
+        }
+        const delay = 150 * Math.pow(2, attempt - 1) + Math.random() * 50;
+        await new Promise((res) => setTimeout(res, delay));
+      } finally {
+        if (client) {
+          try {
+            client.release();
+          } catch (_) {}
+        }
+      }
+    }
+  }
+
+  /**
+   * Execute query with automatic retry on transient connection drops
+   */
+  public async query(text: string, params?: any[], maxRetries = 3) {
+    if (!this.pool) throw new Error('PostgreSQL pool not initialized');
+
+    let attempt = 0;
+    while (true) {
+      attempt++;
+      try {
+        return await this.pool.query(text, params);
+      } catch (err: any) {
+        if (attempt >= maxRetries || !this.isTransientError(err)) {
+          throw err;
+        }
+        const delay = 100 * Math.pow(2, attempt - 1) + Math.random() * 40;
+        await new Promise((res) => setTimeout(res, delay));
+      }
+    }
   }
 
   public async getDiagnosticReport() {

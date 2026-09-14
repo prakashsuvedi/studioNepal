@@ -112,6 +112,7 @@ import { AiMediaProcessingModal } from './AiMediaProcessingModal';
 import { AutomatedAdBuilderModal } from './AutomatedAdBuilderModal';
 import { TextStylingToolkitModal } from './TextStylingToolkitModal';
 import { MediaLibrary, MediaAssetItem } from './MediaLibrary';
+import { dbTransactions } from '../lib/dbTransactions';
 import { validateTimelineBeforeRender } from '../services/timelineValidationService';
 import { TextStylePreset, TextAnimationOption, TickerConfig, TimelineValidationReport, KineticTypographyConfig } from '../types';
 import { History } from 'lucide-react';
@@ -716,8 +717,17 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Debounced Auto-Save Mechanism: Syncs timeline, scenes, metadata, subtitles & brand overlay to sessionStorage & localStorage
+  // Debounced Auto-Save Mechanism: Syncs timeline, scenes, metadata, audioTracks, subtitles & brand overlay to sessionStorage & localStorage
+  const hasInitialAutoSaveLoadedRef = useRef(false);
   useEffect(() => {
+    // Prevent overwriting existing auto-saved draft immediately on mount before user can restore or make edits
+    if (!hasInitialAutoSaveLoadedRef.current) {
+      const initTimer = setTimeout(() => {
+        hasInitialAutoSaveLoadedRef.current = true;
+      }, 3500);
+      return () => clearTimeout(initTimer);
+    }
+
     const timer = setTimeout(() => {
       try {
         setIsAutoSaving(true);
@@ -729,6 +739,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           selectedAudioId,
           totalDuration,
           scenes,
+          audioTracks,
           subtitles,
           subtitleBurnOptions,
           brandOverlayConfig,
@@ -749,11 +760,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [scenes, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig]);
+  }, [scenes, audioTracks, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig]);
 
   // Periodic 30-second interval Auto-Save to sessionStorage & localStorage
   useEffect(() => {
     const interval = setInterval(() => {
+      if (!hasInitialAutoSaveLoadedRef.current) return;
       try {
         const projectData = {
           schemaVersion: '1.30.0-A',
@@ -763,6 +775,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           selectedAudioId,
           totalDuration,
           scenes,
+          audioTracks,
           subtitles,
           subtitleBurnOptions,
           brandOverlayConfig,
@@ -780,7 +793,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [scenes, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig]);
+  }, [scenes, audioTracks, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig]);
 
   // Auto-scroll timeline to keep playhead in view during playback
   useEffect(() => {
@@ -1377,12 +1390,17 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       const saved = savedSession || savedLocal;
 
       if (!saved) {
-        alert('No auto-saved session found in your browser storage.');
+        setProjectNotice('No auto-saved draft found in your browser storage.');
+        setTimeout(() => setProjectNotice(null), 3000);
         return;
       }
       const data = JSON.parse(saved);
       if (data.scenes && Array.isArray(data.scenes) && data.scenes.length > 0) {
+        pushToHistory(scenes);
         setScenes(sanitizeScenes(data.scenes));
+        if (data.audioTracks && Array.isArray(data.audioTracks)) {
+          setAudioTracks(data.audioTracks);
+        }
         if (data.projectTitle) setProjectTitle(data.projectTitle);
         if (data.aspectRatio) setAspectRatio(data.aspectRatio);
         if (data.selectedAudioId) setSelectedAudioId(data.selectedAudioId);
@@ -1394,12 +1412,27 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         setCurrentTime(0);
         setShowSessionRestoreModal(false);
         setShowSessionRestoreBanner(false);
-        setProjectNotice(`Restored auto-saved project from ${data.lastSavedAt ? new Date(data.lastSavedAt).toLocaleTimeString() : 'browser storage'}!`);
+        setRestorableDraftInfo(null);
+        setProjectNotice(`Restored auto-saved draft "${data.projectTitle || 'Project'}" (${data.scenes.length} scenes, ${(data.audioTracks?.length || 0)} audio tracks)!`);
         setTimeout(() => setProjectNotice(null), 4000);
       }
     } catch (err) {
-      alert('Could not restore auto-saved session.');
+      console.warn('Restore autosave error:', err);
+      setProjectNotice('Could not parse auto-saved session data.');
+      setTimeout(() => setProjectNotice(null), 3000);
     }
+  };
+
+  // Discard draft and reset storage
+  const handleDiscardAutoSave = () => {
+    sessionStorage.removeItem('nepalai_video_project_autosave');
+    localStorage.removeItem('nepalai_video_project_autosave');
+    setShowSessionRestoreModal(false);
+    setShowSessionRestoreBanner(false);
+    setRestorableDraftInfo(null);
+    setHasExistingAutoSave(false);
+    setProjectNotice('Draft discarded. Working with clean timeline.');
+    setTimeout(() => setProjectNotice(null), 3500);
   };
 
   // Watermark management handlers
@@ -1843,6 +1876,13 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
               Restore Draft
             </button>
             <button
+              onClick={handleDiscardAutoSave}
+              className="px-2.5 py-1 rounded bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-medium transition cursor-pointer"
+              title="Discard draft and clear autosaved session"
+            >
+              Discard
+            </button>
+            <button
               onClick={() => setShowSessionRestoreBanner(false)}
               className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer"
             >
@@ -1942,14 +1982,21 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             setTimeout(() => setProjectNotice(null), 3000);
           }}
           onAddAudioToTimeline={(track) => {
+            pushToHistory(scenes);
+            const trackId = track.id || `bgm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+            const preparedTrack = { ...track, id: trackId };
             if (track.type === 'voiceover') {
-              setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), track]);
+              setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), preparedTrack]);
               setProjectNotice(`Assigned "${track.title}" to Voiceover track!`);
             } else {
-              setAudioTracks(prev => [...prev, track]);
-              setProjectNotice(`Added audio track "${track.title}"!`);
+              setAudioTracks(prev => {
+                // Ensure no duplicate IDs
+                const filtered = prev.filter(t => t.id !== trackId);
+                return [...filtered, preparedTrack];
+              });
+              setSelectedAudioId(trackId);
+              setProjectNotice(`Added "${track.title}" to Music track!`);
             }
-            setSelectedAudioId(track.id);
             setTimeout(() => setProjectNotice(null), 3000);
           }}
           selectedSceneId={selectedSceneId}
@@ -2089,6 +2136,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         isSnapping={snapEnabled}
         setIsSnapping={setSnapEnabled}
         hasSelectedClip={!!selectedScene}
+        selectedScene={selectedScene}
+        onUpdateSelectedScene={(updated) => {
+          if (!selectedScene) return;
+          pushToHistory(scenes);
+          setScenes(prev => prev.map(s => s.id === selectedScene.id ? { ...s, ...updated } : s));
+        }}
       />
 
       {/* 4. Bottom Deck: CapCut Multi-Track Timeline */}
@@ -2131,6 +2184,14 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           selectedAudioId={selectedAudioId}
           onSelectAudioId={setSelectedAudioId}
           voTrack={voTrack}
+          onUpdateAudioTrack={(id, updated) => {
+            setAudioTracks(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
+          }}
+          onUpdateVoiceoverDuration={(newDur) => {
+            if (voTrack) {
+              setAudioTracks(prev => prev.map(t => t.id === voTrack.id ? { ...t, duration: newDur } : t));
+            }
+          }}
           onDeleteVoiceover={() => {
             setAudioTracks(prev => prev.filter(t => t.type !== 'voiceover'));
             setProjectNotice('Voiceover track removed from timeline');
@@ -2515,10 +2576,34 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onClose={() => setShowSubtitleModal(false)}
         scenes={scenes}
         subtitles={subtitles}
-        onSaveSubtitles={(updatedSubtitles, burnOpts) => {
+        onSaveSubtitles={async (updatedSubtitles, burnOpts) => {
           setSubtitles(updatedSubtitles);
           setSubtitleBurnOptions(burnOpts);
-          setProjectNotice(`Applied ${updatedSubtitles.length} subtitle captions to sequence!`);
+          
+          // Execute atomic multi-step transaction with pre-flight schema validation & rollback protection
+          const projectId = `project_${projectTitle.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+          const txResult = await dbTransactions.atomicSaveSceneAndSubtitles({
+            projectId,
+            userId: currentUser?.id,
+            projectTitle,
+            aspectRatio,
+            scenes,
+            subtitles: updatedSubtitles,
+            subtitleBurnOptions: burnOpts,
+            audioTracks: audioTracks as any,
+            selectedAudioId,
+            brandOverlayConfig,
+          }, {
+            autoSnapshot: true,
+            rollbackOnPartialFailure: true,
+            transactionTitle: 'Subtitle & Scene State Update',
+          });
+
+          if (txResult.success) {
+            setProjectNotice(`Applied & synced ${updatedSubtitles.length} subtitle captions to sequence!`);
+          } else {
+            setProjectNotice(`Applied subtitles locally (${txResult.error || 'Autosaved'})`);
+          }
           setTimeout(() => setProjectNotice(null), 3000);
         }}
       />
@@ -2567,13 +2652,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
-                onClick={() => {
-                  sessionStorage.removeItem('nepalai_video_project_autosave');
-                  localStorage.removeItem('nepalai_video_project_autosave');
-                  setShowSessionRestoreModal(false);
-                  setShowSessionRestoreBanner(false);
-                }}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                onClick={handleDiscardAutoSave}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-rose-950/80 hover:text-rose-300 hover:border-rose-800/80 border border-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
               >
                 Discard Draft
               </button>

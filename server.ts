@@ -17,6 +17,7 @@ import { generatePreSignedDownloadUrl, syncDatabaseAssetExpiration } from './src
 import { ADMIN_CREDENTIALS, ADMIN_WHITELIST_EMAILS, generateJwtToken, verifyJwtToken, extractAuthUser, isUserAdmin } from './src/server/credentials';
 import { fonePayGateway } from './src/server/fonepayGateway';
 import { ensureSampleMediaFiles } from './src/server/sampleMediaGenerator';
+import { sreObservability } from './src/server/sreObservability';
 
 
 import {
@@ -56,11 +57,15 @@ async function startServer() {
   app.use(express.json({ limit: '250mb' }));
   app.use(express.urlencoded({ limit: '250mb', extended: true }));
 
-  // CORS / logging helper
+  // CORS, Request Correlation (x-request-id) & Structured SRE Logging
   app.use((req, res, next) => {
+    const correlationId = (req.headers['x-request-id'] as string) || `req_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    res.setHeader('x-request-id', correlationId);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-admin-key');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-admin-key, x-request-id, x-idempotency-key');
+    res.setHeader('Access-Control-Expose-Headers', 'x-request-id, x-idempotency-key, x-ratelimit-remaining');
+
     if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
   });
@@ -132,7 +137,7 @@ async function startServer() {
     });
   };
 
-  // Health check
+  // Health check (Legacy & Standard)
   app.get('/api/health', (req, res) => {
     const hasAzureSpeech = Boolean(
       process.env.AZURE_SPEECH ||
@@ -159,6 +164,31 @@ async function startServer() {
     });
   });
 
+  // SRE Probe: Container Liveness Check
+  app.get('/api/health/live', (req, res) => {
+    const liveness = sreObservability.getLiveness();
+    res.json(liveness);
+  });
+
+  // SRE Probe: Deep Dependency Readiness Check
+  app.get('/api/health/ready', async (req, res) => {
+    const readiness = await sreObservability.getReadiness();
+    if (!readiness.ready) {
+      return res.status(503).json(readiness);
+    }
+    res.json(readiness);
+  });
+
+  // SRE Telemetry: System Resource & Queue Metrics
+  app.get('/api/telemetry/stats', (req, res) => {
+    const metrics = sreObservability.getSystemMetrics();
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      metrics,
+    });
+  });
+
   // Diagnostic Endpoint
   app.get('/api/diagnostic', (req, res) => {
     res.json({
@@ -173,8 +203,52 @@ async function startServer() {
         azureSora2: Boolean(process.env.AZURE_OPENAI_KEY || process.env.OPENAI_API_KEY),
         azureSpeech: Boolean(process.env.AZURE_SPEECH || process.env.AZURE_SPEECH_KEY),
         supabase: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
+        cloudflareR2: Boolean(
+          (process.env.R2_ENDPOINT || process.env.CLOUDFLARE_R2_ENDPOINT || process.env.S3_ENDPOINT) &&
+          (process.env.R2_ACCESS_KEY_ID || process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID)
+        ),
       },
     });
+  });
+
+  // Cloudflare R2 Diagnostic Verification Endpoint
+  app.get('/api/diagnostic/storage/r2', async (req, res) => {
+    try {
+      const config = storageBucket.getConfig();
+      const endpoint = process.env.R2_ENDPOINT || process.env.CLOUDFLARE_R2_ENDPOINT || process.env.S3_ENDPOINT || config.s3Endpoint || '';
+      const bucket = process.env.R2_BUCKET || process.env.CLOUDFLARE_R2_BUCKET || process.env.S3_BUCKET || config.s3Bucket || 'nepalai';
+      const accessKeyId = process.env.R2_ACCESS_KEY_ID || process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || config.s3AccessKeyId || '';
+      const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || config.s3SecretAccessKey || '';
+
+      const credentialsConfigured = Boolean(endpoint && accessKeyId && secretAccessKey);
+      const inspection = await storageBucket.inspectR2Bucket();
+
+      res.json({
+        success: inspection.authorized,
+        authorized: inspection.authorized,
+        provider: config.provider,
+        bucket,
+        endpoint,
+        endpointConfigured: Boolean(endpoint),
+        credentialsConfigured,
+        region: inspection.region,
+        latencyMs: inspection.latencyMs,
+        objectCount: inspection.keyCount,
+        objects: inspection.objects,
+        error: inspection.error,
+        errorCode: inspection.errorCode,
+        statusCode: inspection.statusCode,
+        sigv4Details: inspection.sigv4Details,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        authorized: false,
+        error: err.message || 'R2 check error',
+        timestamp: new Date().toISOString(),
+      });
+    }
   });
 
   // Supabase PostgreSQL Diagnostic Verification Endpoint (Admin Only)

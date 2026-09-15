@@ -221,7 +221,10 @@ export class VideoProcessor {
         localPath = fs.existsSync(sampleFallback) ? sampleFallback : path.join(process.cwd(), 'public', 'samples', 'ForBiggerBlazes.mp4');
       }
 
-      resolvedAssets.push({ localPath, isImage: isImg, duration: dur, speed });
+      const finalExt = path.extname(localPath).toLowerCase();
+      const actualIsImage = isImg && !['.mp4', '.mov', '.webm', '.avi', '.mkv'].includes(finalExt);
+
+      resolvedAssets.push({ localPath, isImage: actualIsImage, duration: dur, speed });
     }
 
     // 2. Resolve audio inputs (supporting SpeechT5 Base64 WAVs, local MP3s, and multiple audio tracks)

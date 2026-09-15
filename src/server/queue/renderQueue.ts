@@ -259,6 +259,29 @@ export class RenderQueueManager {
       timestamp: state.timestamp,
     } : null;
   }
+
+  public getQueueMetrics(): {
+    activeJobs: number;
+    pendingJobs: number;
+    totalTracked: number;
+    provider: string;
+  } {
+    return {
+      activeJobs: localConcurrencyWorker.activeCount,
+      pendingJobs: localConcurrencyWorker.pendingCount,
+      totalTracked: localJobStore.size,
+      provider: useRedis ? 'redis_bullmq' : 'in_memory_concurrency_limiter',
+    };
+  }
+
+  public cancelJob(jobId: string): boolean {
+    const state = localJobStore.get(jobId);
+    if (!state) return false;
+    if (['COMPLETED', 'FAILED'].includes(state.stage)) return false;
+
+    this.emitStage(jobId, state.userId, 'FAILED', 0, undefined, undefined, 'Job cancelled by user');
+    return true;
+  }
 }
 
 export const renderQueueManager = new RenderQueueManager();

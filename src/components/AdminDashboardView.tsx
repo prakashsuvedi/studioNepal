@@ -21,13 +21,15 @@ import {
   FileText,
   Code2,
   Terminal,
-  Cpu
+  Cpu,
+  Cloud
 } from 'lucide-react';
 import { apiGetAdminUsers, apiAdminUpdateUser } from '../lib/api';
 import { UserSession } from '../types';
 import { AuditReportView } from './AuditReportView';
 import { HfDeploymentKitView } from './HfDeploymentKitView';
 import { PostgresDiagnosticPanel } from './PostgresDiagnosticPanel';
+import { R2DiagnosticPanel } from './R2DiagnosticPanel';
 
 interface AdminDashboardViewProps {
   currentUser: UserSession | null;
@@ -43,7 +45,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'audit' | 'hf_kit' | 'debug_logs' | 'nepali_pricing' | 'postgres_diagnostic' | 'daily_reset_audit'>('daily_reset_audit');
+  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'audit' | 'hf_kit' | 'debug_logs' | 'nepali_pricing' | 'postgres_diagnostic' | 'r2_storage' | 'daily_reset_audit'>('daily_reset_audit');
   const [resetAuditData, setResetAuditData] = useState<any>(null);
   const [resetAuditLoading, setResetAuditLoading] = useState(false);
 
@@ -348,6 +350,15 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           >
             <Cpu className="w-3.5 h-3.5 text-emerald-600" />
             <span>Supabase DB Status</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('r2_storage')}
+            className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'r2_storage' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Cloud className="w-3.5 h-3.5 text-amber-600" />
+            <span>Cloudflare R2 Storage</span>
           </button>
           <button
             onClick={() => { setActiveTab('daily_reset_audit'); fetchDailyResetAudit(); }}
@@ -856,6 +867,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       )}
 
       {activeTab === 'postgres_diagnostic' && <PostgresDiagnosticPanel />}
+      {activeTab === 'r2_storage' && <R2DiagnosticPanel />}
 
       {/* Daily Reset & Credit Leakage Verification Service Panel */}
       {activeTab === 'daily_reset_audit' && (

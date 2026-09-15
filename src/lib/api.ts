@@ -1,4 +1,6 @@
 import type { UserSession, UserTrialQuota, StripeTransactionItem } from '../types';
+export { apiClient, ApiClient, ApiClientError, isBrowserOffline } from './apiClient';
+export type { ApiClientRequestOptions, ApiErrorCode } from './apiClient';
 
 export interface AdminUsersResponse {
   success: boolean;
@@ -433,3 +435,78 @@ export async function apiTranslatePrompt(text: string, targetLang: 'en' | 'ne'):
     return text;
   }
 }
+
+export interface SafeR2Config {
+  bucket: string;
+  region: string;
+  endpoint: string;
+  endpointConfigured: boolean;
+  credentialsConfigured: boolean;
+  accessKeyMasked: string;
+  secretKeyConfigured: boolean;
+  provider: string;
+}
+
+/**
+ * Safely retrieves Cloudflare R2 storage configuration from server diagnostics,
+ * ensuring secret keys are masked in logs and only non-sensitive metadata is exposed.
+ */
+export async function getSafeR2Config(): Promise<SafeR2Config> {
+  const savedUserId = localStorage.getItem('nepalai_user_id') || '';
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+
+  try {
+    const res = await fetch('/api/diagnostic/storage/r2', {
+      method: 'GET',
+      headers: {
+        'x-user-id': savedUserId,
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      return {
+        bucket: 'nepalai',
+        region: 'auto',
+        endpoint: '',
+        endpointConfigured: false,
+        credentialsConfigured: false,
+        accessKeyMasked: '****',
+        secretKeyConfigured: false,
+        provider: 'r2',
+      };
+    }
+
+    const data = await res.json();
+    const endpointStr: string = data.endpoint || '';
+    
+    // Mask endpoint account ID if present
+    const maskedEndpoint = endpointStr.replace(/https:\/\/([a-zA-Z0-9]{4})[a-zA-Z0-9]+(\.r2\.cloudflarestorage\.com.*)/, 'https://$1****$2');
+
+    return {
+      bucket: data.bucket || 'nepalai',
+      region: data.region || 'auto',
+      endpoint: maskedEndpoint || endpointStr,
+      endpointConfigured: Boolean(data.endpointConfigured),
+      credentialsConfigured: Boolean(data.credentialsConfigured),
+      accessKeyMasked: data.credentialsConfigured ? '••••••••••••••••' : 'Not configured',
+      secretKeyConfigured: Boolean(data.credentialsConfigured),
+      provider: data.provider || 'r2',
+    };
+  } catch (err) {
+    console.warn('[SafeR2Config] Failed to retrieve masked R2 config:', err);
+    return {
+      bucket: 'nepalai',
+      region: 'auto',
+      endpoint: '',
+      endpointConfigured: false,
+      credentialsConfigured: false,
+      accessKeyMasked: '****',
+      secretKeyConfigured: false,
+      provider: 'r2',
+    };
+  }
+}
+

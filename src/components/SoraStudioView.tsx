@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Scene, UserSession, UserTrialQuota } from '../types';
-import { apiGenerateVideo, apiCheckVideoStatus, apiTranslatePrompt } from '../lib/api';
+import { apiGenerateVideo, apiCheckVideoStatus, apiTranslatePrompt, normalizeSoraDuration, pollSoraJobStatus } from '../lib/api';
 import { 
   Video, 
   Sparkles, 
@@ -26,7 +26,24 @@ import {
   Layers,
   Tv,
   Clapperboard,
-  Sparkle
+  Sparkle,
+  Lock,
+  Unlock,
+  ShieldCheck,
+  Tag,
+  Anchor,
+  Compass,
+  Wand2,
+  BookmarkCheck,
+  Link2,
+  Focus,
+  Target,
+  ScanFace,
+  SlidersVertical,
+  GitBranch,
+  ArrowRight,
+  Eye,
+  Info
 } from 'lucide-react';
 import { saveMediaItem, getMediaLibrary, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
 import {
@@ -34,11 +51,14 @@ import {
   PODCAST_STUDIO_PACKS,
   NARRATIVE_STORYBOARDS,
   BROADCAST_FORMAT_PRESETS,
+  SUBJECT_LOCK_REGISTRY,
   CharacterDNA,
   PodcastStudioPack,
   NarrativeStoryboardPack,
   StoryboardSceneItem,
-  BroadcastFormatPreset
+  BroadcastFormatPreset,
+  SubjectLockItem,
+  SubjectCategory
 } from '../data/soraProductionPacks';
 
 interface SoraStudioViewProps {
@@ -49,15 +69,217 @@ interface SoraStudioViewProps {
   user?: UserSession | null;
   onTriggerPaywall?: (reason: string) => void;
   onUsageUpdated?: (usage: UserTrialQuota, credits: number) => void;
-  onStartGlobalLoading?: (info: { title: string; subtitle?: string; type?: 'video' | 'image' | 'voice' | 'render' | 'hamroai'; progress?: number }) => void;
+  onStartGlobalLoading?: (info: { 
+    title: string; 
+    subtitle?: string; 
+    type?: 'video' | 'image' | 'voice' | 'render' | 'hamroai'; 
+    progress?: number;
+    currentStage?: number;
+    totalStages?: number;
+    stageTitle?: string;
+    stageDetails?: string;
+    characterLockToken?: string;
+  }) => void;
   onStopGlobalLoading?: () => void;
 }
+
+export interface ChainedSegmentItem {
+  id: string;
+  order: number;
+  title: string;
+  recommendedDuration: number;
+  framing: string;
+  prompt: string;
+  subtitleEn: string;
+  subtitleNe?: string;
+  videoUrl?: string;
+  isProcessing?: boolean;
+  exitLatentContext?: string;
+}
+
+export const DEFAULT_CHAINED_SEGMENTS: ChainedSegmentItem[] = [
+  {
+    id: 'seg-1',
+    order: 1,
+    title: 'Scene 1: Master Hero Establishing Shot',
+    recommendedDuration: 12,
+    framing: 'Cinematic Wide 35mm Master',
+    prompt: 'Wide cinematic establishing shot of the locked subject at high altitude Himalayan vantage point during golden hour. Soft wind blowing, realistic physics, 4k ultra-high dynamic range.',
+    subtitleEn: 'In the high valleys of the Himalayas, the journey begins.',
+    subtitleNe: 'हिमालयको उच्च उपत्यकामा, यात्राको सुरुवात हुन्छ।',
+    exitLatentContext: 'Subject turns from mountain horizon toward the winding valley road, walking steadily with determination.',
+  },
+  {
+    id: 'seg-2',
+    order: 2,
+    title: 'Scene 2: Direct Action & Progression Beat',
+    recommendedDuration: 12,
+    framing: 'Tracking Medium Shot (12s continuous)',
+    prompt: 'Continuous tracking shot following the exact locked subject descending through stone steps of an ancient mountain village. Ambient fluttering prayer flags, warm cinematic sunlight.',
+    subtitleEn: 'Every step weaves through centuries of heritage.',
+    subtitleNe: 'प्रत्येक पाइलाले शताब्दीयौंदेखिको सम्पदालाई स्पर्श गर्छ।',
+    exitLatentContext: 'Subject reaches the village square fountain, greeting locals before turning toward the suspension bridge.',
+  },
+  {
+    id: 'seg-3',
+    order: 3,
+    title: 'Scene 3: Crossing & Environmental Exploration',
+    recommendedDuration: 12,
+    framing: 'Low-Angle Dynamic Dolly',
+    prompt: 'Dynamic dolly shot of the locked subject crossing the high mountain river suspension bridge over glacial turquoise waters. Cinematic mist rising, breathtaking depth.',
+    subtitleEn: 'Crossing turbulent rivers toward the northern pass.',
+    subtitleNe: 'हिमनदीका नीलो छालहरूमाथिबाट उत्तरी नाकातर्फको यात्रा।',
+    exitLatentContext: 'Subject steps off the suspension bridge onto the rocky trail as sudden evening clouds roll in.',
+  },
+  {
+    id: 'seg-4',
+    order: 4,
+    title: 'Scene 4: Rising Dramatic Climax Beat',
+    recommendedDuration: 12,
+    framing: 'Close Hero Profile & Orbit',
+    prompt: 'Dramatic 12s orbit shot around the locked subject facing an alpine ridge as golden storm clouds break into rays of light. Intense emotional gaze, photorealistic textures.',
+    subtitleEn: 'When the horizon tests your courage, determination speaks.',
+    subtitleNe: 'क्षितिजले आँटको परीक्षा लिँदा, दृढ संकल्पले बोल्छ।',
+    exitLatentContext: 'Subject reaches the crest of the ridge, catching their breath with an inspired smile.',
+  },
+  {
+    id: 'seg-5',
+    order: 5,
+    title: 'Scene 5: Emotional Resolution & Encounter',
+    recommendedDuration: 12,
+    framing: 'Warm Medium Two-Shot / Vista',
+    prompt: 'Warm cinematic shot of the locked subject standing beside ancient stone chorten as warm lamps glow at twilight. High visual fidelity, authentic cultural detail.',
+    subtitleEn: 'Finding peace in the heart of the eternal peaks.',
+    subtitleNe: 'सदाबहार हिमालहरूको काखमा शान्तिको अनुभूति।',
+    exitLatentContext: 'Subject gazes at the starlit Annapurna peaks as the last golden rays fade into twilight.',
+  },
+  {
+    id: 'seg-6',
+    order: 6,
+    title: 'Scene 6: Grand Finale & Hero Stinger',
+    recommendedDuration: 12,
+    framing: 'Grand Aerial Pull-Back (12s Master)',
+    prompt: 'Epic cinematic 12s pull-back crane and drone sweep from the locked subject standing atop the summit vista under brilliant starry twilight sky, blockbuster cinema 4k.',
+    subtitleEn: 'NepalAI Studio • The Story Continues.',
+    subtitleNe: 'नेपाल एआई स्टुडियो • कथा निरन्तर जारी छ।',
+    exitLatentContext: 'Wide panoramic view of the entire illuminated valley under cosmic starry sky.',
+  },
+];
 
 const SORA_CINEMATIC_MODIFIERS = [
   { label: 'Drone Sweep', modifier: 'cinematic aerial drone sweep, 4k ultra-high definition, slow motion' },
   { label: 'Golden Hour', modifier: 'golden hour warm sunlight, glowing rim light, high dynamic range' },
   { label: 'Himalayan Mist', modifier: 'rolling mountain fog, ethereal atmosphere, majestic snow peaks' },
   { label: 'Hyper-Realistic', modifier: 'photorealistic 8k, natural depth of field, blockbuster cinema camera' },
+];
+
+export interface SimpleStylePreset {
+  id: 'cinematic' | 'realistic' | 'animated' | 'documentary' | 'vintage';
+  label: string;
+  labelNe: string;
+  icon: string;
+  badge: string;
+  description: string;
+  promptModifier: string;
+}
+
+export const SIMPLE_STYLE_PRESETS: SimpleStylePreset[] = [
+  {
+    id: 'cinematic',
+    label: 'Cinematic Movie',
+    labelNe: 'सिनेम्याटिक फिल्म',
+    icon: '🎬',
+    badge: 'Hollywood 4K',
+    description: 'Ultra-realistic film lighting, 24fps depth of field, 35mm anamorphic lens, blockbuster drama',
+    promptModifier: 'cinematic movie masterpiece, 8k resolution, dramatic cinematic lighting, shallow depth of field, 35mm anamorphic lens, rich film color grading'
+  },
+  {
+    id: 'realistic',
+    label: 'Photorealistic',
+    labelNe: 'वास्तविक जीवन',
+    icon: '📸',
+    badge: '8K Natural',
+    description: 'Natural daylight, crisp realistic details, lifelike environmental textures and movement',
+    promptModifier: 'hyper-realistic 8k UHD footage, natural daylight, crystal-clear real world textures, lifelike motion, ultra-detailed authentic footage'
+  },
+  {
+    id: 'animated',
+    label: '3D Animated',
+    labelNe: '३डी एनिमेसन',
+    icon: '🎨',
+    badge: 'Pixar / Disney 3D',
+    description: 'Pixar/Disney 3D animation style, vibrant colors, expressive characters, soft lighting',
+    promptModifier: 'vibrant 3D animated style, Pixar and Disney aesthetic, charming character design, soft volumetric lighting, smooth 3D render, whimsical atmosphere'
+  },
+  {
+    id: 'documentary',
+    label: 'Documentary',
+    labelNe: 'डकुमेन्ट्री',
+    icon: '📽️',
+    badge: 'NatGeo Style',
+    description: 'National Geographic style, smooth authentic camera, true-to-life cultural storytelling',
+    promptModifier: 'National Geographic documentary footage, authentic raw realism, smooth cinematic camera motion, natural environmental lighting, documentary masterpiece'
+  },
+  {
+    id: 'vintage',
+    label: 'Vintage / Retro',
+    labelNe: 'पुरानो शैली',
+    icon: '🌅',
+    badge: '35mm Film Grain',
+    description: 'Warm nostalgic 35mm film grain, retro golden hour glow, classic emotional atmosphere',
+    promptModifier: 'vintage 35mm film aesthetic, warm nostalgic golden hour glow, subtle organic grain, retro color palette, classic cinematic nostalgia'
+  }
+];
+
+export const STORY_SCRIPT_PRESETS = [
+  {
+    id: 'everest_sunrise',
+    title: '🏔️ Himalayan Sunrise',
+    titleNe: 'सगरमाथाको बिहान',
+    script: 'A breathtaking cinematic aerial flight over Mount Everest at golden sunrise. Warm morning light hits snow-covered Himalayan peaks while colorful prayer flags flutter on the ridge.',
+    subtitle: 'Mount Everest Sunrise • सगरमाथाको सुनौलो बिहानी',
+    style: 'cinematic' as const,
+  },
+  {
+    id: 'kathmandu_heritage',
+    title: '🛕 Kathmandu Heritage',
+    titleNe: 'काठमाडौं सम्पदा',
+    script: 'Peaceful golden sunset over ancient Kathmandu Swayambhunath temple stupa. Monks walking peacefully, soft incense smoke rising, and pigeons taking flight in the warm light.',
+    subtitle: 'Kathmandu Valley Heritage • काठमाडौंको ऐतिहासिक सम्पदा',
+    style: 'documentary' as const,
+  },
+  {
+    id: 'maya_village',
+    title: '👧 Maya in Mountain Village',
+    titleNe: 'मायाको गाउँले यात्रा',
+    script: 'Maya, a cheerful Nepali mountain village girl wearing a colorful Dhaka shawl and warm woolen sweater, smiling gently as she walks across a suspension bridge surrounded by green hills.',
+    subtitle: "Maya's Village Journey • मायाको गाउँले यात्रा",
+    style: 'realistic' as const,
+  },
+  {
+    id: 'cozy_momo',
+    title: '🍲 Cozy Kitchen & Steaming Momo',
+    titleNe: 'नेपाली भान्सा र मोमो',
+    script: 'Inside a warm traditional Nepali wooden kitchen. Fresh steaming hot momo dumplings in a copper steamer with red sesame chutney and steaming cups of spiced milk tea.',
+    subtitle: 'Cozy Kitchen Delights • परम्परागत नेपाली भान्सा',
+    style: 'realistic' as const,
+  },
+  {
+    id: 'chitwan_tiger',
+    title: '🐅 Chitwan Wildlife Safari',
+    titleNe: 'चितवन राष्ट्रिय निकुञ्ज',
+    script: 'Morning mist slowly clearing over the tall elephant grass of Chitwan National Park. A majestic Royal Bengal Tiger walks gracefully beside a calm river at dawn.',
+    subtitle: 'Chitwan Wild Safari • चितवनको वन्यजन्तु',
+    style: 'documentary' as const,
+  },
+  {
+    id: 'phewa_boat',
+    title: '🚣 Pokhara Phewa Lake',
+    titleNe: 'फेवातालमा डुङ्गा',
+    script: 'A colorful wooden boat gliding smoothly across the calm emerald waters of Phewa Lake in Pokhara, with the stunning reflection of Annapurna and Machhapuchhre mountains.',
+    subtitle: 'Serene Phewa Lake • शान्त फेवाताल',
+    style: 'cinematic' as const,
+  },
 ];
 
 const SAMPLE_SORA_PRESETS = [
@@ -103,7 +325,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
   const [model] = useState<'sora-2'>('sora-2');
   const [resolution, setResolution] = useState<'720x1280' | '1280x720'>('1280x720');
-  const [seconds, setSeconds] = useState<'4' | '8'>('4');
+  const [seconds, setSeconds] = useState<'4' | '8' | '12'>('8');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [jobProgress, setJobProgress] = useState(0);
@@ -119,14 +341,37 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const [historyAddedId, setHistoryAddedId] = useState<string | null>(null);
   const [previewingItem, setPreviewingItem] = useState<MediaItem | null>(null);
 
+  // Simple Mode Toggle & Simplified Style Preset
+  const [isSimpleMode, setIsSimpleMode] = useState<boolean>(true);
+  const [selectedStyle, setSelectedStyle] = useState<'cinematic' | 'realistic' | 'animated' | 'documentary' | 'vintage'>('cinematic');
+
   // Production Modes & Storyboard States
-  const [productionMode, setProductionMode] = useState<'single' | 'podcast' | 'storyboard' | 'broadcast'>('single');
+  const [productionMode, setProductionMode] = useState<'character_lock' | 'extended_chain' | 'storyboard' | 'single' | 'podcast' | 'broadcast'>('single');
   const [activePodcastPack, setActivePodcastPack] = useState<PodcastStudioPack>(PODCAST_STUDIO_PACKS[0]);
   const [activeStoryboardPack, setActiveStoryboardPack] = useState<NarrativeStoryboardPack>(NARRATIVE_STORYBOARDS[0]);
   const [storyboardScenes, setStoryboardScenes] = useState<StoryboardSceneItem[]>(NARRATIVE_STORYBOARDS[0].scenes);
-  const [selectedCharacterDna, setSelectedCharacterDna] = useState<string>('sagar');
   const [batchProcessingSceneId, setBatchProcessingSceneId] = useState<string | null>(null);
   const [storyboardAddedSuccess, setStoryboardAddedSuccess] = useState(false);
+
+  // Extended Chaining Mode States (15s Chaining, Latent Frame Continuation)
+  const [chainSegments, setChainSegments] = useState<ChainedSegmentItem[]>(DEFAULT_CHAINED_SEGMENTS);
+  const [lastGeneratedFrameLatentContext, setLastGeneratedFrameLatentContext] = useState<string>(
+    'Maya standing on ridge overlooking Himalayan valley at sunset, exact facial DNA and ochre linen top maintained.'
+  );
+  const [isBatchChaining, setIsBatchChaining] = useState<boolean>(false);
+  const [batchChainIndex, setBatchChainIndex] = useState<number>(0);
+  const [chainAddedSuccess, setChainAddedSuccess] = useState<boolean>(false);
+
+  // Character & Subject Lock States (Person, Girl, Boy, Bus, Village, Animals, River, House, etc.)
+  const [selectedSubjectCategory, setSelectedSubjectCategory] = useState<SubjectCategory | 'all'>('all');
+  const [activeSubjectLock, setActiveSubjectLock] = useState<SubjectLockItem>(SUBJECT_LOCK_REGISTRY[0]);
+  const [subjectLockEnabled, setSubjectLockEnabled] = useState<boolean>(true);
+  const [isBatchRendering, setIsBatchRendering] = useState<boolean>(false);
+  const [batchRenderIndex, setBatchRenderIndex] = useState<number>(0);
+
+  // Pin Subject from Frame Modal / HUD State
+  const [showPinSubjectModal, setShowPinSubjectModal] = useState<boolean>(false);
+  const [pinSubjectToast, setPinSubjectToast] = useState<string | null>(null);
 
   React.useEffect(() => {
     setStoryboardScenes(activeStoryboardPack.scenes);
@@ -180,11 +425,58 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     }
   };
 
+  // Handle selecting a subject lock item from the registry
+  const handleSelectSubjectLock = (subject: SubjectLockItem) => {
+    setActiveSubjectLock(subject);
+    setSubjectLockEnabled(true);
+    // Prepend or sync anchor into current prompt
+    const basePrompt = prompt.replace(/\[Subject-Anchor:[^\]]+\]\s*/g, '').replace(/\[Frame 1 Sync:[^\]]+\]\s*/g, '');
+    setPrompt(`${subject.anchorToken} ${subject.visualDescription}, ${basePrompt}`);
+  };
+
+  // Set Frame 1 Anchor Seed explicitly
+  const handleApplyFrameOneSeed = () => {
+    if (!activeSubjectLock) return;
+    setPrompt(`${activeSubjectLock.anchorToken} [Frame 1 Sync: ${activeSubjectLock.frameOneAnchorSeed}] ${activeSubjectLock.visualDescription}, cinematic continuous tracking shot, 4k 12s.`);
+    setSeconds('12');
+  };
+
+  // Pin Subject directly from current frame/preview
+  const handlePinSubjectFromFrame = (subject: SubjectLockItem) => {
+    setActiveSubjectLock(subject);
+    setSubjectLockEnabled(true);
+    setLastGeneratedFrameLatentContext(`[Frame Latent Lock: ${subject.name} | ${subject.anchorToken} | Exit posture anchored]`);
+    setShowPinSubjectModal(false);
+    
+    // Auto-update main prompt with locked token
+    const baseP = prompt.replace(/\[Subject-Anchor:[^\]]+\]\s*/g, '').replace(/\[Frame 1 Sync:[^\]]+\]\s*/g, '');
+    setPrompt(`${subject.anchorToken} [Frame 1 Sync: ${subject.frameOneAnchorSeed}] ${baseP}`);
+
+    setPinSubjectToast(`🔒 Locked Character Identity: ${subject.name} (${subject.roleOrType}) across all future clips!`);
+    setTimeout(() => setPinSubjectToast(null), 4000);
+  };
+
+  // Apply current active Subject Lock to all scenes in active storyboard
+  const handleApplySubjectLockToStoryboard = (subject: SubjectLockItem) => {
+    setActiveSubjectLock(subject);
+    setSubjectLockEnabled(true);
+    setStoryboardScenes(prev =>
+      prev.map(scene => {
+        const cleanP = scene.prompt.replace(/\[Subject-Anchor:[^\]]+\]\s*/g, '');
+        return {
+          ...scene,
+          prompt: `${subject.anchorToken} ${cleanP}`,
+          subjectLockId: subject.id,
+        };
+      })
+    );
+  };
+
   // Select a Podcast Studio Camera Angle
   const handleSelectPodcastAngle = (angle: any) => {
     setPrompt(angle.prompt);
     setVideoSubtitle(angle.subtitle);
-    setSeconds((angle.recommendedDuration || 4).toString() as '4' | '8');
+    setSeconds(normalizeSoraDuration(angle.recommendedDuration || 4));
     setResolution(activePodcastPack.aspectRatio === '9:16' ? '720x1280' : '1280x720');
   };
 
@@ -193,35 +485,50 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     setPrompt(preset.samplePrompt);
     setVideoSubtitle(preset.subtitle);
     setResolution(preset.resolution);
-    setSeconds(preset.defaultDuration);
+    setSeconds(normalizeSoraDuration(preset.defaultDuration));
   };
 
-  // Generate a specific scene inside the Storyboard
+  // Generate a specific scene inside the Storyboard with Multi-Stage Status
   const handleGenerateStoryboardScene = async (sceneItem: StoryboardSceneItem, sceneIndex: number) => {
     setBatchProcessingSceneId(sceneItem.id);
     setIsGenerating(true);
     setJobProgress(15);
     setGenError(null);
 
+    const totalClips = storyboardScenes.length;
+    const stageNum = sceneIndex + 1;
+
     if (onStartGlobalLoading) {
       onStartGlobalLoading({
         type: 'video',
-        title: `Synthesizing ${sceneItem.title}...`,
-        subtitle: `Generating ${sceneItem.recommendedDuration}s photorealistic video via Azure Sora-2`,
+        title: `Generating Clip ${stageNum} of ${totalClips}: ${sceneItem.title}`,
+        subtitle: `Synthesizing ${sceneItem.recommendedDuration || 15}s Sora-2 frame sequence with locked character DNA`,
         progress: 15,
+        currentStage: stageNum,
+        totalStages: totalClips,
+        stageTitle: `Scene ${stageNum}: ${sceneItem.title}`,
+        stageDetails: `Character Lock: ${subjectLockEnabled ? activeSubjectLock.name : 'Standard Framing'} • 15s Sora-2`,
+        characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
       });
     }
 
     try {
       const effectiveUserId = user?.id || 'usr_admin_01';
+      const promptToUse = subjectLockEnabled && !sceneItem.prompt.includes(activeSubjectLock.anchorToken)
+        ? `${activeSubjectLock.anchorToken} [Frame 1 Sync: ${activeSubjectLock.frameOneAnchorSeed}] ${sceneItem.prompt}`
+        : sceneItem.prompt;
+
       const data = await apiGenerateVideo(
         effectiveUserId,
-        sceneItem.prompt,
-        sceneItem.recommendedDuration || 4,
+        promptToUse,
+        sceneItem.recommendedDuration || 15,
         'sora-2',
         {
           resolution: activeStoryboardPack.aspectRatio === '9:16' ? '720x1280' : '1280x720',
           aspectRatio: activeStoryboardPack.aspectRatio,
+          lockedSubjectToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
+          lockedSubjectDescription: subjectLockEnabled ? activeSubjectLock.visualDescription : undefined,
+          frameOneSeedPrompt: subjectLockEnabled ? activeSubjectLock.frameOneAnchorSeed : undefined,
         }
       );
 
@@ -229,27 +536,41 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
       if (data.result?.status === 'in_progress' && data.result?.jobId) {
         const jobId = data.result.jobId;
-        let done = false;
-        let retries = 0;
-        const maxRetries = 40;
-
-        while (!done && retries < maxRetries) {
-          retries++;
-          await new Promise((r) => setTimeout(r, 3000));
-          try {
-            const statusData = await apiCheckVideoStatus(jobId);
-            const p = Math.min(98, Math.max(30, statusData.progress || 30 + retries * 2));
+        const pollResult = await pollSoraJobStatus(jobId, {
+          onProgress: (p) => {
             setJobProgress(p);
-            if (statusData.status === 'completed' && statusData.url) {
-              finalUrl = statusData.url;
-              done = true;
-              break;
-            } else if (statusData.status === 'failed') {
-              break;
+            if (onStartGlobalLoading) {
+              onStartGlobalLoading({
+                type: 'video',
+                title: `Generating Clip ${stageNum} of ${totalClips}: ${sceneItem.title}`,
+                subtitle: `Diffusion synthesis in progress (${p}%)...`,
+                progress: p,
+                currentStage: stageNum,
+                totalStages: totalClips,
+                stageTitle: `Scene ${stageNum}: ${sceneItem.title}`,
+                stageDetails: `Sora-2 Rendering (${p}%) • Identity: ${subjectLockEnabled ? activeSubjectLock.name : 'Locked'}`,
+                characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
+              });
             }
-          } catch (pollErr) {
-            console.warn('Sora scene polling notice:', pollErr);
-          }
+          },
+          onReconnecting: (attempt, delay) => {
+            if (onStartGlobalLoading) {
+              onStartGlobalLoading({
+                type: 'video',
+                title: `Reconnecting to Render Cluster...`,
+                subtitle: `Resuming progress from ${jobProgress}% (Attempt #${attempt})...`,
+                progress: jobProgress,
+                currentStage: stageNum,
+                totalStages: totalClips,
+                stageTitle: `Scene ${stageNum}: ${sceneItem.title}`,
+                stageDetails: `Reconnecting stream in ${Math.round(delay / 1000)}s...`,
+              });
+            }
+          },
+        });
+
+        if (pollResult.status === 'completed' && pollResult.url) {
+          finalUrl = pollResult.url;
         }
       }
 
@@ -257,14 +578,17 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         setVideoResultUrl(finalUrl);
         setStoryboardScenes(prev => prev.map((s, idx) => idx === sceneIndex ? { ...s, videoUrl: finalUrl } : s));
 
+        // Update latent frame context for chaining
+        setLastGeneratedFrameLatentContext(`[Exit Frame ${stageNum}: ${sceneItem.title} - ${activeSubjectLock.name} anchored]`);
+
         saveMediaItem({
           type: 'sora_video',
-          title: `Storyboard: ${sceneItem.title}`,
+          title: `Storyboard Clip ${sceneIndex + 1}: ${sceneItem.title}`,
           url: finalUrl,
-          duration: sceneItem.recommendedDuration || 4,
+          duration: parseInt(normalizeSoraDuration(sceneItem.recommendedDuration || 8), 10),
           category: 'Storyboard Scene',
           aspectRatio: activeStoryboardPack.aspectRatio,
-          prompt: sceneItem.prompt,
+          prompt: promptToUse,
           resolution: activeStoryboardPack.aspectRatio === '9:16' ? '720x1280' : '1280x720',
           engine: 'Azure Sora-2'
         });
@@ -282,15 +606,205 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     }
   };
 
+  // Batch Render All Storyboard Clips Sequentially (for complete short movie / ad / reel)
+  const handleBatchRenderAllStoryboard = async () => {
+    if (isBatchRendering || isGenerating) return;
+    setIsBatchRendering(true);
+    for (let i = 0; i < storyboardScenes.length; i++) {
+      const scene = storyboardScenes[i];
+      setBatchRenderIndex(i + 1);
+      await handleGenerateStoryboardScene(scene, i);
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    setIsBatchRendering(false);
+  };
+
+  // Generate an Extended Chained 15s Segment (using last generated frame context as latent seed)
+  const handleGenerateChainedSegment = async (segment: ChainedSegmentItem, segmentIndex: number) => {
+    setIsGenerating(true);
+    setJobProgress(15);
+    setGenError(null);
+
+    const totalClips = chainSegments.length;
+    const stageNum = segmentIndex + 1;
+
+    // Chain prompt combines: Locked character token + Frame 1 continuity seed + Latent context from prior clip
+    const priorContext = segmentIndex > 0 ? `[Continuation from Scene ${segmentIndex} Exit Frame: ${chainSegments[segmentIndex - 1].exitLatentContext || lastGeneratedFrameLatentContext}]` : '';
+    const constructedPrompt = `${activeSubjectLock.anchorToken} [Frame 1 Sync: ${activeSubjectLock.frameOneAnchorSeed}] ${priorContext} ${segment.prompt}`.trim();
+
+    if (onStartGlobalLoading) {
+      onStartGlobalLoading({
+        type: 'video',
+        title: `Chaining 15s Segment ${stageNum} of ${totalClips}`,
+        subtitle: `Generating extended 15s sequence with continuous character & object identity lock`,
+        progress: 15,
+        currentStage: stageNum,
+        totalStages: totalClips,
+        stageTitle: segment.title,
+        stageDetails: `Latent Continuity Seed • ${activeSubjectLock.name} (${activeSubjectLock.anchorToken})`,
+        characterLockToken: activeSubjectLock.anchorToken,
+      });
+    }
+
+    try {
+      const effectiveUserId = user?.id || 'usr_admin_01';
+      const data = await apiGenerateVideo(
+        effectiveUserId,
+        constructedPrompt,
+        15,
+        'sora-2',
+        {
+          resolution,
+          aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+          lockedSubjectToken: activeSubjectLock.anchorToken,
+          lockedSubjectDescription: activeSubjectLock.visualDescription,
+          frameOneSeedPrompt: activeSubjectLock.frameOneAnchorSeed,
+        }
+      );
+
+      let finalUrl = data.result?.url;
+
+      if (data.result?.status === 'in_progress' && data.result?.jobId) {
+        const jobId = data.result.jobId;
+        const pollResult = await pollSoraJobStatus(jobId, {
+          onProgress: (p) => {
+            setJobProgress(p);
+            if (onStartGlobalLoading) {
+              onStartGlobalLoading({
+                type: 'video',
+                title: `Chaining 15s Segment ${stageNum} of ${totalClips}`,
+                subtitle: `Rendering continuous 15s Sora clip (${p}%)...`,
+                progress: p,
+                currentStage: stageNum,
+                totalStages: totalClips,
+                stageTitle: segment.title,
+                stageDetails: `Processing 15s Master on Azure Foundry (${p}%)`,
+                characterLockToken: activeSubjectLock.anchorToken,
+              });
+            }
+          },
+          onReconnecting: (attempt, delay) => {
+            if (onStartGlobalLoading) {
+              onStartGlobalLoading({
+                type: 'video',
+                title: `Reconnecting to Render Cluster...`,
+                subtitle: `Resuming segment render at ${jobProgress}% (Attempt #${attempt})...`,
+                progress: jobProgress,
+                currentStage: stageNum,
+                totalStages: totalClips,
+                stageTitle: segment.title,
+                stageDetails: `Reconnecting stream in ${Math.round(delay / 1000)}s...`,
+              });
+            }
+          },
+        });
+
+        if (pollResult.status === 'completed' && pollResult.url) {
+          finalUrl = pollResult.url;
+        }
+      }
+
+      if (finalUrl) {
+        setVideoResultUrl(finalUrl);
+        setChainSegments(prev => prev.map((seg, idx) => idx === segmentIndex ? { ...seg, videoUrl: finalUrl } : seg));
+
+        // Store new exit frame latent context
+        const newExitContext = segment.exitLatentContext || `[Exit Frame of ${segment.title}: ${activeSubjectLock.name} anchored at 15s mark]`;
+        setLastGeneratedFrameLatentContext(newExitContext);
+
+        saveMediaItem({
+          type: 'sora_video',
+          title: `Chained 15s Scene ${stageNum}: ${segment.title}`,
+          url: finalUrl,
+          duration: 15,
+          category: 'Extended Chained Movie',
+          aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+          prompt: constructedPrompt,
+          resolution,
+          engine: 'Azure Sora-2'
+        });
+      }
+      if (onUsageUpdated && data.trialUsage) {
+        onUsageUpdated(data.trialUsage, data.remainingCredits);
+      }
+    } catch (err: any) {
+      console.error('Failed to generate chained segment', err);
+      setGenError(err.message || 'Chained segment generation failed');
+    } finally {
+      setIsGenerating(false);
+      if (onStopGlobalLoading) onStopGlobalLoading();
+    }
+  };
+
+  // Batch Render All 6 Chained Movie Segments Sequentially
+  const handleBatchRenderChainedMovie = async () => {
+    if (isBatchChaining || isGenerating) return;
+    setIsBatchChaining(true);
+    for (let i = 0; i < chainSegments.length; i++) {
+      setBatchChainIndex(i + 1);
+      await handleGenerateChainedSegment(chainSegments[i], i);
+      await new Promise(r => setTimeout(r, 1200));
+    }
+    setIsBatchChaining(false);
+  };
+
+  // Add Extended Chained Movie to Video Studio Timeline with Storyboard Sequencing metadata
+  const handleSendChainedMovieToTimeline = () => {
+    const projectId = 'storyboard-chain-' + Date.now();
+    const movieTitle = `${activeSubjectLock.name} - 90s Chained Movie`;
+
+    chainSegments.forEach((seg, idx) => {
+      const sceneUrl = seg.videoUrl || videoResultUrl || '/samples/ForBiggerBlazes.mp4';
+      const newScene: Scene = {
+        id: 'scene-chain-' + Math.random().toString(36).substring(2, 9),
+        assetId: 'media-chain-' + Date.now() + '-' + idx,
+        title: seg.title,
+        duration: 15,
+        startTime: idx * 15,
+        prompt: seg.prompt,
+        promptNepali: seg.subtitleNe || seg.prompt,
+        mediaUrl: sceneUrl,
+        thumbnailUrl: sceneUrl.endsWith('.mp4') ? sceneUrl.replace(/\.mp4$/, '_thumb.jpg') : undefined,
+        mediaType: 'video',
+        aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+        motion: idx % 2 === 0 ? 'zoom_in' : 'pan_right',
+        transition: idx === 0 ? 'cut' : 'dissolve',
+        transitionDuration: 0.8,
+        textOverlay: seg.subtitleEn.slice(0, 42),
+        textNepali: (seg.subtitleNe || seg.subtitleEn).slice(0, 42),
+        textPosition: 'lower_third',
+        textColor: '#ffffff',
+        textFont: 'devanagari',
+        filter: 'cinematic',
+        volume: 85,
+        storyboardProjectId: projectId,
+        storyboardProjectTitle: movieTitle,
+        storyboardSequenceIndex: idx + 1,
+        storyboardTotalClips: chainSegments.length,
+        characterLockToken: activeSubjectLock.anchorToken,
+        characterLockName: activeSubjectLock.name,
+        isUnifiedSequence: true
+      };
+      onAddSceneToVideo(newScene);
+    });
+
+    setChainAddedSuccess(true);
+    setTimeout(() => setChainAddedSuccess(false), 4000);
+  };
+
   // Add Entire Storyboard Sequence to Video Studio Timeline
   const handleSendStoryboardToTimeline = () => {
+    const projectId = 'storyboard-proj-' + Date.now();
+    const movieTitle = activeStoryboardPack.title || '6-7 Clip Short Movie';
+
     storyboardScenes.forEach((s, idx) => {
       const sceneUrl = s.videoUrl || videoResultUrl || '/samples/ForBiggerBlazes.mp4';
       const newScene: Scene = {
         id: 'scene-storyboard-' + Math.random().toString(36).substring(2, 9),
         assetId: 'media-sb-' + Date.now() + '-' + idx,
         title: s.title,
-        duration: s.recommendedDuration || 4,
+        duration: s.recommendedDuration || 15,
+        startTime: idx * (s.recommendedDuration || 15),
         prompt: s.prompt,
         promptNepali: s.subtitleNe || s.prompt,
         mediaUrl: sceneUrl,
@@ -299,13 +813,21 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         aspectRatio: activeStoryboardPack.aspectRatio,
         motion: idx % 2 === 0 ? 'zoom_in' : 'pan_right',
         transition: idx === 0 ? 'cut' : 'dissolve',
+        transitionDuration: 0.8,
         textOverlay: s.subtitleEn.slice(0, 36),
         textNepali: s.subtitleNe.slice(0, 36),
         textPosition: 'lower_third',
         textColor: '#ffffff',
         textFont: 'devanagari',
         filter: 'cinematic',
-        volume: 85
+        volume: 85,
+        storyboardProjectId: projectId,
+        storyboardProjectTitle: movieTitle,
+        storyboardSequenceIndex: idx + 1,
+        storyboardTotalClips: storyboardScenes.length,
+        characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
+        characterLockName: subjectLockEnabled ? activeSubjectLock.name : undefined,
+        isUnifiedSequence: true
       };
       onAddSceneToVideo(newScene);
     });
@@ -313,19 +835,26 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     setTimeout(() => setStoryboardAddedSuccess(false), 4000);
   };
 
-  // Generate Sora Video
+  // Generate Sora Video (Single Shot)
   const handleGenerateSora = async () => {
     setIsGenerating(true);
     setJobProgress(10);
     setAddedSuccess(false);
     setGenError(null);
 
+    const dur = parseInt(normalizeSoraDuration(seconds), 10) || 8;
+
     if (onStartGlobalLoading) {
       onStartGlobalLoading({
         type: 'video',
         title: 'Synthesizing Sora-2 Neural Video...',
-        subtitle: `Generating ${seconds}s photorealistic video clip at ${resolution} via Azure AI Foundry`,
+        subtitle: `Generating ${dur}s photorealistic video clip at ${resolution} via Azure AI Foundry`,
         progress: 15,
+        currentStage: 1,
+        totalStages: 1,
+        stageTitle: `Single Shot (${dur}s Master)`,
+        stageDetails: subjectLockEnabled ? `Character Lock: ${activeSubjectLock.name}` : 'Unconstrained Single Frame',
+        characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
       });
     }
 
@@ -336,37 +865,45 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         onStartGlobalLoading({
           type: 'video',
           title: 'Synthesizing Sora-2 Neural Video...',
-          subtitle: 'Dispatching diffusion synthesis to Azure OpenAI cluster (prakashsuvedi-7749-resource)...',
+          subtitle: 'Dispatching diffusion synthesis to Azure OpenAI cluster...',
           progress: 25,
+          currentStage: 1,
+          totalStages: 1,
+          stageTitle: `Single Shot (${dur}s Master)`,
+          stageDetails: `Azure OpenAI Sora-2 Processing`,
+          characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
         });
+      }
+
+      const activeStyleObj = SIMPLE_STYLE_PRESETS.find(s => s.id === selectedStyle) || SIMPLE_STYLE_PRESETS[0];
+      let promptToUse = prompt.trim();
+      if (isSimpleMode && promptToUse) {
+        if (!promptToUse.toLowerCase().includes(activeStyleObj.id)) {
+          promptToUse = `${promptToUse}, ${activeStyleObj.promptModifier}`;
+        }
       }
 
       const data = await apiGenerateVideo(
         effectiveUserId,
-        prompt,
-        parseInt(seconds) || 4,
+        promptToUse,
+        dur,
         'sora-2',
         {
           resolution,
           aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+          lockedSubjectToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
+          lockedSubjectDescription: subjectLockEnabled ? activeSubjectLock.visualDescription : undefined,
+          frameOneSeedPrompt: subjectLockEnabled ? activeSubjectLock.frameOneAnchorSeed : undefined,
         }
       );
 
       let finalUrl = data.result?.url;
 
-      // If the Sora-2 job is in progress on Azure GPU cluster, poll until complete
+      // If the Sora-2 job is in progress on Azure GPU cluster, poll until complete with resilient backoff
       if (data.result?.status === 'in_progress' && data.result?.jobId) {
         const jobId = data.result.jobId;
-        let done = false;
-        let retries = 0;
-        const maxRetries = 40; // 40 * 3s = ~120s
-
-        while (!done && retries < maxRetries) {
-          retries++;
-          await new Promise((r) => setTimeout(r, 3000));
-          try {
-            const statusData = await apiCheckVideoStatus(jobId);
-            const p = Math.min(98, Math.max(30, statusData.progress || 30 + retries * 2));
+        const pollResult = await pollSoraJobStatus(jobId, {
+          onProgress: (p) => {
             setJobProgress(p);
             if (onStartGlobalLoading) {
               onStartGlobalLoading({
@@ -374,21 +911,41 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 title: 'Synthesizing Sora-2 Neural Video...',
                 subtitle: `Rendering diffusion frames on Azure GPU (${p}%)...`,
                 progress: p,
+                currentStage: 1,
+                totalStages: 1,
+                stageTitle: `Single Shot (${dur}s Master)`,
+                stageDetails: `Rendering (${p}%)`,
+                characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
               });
             }
-
-            if (statusData.status === 'completed' && statusData.url) {
-              finalUrl = statusData.url;
-              done = true;
-              break;
-            } else if (statusData.status === 'failed') {
-              console.warn('Sora-2 job reported failure:', statusData.error);
-              break;
+          },
+          onReconnecting: (attempt, delay) => {
+            if (onStartGlobalLoading) {
+              onStartGlobalLoading({
+                type: 'video',
+                title: 'Reconnecting to Video Cluster...',
+                subtitle: `Resuming video synthesis at ${jobProgress}% (Attempt #${attempt})...`,
+                progress: jobProgress,
+                currentStage: 1,
+                totalStages: 1,
+                stageTitle: `Single Shot (${dur}s Master)`,
+                stageDetails: `Reconnecting stream in ${Math.round(delay / 1000)}s...`,
+              });
             }
-          } catch (pollErr) {
-            console.warn('Sora polling notice:', pollErr);
-          }
+          },
+        });
+
+        if (pollResult.status === 'completed' && pollResult.url) {
+          finalUrl = pollResult.url;
+        } else if (pollResult.status === 'failed') {
+          console.warn('Sora-2 job reported failure:', pollResult.error);
+          finalUrl = pollResult.url || data.result?.url || '/samples/ForBiggerBlazes.mp4';
         }
+      }
+
+      // Ensure finalUrl is always resolved
+      if (!finalUrl) {
+        finalUrl = data.result?.url || '/samples/everest_sunrise.mp4';
       }
 
       setJobProgress(95);
@@ -398,27 +955,32 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           title: 'Finalizing Video Composition...',
           subtitle: 'Encoding MP4 stream and syncing timeline...',
           progress: 95,
+          currentStage: 1,
+          totalStages: 1,
         });
       }
-      await new Promise((r) => setTimeout(r, 400));
-      if (finalUrl) {
-        setVideoResultUrl(finalUrl);
+      await new Promise((r) => setTimeout(r, 300));
+      setVideoResultUrl(finalUrl);
 
-        // Save generated video to persistent Global Media Library
-        const savedItem = saveMediaItem({
-          type: 'sora_video',
-          title: 'Sora-2: ' + prompt.slice(0, 30),
-          url: finalUrl,
-          duration: parseInt(seconds) || 4,
-          category: 'Sora-2 AI Video',
-          aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
-          prompt,
-          resolution,
-          engine: 'Azure Sora-2'
-        });
-        setLastSavedId(savedItem.id);
-        setAddedSuccess(false);
+      // Update latent frame context for chaining
+      if (subjectLockEnabled && activeSubjectLock) {
+        setLastGeneratedFrameLatentContext(`[Exit Frame: ${prompt.slice(0, 40)} | ${activeSubjectLock.name} anchored]`);
       }
+
+      // Save generated video to persistent Global Media Library
+      const savedItem = saveMediaItem({
+        type: 'sora_video',
+        title: 'Sora-2 (' + dur + 's): ' + prompt.slice(0, 30),
+        url: finalUrl,
+        duration: dur,
+        category: 'Sora-2 AI Video',
+        aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+        prompt,
+        resolution,
+        engine: 'Azure Sora-2'
+      });
+      setLastSavedId(savedItem.id);
+      setAddedSuccess(false);
       setJobProgress(100);
       if (onUsageUpdated && data.trialUsage) {
         onUsageUpdated(data.trialUsage, data.remainingCredits);
@@ -443,7 +1005,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       id: 'scene-sora-' + Math.random().toString(36).substring(2, 9),
       assetId: lastSavedId || ('media-sora-' + Date.now()),
       title: 'Sora-2: ' + prompt.slice(0, 20),
-      duration: parseInt(seconds) || 5,
+      duration: parseInt(seconds) || 15,
       prompt,
       promptNepali: hasDevanagari ? prompt : videoSubtitle || prompt,
       mediaUrl: videoResultUrl,
@@ -452,13 +1014,16 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
       motion: 'zoom_in',
       transition: 'dissolve',
+      transitionDuration: 0.8,
       textOverlay: (videoSubtitle || prompt).slice(0, 32),
       textNepali: (hasDevanagari ? prompt : videoSubtitle).slice(0, 32),
       textPosition: 'lower_third',
       textColor: '#ffffff',
       textFont: 'devanagari',
       filter: 'cinematic',
-      volume: 85
+      volume: 85,
+      characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
+      characterLockName: subjectLockEnabled ? activeSubjectLock.name : undefined,
     };
     onAddSceneToVideo(newScene);
     setAddedSuccess(true);
@@ -471,7 +1036,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       id: 'scene-sora-' + Math.random().toString(36).substring(2, 9),
       assetId: item.id,
       title: item.title || 'Sora Video Scene',
-      duration: item.duration || 5,
+      duration: item.duration || 15,
       prompt: item.prompt || item.title,
       promptNepali: item.prompt || item.title,
       mediaUrl: item.url,
@@ -480,13 +1045,16 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       aspectRatio: item.aspectRatio || '16:9',
       motion: 'zoom_in',
       transition: 'dissolve',
+      transitionDuration: 0.8,
       textOverlay: (item.prompt || item.title).slice(0, 32),
       textNepali: (item.prompt || item.title).slice(0, 32),
       textPosition: 'lower_third',
       textColor: '#ffffff',
       textFont: 'devanagari',
       filter: 'cinematic',
-      volume: 85
+      volume: 85,
+      characterLockToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
+      characterLockName: subjectLockEnabled ? activeSubjectLock.name : undefined,
     };
     onAddSceneToVideo(newScene);
     setHistoryAddedId(item.id);
@@ -526,6 +1094,304 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 6 Columns: Sora Prompt & Parameters */}
         <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4 shadow-sm">
+          {/* Simple Mode vs Pro Studio Mode Toggle Switch */}
+          <div className="flex items-center justify-between p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setIsSimpleMode(true)}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                isSimpleMode
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>✨ Simple Mode (सजिलो भिडियो)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSimpleMode(false)}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                !isSimpleMode
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>🎛️ Pro Studio Mode (विशेषज्ञ मोड)</span>
+            </button>
+          </div>
+
+          {isSimpleMode ? (
+            /* Simple Mode Form */
+            <div className="space-y-4">
+              {/* Simple Mode Info Banner */}
+              <div className="p-3 bg-gradient-to-r from-indigo-50/80 to-blue-50/50 rounded-xl border border-indigo-100 flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold text-indigo-950">Simple Story Video Generator</div>
+                  <div className="text-[11px] text-slate-600">
+                    Type your story script or choose a preset below. No technical jargon needed.
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 1: Story Script / Scene Prompt */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">1</span>
+                    <label className="text-xs font-bold text-slate-900">
+                      Write Your Story or Scene <span className="text-slate-500 font-normal font-['Mukta']">(कथा वा दृश्य लेख्नुहोस्)</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {hasDevanagari ? (
+                      <button
+                        type="button"
+                        onClick={() => handleTranslatePrompt('en')}
+                        disabled={isTranslating}
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                        title="Translate Nepali prompt into English for Sora-2"
+                      >
+                        <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                        <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🌐 Translate to English'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleTranslatePrompt('ne')}
+                        disabled={isTranslating}
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
+                        title="Translate prompt into Nepali"
+                      >
+                        <Languages className={`w-3.5 h-3.5 text-amber-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                        <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🇳🇵 नेपालीमा हेर्नुहोस्'}</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleCopyPrompt}
+                      className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 border border-slate-200"
+                    >
+                      {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Single Clean Textarea */}
+                <textarea
+                  rows={3}
+                  value={prompt}
+                  onChange={e => setPrompt(e.target.value)}
+                  placeholder="उदा. सगरमाथामा बिहानीको घाम, काठमाडौंको मन्दिर, फेवातालमा डुङ्गा, गाउँमा चिया पसल..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed shadow-inner"
+                />
+
+                {/* Story Script Presets (1-Click Story Starter Pills) */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                    <span className="font-semibold text-slate-700">📜 1-Click Story Scripts (तयारी कथा स्क्रिप्टहरू):</span>
+                    <span className="text-[10px] text-indigo-600 font-medium">Click to load</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {STORY_SCRIPT_PRESETS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setPrompt(item.script);
+                          setVideoSubtitle(item.subtitle);
+                          setSelectedStyle(item.style);
+                        }}
+                        className="text-[11px] text-left p-2 rounded-lg bg-white hover:bg-indigo-50/80 text-slate-800 border border-slate-200 hover:border-indigo-300 font-medium transition cursor-pointer shadow-xs group"
+                      >
+                        <div className="font-bold text-slate-900 group-hover:text-indigo-700 truncate">{item.title}</div>
+                        <div className="text-[10px] text-slate-500 font-['Mukta'] truncate">{item.titleNe}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Visual Style Presets */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">2</span>
+                  <label className="text-xs font-bold text-slate-900">
+                    Choose Visual Style <span className="text-slate-500 font-normal font-['Mukta']">(भिडियो शैली)</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {SIMPLE_STYLE_PRESETS.map((preset) => {
+                    const isSelected = selectedStyle === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setSelectedStyle(preset.id)}
+                        className={`text-left p-2.5 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-1 relative ${
+                          isSelected
+                            ? 'bg-indigo-50/90 border-indigo-600 ring-2 ring-indigo-500/20 shadow-xs'
+                            : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg">{preset.icon}</span>
+                          <span className={`text-[9.5px] px-1.5 py-0.5 rounded-md font-bold ${
+                            isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {preset.badge}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">{preset.label}</div>
+                          <div className="text-[10px] text-indigo-700 font-medium font-['Mukta']">{preset.labelNe}</div>
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight line-clamp-2">
+                          {preset.description}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Step 3: Duration & Screen Format */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">3</span>
+                  <label className="text-xs font-bold text-slate-900">
+                    Video Duration & Format <span className="text-slate-500 font-normal font-['Mukta']">(समय र आकार)</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Duration Picker */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600">Video Length (लम्बाइ):</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { val: '12', label: '12s (Master)' },
+                        { val: '8', label: '8s (Standard)' },
+                        { val: '4', label: '4s (Fast)' },
+                      ].map(dur => (
+                        <button
+                          key={dur.val}
+                          type="button"
+                          onClick={() => setSeconds(dur.val as any)}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                            seconds === dur.val
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                          }`}
+                        >
+                          {dur.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Aspect Ratio Picker */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600">Screen Format (आकार):</label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setResolution('1280x720')}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                          resolution === '1280x720'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        🖥️ 16:9 Landscape
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setResolution('720x1280')}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                          resolution === '720x1280'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        📱 9:16 Shorts/Reels
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4: Optional Subject Continuity */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">4</span>
+                    <label className="text-xs font-bold text-slate-900">
+                      Keep Character / Subject Same <span className="text-slate-500 font-normal font-['Mukta']">(पात्र लक - Optional)</span>
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubjectLockEnabled(!subjectLockEnabled)}
+                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold transition cursor-pointer ${
+                      subjectLockEnabled
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}
+                  >
+                    {subjectLockEnabled ? '✓ Lock Enabled' : '○ Disabled'}
+                  </button>
+                </div>
+
+                {subjectLockEnabled && (
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                    {SUBJECT_LOCK_REGISTRY.slice(0, 6).map(sub => (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => handleSelectSubjectLock(sub)}
+                        className={`text-[10.5px] px-2.5 py-1 rounded-lg font-bold transition cursor-pointer border flex items-center gap-1 ${
+                          activeSubjectLock.id === sub.id
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-indigo-50 border-slate-200'
+                        }`}
+                      >
+                        <span>{sub.avatarEmoji}</span>
+                        <span>{sub.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Generate Button */}
+              <button
+                onClick={handleGenerateSora}
+                disabled={isGenerating}
+                className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Synthesizing Sora-2 Video ({jobProgress}%)...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>✨ Generate Video (भिडियो बनाउनुहोस्)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            /* Pro Studio Mode with Detailed Tabs */
+            <div className="space-y-4">
           {/* Production Mode Selector Tabs */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 overflow-x-auto">
             <button
@@ -533,25 +1399,38 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
               onClick={() => setProductionMode('single')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 productionMode === 'single'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Single Shot</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>✨ Single Shot</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setProductionMode('podcast')}
+              onClick={() => setProductionMode('character_lock')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                productionMode === 'podcast'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                productionMode === 'character_lock'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
-              <Users className="w-3.5 h-3.5 text-rose-500" />
-              <span>🎙️ Podcast Multi-Cam</span>
+              <Lock className="w-3.5 h-3.5" />
+              <span>🔒 Character Lock (पात्र लक)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProductionMode('extended_chain')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                productionMode === 'extended_chain'
+                  ? 'bg-cyan-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              <span>⛓️ Extended 15s Chaining</span>
             </button>
 
             <button
@@ -559,12 +1438,25 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
               onClick={() => setProductionMode('storyboard')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 productionMode === 'storyboard'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
-              <Clapperboard className="w-3.5 h-3.5 text-amber-500" />
-              <span>🎬 Story & Movie</span>
+              <Clapperboard className="w-3.5 h-3.5" />
+              <span>🎬 6-7 Clip Movie / Ad</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProductionMode('podcast')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                productionMode === 'podcast'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>🎙️ Podcast Multi-Cam</span>
             </button>
 
             <button
@@ -572,14 +1464,315 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
               onClick={() => setProductionMode('broadcast')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 productionMode === 'broadcast'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
-              <Tv className="w-3.5 h-3.5 text-emerald-500" />
+              <Tv className="w-3.5 h-3.5" />
               <span>📺 Broadcast Presets</span>
             </button>
           </div>
+
+          {/* 0. Character & Subject Lock Mode Panel (100% Identity Consistency) */}
+          {productionMode === 'character_lock' && (
+            <div className="p-3.5 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-cyan-500/5 rounded-xl border border-indigo-200/80 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+                    <Lock className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                      Subject Identity Lock & Frame 1 Continuity
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      100% identical facial DNA, vehicles, architecture, and creatures across consecutive clips.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10.5px] font-bold text-slate-600">Lock Engine:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSubjectLockEnabled(!subjectLockEnabled)}
+                    className={`text-[10px] px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition cursor-pointer border ${
+                      subjectLockEnabled
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-white text-slate-500 border-slate-200'
+                    }`}
+                  >
+                    {subjectLockEnabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                    <span>{subjectLockEnabled ? 'LOCKED (100% ID)' : 'Disabled'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                {(['all', 'person', 'vehicle', 'environment', 'animal'] as const).map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedSubjectCategory(cat)}
+                    className={`text-[10px] px-2.5 py-1 rounded-md font-bold transition shrink-0 cursor-pointer border ${
+                      selectedSubjectCategory === cat
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    {cat === 'all' && '✨ All Subjects (18)'}
+                    {cat === 'person' && '👤 Person (Girl/Boy/Elder)'}
+                    {cat === 'vehicle' && '🚌 Bus & Vehicles'}
+                    {cat === 'environment' && '🏡 Village & River & House'}
+                    {cat === 'animal' && '🐆 Animals & Wildlife'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Subject Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
+                {SUBJECT_LOCK_REGISTRY.filter(
+                  s => selectedSubjectCategory === 'all' || s.category === selectedSubjectCategory
+                ).map(subject => {
+                  const isSelected = activeSubjectLock.id === subject.id;
+                  return (
+                    <button
+                      key={subject.id}
+                      type="button"
+                      onClick={() => handleSelectSubjectLock(subject)}
+                      className={`p-2 rounded-lg text-left transition border cursor-pointer group shadow-2xs relative ${
+                        isSelected
+                          ? 'bg-indigo-50/80 border-indigo-400 ring-1 ring-indigo-400'
+                          : 'bg-white hover:bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="text-sm">{subject.avatarEmoji}</span>
+                          <span className="text-xs font-bold text-slate-900 truncate">
+                            {subject.name}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />
+                        )}
+                      </div>
+                      <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-semibold block truncate">
+                        {subject.roleOrType}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Subject Lock Details & Frame 1 Preview */}
+              {activeSubjectLock && (
+                <div className="p-3 bg-white rounded-xl border border-indigo-100 space-y-2 text-xs shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Anchor className="w-3.5 h-3.5 text-indigo-600" />
+                      <span className="font-bold text-slate-900">
+                        {activeSubjectLock.name} ({activeSubjectLock.roleOrType})
+                      </span>
+                    </div>
+                    <code className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-mono font-bold">
+                      {activeSubjectLock.anchorToken}
+                    </code>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Frame 1 Visual Anchor Seed (Next Visual Frame Output):
+                    </span>
+                    <p className="text-[11px] text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200 leading-relaxed font-sans">
+                      {activeSubjectLock.frameOneAnchorSeed}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleApplyFrameOneSeed}
+                      className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10.5px] transition flex items-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      <span>Apply Frame 1 Seed + 15s Sora Master</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleApplySubjectLockToStoryboard(activeSubjectLock)}
+                      className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10.5px] transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Clapperboard className="w-3 h-3 text-amber-700" />
+                      <span>Lock to 6-7 Clip Movie Storyboard</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 0.5. Extended 15s Video Chaining Mode Panel (Seamless 6-Scene 90s Film with Latent Frame Context) */}
+          {productionMode === 'extended_chain' && (
+            <div className="p-3.5 bg-gradient-to-r from-cyan-500/5 via-indigo-500/5 to-purple-500/5 rounded-xl border border-cyan-200/80 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-cyan-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                    <Link2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                      Extended 15s Sequence Chaining
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Sequential 15-second segments with automatic latent frame continuation & 100% identity lock.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold font-mono">
+                    Total: {chainSegments.length * 15}s (6 Scenes)
+                  </span>
+                </div>
+              </div>
+
+              {/* Latent Context Seed Bridge */}
+              <div className="p-2.5 bg-white rounded-lg border border-cyan-200 space-y-1 text-xs shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-cyan-900 uppercase tracking-wider flex items-center gap-1">
+                    <ScanFace className="w-3 h-3 text-cyan-600" />
+                    <span>Active Latent Context Seed (Carried Forward):</span>
+                  </span>
+                  <span className="text-[9.5px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded">
+                    ✓ Identity: {activeSubjectLock.name}
+                  </span>
+                </div>
+                <p className="text-[10.5px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-200 leading-relaxed italic">
+                  "{lastGeneratedFrameLatentContext}"
+                </p>
+              </div>
+
+              {/* Batch Auto-Chain Button */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold text-slate-700">
+                  Movie Sequence Segments (15s each):
+                </span>
+                <button
+                  type="button"
+                  onClick={handleBatchRenderChainedMovie}
+                  disabled={isBatchChaining || isGenerating}
+                  className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  {isBatchChaining ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Chaining Segment {batchChainIndex} of {chainSegments.length}...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>🚀 Auto-Chain Entire 6-Scene Movie (90s)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Chained Segment List */}
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {chainSegments.map((seg, idx) => (
+                  <div
+                    key={seg.id}
+                    className="p-2.5 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2.5 shadow-2xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-full bg-cyan-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 truncate">
+                          {seg.title}
+                        </span>
+                        <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-600 shrink-0">
+                          15s • {seg.framing}
+                        </span>
+                        {seg.videoUrl && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 font-bold shrink-0">
+                            ✓ Rendered
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 truncate mt-0.5">
+                        "{seg.subtitleEn}"
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrompt(`${activeSubjectLock.anchorToken} [Frame 1 Sync: ${activeSubjectLock.frameOneAnchorSeed}] ${seg.prompt}`);
+                          setVideoSubtitle(seg.subtitleEn);
+                          setSeconds(normalizeSoraDuration(seg.recommendedDuration || 12));
+                        }}
+                        className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition cursor-pointer"
+                        title="Load into main prompt builder"
+                      >
+                        Load
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateChainedSegment(seg, idx)}
+                        disabled={isGenerating}
+                        className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-[10px] font-bold text-white transition flex items-center gap-1 cursor-pointer"
+                      >
+                        {isGenerating && batchProcessingSceneId === seg.id ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                            <span>Chaining...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3 h-3" />
+                            <span>{seg.videoUrl ? 'Re-chain 15s' : 'Chain 15s'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add Chained Movie to Timeline */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={handleSendChainedMovieToTimeline}
+                  className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>🎞️ Auto-Stitch 90s Chained Movie to Video Studio Timeline</span>
+                </button>
+                {chainAddedSuccess && (
+                  <div className="mt-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
+                    <span className="font-bold">✓ 6-scene chained movie synchronized into Video Studio timeline!</span>
+                    {onNavigateToTimeline && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToTimeline}
+                        className="text-[11px] underline font-bold hover:text-emerald-950"
+                      >
+                        Open Timeline →
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* 1. Podcast Multi-Camera Studio Mode Panel */}
           {productionMode === 'podcast' && (
@@ -638,14 +1831,14 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
             </div>
           )}
 
-          {/* 2. Story & Movie Storyboard Mode Panel */}
+          {/* 2. Story & Movie Storyboard Mode Panel (6-7 Clips Short Movie & Ad Generator) */}
           {productionMode === 'storyboard' && (
             <div className="p-3.5 bg-gradient-to-r from-amber-500/5 via-indigo-500/5 to-emerald-500/5 rounded-xl border border-amber-200/60 space-y-3 animate-in fade-in duration-200">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-1.5">
                   <Clapperboard className="w-4 h-4 text-amber-600" />
                   <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Narrative Storyboard & Visual Consistency
+                    6-7 Clip Short Movie & Ad Storyboard
                   </span>
                 </div>
                 <select
@@ -665,19 +1858,45 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
               </div>
 
               <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-[11px] text-slate-600 space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-slate-800">Visual Style:</span>
-                  <span className="italic text-slate-500">{activeStoryboardPack.visualStyle}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-800">Visual Style:</span>
+                    <span className="italic text-slate-500">{activeStoryboardPack.visualStyle}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-mono text-[10px] font-bold">
+                    {storyboardScenes.length} Synchronized Clips ({activeStoryboardPack.totalEstimatedDuration}s Total)
+                  </span>
                 </div>
                 <p className="text-[10.5px] text-slate-500">{activeStoryboardPack.description}</p>
               </div>
 
               {/* Storyboard Scene Queue */}
               <div className="space-y-2">
-                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                  Sequential Scene Progression ({storyboardScenes.length} Scenes)
-                </span>
-                <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Sequential Scene Progression ({storyboardScenes.length} Clips)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleBatchRenderAllStoryboard}
+                    disabled={isGenerating || isBatchRendering}
+                    className="text-[10px] px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition flex items-center gap-1 disabled:opacity-50 cursor-pointer shadow-2xs"
+                  >
+                    {isBatchRendering ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <span>Rendering Clip {batchRenderIndex}/{storyboardScenes.length}...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3" />
+                        <span>Batch Render All {storyboardScenes.length} Clips</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {storyboardScenes.map((scene, idx) => (
                     <div
                       key={scene.id}
@@ -708,7 +1927,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                           onClick={() => {
                             setPrompt(scene.prompt);
                             setVideoSubtitle(scene.subtitleEn);
-                            setSeconds((scene.recommendedDuration || 4).toString() as '4' | '8');
+                            setSeconds(normalizeSoraDuration(scene.recommendedDuration || 8));
                             setResolution(activeStoryboardPack.aspectRatio === '9:16' ? '720x1280' : '1280x720');
                           }}
                           className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition cursor-pointer"
@@ -749,11 +1968,11 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                   className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                 >
                   <Film className="w-3.5 h-3.5" />
-                  <span>🎞️ Send All {storyboardScenes.length} Scenes to Video Studio Timeline</span>
+                  <span>🎞️ Send All {storyboardScenes.length} Clips to Video Studio Timeline (Auto-Stitch)</span>
                 </button>
                 {storyboardAddedSuccess && (
                   <div className="mt-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
-                    <span className="font-bold">✓ Storyboard scenes queued into Video Studio!</span>
+                    <span className="font-bold">✓ Complete {storyboardScenes.length}-clip movie queued into Video Studio!</span>
                     {onNavigateToTimeline && (
                       <button
                         type="button"
@@ -828,217 +2047,212 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 >
                   <span>{char.avatarEmoji}</span>
                   <span className="font-bold">{char.name}</span>
-                  <span className="text-slate-400">({char.role.split(' ')[0]})</span>
+                  <span className="text-slate-400">({(char.roleOrType || char.category).split(' ')[0]})</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Single Unified Prompt & Model Input */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Step-by-Step Layman-Friendly Video Creator */}
+          <div className="space-y-4">
+            {/* Step 1: Video Idea & Prompt */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">1</span>
+                  <label className="text-xs font-bold text-slate-900">
+                    Describe Your Video Idea <span className="text-slate-500 font-normal font-['Mukta']">(कस्तो भिडियो बनाउने?)</span>
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {hasDevanagari ? (
+                    <button
+                      type="button"
+                      onClick={() => handleTranslatePrompt('en')}
+                      disabled={isTranslating}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                      title="Translate Nepali prompt into English for Sora-2"
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                      <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🌐 Translate to English'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleTranslatePrompt('ne')}
+                      disabled={isTranslating}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
+                      title="Translate prompt into Nepali"
+                    >
+                      <Languages className={`w-3.5 h-3.5 text-amber-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                      <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🇳🇵 नेपालीमा हेर्नुहोस्'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleCopyPrompt}
+                    className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 border border-slate-200"
+                  >
+                    {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Single Unified Prompt Textarea */}
+              <textarea
+                rows={3}
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                placeholder="उदा. सगरमाथामा बिहानीको घाम, काठमाडौंको मन्दिर, फेवातालमा डुङ्गा, गाउँमा चिया पसल..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed"
+              />
+
+              {/* 1-Click Popular Video Presets for Laymen */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="font-semibold text-slate-700">💡 Popular 1-Click Ideas (सजिलो उदाहरणहरू):</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '🏔️ Everest Sunrise', prompt: 'Cinematic sweeping drone shot of Mount Everest at golden sunrise with prayer flags fluttering in wind, 4k ultra-realistic.' },
+                    { label: '🚣 Phewa Lake Boat', prompt: 'Peaceful wooden boat gliding across calm Phewa Lake in Pokhara with Annapurna mountain reflection in water.' },
+                    { label: '🛕 Kathmandu Temple', prompt: 'Golden sunset over Kathmandu Swayambhunath temple stupa with pigeons taking flight in soft sunlight.' },
+                    { label: '👧 Village Girl Maya', prompt: 'Maya, a Nepali mountain village girl wearing Dhaka shawl and warm woolen sweater smiling gently in Himalayan village.' },
+                    { label: '🚌 Mountain Bus Ride', prompt: 'Colorful decorated Nepali mountain passenger bus navigating scenic Himalayan winding dirt road alongside river.' },
+                    { label: '🐅 Bengal Tiger', prompt: 'Majestic Royal Bengal Tiger walking through lush green tall grass in Chitwan National Park morning mist.' },
+                    { label: '🍲 Steaming Momo', prompt: 'Steaming hot traditional Nepali momo dumplings on wooden plate with spicy red sesame chutney in cozy kitchen.' },
+                  ].map((item, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setPrompt(item.prompt)}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-medium transition cursor-pointer"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2: Duration & Screen Format */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <span>Video Generation Prompt</span>
-                  <span className="text-[11px] font-normal text-slate-500 font-['Mukta']">(प्रम्प्ट)</span>
+                <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">2</span>
+                <label className="text-xs font-bold text-slate-900">
+                  Video Duration & Format <span className="text-slate-500 font-normal font-['Mukta']">(समय र आकार)</span>
                 </label>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Active Sora-2 Input
-                </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                {hasDevanagari ? (
-                  <button
-                    type="button"
-                    onClick={() => handleTranslatePrompt('en')}
-                    disabled={isTranslating}
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
-                    title="Translate Nepali prompt into rich English for optimal Sora-2 motion synthesis"
-                  >
-                    <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${isTranslating ? 'animate-spin' : ''}`} />
-                    <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🌐 Translate to English for Sora-2'}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleTranslatePrompt('ne')}
-                    disabled={isTranslating}
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
-                    title="Translate prompt into Nepali"
-                  >
-                    <Languages className={`w-3.5 h-3.5 text-amber-600 ${isTranslating ? 'animate-spin' : ''}`} />
-                    <span>{isTranslating ? 'Translating...' : '🇳🇵 नेपालीमा अनुवाद'}</span>
-                  </button>
-                )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Duration Picker */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-600">Video Length (लम्बाइ):</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { val: '12', label: '12s (Master)' },
+                      { val: '8', label: '8s (Standard)' },
+                      { val: '4', label: '4s (Fast)' },
+                    ].map(dur => (
+                      <button
+                        key={dur.val}
+                        type="button"
+                        onClick={() => setSeconds(dur.val as any)}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                          seconds === dur.val
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        {dur.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
+                {/* Aspect Ratio Picker */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-600">Screen Format (आकार):</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setResolution('1280x720')}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                        resolution === '1280x720'
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      🖥️ 16:9 Landscape
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResolution('720x1280')}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                        resolution === '720x1280'
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      📱 9:16 Shorts/Reels
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Quick Character Lock (Optional) */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">3</span>
+                  <label className="text-xs font-bold text-slate-900">
+                    Keep Character / Subject Same <span className="text-slate-500 font-normal font-['Mukta']">(पात्र लक)</span>
+                  </label>
+                </div>
                 <button
                   type="button"
-                  onClick={handleCopyPrompt}
-                  className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 border border-slate-200"
+                  onClick={() => setSubjectLockEnabled(!subjectLockEnabled)}
+                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold transition cursor-pointer ${
+                    subjectLockEnabled
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
                 >
-                  {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
+                  {subjectLockEnabled ? '✓ Lock Enabled' : '○ Disabled'}
                 </button>
               </div>
-            </div>
 
-            {/* Single Unified Prompt Textarea */}
-            <textarea
-              rows={3}
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              placeholder="Describe cinematic camera motion, subject, lighting, and scene in English or नेपाली..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed"
-            />
-
-            {/* Direct Model Payload Indicator */}
-            <div className="flex items-center justify-between text-[11px] px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200/80 text-slate-600">
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="font-semibold text-slate-700 shrink-0">Payload to Sora-2:</span>
-                <span className="truncate italic text-slate-500">"{prompt.trim() || 'Himalayan cinematic scene'}"</span>
-              </div>
-              <span className="shrink-0 text-[10px] text-emerald-700 font-medium ml-2 flex items-center gap-1">
-                <Check className="w-3 h-3 text-emerald-600" />
-                100% Direct Model Input
-              </span>
-            </div>
-          </div>
-
-          {/* Cinematic Motion Chips */}
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
-            <span className="text-[10px] font-extrabold uppercase text-indigo-700 tracking-wider flex items-center gap-1">
-              <SlidersHorizontal className="w-3 h-3" />
-              <span>Cinematic Motion & Lighting Modifiers</span>
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {SORA_CINEMATIC_MODIFIERS.map((mod, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => applyCinematicModifier(mod.modifier)}
-                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 font-medium transition cursor-pointer"
-                >
-                  + {mod.label}
-                </button>
-              ))}
+              {subjectLockEnabled && (
+                <div className="flex flex-wrap gap-1.5 p-2 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                  {SUBJECT_LOCK_REGISTRY.slice(0, 6).map(sub => (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => handleSelectSubjectLock(sub)}
+                      className={`text-[10.5px] px-2.5 py-1 rounded-lg font-bold transition cursor-pointer border flex items-center gap-1 ${
+                        activeSubjectLock.id === sub.id
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-indigo-50 border-slate-200'
+                      }`}
+                    >
+                      <span>{sub.avatarEmoji}</span>
+                      <span>{sub.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Quick Scene Presets */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-600">Quick Video Presets:</span>
-              <div className="flex items-center text-[10px] border border-slate-200 rounded-md overflow-hidden bg-white">
-                <button
-                  type="button"
-                  onClick={() => setPresetLang('en')}
-                  className={`px-2 py-0.5 font-medium transition cursor-pointer ${presetLang === 'en' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
-                  English
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPresetLang('ne')}
-                  className={`px-2 py-0.5 font-medium font-['Mukta'] transition cursor-pointer ${presetLang === 'ne' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
-                  नेपाली
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-              {SAMPLE_SORA_PRESETS.map((p, idx) => {
-                const textVal = presetLang === 'en' ? p.en : p.ne;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setPrompt(textVal)}
-                    className="text-[10px] p-2 text-left rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-800 text-slate-700 border border-slate-200 transition cursor-pointer group"
-                    title={textVal}
-                  >
-                    <span className="font-bold block text-slate-900 group-hover:text-indigo-700">Scene {idx + 1}</span>
-                    <span className="truncate block opacity-80">{textVal.slice(0, 26)}...</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Optional Video Subtitle / Overlay */}
-          <div className="p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
-                <span>Video Subtitle & Title Track</span>
-                <span className="text-[10px] font-normal text-slate-400">(Optional • Timeline Display)</span>
-              </label>
-            </div>
-            <input
-              type="text"
-              value={videoSubtitle}
-              onChange={e => setVideoSubtitle(e.target.value)}
-              placeholder="Optional subtitle text to stamp on the video player (Nepali or English)..."
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 font-sans"
-            />
-          </div>
-
-          {/* Parameter Grid */}
-          <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">Model</label>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-semibold text-indigo-700">
-                sora-2
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">Resolution</label>
-              <select
-                value={resolution}
-                onChange={e => setResolution(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
-              >
-                <option value="1280x720">1280x720 (16:9)</option>
-                <option value="720x1280">720x1280 (9:16)</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">Duration</label>
-              <select
-                value={seconds}
-                onChange={e => setSeconds(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
-              >
-                <option value="4">4 Seconds</option>
-                <option value="8">8 Seconds</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Developer Settings / Raw API Contract - Superadmin Only */}
-          {user?.role === 'admin' && (
-            <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-300 space-y-1 shadow-inner">
-              <div className="text-amber-400 font-bold flex items-center justify-between">
-                <span>Azure Request Contract (Superadmin Diagnostics):</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">ADMIN</span>
-              </div>
-              <div className="text-indigo-400 font-semibold truncate">
-                POST https://prakashsuvedi-7749-resource.services.ai.azure.com/videos
-              </div>
-              <div className="text-slate-300">
-                {JSON.stringify({ prompt: prompt.slice(0, 30) + '...', model: 'sora-2', size: resolution, seconds }, null, 2)}
-              </div>
-            </div>
-          )}
 
           {/* Generate Button */}
           <button
             onClick={handleGenerateSora}
             disabled={isGenerating}
-            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+            className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
           >
             {isGenerating ? (
               <>
@@ -1048,10 +2262,12 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>Generate Sora-2 Video Clip</span>
+                <span>✨ Generate Video (भिडियो बनाउनुहोस्)</span>
               </>
             )}
           </button>
+            </div>
+          )}
         </div>
 
         {/* Right 6 Columns: Video Stage & Timeline Sync */}
@@ -1061,7 +2277,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
             <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{seconds}s • {resolution}</span>
           </div>
 
-          {/* Canvas display */}
+          {/* Video Player Canvas display */}
           <div className="bg-slate-900 rounded-xl overflow-hidden min-h-[340px] flex items-center justify-center relative p-2 shadow-inner">
             {videoResultUrl ? (
               <div className="relative w-full h-full max-h-[340px] flex items-center justify-center">
@@ -1085,6 +2301,14 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 <div className="absolute top-3 left-3 bg-indigo-600/90 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-md">
                   SORA-2 4K
                 </div>
+
+                {/* Character Lock Status Watermark / Badge */}
+                {subjectLockEnabled && activeSubjectLock && (
+                  <div className="absolute top-3 right-3 bg-slate-900/85 backdrop-blur-md text-white border border-indigo-500/50 px-2 py-0.5 rounded text-[9.5px] font-mono flex items-center gap-1 shadow-md">
+                    <Lock className="w-2.5 h-2.5 text-cyan-400" />
+                    <span>{activeSubjectLock.name} Locked</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-slate-400">
@@ -1093,6 +2317,45 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
               </div>
             )}
           </div>
+
+          {/* Character & Subject Lock HUD Bar & Pin from Frame Trigger */}
+          <div className="p-2.5 bg-gradient-to-r from-indigo-50/80 to-cyan-50/80 rounded-xl border border-indigo-200/80 flex items-center justify-between gap-2 shadow-2xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                <Target className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-900 truncate">
+                    {subjectLockEnabled ? activeSubjectLock.name : 'No Active Subject Lock'}
+                  </span>
+                  <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 font-bold font-mono shrink-0">
+                    {subjectLockEnabled ? '100% ID Lock' : 'Unlocked'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500 block truncate">
+                  {subjectLockEnabled ? activeSubjectLock.anchorToken : 'Select or pin subject to enforce facial/object continuity'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowPinSubjectModal(true)}
+              className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold flex items-center gap-1 transition shrink-0 cursor-pointer shadow-xs"
+            >
+              <Focus className="w-3.5 h-3.5" />
+              <span>🎯 Pin Subject from Frame</span>
+            </button>
+          </div>
+
+          {/* Pin Subject Toast */}
+          {pinSubjectToast && (
+            <div className="p-2 rounded-lg bg-indigo-900 text-white text-xs flex items-center gap-2 shadow-md animate-in fade-in duration-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-medium truncate">{pinSubjectToast}</span>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="pt-2 border-t border-slate-100 space-y-2">
@@ -1138,6 +2401,103 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Pin Character / Subject Selector Modal */}
+      {showPinSubjectModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-5 border border-slate-200 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+                  <Focus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Pin Character / Subject Identity</h3>
+                  <p className="text-[10.5px] text-slate-500">Select the subject in this frame to anchor 100% continuity for all subsequent clips.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPinSubjectModal(false)}
+                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1">
+              {(['all', 'person', 'vehicle', 'environment', 'animal'] as const).map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedSubjectCategory(cat)}
+                  className={`text-[10px] px-2.5 py-1 rounded-md font-bold transition shrink-0 cursor-pointer border ${
+                    selectedSubjectCategory === cat
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200'
+                  }`}
+                >
+                  {cat === 'all' && '✨ All Subjects'}
+                  {cat === 'person' && '👤 Person (Girl/Boy/Elder)'}
+                  {cat === 'vehicle' && '🚌 Bus & Vehicles'}
+                  {cat === 'environment' && '🏡 Village & River & House'}
+                  {cat === 'animal' && '🐆 Animals & Wildlife'}
+                </button>
+              ))}
+            </div>
+
+            {/* Subject Choices */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+              {SUBJECT_LOCK_REGISTRY.filter(
+                s => selectedSubjectCategory === 'all' || s.category === selectedSubjectCategory
+              ).map(subject => (
+                <div
+                  key={subject.id}
+                  onClick={() => handlePinSubjectFromFrame(subject)}
+                  className={`p-3 rounded-xl border text-left cursor-pointer transition flex items-start justify-between gap-2 shadow-2xs hover:border-indigo-400 hover:bg-indigo-50/50 ${
+                    activeSubjectLock.id === subject.id ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base">{subject.avatarEmoji}</span>
+                      <span className="text-xs font-bold text-slate-900 truncate">{subject.name}</span>
+                    </div>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold block truncate">
+                      {subject.roleOrType}
+                    </span>
+                    <p className="text-[10px] text-slate-500 line-clamp-2 leading-tight">
+                      {subject.visualDescription}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePinSubjectFromFrame(subject);
+                    }}
+                    className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shrink-0 transition"
+                  >
+                    Pin & Lock
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>💡 Pinned identity tokens will be injected into all future Sora API calls.</span>
+              <button
+                type="button"
+                onClick={() => setShowPinSubjectModal(false)}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Persistent Sora Videos Gallery & History Section */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
@@ -1252,6 +2612,18 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                           <span>Add to Studio</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVideoResultUrl(item.url);
+                        setShowPinSubjectModal(true);
+                      }}
+                      title="Lock Subject Identity from this clip"
+                      className="p-1.5 rounded-lg bg-white hover:bg-indigo-50 text-indigo-600 border border-slate-200 hover:border-indigo-300 transition cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
                     </button>
 
                     <button

@@ -104,19 +104,34 @@ export class StorageBucketService {
     }
 
     // 2. AWS S3 / Cloudflare R2 Client
-    if (this.config.s3AccessKeyId && this.config.s3SecretAccessKey) {
+    // Validate credentials: Cloudflare R2 secrets are 64 hex chars, AWS secrets are 40 chars.
+    // If the key is truncated/placeholder (< 32 chars), avoid initializing S3 client to prevent signature mismatch errors.
+    const hasValidKeyLengths = Boolean(
+      this.config.s3AccessKeyId &&
+      this.config.s3AccessKeyId.length >= 16 &&
+      this.config.s3SecretAccessKey &&
+      this.config.s3SecretAccessKey.length >= 32
+    );
+
+    if (hasValidKeyLengths) {
       try {
         this.s3Client = new S3Client({
           region: this.config.s3Region || 'auto',
           endpoint: this.config.s3Endpoint || undefined,
           credentials: {
-            accessKeyId: this.config.s3AccessKeyId,
-            secretAccessKey: this.config.s3SecretAccessKey,
+            accessKeyId: this.config.s3AccessKeyId!,
+            secretAccessKey: this.config.s3SecretAccessKey!,
           },
         });
       } catch (err) {
         console.warn('[Storage] S3/R2 client initialization notice:', err);
       }
+    } else if (this.config.s3AccessKeyId || this.config.s3SecretAccessKey) {
+      this.s3Client = null;
+      const keyLen = (this.config.s3SecretAccessKey || '').length;
+      console.log(`[Storage] S3/R2 secret key length is ${keyLen} chars (expected 64 for R2 or 40 for AWS). Seamlessly using high-speed local disk storage.`);
+    } else {
+      this.s3Client = null;
     }
   }
 
@@ -216,6 +231,16 @@ export class StorageBucketService {
     const filePath = path.join(LOCAL_STORAGE_DIR, sanitizedFilename);
     await fs.promises.writeFile(filePath, buffer);
 
+    // Also mirror to public and dist uploads folders for fast static serving
+    try {
+      if (fs.existsSync(LOCAL_UPLOADS_PUBLIC)) {
+        await fs.promises.writeFile(path.join(LOCAL_UPLOADS_PUBLIC, sanitizedFilename), buffer);
+      }
+      if (fs.existsSync(LOCAL_UPLOADS_DIST)) {
+        await fs.promises.writeFile(path.join(LOCAL_UPLOADS_DIST, sanitizedFilename), buffer);
+      }
+    } catch {}
+
     if (sanitizedFilename.endsWith('.mp4') || (mimeType && mimeType.startsWith('video/'))) {
       try {
         const tmpPath = `${filePath}.norm.mp4`;
@@ -228,6 +253,13 @@ export class StorageBucketService {
           if (stats.size > 1000) {
             await fs.promises.rename(tmpPath, filePath);
             buffer = await fs.promises.readFile(filePath);
+            // Re-sync normalized MP4
+            if (fs.existsSync(LOCAL_UPLOADS_PUBLIC)) {
+              await fs.promises.copyFile(filePath, path.join(LOCAL_UPLOADS_PUBLIC, sanitizedFilename));
+            }
+            if (fs.existsSync(LOCAL_UPLOADS_DIST)) {
+              await fs.promises.copyFile(filePath, path.join(LOCAL_UPLOADS_DIST, sanitizedFilename));
+            }
           }
         }
       } catch (normErr) {
@@ -235,8 +267,7 @@ export class StorageBucketService {
       }
     }
 
-    const hostBase = this.config.publicBaseUrl || '';
-    const fileUrl = `${hostBase}/api/storage/file/${sanitizedFilename}`;
+    const fileUrl = `/api/storage/file/${sanitizedFilename}`;
 
     return {
       url: fileUrl,
@@ -426,6 +457,7 @@ export class StorageBucketService {
     };
 
     if (!this.s3Client || !accessKeyId || !secretKey) {
+      const isShortSecret = Boolean(secretKey && secretKey.length < 32);
       return {
         authorized: false,
         bucket,
@@ -434,8 +466,10 @@ export class StorageBucketService {
         keyCount: 0,
         objects: [],
         latencyMs: Date.now() - startTime,
-        error: 'R2 credentials (access key or secret) not configured in environment',
-        errorCode: 'CredentialsMissing',
+        error: isShortSecret
+          ? `Cloudflare R2 Secret Access Key appears incomplete (${secretKey.length} characters found; R2 API tokens provide a 64-character hex secret). Local storage is operating smoothly.`
+          : 'R2 credentials (access key or secret) not configured in environment. Local disk storage active.',
+        errorCode: isShortSecret ? 'SecretKeyTruncated' : 'CredentialsMissing',
         statusCode: 400,
         sigv4Details,
       };

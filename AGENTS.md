@@ -25,6 +25,7 @@ The following four core pipelines have been manually and automatically tested an
 
 ### 3. Video Generation Studio (`/api/video/azure`, `/api/generate/video`)
 - **Primary Engine**: Azure OpenAI `sora-2` (`https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/videos`).
+- **CRITICAL Azure Parameter**: `seconds` parameter MUST strictly be `'4'`, `'8'`, or `'12'` (DO NOT send arbitrary numbers or legacy `'15'`, as Azure returns HTTP 400 `invalid_request_error`). All incoming durations are normalized via `normalizeSoraDuration()`.
 - **Lifecycle Flow**:
   1. POST job request -> returns `jobId` and `status: "in_progress"`.
   2. Polling loop -> `GET /api/video/status/:jobId` (checks Azure job completion).

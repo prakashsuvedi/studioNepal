@@ -99,6 +99,52 @@ export class PostgresService {
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
 
+        CREATE TABLE IF NOT EXISTS avatars (
+          id VARCHAR(255) PRIMARY KEY,
+          user_id VARCHAR(255) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          category VARCHAR(50) DEFAULT 'custom',
+          gender VARCHAR(50) DEFAULT 'male',
+          image_url TEXT NOT NULL,
+          thumbnail_url TEXT,
+          default_voice_id VARCHAR(100),
+          default_language VARCHAR(50),
+          style_preset VARCHAR(100),
+          description TEXT,
+          consent_status VARCHAR(50) DEFAULT 'verified',
+          consent_timestamp TIMESTAMPTZ,
+          consent_legal_declaration TEXT,
+          signer_full_name VARCHAR(255),
+          signer_relationship VARCHAR(255),
+          moderation_status VARCHAR(50) DEFAULT 'approved',
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS custom_voices (
+          id VARCHAR(255) PRIMARY KEY,
+          user_id VARCHAR(255) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          gender VARCHAR(50) DEFAULT 'unspecified',
+          language VARCHAR(50) DEFAULT 'ne-NP',
+          description TEXT,
+          sample_audio_url TEXT NOT NULL,
+          sample_audio_filename VARCHAR(255),
+          sample_duration_seconds NUMERIC DEFAULT 0,
+          sample_format VARCHAR(50) DEFAULT 'mp3',
+          speaker_embedding JSONB,
+          acoustic_characteristics JSONB,
+          model_engine VARCHAR(100) DEFAULT 'azure_custom_neural',
+          consent_status VARCHAR(50) DEFAULT 'verified',
+          consent_timestamp TIMESTAMPTZ DEFAULT NOW(),
+          consent_legal_declaration TEXT,
+          signer_full_name VARCHAR(255),
+          signer_relationship VARCHAR(255),
+          moderation_status VARCHAR(50) DEFAULT 'approved',
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
         CREATE TABLE IF NOT EXISTS projects (
           id VARCHAR(255) PRIMARY KEY,
           user_id VARCHAR(255),
@@ -366,6 +412,72 @@ export class PostgresService {
         error: err?.message || 'Database connection error',
         latencyMs: Date.now() - startTime,
       };
+    }
+  }
+
+  public async syncCustomVoice(voice: any) {
+    if (!this.pool || !this.isConnected) return;
+    try {
+      await this.query(`
+        INSERT INTO custom_voices (
+          id, user_id, name, gender, language, description, sample_audio_url,
+          sample_audio_filename, sample_duration_seconds, sample_format,
+          speaker_embedding, acoustic_characteristics, model_engine,
+          consent_status, consent_timestamp, consent_legal_declaration,
+          signer_full_name, signer_relationship, moderation_status,
+          created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          gender = EXCLUDED.gender,
+          language = EXCLUDED.language,
+          description = EXCLUDED.description,
+          sample_audio_url = EXCLUDED.sample_audio_url,
+          speaker_embedding = EXCLUDED.speaker_embedding,
+          acoustic_characteristics = EXCLUDED.acoustic_characteristics,
+          consent_status = EXCLUDED.consent_status,
+          consent_timestamp = EXCLUDED.consent_timestamp,
+          consent_legal_declaration = EXCLUDED.consent_legal_declaration,
+          signer_full_name = EXCLUDED.signer_full_name,
+          signer_relationship = EXCLUDED.signer_relationship,
+          moderation_status = EXCLUDED.moderation_status,
+          updated_at = NOW();
+      `, [
+        voice.id,
+        voice.userId,
+        voice.name,
+        voice.gender || 'unspecified',
+        voice.language || 'ne-NP',
+        voice.description || '',
+        voice.sampleAudioUrl,
+        voice.sampleAudioFilename || null,
+        voice.sampleDurationSeconds || 0,
+        voice.sampleFormat || 'mp3',
+        JSON.stringify(voice.speakerEmbedding || []),
+        JSON.stringify(voice.acousticCharacteristics || {}),
+        voice.modelEngine || 'azure_custom_neural',
+        voice.consentStatus || 'verified',
+        voice.consentTimestamp || new Date().toISOString(),
+        voice.consentLegalDeclaration || '',
+        voice.signerFullName || '',
+        voice.signerRelationship || '',
+        voice.moderationStatus || 'approved',
+        voice.createdAt || new Date().toISOString(),
+        voice.updatedAt || new Date().toISOString(),
+      ]);
+    } catch (err: any) {
+      console.warn('syncCustomVoice failed:', err?.message || err);
+    }
+  }
+
+  public async deleteCustomVoice(id: string) {
+    if (!this.pool || !this.isConnected) return;
+    try {
+      await this.query('DELETE FROM custom_voices WHERE id = $1', [id]);
+    } catch (err: any) {
+      console.warn('deleteCustomVoice in postgres failed:', err?.message || err);
     }
   }
 }

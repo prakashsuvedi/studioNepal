@@ -4,12 +4,13 @@
  * - Event-loop lag monitoring
  * - Memory usage (RSS, heapUsed, heapTotal, external)
  * - Container liveness and deep readiness verification
- * - Structured access log serializer
+ * - Queue backlog & concurrency metrics
  * - Real-time process metrics
  */
 
 import { postgresDb } from './postgresDb';
 import { renderQueueManager } from './queue/renderQueue';
+import os from 'os';
 
 export interface SystemMetrics {
   uptimeSeconds: number;
@@ -18,6 +19,8 @@ export interface SystemMetrics {
     heapUsedMb: number;
     heapTotalMb: number;
     externalMb: number;
+    systemTotalMb: number;
+    systemFreeMb: number;
   };
   eventLoopLagMs: number;
   queue: {
@@ -25,6 +28,12 @@ export interface SystemMetrics {
     pendingJobs: number;
     totalTracked: number;
     provider: string;
+    concurrencyLimit: number;
+  };
+  worker: {
+    role: 'api_server' | 'render_worker' | 'standalone_node';
+    ffmpegBudgetMb: number;
+    maxParallelJobs: number;
   };
   database: {
     connected: boolean;
@@ -77,8 +86,7 @@ export class SreObservabilityService {
       if (postgresDb.isConnected) {
         dbReady = true;
       } else {
-        // Run light check or verify fallback store
-        dbReady = true; // In-memory/local SQLite fallback is always ready
+        dbReady = true; // In-memory/local fallback is always ready
       }
     } catch {
       dbReady = true; // graceful fallback
@@ -106,6 +114,12 @@ export class SreObservabilityService {
     const mem = process.memoryUsage();
     const queueMetrics = renderQueueManager.getQueueMetrics();
 
+    const role = process.env.IS_RENDER_WORKER === 'true'
+      ? 'render_worker'
+      : process.env.IS_API_CONTAINER === 'true'
+      ? 'api_server'
+      : 'standalone_node';
+
     return {
       uptimeSeconds: Math.floor(process.uptime()),
       memory: {
@@ -113,9 +127,16 @@ export class SreObservabilityService {
         heapUsedMb: Math.round((mem.heapUsed / (1024 * 1024)) * 10) / 10,
         heapTotalMb: Math.round((mem.heapTotal / (1024 * 1024)) * 10) / 10,
         externalMb: Math.round((mem.external / (1024 * 1024)) * 10) / 10,
+        systemTotalMb: Math.floor(os.totalmem() / (1024 * 1024)),
+        systemFreeMb: Math.floor(os.freemem() / (1024 * 1024)),
       },
       eventLoopLagMs: lastEventLoopLagMs,
       queue: queueMetrics,
+      worker: {
+        role,
+        ffmpegBudgetMb: 500,
+        maxParallelJobs: queueMetrics.concurrencyLimit,
+      },
       database: {
         connected: postgresDb.isConnected,
         poolStatus: postgresDb.isConnected ? 'active_pool' : 'in_memory_fallback',

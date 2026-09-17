@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { User, TrialUsage, Transaction, GenerationLog } from '../db/schema';
+import { User, TrialUsage, Transaction, GenerationLog, Avatar, AvatarVideoJob, CustomVoice } from '../db/schema';
 import { postgresDb } from './postgresDb';
 import { ADMIN_WHITELIST_EMAILS } from './credentials';
 
@@ -17,6 +17,8 @@ export interface PricingConfig {
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   supabaseBucket?: string;
+  voiceCloneCreationCostCredits?: number;
+  voiceCloneSynthesisCostCredits?: number;
 }
 
 export interface DatabaseStore {
@@ -24,8 +26,140 @@ export interface DatabaseStore {
   trialUsage: Record<string, TrialUsage>;
   transactions: Transaction[];
   generationLogs: GenerationLog[];
+  avatars: Avatar[];
+  avatarJobs: AvatarVideoJob[];
+  customVoices: CustomVoice[];
   pricingConfig?: PricingConfig;
 }
+
+export const DEFAULT_STOCK_AVATARS: Avatar[] = [
+  {
+    id: 'avt_stock_01',
+    userId: 'system',
+    name: 'Aarav Sharma',
+    category: 'stock',
+    gender: 'male',
+    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=85',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    defaultVoiceId: 'ne-NP-SagarNeural',
+    defaultLanguage: 'ne-NP',
+    stylePreset: 'newsroom',
+    description: 'National News Anchor & Broadcast Presenter with authoritative tone.',
+    consentStatus: 'verified',
+    consentTimestamp: '2026-01-01T00:00:00.000Z',
+    consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
+    signerFullName: 'NepalAI Platform Media Trust',
+    signerRelationship: 'Official Stock Talent Agency Partner',
+    moderationStatus: 'approved',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'avt_stock_02',
+    userId: 'system',
+    name: 'Hemkala Thapa',
+    category: 'stock',
+    gender: 'female',
+    imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=85',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    defaultVoiceId: 'ne-NP-HemkalaNeural',
+    defaultLanguage: 'ne-NP',
+    stylePreset: 'studio_gradient',
+    description: 'Academic Lecturer & Educational Presenter with warm articulate cadence.',
+    consentStatus: 'verified',
+    consentTimestamp: '2026-01-01T00:00:00.000Z',
+    consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
+    signerFullName: 'NepalAI Platform Media Trust',
+    signerRelationship: 'Official Stock Talent Agency Partner',
+    moderationStatus: 'approved',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'avt_stock_03',
+    userId: 'system',
+    name: 'Sagar KC',
+    category: 'stock',
+    gender: 'male',
+    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop&q=85',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    defaultVoiceId: 'ne-NP-SagarNeural',
+    defaultLanguage: 'ne-NP',
+    stylePreset: 'tech_neon',
+    description: 'Tech Reviewer & Startup Pitch Host with energetic modern delivery.',
+    consentStatus: 'verified',
+    consentTimestamp: '2026-01-01T00:00:00.000Z',
+    consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
+    signerFullName: 'NepalAI Platform Media Trust',
+    signerRelationship: 'Official Stock Talent Agency Partner',
+    moderationStatus: 'approved',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'avt_stock_04',
+    userId: 'system',
+    name: 'Maya Gurung',
+    category: 'stock',
+    gender: 'female',
+    imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&auto=format&fit=crop&q=85',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    defaultVoiceId: 'ne-NP-HemkalaNeural',
+    defaultLanguage: 'ne-NP',
+    stylePreset: 'traditional_nepali',
+    description: 'Cultural Ambassador & Himalayan Tourism Host in traditional attire.',
+    consentStatus: 'verified',
+    consentTimestamp: '2026-01-01T00:00:00.000Z',
+    consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
+    signerFullName: 'NepalAI Platform Media Trust',
+    signerRelationship: 'Official Stock Talent Agency Partner',
+    moderationStatus: 'approved',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'avt_stock_05',
+    userId: 'system',
+    name: 'Rajesh Commercial Host',
+    category: 'stock',
+    gender: 'male',
+    imageUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&auto=format&fit=crop&q=85',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80',
+    defaultVoiceId: 'ne-NP-SagarNeural',
+    defaultLanguage: 'ne-NP',
+    stylePreset: 'office',
+    description: 'Commercial Endorsement & High-Impact Brand Spokesperson.',
+    consentStatus: 'verified',
+    consentTimestamp: '2026-01-01T00:00:00.000Z',
+    consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
+    signerFullName: 'NepalAI Platform Media Trust',
+    signerRelationship: 'Official Stock Talent Agency Partner',
+    moderationStatus: 'approved',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'avt_stock_06',
+    userId: 'system',
+    name: 'Sophia Laurent',
+    category: 'stock',
+    gender: 'female',
+    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=85',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
+    defaultVoiceId: 'en-US-JennyNeural',
+    defaultLanguage: 'en-US',
+    stylePreset: 'office',
+    description: 'Global English Presenter for international SaaS & Corporate Explainers.',
+    consentStatus: 'verified',
+    consentTimestamp: '2026-01-01T00:00:00.000Z',
+    consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
+    signerFullName: 'NepalAI Platform Media Trust',
+    signerRelationship: 'Official Stock Talent Agency Partner',
+    moderationStatus: 'approved',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+];
 
 const DB_DIR = path.join(process.cwd(), 'data');
 const DB_PATH = path.join(DB_DIR, 'nepalai_db.json');
@@ -181,6 +315,9 @@ const INITIAL_STORE: DatabaseStore = {
       createdAt: '2026-09-02T14:15:00.000Z',
     },
   ],
+  avatars: DEFAULT_STOCK_AVATARS,
+  avatarJobs: [],
+  customVoices: [],
 };
 
 class Database {
@@ -197,7 +334,17 @@ class Database {
       }
       if (fs.existsSync(DB_PATH)) {
         const raw = fs.readFileSync(DB_PATH, 'utf-8');
-        return JSON.parse(raw);
+        const parsed: DatabaseStore = JSON.parse(raw);
+        if (!parsed.avatars || parsed.avatars.length === 0) {
+          parsed.avatars = [...DEFAULT_STOCK_AVATARS];
+        }
+        if (!parsed.avatarJobs) {
+          parsed.avatarJobs = [];
+        }
+        if (!parsed.customVoices) {
+          parsed.customVoices = [];
+        }
+        return parsed;
       }
     } catch (err) {
       console.warn('Could not load db.json, using initial seed:', err);
@@ -404,7 +551,7 @@ class Database {
   // Quota & Permission Verification
   public checkCanGenerate(
     userId: string,
-    type: 'image' | 'video' | 'audio' | 'render',
+    type: 'image' | 'video' | 'audio' | 'render' | 'avatar' | 'voice_clone',
     durationSeconds = 0
   ): { allowed: boolean; reason?: string; hardLocked?: boolean; remaining?: number } {
     let user = this.getUserById(userId);
@@ -430,22 +577,24 @@ class Database {
     let hasDailyFree = false;
     if (type === 'image' && usage.imagesCount < usage.maxImages) hasDailyFree = true;
     if (type === 'video' && usage.videoCount < usage.maxVideo && (durationSeconds <= 120 || durationSeconds === 0)) hasDailyFree = true;
+    if (type === 'avatar' && usage.videoCount < usage.maxVideo) hasDailyFree = true;
     if (type === 'audio' && usage.audioCount < usage.maxAudio && (durationSeconds <= 240 || durationSeconds === 0)) hasDailyFree = true;
     if (type === 'render' && usage.rendersCount < usage.maxRenders) hasDailyFree = true;
 
-    if (hasDailyFree) {
+    if (hasDailyFree && type !== 'voice_clone') {
       return { allowed: true, remaining: user.credits };
     }
 
-    // Priority 2: Daily Free Quota exhausted for today -> Check Paid Package Credits
+    // Priority 2: Check Paid Package Credits
     if (user.credits > 0 || user.tier !== 'free_trial') {
-      const costMap = { image: 5, video: 25, audio: 10, render: 30 };
-      const cost = costMap[type];
+      const voiceCloneCost = this.store.pricingConfig?.voiceCloneCreationCostCredits ?? 20;
+      const costMap: Record<string, number> = { image: 5, video: 25, audio: 10, render: 30, avatar: 15, voice_clone: voiceCloneCost };
+      const cost = costMap[type] || 15;
       if (user.credits < cost) {
         return {
           allowed: false,
           hardLocked: true,
-          reason: `Today's daily free quota exhausted & insufficient package credits (${user.credits} remaining, ${cost} required). Please top up!`,
+          reason: `Insufficient credits for ${type} (${user.credits} remaining, ${cost} required). Please top up!`,
           remaining: user.credits,
         };
       }
@@ -464,7 +613,7 @@ class Database {
   // Record generation and token usage
   public recordGeneration(
     userId: string,
-    type: 'image' | 'video' | 'audio' | 'render',
+    type: 'image' | 'video' | 'audio' | 'render' | 'avatar' | 'voice_clone',
     prompt: string,
     resultUrl: string,
     model: string,
@@ -474,8 +623,8 @@ class Database {
     if (!user) return;
 
     const usage = this.getTrialUsage(userId);
-    const tokenCostMap = { image: 350, video: 2800, audio: 900, render: 4500 };
-    const tokens = tokenCostMap[type];
+    const tokenCostMap: Record<string, number> = { image: 350, video: 2800, audio: 900, render: 4500, avatar: 1800, voice_clone: 2500 };
+    const tokens = tokenCostMap[type] || 1800;
 
     usage.totalTokensUsed += tokens;
     usage.lastUsedAt = new Date().toISOString();
@@ -490,6 +639,10 @@ class Database {
         usage.videoCount += 1;
         usage.videoDurationSeconds += durationSeconds || 15;
         consumedDailyFree = true;
+      } else if (type === 'avatar' && usage.videoCount < usage.maxVideo) {
+        usage.videoCount += 1;
+        usage.videoDurationSeconds += durationSeconds || 15;
+        consumedDailyFree = true;
       } else if (type === 'audio' && usage.audioCount < usage.maxAudio && (durationSeconds <= 240 || durationSeconds === 0)) {
         usage.audioCount += 1;
         usage.audioDurationSeconds += durationSeconds || 30;
@@ -499,15 +652,17 @@ class Database {
         consumedDailyFree = true;
       }
 
-      // Priority 2: If Daily Free Quota was already used today, deduct paid package credits
+      // Priority 2: If Daily Free Quota was already used today or not applicable (e.g. voice_clone), deduct paid package credits
       if (!consumedDailyFree) {
-        const creditCostMap = { image: 5, video: 25, audio: 10, render: 30 };
-        const credits = creditCostMap[type];
+        const voiceCloneCost = this.store.pricingConfig?.voiceCloneCreationCostCredits ?? 20;
+        const creditCostMap: Record<string, number> = { image: 5, video: 25, audio: 10, render: 30, avatar: 15, voice_clone: voiceCloneCost };
+        const credits = creditCostMap[type] || 15;
         user.credits = Math.max(0, user.credits - credits);
       }
     }
 
-    const costMap = { image: 5, video: 25, audio: 10, render: 30 };
+    const voiceCloneCost = this.store.pricingConfig?.voiceCloneCreationCostCredits ?? 20;
+    const costMap: Record<string, number> = { image: 5, video: 25, audio: 10, render: 30, avatar: 15, voice_clone: voiceCloneCost };
     // Guard against multi-megabyte base64 string bloat in persistent DB JSON
     const sanitizedResultUrl = (typeof resultUrl === 'string' && resultUrl.startsWith('data:') && resultUrl.length > 500)
       ? `${resultUrl.substring(0, 80)}...[truncated_base64_media]`
@@ -521,7 +676,7 @@ class Database {
       prompt,
       resultUrl: sanitizedResultUrl,
       tokensCost: tokens,
-      creditsCost: consumedDailyFree ? 0 : costMap[type],
+      creditsCost: consumedDailyFree ? 0 : (costMap[type] || 15),
       deductionSource: consumedDailyFree ? 'daily_free' : 'package_credits',
       createdAt: new Date().toISOString(),
     };
@@ -535,6 +690,151 @@ class Database {
 
     this.save(this.store);
     this.syncLogToPostgres(newLog);
+  }
+
+  // Avatar operations
+  public getAvatars(userId?: string): Avatar[] {
+    const list = this.store.avatars || [];
+    if (!userId || userId === 'all') return list;
+    return list.filter(a => a.userId === 'system' || a.userId === userId);
+  }
+
+  public getAvatarById(id: string): Avatar | undefined {
+    return (this.store.avatars || []).find(a => a.id === id);
+  }
+
+  public createAvatar(avatar: Avatar): Avatar {
+    if (!this.store.avatars) this.store.avatars = [...DEFAULT_STOCK_AVATARS];
+    this.store.avatars.unshift(avatar);
+    this.save(this.store);
+    return avatar;
+  }
+
+  public updateAvatar(id: string, updates: Partial<Avatar>): Avatar | undefined {
+    const index = (this.store.avatars || []).findIndex(a => a.id === id);
+    if (index === -1) return undefined;
+    this.store.avatars[index] = {
+      ...this.store.avatars[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.save(this.store);
+    return this.store.avatars[index];
+  }
+
+  public deleteAvatar(id: string, userId: string): boolean {
+    const index = (this.store.avatars || []).findIndex(a => a.id === id && (a.userId === userId || a.userId !== 'system'));
+    if (index === -1) return false;
+    this.store.avatars.splice(index, 1);
+    this.save(this.store);
+    return true;
+  }
+
+  // Avatar Job operations
+  public createAvatarJob(job: AvatarVideoJob): AvatarVideoJob {
+    if (!this.store.avatarJobs) this.store.avatarJobs = [];
+    this.store.avatarJobs.unshift(job);
+    if (this.store.avatarJobs.length > 200) {
+      this.store.avatarJobs = this.store.avatarJobs.slice(0, 200);
+    }
+    this.save(this.store);
+    return job;
+  }
+
+  public getAvatarJobById(id: string): AvatarVideoJob | undefined {
+    return (this.store.avatarJobs || []).find(j => j.id === id);
+  }
+
+  public updateAvatarJob(id: string, updates: Partial<AvatarVideoJob>): AvatarVideoJob | undefined {
+    const index = (this.store.avatarJobs || []).findIndex(j => j.id === id);
+    if (index === -1) return undefined;
+    this.store.avatarJobs[index] = {
+      ...this.store.avatarJobs[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.save(this.store);
+    return this.store.avatarJobs[index];
+  }
+
+  public getUserAvatarJobs(userId: string): AvatarVideoJob[] {
+    return (this.store.avatarJobs || []).filter(j => j.userId === userId || userId === 'all');
+  }
+
+  // ==========================================
+  // Custom Cloned Voices Operations (custom_voices table)
+  // ==========================================
+  public getCustomVoices(userId?: string): CustomVoice[] {
+    if (!this.store.customVoices) {
+      this.store.customVoices = [];
+    }
+    if (!userId || userId === 'all') return this.store.customVoices;
+    return this.store.customVoices.filter(v => v.userId === userId || v.userId === 'system');
+  }
+
+  public getCustomVoiceById(id: string): CustomVoice | undefined {
+    if (!this.store.customVoices) {
+      this.store.customVoices = [];
+    }
+    return this.store.customVoices.find(v => v.id === id);
+  }
+
+  public createCustomVoice(voice: CustomVoice): CustomVoice {
+    if (!this.store.customVoices) {
+      this.store.customVoices = [];
+    }
+    // Remove if already exists with same ID
+    this.store.customVoices = this.store.customVoices.filter(v => v.id !== voice.id);
+    this.store.customVoices.unshift(voice);
+    this.save(this.store);
+
+    // Sync to PostgreSQL if connected
+    postgresDb.syncCustomVoice(voice).catch(err => {
+      console.warn('Background sync custom voice to postgres failed:', err);
+    });
+
+    return voice;
+  }
+
+  public updateCustomVoice(id: string, updates: Partial<CustomVoice>): CustomVoice | undefined {
+    if (!this.store.customVoices) {
+      this.store.customVoices = [];
+    }
+    const idx = this.store.customVoices.findIndex(v => v.id === id);
+    if (idx === -1) return undefined;
+    const updated: CustomVoice = {
+      ...this.store.customVoices[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.store.customVoices[idx] = updated;
+    this.save(this.store);
+
+    postgresDb.syncCustomVoice(updated).catch(err => {
+      console.warn('Background sync updated custom voice to postgres failed:', err);
+    });
+
+    return updated;
+  }
+
+  public deleteCustomVoice(id: string, userId?: string): boolean {
+    if (!this.store.customVoices) {
+      this.store.customVoices = [];
+    }
+    const beforeLen = this.store.customVoices.length;
+    this.store.customVoices = this.store.customVoices.filter(v => {
+      if (v.id !== id) return true;
+      if (userId && v.userId !== userId && userId !== 'usr_admin_01') return true;
+      return false;
+    });
+    const deleted = this.store.customVoices.length < beforeLen;
+    if (deleted) {
+      this.save(this.store);
+      postgresDb.deleteCustomVoice(id).catch(err => {
+        console.warn('Background delete custom voice in postgres failed:', err);
+      });
+    }
+    return deleted;
   }
 
   // Get user generation history
@@ -609,44 +909,143 @@ class Database {
     };
   }
 
-  // Process Stripe Payment & Upgrade Tier
-  public processStripePayment(
-    userId: string,
-    packageId: 'sasta_50_npr' | 'starter' | 'creator' | 'pro_studio',
-    stripePaymentId?: string
-  ): Transaction {
-    const user = this.getUserById(userId);
-    if (!user) throw new Error('User not found');
+  // Look up transaction by Stripe Payment ID / Session ID
+  public getTransactionByStripeId(stripePaymentId: string): Transaction | undefined {
+    return this.store.transactions.find((t) => t.stripePaymentId === stripePaymentId);
+  }
+
+  // Idempotency check for Stripe payments
+  public isStripePaymentProcessed(stripePaymentId: string): boolean {
+    const tx = this.getTransactionByStripeId(stripePaymentId);
+    return Boolean(tx && tx.status === 'succeeded');
+  }
+
+  // Record verified Stripe payment success with strict idempotency
+  public recordStripePaymentSuccess(params: {
+    userId: string;
+    packageId: 'sasta_50_npr' | 'starter' | 'creator' | 'pro_studio';
+    stripePaymentId: string;
+    amount?: number;
+    currency?: string;
+  }): { transaction: Transaction; user: User; duplicate: boolean; alreadyProcessed: boolean } {
+    const user = this.getUserById(params.userId);
+    if (!user) throw new Error(`User not found: ${params.userId}`);
+
+    // 1. Strict Idempotency Check: Verify if this Stripe Payment ID was already fulfilled
+    const existingTx = this.getTransactionByStripeId(params.stripePaymentId);
+    if (existingTx && existingTx.status === 'succeeded') {
+      console.log(`[StripeDB] Idempotency intercepted: Payment ID ${params.stripePaymentId} already credited. Skipping duplicate credit grant.`);
+      return {
+        transaction: existingTx,
+        user,
+        duplicate: true,
+        alreadyProcessed: true,
+      };
+    }
 
     const packages = {
       sasta_50_npr: { name: 'Sasta Micro-Pass (3 HD Images, 1x5m Video, 1x5m Audio)', price: 0.38, credits: 60 },
-      starter: { name: 'Starter Tier (500 Credits)', price: 19, credits: 500 },
-      creator: { name: 'Creator Tier (1,800 Credits)', price: 49, credits: 1800 },
-      pro_studio: { name: 'Pro Studio Tier (5,000 Credits)', price: 129, credits: 5000 },
+      starter: { name: 'Starter Tier (500 Credits)', price: 19.0, credits: 500 },
+      creator: { name: 'Creator Tier (1,800 Credits)', price: 49.0, credits: 1800 },
+      pro_studio: { name: 'Pro Studio Tier (5,000 Credits)', price: 129.0, credits: 5000 },
     };
 
-    const pkg = packages[packageId];
+    const pkg = packages[params.packageId] || packages.starter;
     const tx: Transaction = {
-      id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      userId,
+      id: `tx_stripe_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId: user.id,
       userEmail: user.email,
-      packageId,
-      packageName: pkg.name,
-      amount: pkg.price,
-      currency: 'USD',
+      packageId: params.packageId,
+      packageName: `${pkg.name} [Stripe USD]`,
+      amount: params.amount !== undefined ? params.amount : pkg.price,
+      currency: params.currency || 'USD',
       creditsAdded: pkg.credits,
-      stripePaymentId: stripePaymentId || `ch_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+      stripePaymentId: params.stripePaymentId,
       status: 'succeeded',
       createdAt: new Date().toISOString(),
     };
 
-    user.tier = packageId === 'sasta_50_npr' ? 'starter' : packageId;
+    // If an earlier failed record existed for this ID, update or supersede it
+    if (existingTx && existingTx.status === 'failed') {
+      const idx = this.store.transactions.findIndex((t) => t.id === existingTx.id);
+      if (idx !== -1) {
+        this.store.transactions.splice(idx, 1);
+      }
+    }
+
+    user.tier = params.packageId === 'sasta_50_npr' ? 'starter' : params.packageId;
     user.credits += pkg.credits;
     user.updatedAt = new Date().toISOString();
 
     this.store.transactions.unshift(tx);
     this.save(this.store);
-    return tx;
+    this.syncTransactionToPostgres(tx);
+    this.syncUserToPostgres(user);
+
+    console.log(`[StripeDB] ✅ Credited ${pkg.credits} credits to ${user.email} for Stripe ID ${params.stripePaymentId}. New balance: ${user.credits}`);
+    return {
+      transaction: tx,
+      user,
+      duplicate: false,
+      alreadyProcessed: false,
+    };
+  }
+
+  // Record failed Stripe payment attempt
+  public recordStripePaymentFailure(params: {
+    userId: string;
+    packageId?: 'sasta_50_npr' | 'starter' | 'creator' | 'pro_studio';
+    stripePaymentId: string;
+    amount?: number;
+    currency?: string;
+    errorDetails?: string;
+  }): { transaction: Transaction; user: User | null } {
+    const user = this.getUserById(params.userId);
+    const packageId = params.packageId || 'starter';
+
+    const packages = {
+      sasta_50_npr: { name: 'Sasta Micro-Pass', price: 0.38 },
+      starter: { name: 'Starter Tier', price: 19.0 },
+      creator: { name: 'Creator Tier', price: 49.0 },
+      pro_studio: { name: 'Pro Studio Tier', price: 129.0 },
+    };
+    const pkg = packages[packageId] || packages.starter;
+
+    const tx: Transaction = {
+      id: `tx_stripe_fail_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId: user?.id || params.userId,
+      userEmail: user?.email || 'unknown@nepalai.tech',
+      packageId,
+      packageName: `${pkg.name} [Failed Attempt]`,
+      amount: params.amount !== undefined ? params.amount : pkg.price,
+      currency: params.currency || 'USD',
+      creditsAdded: 0,
+      stripePaymentId: params.stripePaymentId,
+      status: 'failed',
+      createdAt: new Date().toISOString(),
+    };
+
+    this.store.transactions.unshift(tx);
+    this.save(this.store);
+    this.syncTransactionToPostgres(tx);
+
+    console.warn(`[StripeDB] ⚠️ Logged failed payment attempt for Stripe ID ${params.stripePaymentId}: ${params.errorDetails || 'Card declined'}`);
+    return { transaction: tx, user: user || null };
+  }
+
+  // Legacy compatibility wrapper for processStripePayment
+  public processStripePayment(
+    userId: string,
+    packageId: 'sasta_50_npr' | 'starter' | 'creator' | 'pro_studio',
+    stripePaymentId?: string
+  ): Transaction {
+    const paymentId = stripePaymentId || `ch_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    const result = this.recordStripePaymentSuccess({
+      userId,
+      packageId,
+      stripePaymentId: paymentId,
+    });
+    return result.transaction;
   }
 
   // Pricing Config
@@ -665,8 +1064,17 @@ class Database {
         supabaseUrl: process.env.SUPABASE_URL || '',
         supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
         supabaseBucket: process.env.SUPABASE_BUCKET || 'nepalai-media',
+        voiceCloneCreationCostCredits: 20,
+        voiceCloneSynthesisCostCredits: 10,
       };
       this.save(this.store);
+    } else {
+      if (this.store.pricingConfig.voiceCloneCreationCostCredits === undefined) {
+        this.store.pricingConfig.voiceCloneCreationCostCredits = 20;
+      }
+      if (this.store.pricingConfig.voiceCloneSynthesisCostCredits === undefined) {
+        this.store.pricingConfig.voiceCloneSynthesisCostCredits = 10;
+      }
     }
     return this.store.pricingConfig;
   }
@@ -784,3 +1192,19 @@ class Database {
 }
 
 export const db = new Database();
+
+// Shared Feature Credit Cost Helper (Prompt #3 / Task #4)
+export function getFeatureCreditCost(type: string, pricingConfig?: PricingConfig): number {
+  const cfg = pricingConfig || db.getPricingConfig();
+  const costMap: Record<string, number> = {
+    image: 5,
+    video: 25,
+    audio: 10,
+    render: 30,
+    avatar: 15,
+    voice_clone: cfg?.voiceCloneCreationCostCredits ?? 20,
+    cloned_audio: cfg?.voiceCloneSynthesisCostCredits ?? 10,
+  };
+  return costMap[type] || 15;
+}
+

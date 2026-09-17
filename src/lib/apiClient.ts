@@ -9,6 +9,8 @@
  * - Support for JSON, Text, Blob, and ArrayBuffer responses
  */
 
+import { authManager } from './authManager';
+
 export interface ApiClientRequestOptions extends Omit<RequestInit, 'body'> {
   timeoutMs?: number;
   maxRetries?: number;
@@ -17,6 +19,7 @@ export interface ApiClientRequestOptions extends Omit<RequestInit, 'body'> {
   userId?: string;
   body?: any;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer';
+  _authRetryCount?: number;
 }
 
 export type ApiErrorCode = 'TIMEOUT' | 'NETWORK_ERROR' | 'OFFLINE' | 'HTTP_ERROR' | 'ABORTED' | 'PARSE_ERROR';
@@ -70,26 +73,13 @@ export class ApiClient {
   }
 
   /**
-   * Resolve auth credentials from options or localStorage
+   * Resolve auth credentials from options or authManager
    */
   private getAuthHeaders(options?: ApiClientRequestOptions): Record<string, string> {
     const headers: Record<string, string> = {};
 
-    let token = options?.token;
-    let userId = options?.userId;
-
-    if (typeof localStorage !== 'undefined') {
-      if (!token) {
-        token =
-          localStorage.getItem('nepalai_auth_token') ||
-          localStorage.getItem('nepalai_token') ||
-          localStorage.getItem('auth_token') ||
-          '';
-      }
-      if (!userId) {
-        userId = localStorage.getItem('nepalai_user_id') || '';
-      }
-    }
+    let token = options?.token || authManager.getToken();
+    let userId = options?.userId || authManager.getUserId();
 
     if (token) {
       headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
@@ -111,6 +101,11 @@ export class ApiClient {
       });
     }
 
+    // Proactive background refresh if token is near expiration (non-blocking)
+    if (authManager.isTokenNearExpiry(300)) {
+      authManager.refreshToken().catch(() => {});
+    }
+
     const {
       timeoutMs = this.defaultTimeoutMs,
       maxRetries = this.defaultMaxRetries,
@@ -120,6 +115,7 @@ export class ApiClient {
       body,
       method = 'GET',
       signal: externalSignal,
+      _authRetryCount = 0,
       ...fetchOptions
     } = options;
 
@@ -208,7 +204,43 @@ export class ApiClient {
             errorData = { error: response.statusText };
           }
 
-          const errorMessage = errorData?.error || errorData?.message || `HTTP ${response.status}: ${response.statusText}`;
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          if (errorData) {
+            if (typeof errorData === 'string') {
+              errorMessage = errorData;
+            } else if (typeof errorData.error === 'string') {
+              errorMessage = errorData.error;
+            } else if (typeof errorData.error === 'object' && errorData.error !== null) {
+              errorMessage = errorData.error.message || errorData.error.type || JSON.stringify(errorData.error);
+            } else if (typeof errorData.message === 'string') {
+              errorMessage = errorData.message;
+            }
+          }
+
+          // Handle 401 Unauthorized: Attempt silent refresh and retry exactly once
+          if (
+            response.status === 401 &&
+            _authRetryCount === 0 &&
+            !url.includes('/api/auth/google') &&
+            !url.includes('/api/auth/admin-login')
+          ) {
+            try {
+              const refreshedToken = await authManager.refreshToken();
+              if (refreshedToken) {
+                // Retry request once with the refreshed token
+                return await this.request<T>(url, {
+                  ...options,
+                  token: refreshedToken,
+                  _authRetryCount: 1,
+                });
+              }
+            } catch (refreshErr) {
+              console.warn('[ApiClient] Silent token refresh on 401 failed:', refreshErr);
+            }
+            // If refresh fails or returns null on an authenticated session, clear and trigger auth expiry
+            authManager.clearAuth(true, 'TOKEN_EXPIRED');
+          }
+
           const isTransient = response.status >= 500 || response.status === 429;
 
           const httpError = new ApiClientError(errorMessage, 'HTTP_ERROR', {

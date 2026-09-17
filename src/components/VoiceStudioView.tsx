@@ -5,11 +5,12 @@ import {
   UserCheck, HelpCircle, ChevronRight, VolumeX, Flame, Heart, Headphones, Scissors, Upload, Trash2,
   Sliders, Radio, Layers, Activity, SlidersHorizontal, Users, Wand2, Mic2, Clapperboard, AudioWaveform
 } from 'lucide-react';
-import { UserSession, UserTrialQuota } from '../types';
-import { apiGenerateAudio, apiGetAudioSuggestions } from '../lib/api';
+import { UserSession, UserTrialQuota, CustomVoice } from '../types';
+import { apiGenerateAudio, apiGetAudioSuggestions, apiGetCustomVoices, apiDeleteCustomVoice } from '../lib/api';
 import { VoiceWaveformVisualizer } from './VoiceWaveformVisualizer';
 import { saveMediaItem, getGeneratedSoundList, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
 import { studioMastering, MasterRackSettings, DEFAULT_MASTER_SETTINGS } from '../lib/studioMastering';
+import { VoiceCloneModal } from './VoiceCloneModal';
 
 interface VoiceStudioViewProps {
   initialText?: string;
@@ -24,7 +25,7 @@ interface VoiceStudioViewProps {
 interface VoiceItem {
   id: string;
   name: string;
-  demographic: 'children' | 'teen' | 'young_adult' | 'adult' | 'elderly' | 'ambient';
+  demographic: 'children' | 'teen' | 'young_adult' | 'adult' | 'elderly' | 'ambient' | 'cloned';
   gender: 'Female' | 'Male' | 'Neutral';
   language: 'Nepali' | 'English';
   role: 'Primary Narrator' | 'Secondary Character' | 'Ambient/Background';
@@ -32,6 +33,8 @@ interface VoiceItem {
   sampleText: string;
   pitchShift: string;
   speedShift: string;
+  isCustomCloned?: boolean;
+  clonedProfile?: CustomVoice;
 }
 
 const VOICES: VoiceItem[] = [
@@ -164,6 +167,18 @@ export interface VoiceAvatarMeta {
 export const getVoiceAvatarMeta = (voice: VoiceItem): VoiceAvatarMeta => {
   const id = voice.id.toLowerCase();
   
+  if (voice.isCustomCloned || id.includes('clone')) {
+    return {
+      emoji: voice.gender === 'Female' ? '👩🏽‍🎤' : voice.gender === 'Male' ? '👨🏽‍🎤' : '🧑🏽‍🎤',
+      avatarTitle: `${voice.name} (Cloned)`,
+      tag: 'Custom Neural Clone',
+      bgGradient: 'from-purple-500/25 via-indigo-500/20 to-blue-500/25',
+      borderColor: 'border-purple-500/50',
+      textColor: 'text-purple-400',
+      badgeBg: 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+    };
+  }
+
   if (id === 'kanti_child_ne') {
     return {
       emoji: '👧🏽',
@@ -536,7 +551,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
   const [language, setLanguage] = useState<'ne' | 'en'>('ne');
   const [selectedVoiceId, setSelectedVoiceId] = useState('hemkala_pure_ne');
-  const [activeDemographicTab, setActiveDemographicTab] = useState<'all' | 'children' | 'teen' | 'young_adult' | 'adult' | 'elderly' | 'ambient'>('all');
+  const [activeDemographicTab, setActiveDemographicTab] = useState<'all' | 'children' | 'teen' | 'young_adult' | 'adult' | 'elderly' | 'ambient' | 'cloned'>('all');
   
   // Emotional and Genre toggles
   const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'sad' | 'energetic' | 'horror'>('neutral');
@@ -671,6 +686,44 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   } | null>(null);
 
   const [voicesList, setVoicesList] = useState<VoiceItem[]>(VOICES);
+  const [customVoices, setCustomVoices] = useState<CustomVoice[]>([]);
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+
+  const loadCustomVoices = async () => {
+    try {
+      const voices = await apiGetCustomVoices(user?.id || 'all');
+      setCustomVoices(voices);
+    } catch (err) {
+      console.warn('Failed to load custom voices:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadCustomVoices();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!customVoices || customVoices.length === 0) {
+      setVoicesList(VOICES);
+      return;
+    }
+    const customItems: VoiceItem[] = customVoices.map(cv => ({
+      id: cv.id,
+      name: `${cv.name} (Cloned)`,
+      demographic: 'cloned' as any,
+      gender: (cv.gender === 'male' ? 'Male' : cv.gender === 'female' ? 'Female' : 'Neutral') as any,
+      language: cv.language?.startsWith('en') ? 'English' : 'Nepali',
+      role: 'Primary Narrator',
+      description: cv.description || `Custom acoustic neural model • Pitch: ${cv.acousticProfile?.pitchMeanHz || 160}Hz (${cv.acousticProfile?.timbreDescriptor || 'Natural'})`,
+      sampleText: cv.language?.startsWith('en') ? 'Namaste and welcome! This is my verified cloned AI voice.' : 'नमस्ते! यो मेरो प्रमाणित क्लोन गरिएको नेपाली आवाज हो।',
+      pitchShift: 'Neural Cloned',
+      speedShift: '1.0x',
+      isCustomCloned: true,
+      clonedProfile: cv,
+    }));
+    setVoicesList([...VOICES, ...customItems]);
+  }, [customVoices]);
+
   const [activeEditorTab, setActiveEditorTab] = useState<'single' | 'dialogue' | 'batch' | 'clone'>('single');
 
   // Studio Master Rack state
@@ -1490,6 +1543,9 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         extractedPitch = `${pitchVal > 0 ? '+' : ''}${pitchVal}%`;
       }
 
+      const isCloned = !!selectedVoice?.isCustomCloned || selectedVoiceId.startsWith('voice_clone_') || customVoices.some(cv => cv.id === selectedVoiceId);
+      const customVoiceParam = isCloned ? selectedVoiceId : undefined;
+
       const data = await apiGenerateAudio(
         targetUserId,
         textToSynthesize || 'नमस्ते',
@@ -1500,7 +1556,8 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         extractedSpeed,
         extractedVolume,
         extractedPitch,
-        phoneticDict
+        phoneticDict,
+        customVoiceParam
       );
 
       if (onUsageUpdated && data.trialUsage) {
@@ -1907,6 +1964,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
   // Filter voices based on active demographic tab
   const filteredVoices = voicesList.filter(voice => {
+    if (activeDemographicTab === 'cloned') return !!voice.isCustomCloned;
     if (activeDemographicTab !== 'all' && voice.demographic !== activeDemographicTab) return false;
     return true;
   });
@@ -3772,29 +3830,41 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </div>
             </div>
 
-            {/* Demographic Category Tab Pill Selection */}
-            <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800/80">
-              {([
-                { id: 'all', label: 'All' },
-                { id: 'children', label: 'Children' },
-                { id: 'teen', label: 'Teens' },
-                { id: 'young_adult', label: 'Mid-20s' },
-                { id: 'adult', label: '30s-40s' },
-                { id: 'elderly', label: 'Senior' },
-                { id: 'ambient', label: 'Ambient' }
-              ] as const).map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveDemographicTab(tab.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all ${
-                    activeDemographicTab === tab.id
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            {/* Demographic Category Tab Pill Selection & Clone Action */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800/80">
+                {([
+                  { id: 'all', label: 'All' },
+                  { id: 'cloned', label: `Cloned (${customVoices.length})` },
+                  { id: 'children', label: 'Children' },
+                  { id: 'teen', label: 'Teens' },
+                  { id: 'young_adult', label: 'Mid-20s' },
+                  { id: 'adult', label: '30s-40s' },
+                  { id: 'elderly', label: 'Senior' },
+                  { id: 'ambient', label: 'Ambient' }
+                ] as const).map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveDemographicTab(tab.id as any)}
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all ${
+                      activeDemographicTab === tab.id
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCloneModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-[10px] font-bold flex items-center gap-1.5 shadow-sm transition"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>+ Clone Voice (20 Cr)</span>
+              </button>
             </div>
 
             {/* Real-time Side-by-Side Comparison Desk */}
@@ -3951,6 +4021,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                             ✨ Pure Neural 48kHz HD
                           </span>
                         )}
+                        {voice.isCustomCloned && (
+                          <span className="text-[7.5px] px-1.5 py-0.2 rounded bg-gradient-to-r from-purple-500/20 to-indigo-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 font-extrabold uppercase tracking-wider">
+                            🧬 Custom Acoustic Clone
+                          </span>
+                        )}
                       </div>
 
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">
@@ -4001,6 +4076,26 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                           <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                         )}
                       </button>
+
+                      {voice.isCustomCloned && (
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete custom cloned voice "${voice.name}"?`)) {
+                              await apiDeleteCustomVoice(voice.id, user?.id || 'all');
+                              setCustomVoices(prev => prev.filter(cv => cv.id !== voice.id));
+                              if (selectedVoiceId === voice.id) {
+                                setSelectedVoiceId('hemkala_pure_ne');
+                              }
+                            }
+                          }}
+                          className="p-1.5 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
+                          title="Delete Cloned Voice Profile"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -4168,6 +4263,19 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         </div>
 
       </div>
+
+      {/* Voice Cloning Studio Modal */}
+      <VoiceCloneModal
+        isOpen={isCloneModalOpen}
+        onClose={() => setIsCloneModalOpen(false)}
+        user={user}
+        onVoiceCreated={(newVoice) => {
+          loadCustomVoices();
+          setSelectedVoiceId(newVoice.id);
+          setActiveDemographicTab('cloned');
+        }}
+        onTriggerPaywall={onTriggerPaywall}
+      />
     </div>
   );
 };

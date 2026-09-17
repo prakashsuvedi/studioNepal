@@ -58,7 +58,7 @@ export interface Transaction {
 export interface GenerationLog {
   id: string;
   userId: string;
-  type: 'image' | 'video' | 'audio' | 'render';
+  type: 'image' | 'video' | 'audio' | 'render' | 'avatar' | 'voice_clone';
   model: string;
   prompt: string;
   resultUrl: string;
@@ -66,6 +66,100 @@ export interface GenerationLog {
   creditsCost: number;
   deductionSource?: 'daily_free' | 'package_credits';
   createdAt: string;
+}
+
+export interface CustomVoice {
+  id: string; // e.g. "voice_clone_178965..."
+  userId: string;
+  name: string; // e.g. "Maya Custom Clone"
+  gender?: 'male' | 'female' | 'non-binary' | 'unspecified';
+  language?: string; // 'ne-NP' | 'en-US'
+  description?: string;
+  sampleAudioUrl: string; // Storage URL of the uploaded reference sample
+  sampleAudioFilename?: string;
+  sampleDurationSeconds?: number;
+  sampleFormat?: string; // 'mp3' | 'wav'
+  sampleSizeBytes?: number;
+  // Acoustic characteristics extracted from the reference sample
+  speakerEmbedding?: number[];
+  acousticCharacteristics?: {
+    pitchMeanHz?: number;
+    pitchRangeHz?: [number, number];
+    speakingRateWpm?: number;
+    timbreDescriptor?: string;
+    pitchShiftPercent?: string;
+    formantShiftPercent?: string;
+    eqBassGainDb?: number;
+    eqTrebleGainDb?: number;
+  };
+  modelEngine: 'azure_custom_neural' | 'hf_speecht5_speaker_clone' | 'neural_acoustic_clone';
+  // Likeness & Voice Rights Consent (Prompt #6 pattern)
+  consentStatus: 'verified' | 'pending' | 'rejected';
+  consentTimestamp: string;
+  consentLegalDeclaration: string;
+  signerFullName: string;
+  signerRelationship?: string;
+  consentAudit?: {
+    confirmed: boolean;
+    signerFullName: string;
+    signerRelationship: string;
+    timestamp: string;
+    statement?: string;
+    verified?: boolean;
+  };
+  acousticProfile?: {
+    pitchMeanHz?: number;
+    pitchRangeHz?: [number, number];
+    speakingRateWpm?: number;
+    timbreDescriptor?: string;
+  };
+  moderationStatus: 'approved' | 'in_review' | 'flagged';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Avatar {
+  id: string;
+  userId: string; // 'system' for stock avatars or specific userId for custom avatars
+  name: string;
+  category: 'stock' | 'custom';
+  gender: 'male' | 'female' | 'non-binary';
+  imageUrl: string;
+  thumbnailUrl?: string;
+  defaultVoiceId?: string;
+  defaultLanguage?: string;
+  stylePreset?: string;
+  description?: string;
+  consentStatus: 'verified' | 'pending' | 'rejected';
+  consentTimestamp?: string;
+  consentLegalDeclaration?: string;
+  signerFullName?: string;
+  signerRelationship?: string;
+  moderationStatus: 'approved' | 'in_review' | 'flagged';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AvatarVideoJob {
+  id: string;
+  userId: string;
+  avatarId: string;
+  avatarName: string;
+  avatarImageUrl: string;
+  script: string;
+  language: string;
+  voiceId: string;
+  aspectRatio: '16:9' | '9:16' | '1:1';
+  backgroundStyle?: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  videoUrl?: string;
+  audioUrl?: string;
+  durationSeconds?: number;
+  creditsDeducted?: number;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DailyResetAuditLog {

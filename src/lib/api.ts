@@ -1,4 +1,4 @@
-import type { UserSession, UserTrialQuota, StripeTransactionItem } from '../types';
+import type { UserSession, UserTrialQuota, StripeTransactionItem, CustomVoice } from '../types';
 export { apiClient, ApiClient, ApiClientError, isBrowserOffline } from './apiClient';
 export type { ApiClientRequestOptions, ApiErrorCode } from './apiClient';
 
@@ -28,6 +28,17 @@ export async function apiGetGoogleConfig(): Promise<{ clientId: string; configur
   }
 }
 
+export function extractErrorText(data: any, fallback = 'Request failed'): string {
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (typeof data.error === 'string') return data.error;
+  if (typeof data.error === 'object' && data.error !== null) {
+    return data.error.message || data.error.type || JSON.stringify(data.error);
+  }
+  if (typeof data.message === 'string') return data.message;
+  return fallback;
+}
+
 export async function loginWithGoogle(params: {
   credential?: string;
   accessToken?: string;
@@ -39,7 +50,7 @@ export async function loginWithGoogle(params: {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Login failed' }));
-    throw new Error(err.error || 'Google Login verification failed');
+    throw new Error(extractErrorText(err, 'Google Login verification failed'));
   }
   return res.json();
 }
@@ -137,7 +148,7 @@ export async function loginAdmin(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Admin authentication failed' }));
-    throw new Error(err.error || 'Admin login failed');
+    throw new Error(extractErrorText(err, 'Admin login failed'));
   }
   return res.json();
 }
@@ -191,17 +202,28 @@ export async function apiGenerateImage(
       cameraAngle: options?.cameraAngle,
     }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Image generation failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Image generation failed');
+    throw new Error(extractErrorText(data, 'Image generation failed'));
   }
   return data;
+}
+
+/**
+ * Normalizes input duration to Azure OpenAI Sora-2 strictly supported values: '4', '8', and '12'.
+ */
+export function normalizeSoraDuration(durationSeconds?: number | string): '4' | '8' | '12' {
+  const d = typeof durationSeconds === 'string' ? parseInt(durationSeconds, 10) : durationSeconds;
+  if (!d) return '8';
+  if (d <= 5) return '4';
+  if (d <= 9) return '8';
+  return '12';
 }
 
 export async function apiGenerateVideo(
   userId: string,
   prompt: string,
-  durationSeconds = 15,
+  durationSeconds = 8,
   model = 'openai/sora-2',
   options?: {
     resolution?: string;
@@ -209,6 +231,10 @@ export async function apiGenerateVideo(
     quality?: string;
     motion?: string;
     style?: string;
+    lockedSubjectToken?: string;
+    lockedSubjectDescription?: string;
+    frameOneSeedPrompt?: string;
+    continuationOf?: string;
   }
 ): Promise<{
   success: boolean;
@@ -239,14 +265,21 @@ export async function apiGenerateVideo(
       quality: options?.quality,
       motion: options?.motion,
       style: options?.style,
+      lockedSubjectToken: options?.lockedSubjectToken,
+      lockedSubjectDescription: options?.lockedSubjectDescription,
+      frameOneSeedPrompt: options?.frameOneSeedPrompt,
+      continuationOf: options?.continuationOf,
     }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Video generation failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Video generation failed');
+    throw new Error(extractErrorText(data, 'Video generation failed'));
   }
   return data;
 }
+
+export { pollSoraJobStatus, fetchVideoStatus } from './soraPoller';
+export type { SoraJobStatusResult, SoraPollingOptions } from './soraPoller';
 
 export async function apiCheckVideoStatus(jobId: string): Promise<{
   status: 'queued' | 'in_progress' | 'completed' | 'failed';
@@ -254,11 +287,8 @@ export async function apiCheckVideoStatus(jobId: string): Promise<{
   url?: string;
   error?: string;
 }> {
-  const res = await fetch(`/api/video/status/${encodeURIComponent(jobId)}`);
-  if (!res.ok) {
-    throw new Error('Failed to check video status');
-  }
-  return res.json();
+  const { fetchVideoStatus } = await import('./soraPoller');
+  return fetchVideoStatus(jobId);
 }
 
 export async function apiGenerateAudio(
@@ -271,23 +301,94 @@ export async function apiGenerateAudio(
   speed?: string,
   volume?: string,
   pitch?: string,
-  phoneticDict?: string
+  phoneticDict?: string,
+  customVoiceId?: string
 ): Promise<{
   success: boolean;
-  result: { url: string; duration: number; voice: string; language: string; format: string };
+  result: { url: string; duration: number; voice: string; language: string; format: string; customVoiceId?: string; cloned?: boolean };
   trialUsage: UserTrialQuota;
   remainingCredits: number;
 }> {
   const res = await fetch('/api/generate/audio', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-    body: JSON.stringify({ userId, text, voiceId, language, emotion, deliveryStyle, speed, volume, pitch, phoneticDict }),
+    body: JSON.stringify({ userId, text, voiceId, language, emotion, deliveryStyle, speed, volume, pitch, phoneticDict, customVoiceId }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Audio generation failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Audio generation failed');
+    throw new Error(extractErrorText(data, 'Audio generation failed'));
   }
   return data;
+}
+
+// ==========================================
+// Custom Voice Cloning Client APIs
+// ==========================================
+
+export async function apiCreateCustomVoice(payload: {
+  userId: string;
+  name: string;
+  sampleAudio: string;
+  sampleFilename?: string;
+  gender?: 'male' | 'female' | 'non-binary' | 'unspecified';
+  language?: 'ne-NP' | 'en-US';
+  description?: string;
+  consentConfirmed: boolean;
+  signerFullName: string;
+  signerRelationship?: string;
+  consentStatement?: string;
+}): Promise<{
+  success: boolean;
+  voice: CustomVoice;
+  analysis: any;
+  remainingCredits: number;
+  trialUsage: UserTrialQuota;
+}> {
+  const res = await fetch('/api/voice/clone/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-user-id': payload.userId },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({ error: 'Voice clone creation failed' }));
+  if (!res.ok) {
+    throw new Error(extractErrorText(data, 'Voice clone creation failed'));
+  }
+  return data;
+}
+
+export async function apiGetCustomVoices(userId: string): Promise<CustomVoice[]> {
+  const res = await fetch(`/api/voice/clone/list?userId=${encodeURIComponent(userId)}`, {
+    headers: { 'x-user-id': userId },
+  });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => ({ voices: [] }));
+  return data.voices || [];
+}
+
+export async function apiDeleteCustomVoice(id: string, userId: string): Promise<boolean> {
+  const res = await fetch(`/api/voice/clone/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    body: JSON.stringify({ userId }),
+  });
+  return res.ok;
+}
+
+export async function apiPreviewVoiceSample(sampleAudio: string, filename?: string): Promise<{
+  durationSec: number;
+  pitchMeanHz: number;
+  timbreDescriptor: string;
+  detectedGender: string;
+  sampleRate: number;
+}> {
+  const res = await fetch('/api/voice/clone/sample/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sampleAudio, filename }),
+  });
+  const data = await res.json().catch(() => ({ error: 'Preview failed' }));
+  if (!res.ok) throw new Error(extractErrorText(data, 'Preview failed'));
+  return data.analysis;
 }
 
 export async function apiGetAudioSuggestions(
@@ -310,9 +411,9 @@ export async function apiGetAudioSuggestions(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, language }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Smart script analysis failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Smart script analysis failed');
+    throw new Error(extractErrorText(data, 'Smart script analysis failed'));
   }
   return data;
 }
@@ -333,9 +434,9 @@ export async function apiRenderVideo(
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
     body: JSON.stringify({ userId, projectName, scenesCount, totalDurationSeconds }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Video rendering failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Video rendering failed');
+    throw new Error(extractErrorText(data, 'Video rendering failed'));
   }
   return data;
 }
@@ -343,15 +444,41 @@ export async function apiRenderVideo(
 export async function apiCheckoutStripe(
   userId: string,
   packageId: 'sasta_50_npr' | 'starter' | 'creator' | 'pro_studio'
-): Promise<{ success: boolean; transaction: StripeTransactionItem; user: UserSession; message: string }> {
-  const res = await fetch('/api/payment/checkout', {
+): Promise<{
+  success: boolean;
+  sessionId: string;
+  url: string | null;
+  amount: number;
+  currency: string;
+  credits: number;
+  packageName: string;
+  mode: string;
+}> {
+  const res = await fetch('/api/payment/stripe/create-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
     body: JSON.stringify({ userId, packageId }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Payment checkout session creation failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Payment checkout failed');
+    throw new Error(extractErrorText(data, 'Payment checkout session creation failed'));
+  }
+  return data;
+}
+
+export async function apiGetStripePaymentStatus(
+  paymentId: string
+): Promise<{
+  success: boolean;
+  status: 'succeeded' | 'pending' | 'failed';
+  transaction: StripeTransactionItem | null;
+  user: UserSession | null;
+  message?: string;
+}> {
+  const res = await fetch(`/api/payment/stripe/status/${encodeURIComponent(paymentId)}`);
+  const data = await res.json().catch(() => ({ error: 'Failed to fetch Stripe payment status' }));
+  if (!res.ok) {
+    throw new Error(extractErrorText(data, 'Failed to fetch Stripe payment status'));
   }
   return data;
 }
@@ -361,9 +488,9 @@ export async function apiGetAdminUsers(): Promise<AdminUsersResponse> {
   const res = await fetch('/api/admin/users', {
     headers: { 'x-user-id': adminId },
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Failed to fetch admin users' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Failed to fetch admin users');
+    throw new Error(extractErrorText(data, 'Failed to fetch admin users'));
   }
   return data;
 }
@@ -381,9 +508,9 @@ export async function apiAdminUpdateUser(
     },
     body: JSON.stringify(updates),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'Admin update failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'Admin update failed');
+    throw new Error(extractErrorText(data, 'Admin update failed'));
   }
   return data;
 }
@@ -414,9 +541,9 @@ export async function apiSendHamroAiChat(params: {
     },
     body: JSON.stringify(params),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({ error: 'HamroAI chat request failed' }));
   if (!res.ok) {
-    throw new Error(data.error || 'HamroAI chat request failed');
+    throw new Error(extractErrorText(data, 'HamroAI chat request failed'));
   }
   return data;
 }
@@ -508,5 +635,178 @@ export async function getSafeR2Config(): Promise<SafeR2Config> {
       provider: 'r2',
     };
   }
+}
+
+// ==========================================
+// AVATAR STUDIO CLIENT API METHODS
+// ==========================================
+
+export async function apiGetAvatars(userId?: string): Promise<{ success: boolean; avatars: any[] }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const savedUserId = userId || localStorage.getItem('nepalai_user_id') || '';
+  const res = await fetch(`/api/avatar/list?userId=${encodeURIComponent(savedUserId)}`, {
+    headers: {
+      'x-user-id': savedUserId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to fetch avatars' }));
+    throw new Error(extractErrorText(err, 'Failed to fetch avatar presenters'));
+  }
+  return res.json();
+}
+
+export async function apiGetAvatarVoices(): Promise<{ success: boolean; voices: any[] }> {
+  const res = await fetch('/api/avatar/voices');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to fetch avatar voices' }));
+    throw new Error(extractErrorText(err, 'Failed to fetch presenter voices'));
+  }
+  return res.json();
+}
+
+export async function apiSubmitAvatarConsent(params: {
+  userId: string;
+  avatarId?: string;
+  consentStatement?: string;
+  signerFullName: string;
+  signerRelationship?: string;
+}): Promise<{ success: boolean; consentTimestamp: string }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch('/api/avatar/consent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': params.userId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to log consent' }));
+    throw new Error(extractErrorText(err, 'Likeness consent logging failed'));
+  }
+  return res.json();
+}
+
+export async function apiCreateCustomAvatar(params: {
+  userId: string;
+  name: string;
+  gender?: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  defaultVoiceId?: string;
+  defaultLanguage?: string;
+  stylePreset?: string;
+  description?: string;
+  signerFullName: string;
+  signerRelationship?: string;
+  consentConfirmed: boolean;
+}): Promise<{ success: boolean; avatar: any }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch('/api/avatar/custom', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': params.userId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to create avatar' }));
+    throw new Error(extractErrorText(err, 'Failed to create custom presenter avatar'));
+  }
+  return res.json();
+}
+
+export async function apiGenerateAvatarVideo(params: {
+  userId: string;
+  avatarId: string;
+  script: string;
+  language?: string;
+  voiceId?: string;
+  speed?: string;
+  pitch?: string;
+  aspectRatio?: '16:9' | '9:16' | '1:1';
+  backgroundPreset?: string;
+  customBackgroundUrl?: string;
+  consentConfirmed: boolean;
+  signerFullName?: string;
+}): Promise<{
+  success: boolean;
+  jobId: string;
+  videoUrl: string;
+  audioUrl: string;
+  durationSeconds: number;
+  avatarId: string;
+  avatarName: string;
+  aspectRatio: string;
+  creditsDeducted: number;
+  remainingCredits: number;
+  trialUsage?: any;
+}> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch('/api/avatar/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': params.userId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Avatar video generation failed' }));
+    throw new Error(extractErrorText(err, 'Failed to generate avatar presenter video'));
+  }
+  return res.json();
+}
+
+export async function apiGetAvatarJobStatus(jobId: string): Promise<{ success: boolean; job: any }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch(`/api/avatar/status/${encodeURIComponent(jobId)}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to get job status' }));
+    throw new Error(extractErrorText(err, 'Failed to get avatar job status'));
+  }
+  return res.json();
+}
+
+export async function apiGetAvatarHistory(userId?: string): Promise<{ success: boolean; jobs: any[] }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const savedUserId = userId || localStorage.getItem('nepalai_user_id') || '';
+  const res = await fetch(`/api/avatar/history?userId=${encodeURIComponent(savedUserId)}`, {
+    headers: {
+      'x-user-id': savedUserId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to fetch history' }));
+    throw new Error(extractErrorText(err, 'Failed to fetch avatar history'));
+  }
+  return res.json();
+}
+
+export async function apiDeleteAvatar(avatarId: string, userId: string): Promise<{ success: boolean }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch(`/api/avatar/${encodeURIComponent(avatarId)}?userId=${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+    headers: {
+      'x-user-id': userId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to delete avatar' }));
+    throw new Error(extractErrorText(err, 'Failed to delete avatar'));
+  }
+  return res.json();
 }
 

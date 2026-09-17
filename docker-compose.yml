@@ -26,6 +26,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - REDIS_URL=redis://redis:6379
+      - IS_API_CONTAINER=true
     depends_on:
       redis:
         condition: service_healthy
@@ -39,6 +40,8 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
+      - IS_RENDER_WORKER=true
+      - MAX_RENDER_CONCURRENCY=4
       - FFMPEG_HWACCEL=libx264
     depends_on:
       redis:

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Lock, ShieldCheck, Key, Sparkles, AlertCircle } from 'lucide-react';
 import { loginWithGoogle, loginAdmin, apiGetGoogleConfig } from '../lib/api';
+import { authManager } from '../lib/authManager';
 import { UserSession, UserTrialQuota } from '../types';
 
 declare global {
@@ -126,6 +127,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
     try {
       const data = await loginWithGoogle(tokenPayload);
+      if (data.token) {
+        authManager.saveToken(data.token, data.user.id);
+      }
       onLoginSuccess(data.user, data.trialUsage);
       onClose();
     } catch (err: any) {
@@ -182,6 +186,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
     try {
       const data = await loginAdmin(adminEmail.trim(), adminPassword);
+      if (data.token) {
+        authManager.saveToken(data.token, data.user.id);
+      }
       onLoginSuccess(data.user, data.trialUsage);
       onClose();
     } catch (err: any) {

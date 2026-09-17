@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Zap, CheckCircle2, ShieldCheck, CreditCard, Sparkles, QrCode, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Zap, CheckCircle2, ShieldCheck, CreditCard, Sparkles, QrCode, Check, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { apiCheckoutStripe } from '../lib/api';
+import { apiCheckoutStripe, apiGetStripePaymentStatus } from '../lib/api';
 import { UserSession, UserTrialQuota, StripeTransactionItem } from '../types';
 
 interface PaywallModalProps {
@@ -27,6 +27,17 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Stripe Checkout Session state
+  const [activeStripeSession, setActiveStripeSession] = useState<{
+    sessionId: string;
+    url: string | null;
+    amount: number;
+    credits: number;
+    packageName: string;
+  } | null>(null);
+  const [checkingStripeStatus, setCheckingStripeStatus] = useState(false);
+  const stripePollIntervalRef = useRef<any>(null);
+
   // FonePay Gateway state
   const [fonepayDetails, setFonepayDetails] = useState<{
     prn: string;
@@ -41,6 +52,15 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
       fetchFonepayDetails();
     }
   }, [isOpen, selectedPlan, paymentMethod]);
+
+  // Clean up Stripe status polling on unmount or close
+  useEffect(() => {
+    return () => {
+      if (stripePollIntervalRef.current) {
+        clearInterval(stripePollIntervalRef.current);
+      }
+    };
+  }, []);
 
   const fetchFonepayDetails = async () => {
     if (!user) return;
@@ -59,27 +79,89 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
-  const handleCheckout = async () => {
+  const handleStartStripeCheckout = async () => {
     if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await apiCheckoutStripe(user.id, selectedPlan);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
+      const session = await apiCheckoutStripe(user.id, selectedPlan);
+      setActiveStripeSession({
+        sessionId: session.sessionId,
+        url: session.url,
+        amount: session.amount,
+        credits: session.credits,
+        packageName: session.packageName,
       });
-      onPaymentSuccess(data.user, data.transaction);
-      onClose();
+
+      // If a real external Stripe Hosted Checkout URL exists, open in new tab
+      if (session.url && session.mode === 'stripe_api') {
+        window.open(session.url, '_blank', 'noopener,noreferrer');
+      }
+
+      // Start automatic server-verified polling for webhook fulfillment
+      startStripePolling(session.sessionId);
     } catch (err: any) {
-      setError(err.message || 'Payment failed');
+      setError(err.message || 'Stripe session creation failed');
     } finally {
       setLoading(false);
     }
   };
+
+  const startStripePolling = (sessionId: string) => {
+    if (stripePollIntervalRef.current) {
+      clearInterval(stripePollIntervalRef.current);
+    }
+
+    stripePollIntervalRef.current = setInterval(async () => {
+      try {
+        const statusRes = await apiGetStripePaymentStatus(sessionId);
+        if (statusRes.status === 'succeeded' && statusRes.transaction && statusRes.user) {
+          clearInterval(stripePollIntervalRef.current);
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.5 },
+          });
+          onPaymentSuccess(statusRes.user, statusRes.transaction);
+          onClose();
+        } else if (statusRes.status === 'failed') {
+          clearInterval(stripePollIntervalRef.current);
+          setError('Payment was declined or failed at Stripe. No credits were charged.');
+        }
+      } catch (err) {
+        // Continue polling silently
+      }
+    }, 2500);
+  };
+
+  const handleCheckStripeStatusManual = async () => {
+    if (!activeStripeSession) return;
+    setCheckingStripeStatus(true);
+    setError(null);
+    try {
+      const statusRes = await apiGetStripePaymentStatus(activeStripeSession.sessionId);
+      if (statusRes.status === 'succeeded' && statusRes.transaction && statusRes.user) {
+        if (stripePollIntervalRef.current) clearInterval(stripePollIntervalRef.current);
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.5 },
+        });
+        onPaymentSuccess(statusRes.user, statusRes.transaction);
+        onClose();
+      } else if (statusRes.status === 'failed') {
+        setError('Stripe payment failed or was declined. 0 credits added.');
+      } else {
+        setError('Payment is still awaiting completion or webhook confirmation from Stripe.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to verify payment status');
+    } finally {
+      setCheckingStripeStatus(false);
+    }
+  };
+
+  if (!isOpen) return null;
 
   const handleVerifyFonepay = async () => {
     if (!user || !fonepayDetails) return;
@@ -410,27 +492,88 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
             </div>
           )}
 
-          {/* Stripe Action Button */}
+          {/* Stripe Action & Active Session Status */}
           {paymentMethod === 'stripe' && (
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={loading}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-rose-950/50 transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <span>Connecting to Stripe Gateway...</span>
+            <div className="space-y-3">
+              {activeStripeSession ? (
+                <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 space-y-3 animate-in fade-in">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-indigo-300 flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                      Stripe Checkout Active
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      ID: {activeStripeSession.sessionId.substring(0, 14)}...
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-300">
+                    Package: <span className="font-bold text-white">{activeStripeSession.packageName}</span> (${activeStripeSession.amount})
+                  </div>
+                  <div className="text-xs text-emerald-400 font-bold">
+                    +{activeStripeSession.credits} Credits will be granted upon Stripe webhook verification.
+                  </div>
+
+                  {activeStripeSession.url && (
+                    <a
+                      href={activeStripeSession.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Open Stripe Hosted Checkout Window</span>
+                    </a>
+                  )}
+
+                  <div className="pt-1 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCheckStripeStatusManual}
+                      disabled={checkingStripeStatus}
+                      className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${checkingStripeStatus ? 'animate-spin' : ''}`} />
+                      <span>{checkingStripeStatus ? 'Checking Status...' : 'Check Payment Status'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStartStripeCheckout}
+                      disabled={loading}
+                      className="py-2 px-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                    >
+                      Restart
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <CreditCard className="w-4 h-4" />
-                  <span>
-                    Confirm & Pay with Stripe (
-                    {selectedPlan === 'sasta_50_npr' ? '$0.38' : selectedPlan === 'starter' ? '$19' : selectedPlan === 'creator' ? '$49' : '$129'}
-                    )
-                  </span>
-                </>
+                <button
+                  type="button"
+                  onClick={handleStartStripeCheckout}
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-rose-950/50 transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <span>Creating Stripe Checkout Session...</span>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>
+                        Proceed to Stripe Checkout (
+                        {selectedPlan === 'sasta_50_npr' ? '$0.38' : selectedPlan === 'starter' ? '$19' : selectedPlan === 'creator' ? '$49' : '$129'}
+                        )
+                      </span>
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+
+              {error && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+                  {error}
+                </div>
+              )}
+            </div>
           )}
 
           <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500">

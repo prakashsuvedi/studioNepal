@@ -9,6 +9,7 @@ import { VideoStudioView } from './components/VideoStudioView';
 import { ImageStudioView } from './components/ImageStudioView';
 import { SoraStudioView } from './components/SoraStudioView';
 import { VoiceStudioView } from './components/VoiceStudioView';
+import { AvatarStudioView } from './components/AvatarStudioView';
 import { HamroAiStudio } from './components/HamroAiStudio';
 import { AdminDashboardView } from './components/AdminDashboardView';
 import { HfDeploymentKitView } from './components/HfDeploymentKitView';
@@ -25,6 +26,7 @@ import { OnboardingTourModal } from './components/OnboardingTourModal';
 import { ViralTemplate } from './data/viralTemplates';
 
 import { apiGetMe, apiLogout } from './lib/api';
+import { authManager } from './lib/authManager';
 import { purgeLegacyStorageUrls, sanitizeScenes } from './lib/mediaUrlSanitizer';
 import { Lock, Sparkles, ShieldAlert } from 'lucide-react';
 
@@ -116,6 +118,12 @@ export default function App() {
     type?: 'video' | 'image' | 'voice' | 'render' | 'hamroai';
     subState?: 'transcoding' | 'generating' | 'encoding' | 'compositing' | 'syncing' | 'audio_mix' | string;
     progress?: number;
+    currentStage?: number;
+    totalStages?: number;
+    stageTitle?: string;
+    stageDetails?: string;
+    stagesList?: any[];
+    characterLockToken?: string;
   }) => {
     setGlobalLoading({
       active: true,
@@ -124,6 +132,12 @@ export default function App() {
       type: loading.type || 'general',
       subState: loading.subState,
       progress: loading.progress,
+      currentStage: loading.currentStage,
+      totalStages: loading.totalStages,
+      stageTitle: loading.stageTitle,
+      stageDetails: loading.stageDetails,
+      stagesList: loading.stagesList,
+      characterLockToken: loading.characterLockToken,
       onCancel: () => setGlobalLoading(prev => ({ ...prev, active: false })),
     });
   };
@@ -132,12 +146,23 @@ export default function App() {
     setGlobalLoading(prev => ({ ...prev, active: false }));
   };
 
-  // Initial user session restore (Strictly respects stored user - does NOT auto-login fallback)
+  // Initial user session restore & background auth listener
   useEffect(() => {
     // Purge any outdated external URLs from storage
     purgeLegacyStorageUrls();
 
-    const savedUserId = localStorage.getItem('nepalai_user_id');
+    // Initialize AuthManager
+    authManager.init();
+
+    // Listen for genuine token expiration (not transient network blips)
+    const unsubscribeAuthExpired = authManager.onAuthExpired((reason) => {
+      console.warn('[App] Session expired or invalid, requesting sign in:', reason);
+      setUser(null);
+      setTrialUsage(null);
+      setIsAuthOpen(true);
+    });
+
+    const savedUserId = authManager.getUserId();
     if (savedUserId) {
       apiGetMe(savedUserId)
         .then(data => {
@@ -145,7 +170,7 @@ export default function App() {
           setTrialUsage(data.trialUsage);
         })
         .catch(() => {
-          localStorage.removeItem('nepalai_user_id');
+          authManager.clearAuth(false);
           setUser(null);
           setTrialUsage(null);
           setActiveTab('landing');
@@ -155,6 +180,10 @@ export default function App() {
       setTrialUsage(null);
       setActiveTab('landing');
     }
+
+    return () => {
+      unsubscribeAuthExpired();
+    };
   }, []);
 
   const handleOpenAuth = (mode: 'user' | 'admin' = 'user') => {
@@ -165,15 +194,23 @@ export default function App() {
   const handleLoginSuccess = (newUser: UserSession, newUsage: UserTrialQuota) => {
     setUser(newUser);
     setTrialUsage(newUsage);
-    localStorage.setItem('nepalai_user_id', newUser.id);
+    if (newUser.token) {
+      authManager.saveToken(newUser.token, newUser.id);
+    } else {
+      authManager.saveToken(authManager.getToken() || '', newUser.id);
+    }
     if (activeTab === 'landing') {
       setActiveTab('video_studio');
     }
   };
 
   const handleLogout = async () => {
-    await apiLogout();
-    localStorage.removeItem('nepalai_user_id');
+    try {
+      await apiLogout();
+    } catch (e) {
+      console.warn('Logout notice:', e);
+    }
+    authManager.clearAuth(false);
     setUser(null);
     setTrialUsage(null);
     setActiveTab('landing');
@@ -458,6 +495,38 @@ export default function App() {
             onUsageUpdated={handleUsageUpdated}
             onStartGlobalLoading={handleStartGlobalLoading}
             onStopGlobalLoading={handleStopGlobalLoading}
+          />
+        )}
+
+        {user && activeTab === 'avatar_studio' && (
+          <AvatarStudioView
+            user={user}
+            trialUsage={trialUsage}
+            onOpenPaywall={() => handleTriggerPaywall('Top up generation credits to create Avatar Presenters')}
+            onOpenAuth={handleOpenAuth}
+            onAddMediaToProject={(clip) => {
+              if (clip.url) {
+                const newScene: Scene = {
+                  id: `scene_${Date.now()}`,
+                  prompt: clip.name || 'AI Avatar Presenter',
+                  mediaUrl: clip.url,
+                  duration: clip.duration || 5,
+                  title: clip.name || 'Avatar Presenter',
+                  mediaType: 'video',
+                  aspectRatio: '16:9',
+                  motion: 'static',
+                  transition: 'fade',
+                  textOverlay: '',
+                  textColor: '#ffffff',
+                  textFont: 'sans',
+                  textPosition: 'bottom',
+                  filter: 'none',
+                  volume: 90,
+                };
+                setScenes((prev) => [...prev, newScene]);
+                handleSelectTab('video_studio');
+              }
+            }}
           />
         )}
 

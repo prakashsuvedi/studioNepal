@@ -5,6 +5,7 @@ export type StudioTab =
   | 'video_studio'
   | 'image_studio'
   | 'sora_studio'
+  | 'avatar_studio'
   | 'character_studio'
   | 'ad_builder'
   | 'tts_studio'
@@ -63,6 +64,7 @@ export interface UserSession {
   role: 'user' | 'admin';
   tier: 'free_trial' | 'starter' | 'creator' | 'pro_studio';
   credits: number;
+  token?: string;
 }
 
 export interface UserTrialQuota {
@@ -293,6 +295,27 @@ export interface Scene {
   scriptText?: string;
   narrationVoice?: string;
   devanagariSubtitle?: string;
+  storyboardProjectId?: string;
+  storyboardProjectTitle?: string;
+  storyboardSequenceIndex?: number;
+  storyboardTotalClips?: number;
+  characterLockToken?: string;
+  characterLockName?: string;
+  isUnifiedSequence?: boolean;
+}
+
+export interface StoryboardMovieProject {
+  id: string;
+  title: string;
+  description: string;
+  totalClips: number;
+  aspectRatio: '16:9' | '9:16' | '1:1';
+  targetDuration: number;
+  lockedCharacterToken?: string;
+  lockedCharacterName?: string;
+  isAutoStitched: boolean;
+  scenes: Scene[];
+  createdAt: string;
 }
 
 export interface RenderQueueItem {
@@ -723,6 +746,57 @@ export interface BatchScriptSegment {
   cameraMotion: CameraMotion;
   transition: TransitionType;
   soundCue?: string;
+}
+
+// ==========================================
+// Custom Cloned Voice Profile & Consent
+// ==========================================
+export interface CustomVoice {
+  id: string;
+  userId: string;
+  name: string;
+  gender?: 'male' | 'female' | 'non-binary' | 'unspecified';
+  language?: string;
+  description?: string;
+  sampleAudioUrl: string;
+  sampleAudioFilename?: string;
+  sampleDurationSeconds?: number;
+  sampleFormat?: string;
+  sampleSizeBytes?: number;
+  speakerEmbedding?: number[];
+  acousticCharacteristics?: {
+    pitchMeanHz?: number;
+    pitchRangeHz?: [number, number];
+    speakingRateWpm?: number;
+    timbreDescriptor?: string;
+    pitchShiftPercent?: string;
+    formantShiftPercent?: string;
+    eqBassGainDb?: number;
+    eqTrebleGainDb?: number;
+  };
+  modelEngine: 'azure_custom_neural' | 'hf_speecht5_speaker_clone' | 'neural_acoustic_clone';
+  consentStatus: 'verified' | 'pending' | 'rejected';
+  consentTimestamp: string;
+  consentLegalDeclaration: string;
+  signerFullName: string;
+  signerRelationship?: string;
+  consentAudit?: {
+    confirmed: boolean;
+    signerFullName: string;
+    signerRelationship: string;
+    timestamp: string;
+    statement?: string;
+    verified?: boolean;
+  };
+  acousticProfile?: {
+    pitchMeanHz?: number;
+    pitchRangeHz?: [number, number];
+    speakingRateWpm?: number;
+    timbreDescriptor?: string;
+  };
+  moderationStatus: 'approved' | 'in_review' | 'flagged';
+  createdAt: string;
+  updatedAt: string;
 }
 
 

@@ -1,6 +1,13 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Cpu, Film, Bot, Mic, ImageIcon, RefreshCw, Wand2, Layers } from 'lucide-react';
+import { Sparkles, Cpu, Film, Bot, Mic, ImageIcon, RefreshCw, Wand2, Layers, CheckCircle2, Lock, Clapperboard } from 'lucide-react';
+
+export interface GlobalLoadingStageItem {
+  id: string;
+  label: string;
+  subtitle?: string;
+  status: 'completed' | 'current' | 'pending';
+}
 
 export interface GlobalLoadingState {
   active: boolean;
@@ -10,6 +17,13 @@ export interface GlobalLoadingState {
   subState?: 'transcoding' | 'generating' | 'encoding' | 'compositing' | 'syncing' | 'audio_mix' | string;
   progress?: number;
   onCancel?: () => void;
+  // Multi-stage long-form & storyboard sequencing support
+  currentStage?: number;
+  totalStages?: number;
+  stageTitle?: string;
+  stageDetails?: string;
+  stagesList?: GlobalLoadingStageItem[];
+  characterLockToken?: string;
 }
 
 interface GlobalLoadingOverlayProps {
@@ -88,8 +102,69 @@ export const GlobalLoadingOverlay: React.FC<GlobalLoadingOverlayProps> = ({ load
           {/* Subtle Ambient Radial Glow */}
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
+          {/* Multi-Stage Sequencing Stepper (e.g. Generating Scene 2 of 7) */}
+          {loading.totalStages && loading.totalStages > 1 && (
+            <div className="w-full max-w-sm mb-4 p-3 rounded-2xl bg-zinc-900/90 border border-indigo-500/30 text-left space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-400">
+                  <Clapperboard className="w-4 h-4 text-indigo-400" />
+                  <span>
+                    STORYBOARD SEQUENCE: SCENE {loading.currentStage || 1} OF {loading.totalStages}
+                  </span>
+                </div>
+                <span className="text-[10.5px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/80">
+                  {Math.round(((loading.currentStage || 1) / loading.totalStages) * 100)}% Movie Done
+                </span>
+              </div>
+
+              {/* Stage Dots / Steps */}
+              <div className="flex items-center gap-1.5 pt-0.5 pb-0.5">
+                {Array.from({ length: loading.totalStages }).map((_, idx) => {
+                  const stepNum = idx + 1;
+                  const isDone = (loading.currentStage || 1) > stepNum;
+                  const isCurrent = (loading.currentStage || 1) === stepNum;
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex-1 h-2 rounded-full transition-all duration-300 ${
+                        isDone
+                          ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
+                          : isCurrent
+                          ? 'bg-gradient-to-r from-indigo-500 to-cyan-400 animate-pulse ring-2 ring-indigo-400/40'
+                          : 'bg-zinc-800'
+                      }`}
+                      title={`Scene ${stepNum}`}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Stage Title and Details */}
+              {loading.stageTitle && (
+                <div className="text-[11.5px] font-semibold text-zinc-200 truncate">
+                  🎬 {loading.stageTitle}
+                </div>
+              )}
+
+              {loading.stageDetails && (
+                <div className="text-[10px] text-zinc-400 truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                  <span>{loading.stageDetails}</span>
+                </div>
+              )}
+
+              {/* Character Lock Active Notice */}
+              {loading.characterLockToken && (
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-950/40 px-2 py-1 rounded-md border border-emerald-800/40">
+                  <Lock className="w-3 h-3 text-emerald-400" />
+                  <span className="truncate">Identity Lock: {loading.characterLockToken} (100% Retained)</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Sub-State Pipeline Status Pill */}
-          {loading.subState && (
+          {loading.subState && !loading.totalStages && (
             <div className="mb-4 z-10">
               <span className={`px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase border flex items-center gap-1.5 shadow-sm ${
                 isTranscoding 

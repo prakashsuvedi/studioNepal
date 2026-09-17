@@ -110,6 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
   const studioTabs: StudioTab[] = [
     'video_studio',
     'sora_studio',
+    'avatar_studio',
     'image_studio',
     'character_studio',
     'ad_builder',
@@ -135,6 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
     switch (activeTab) {
       case 'video_studio': return 'Video Studio';
       case 'sora_studio': return 'Sora-2 Video';
+      case 'avatar_studio': return 'Avatar Presenter';
       case 'image_studio': return 'Image Engine';
       case 'character_studio': return 'Character Studio';
       case 'ad_builder': return 'Ad Builder';
@@ -262,6 +264,28 @@ export const Header: React.FC<HeaderProps> = ({
                           </div>
                         </div>
                         {activeTab === 'sora_studio' && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                      </button>
+
+                      {/* Avatar Presenter */}
+                      <button
+                        onClick={() => handleTabClick('avatar_studio')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
+                          activeTab === 'avatar_studio'
+                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
+                          <div>
+                            <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
+                              <span>Avatar Presenter</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-teal-950 text-teal-300 border border-teal-800">LipSync</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">Digital AI news anchor & speaker</div>
+                          </div>
+                        </div>
+                        {activeTab === 'avatar_studio' && <Check className="w-3.5 h-3.5 text-teal-400" />}
                       </button>
 
                       {/* Image Engine */}

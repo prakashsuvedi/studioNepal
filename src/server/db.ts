@@ -39,8 +39,8 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     name: 'Aarav Sharma',
     category: 'stock',
     gender: 'male',
-    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=85',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/avatars/aarav.jpg',
+    thumbnailUrl: '/assets/avatars/aarav.jpg',
     defaultVoiceId: 'ne-NP-SagarNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'newsroom',
@@ -60,11 +60,11 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     name: 'Hemkala Thapa',
     category: 'stock',
     gender: 'female',
-    imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=85',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/avatars/hemkala.jpg',
+    thumbnailUrl: '/assets/avatars/hemkala.jpg',
     defaultVoiceId: 'ne-NP-HemkalaNeural',
     defaultLanguage: 'ne-NP',
-    stylePreset: 'studio_gradient',
+    stylePreset: 'office',
     description: 'Academic Lecturer & Educational Presenter with warm articulate cadence.',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
@@ -81,11 +81,11 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     name: 'Sagar KC',
     category: 'stock',
     gender: 'male',
-    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop&q=85',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/avatars/sagar.jpg',
+    thumbnailUrl: '/assets/avatars/sagar.jpg',
     defaultVoiceId: 'ne-NP-SagarNeural',
     defaultLanguage: 'ne-NP',
-    stylePreset: 'tech_neon',
+    stylePreset: 'podcast',
     description: 'Tech Reviewer & Startup Pitch Host with energetic modern delivery.',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
@@ -102,11 +102,11 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     name: 'Maya Gurung',
     category: 'stock',
     gender: 'female',
-    imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&auto=format&fit=crop&q=85',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/avatars/maya.jpg',
+    thumbnailUrl: '/assets/avatars/maya.jpg',
     defaultVoiceId: 'ne-NP-HemkalaNeural',
     defaultLanguage: 'ne-NP',
-    stylePreset: 'traditional_nepali',
+    stylePreset: 'kathmandu',
     description: 'Cultural Ambassador & Himalayan Tourism Host in traditional attire.',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
@@ -123,8 +123,8 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     name: 'Rajesh Commercial Host',
     category: 'stock',
     gender: 'male',
-    imageUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&auto=format&fit=crop&q=85',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80',
+    imageUrl: '/assets/avatars/rajesh.jpg',
+    thumbnailUrl: '/assets/avatars/rajesh.jpg',
     defaultVoiceId: 'ne-NP-SagarNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'office',
@@ -141,15 +141,36 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_06',
     userId: 'system',
-    name: 'Sophia Laurent',
+    name: 'Priya Adhikari',
     category: 'stock',
     gender: 'female',
-    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=85',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
-    defaultVoiceId: 'en-US-JennyNeural',
-    defaultLanguage: 'en-US',
+    imageUrl: '/assets/avatars/priya.jpg',
+    thumbnailUrl: '/assets/avatars/priya.jpg',
+    defaultVoiceId: 'ne-NP-HemkalaNeural',
+    defaultLanguage: 'ne-NP',
     stylePreset: 'office',
-    description: 'Global English Presenter for international SaaS & Corporate Explainers.',
+    description: 'Executive Corporate Briefing & Financial Analyst Presenter.',
+    consentStatus: 'verified',
+    consentTimestamp: '2026-01-01T00:00:00.000Z',
+    consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
+    signerFullName: 'NepalAI Platform Media Trust',
+    signerRelationship: 'Official Stock Talent Agency Partner',
+    moderationStatus: 'approved',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'avt_stock_07',
+    userId: 'system',
+    name: 'Kabir Sen',
+    category: 'stock',
+    gender: 'male',
+    imageUrl: '/assets/avatars/kabir.jpg',
+    thumbnailUrl: '/assets/avatars/kabir.jpg',
+    defaultVoiceId: 'ne-NP-SagarNeural',
+    defaultLanguage: 'ne-NP',
+    stylePreset: 'podcast',
+    description: 'In-Depth Podcast & Interview Host with thoughtful, conversational tone.',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -553,7 +574,7 @@ class Database {
     userId: string,
     type: 'image' | 'video' | 'audio' | 'render' | 'avatar' | 'voice_clone',
     durationSeconds = 0
-  ): { allowed: boolean; reason?: string; hardLocked?: boolean; remaining?: number } {
+  ): { allowed: boolean; reason?: string; hardLocked?: boolean; remaining?: number; isFreeAvatarRender?: boolean } {
     let user = this.getUserById(userId);
     if (!user) {
       user = this.findOrCreateUser(userId.includes('@') ? userId : `creator_${userId}@nepalai.tech`, 'Creator User');
@@ -561,7 +582,7 @@ class Database {
 
     // Admin has unlimited bypass
     if (user.role === 'admin') {
-      return { allowed: true, remaining: 999999 };
+      return { allowed: true, remaining: 999999, isFreeAvatarRender: false };
     }
 
     const usage = this.getTrialUsage(userId); // Triggers daily reset if new day
@@ -573,11 +594,29 @@ class Database {
     if (usage.maxRenders < 20) usage.maxRenders = 20;
     if (user.credits < 100) user.credits = 500;
 
+    // Special Policy: 1 Video Render Free for Avatar Presenter Studio for Google Login / Free Users (with NepalAI Studio logo)
+    if (type === 'avatar') {
+      const freeAvatarUsed = Boolean((usage as any).freeAvatarRenderUsed || ((usage as any).avatarCount && (usage as any).avatarCount >= 1));
+      if (!freeAvatarUsed) {
+        // Free video render granted with NepalAI Studio watermark!
+        return { allowed: true, remaining: user.credits, isFreeAvatarRender: true };
+      }
+      // If free avatar render has already been used, verify paid credits (15 credits required for commercial master without watermark)
+      if (user.credits >= 15 || user.tier !== 'free_trial') {
+        return { allowed: true, remaining: user.credits, isFreeAvatarRender: false };
+      }
+      return {
+        allowed: false,
+        hardLocked: true,
+        reason: 'You have used your 1 free avatar presenter render! Top up credits to render more broadcast-grade avatar videos without watermarks.',
+        remaining: user.credits,
+      };
+    }
+
     // Priority 1: Check if Daily Free Quota for today is available
     let hasDailyFree = false;
     if (type === 'image' && usage.imagesCount < usage.maxImages) hasDailyFree = true;
     if (type === 'video' && usage.videoCount < usage.maxVideo && (durationSeconds <= 120 || durationSeconds === 0)) hasDailyFree = true;
-    if (type === 'avatar' && usage.videoCount < usage.maxVideo) hasDailyFree = true;
     if (type === 'audio' && usage.audioCount < usage.maxAudio && (durationSeconds <= 240 || durationSeconds === 0)) hasDailyFree = true;
     if (type === 'render' && usage.rendersCount < usage.maxRenders) hasDailyFree = true;
 
@@ -639,10 +678,15 @@ class Database {
         usage.videoCount += 1;
         usage.videoDurationSeconds += durationSeconds || 15;
         consumedDailyFree = true;
-      } else if (type === 'avatar' && usage.videoCount < usage.maxVideo) {
-        usage.videoCount += 1;
-        usage.videoDurationSeconds += durationSeconds || 15;
-        consumedDailyFree = true;
+      } else if (type === 'avatar') {
+        const freeAvatarUsed = Boolean((usage as any).freeAvatarRenderUsed || ((usage as any).avatarCount && (usage as any).avatarCount >= 1));
+        if (!freeAvatarUsed) {
+          (usage as any).avatarCount = 1;
+          (usage as any).freeAvatarRenderUsed = true;
+          consumedDailyFree = true;
+        } else {
+          (usage as any).avatarCount = ((usage as any).avatarCount || 1) + 1;
+        }
       } else if (type === 'audio' && usage.audioCount < usage.maxAudio && (durationSeconds <= 240 || durationSeconds === 0)) {
         usage.audioCount += 1;
         usage.audioDurationSeconds += durationSeconds || 30;

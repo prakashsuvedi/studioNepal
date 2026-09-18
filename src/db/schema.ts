@@ -157,6 +157,7 @@ export interface AvatarVideoJob {
   audioUrl?: string;
   durationSeconds?: number;
   creditsDeducted?: number;
+  watermark?: boolean;
   error?: string;
   createdAt: string;
   updatedAt: string;

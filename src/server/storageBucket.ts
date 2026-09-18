@@ -524,21 +524,47 @@ export class StorageBucketService {
   }
 
   /**
-   * Read file from local disk with path-traversal hardening
+   * Read file from local disk with path-traversal hardening across all media directories
    */
   public getLocalFile(filename: string): { buffer: Buffer; exists: boolean; filePath?: string; fileSize?: number } {
     const sanitized = path.basename(filename).replace(/[^a-zA-Z0-9_.-]/g, '_');
-    const filePath = path.resolve(LOCAL_STORAGE_DIR, sanitized);
-
-    // Defense against path traversal attack
-    if (!filePath.startsWith(LOCAL_STORAGE_DIR)) {
-      console.warn('[StorageSecurity] Potential path traversal attempt rejected:', filename);
+    if (!sanitized) {
       return { buffer: Buffer.alloc(0), exists: false };
     }
 
-    if (fs.existsSync(filePath)) {
-      return { buffer: fs.readFileSync(filePath), exists: true, filePath, fileSize: fs.statSync(filePath).size };
+    const searchDirs = [
+      LOCAL_STORAGE_DIR,
+      LOCAL_UPLOADS_PUBLIC,
+      LOCAL_UPLOADS_DIST,
+      path.join(process.cwd(), 'public', 'renders'),
+      path.join(process.cwd(), 'dist', 'renders'),
+      path.join(process.cwd(), 'public', 'samples'),
+      path.join(process.cwd(), 'dist', 'samples'),
+      path.join(process.cwd(), 'public', 'audio'),
+      path.join(process.cwd(), 'dist', 'audio'),
+    ];
+
+    for (const dir of searchDirs) {
+      if (!dir) continue;
+      const resolved = path.resolve(dir, sanitized);
+      if (!resolved.startsWith(dir)) {
+        continue;
+      }
+      try {
+        if (fs.existsSync(resolved)) {
+          const stats = fs.statSync(resolved);
+          if (stats.isFile() && stats.size > 0) {
+            return {
+              buffer: fs.readFileSync(resolved),
+              exists: true,
+              filePath: resolved,
+              fileSize: stats.size,
+            };
+          }
+        }
+      } catch (_) {}
     }
+
     return { buffer: Buffer.alloc(0), exists: false };
   }
 

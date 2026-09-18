@@ -905,6 +905,51 @@ async function startServer() {
   app.get('/api/avatar/voices', (_req, res) => {
     const voices = [
       {
+        id: 'gpt-audio-nova',
+        name: 'Nova (OpenAI Broadcast Studio)',
+        language: 'ne-NP',
+        languageLabel: 'Multilingual / Nepali (OpenAI gpt-audio)',
+        gender: 'female',
+        style: 'Warm, Expressive, Broadcast Studio Grade',
+        sampleText: 'नमस्ते! म नेपाल एआई स्टुडियोको अत्याधुनिक डिजिटल प्रस्तोता हुँ।',
+      },
+      {
+        id: 'gpt-audio-onyx',
+        name: 'Onyx (OpenAI Deep Baritone)',
+        language: 'ne-NP',
+        languageLabel: 'Multilingual / Nepali (OpenAI gpt-audio)',
+        gender: 'male',
+        style: 'Deep, Resonant, Authoritative News & Doc',
+        sampleText: 'शुभ सन्ध्या! आजको प्रमुख समाचार नेपाल एआई स्टुडियोबाट प्रस्तुत गर्दैछु।',
+      },
+      {
+        id: 'gpt-audio-alloy',
+        name: 'Alloy (OpenAI Balanced Anchor)',
+        language: 'en-US',
+        languageLabel: 'English & Multilingual (OpenAI gpt-audio)',
+        gender: 'female',
+        style: 'Clear, Neutral, Professional Studio Delivery',
+        sampleText: 'Welcome to NepalAI Studio, the premier video intelligence platform.',
+      },
+      {
+        id: 'gpt-audio-echo',
+        name: 'Echo (OpenAI Warm Resonant)',
+        language: 'en-US',
+        languageLabel: 'English & Multilingual (OpenAI gpt-audio)',
+        gender: 'male',
+        style: 'Smooth, Engaging, Commercial & Corporate',
+        sampleText: 'Hello everyone! I will be guiding your presentation today.',
+      },
+      {
+        id: 'gpt-audio-shimmer',
+        name: 'Shimmer (OpenAI Vibrant Bright)',
+        language: 'en-US',
+        languageLabel: 'English & Multilingual (OpenAI gpt-audio)',
+        gender: 'female',
+        style: 'Energetic, Modern, Engaging Video Host',
+        sampleText: 'Hi there! Excited to share our latest breakthroughs with you.',
+      },
+      {
         id: 'ne-NP-HemkalaNeural',
         name: 'Hemkala Thapa (हेमकला थापा)',
         language: 'ne-NP',
@@ -1050,6 +1095,79 @@ async function startServer() {
     }
   });
 
+  // 4B. Generate AI Presenter Avatar (Prompt to Image / Image-to-Image Portrait)
+  app.post('/api/avatar/ai-create', async (req, res) => {
+    try {
+      const {
+        userId,
+        prompt,
+        referenceImageUrl,
+        name,
+        gender = 'female',
+        defaultVoiceId,
+        defaultLanguage = 'ne-NP',
+        stylePreset = 'newsroom',
+        signerFullName,
+      } = req.body;
+
+      if (!userId || !prompt || !prompt.trim()) {
+        return res.status(400).json({ success: false, error: 'User ID and avatar description prompt are required.' });
+      }
+
+      let user = db.getUserById(userId);
+      if (!user) {
+        user = db.findOrCreateUser(userId.includes('@') ? userId : `creator_${userId}@nepalai.tech`, 'Creator User');
+      }
+
+      // Compose high-end photorealistic studio portrait prompt
+      const enhancedPrompt = `${prompt.trim()}, high-end professional head-and-shoulders portrait of an articulate presenter facing camera, crystal clear expressive eyes, studio broadcast lighting, cinematic 8k resolution, crisp focus, hyperrealistic commercial photography`;
+
+      console.log(`[AvatarStudio] Generating AI Presenter portrait with prompt: "${enhancedPrompt.slice(0, 100)}..."`);
+      
+      const imageResult = await serverGenerateImage(
+        enhancedPrompt,
+        'gpt-image-1.5',
+        'hd',
+        { aspectRatio: '1:1', stylePreset: 'photorealistic' }
+      );
+
+      if (!imageResult || !imageResult.url) {
+        throw new Error('AI portrait generation failed to produce a valid image.');
+      }
+
+      const avatarName = name?.trim() || `AI Presenter ${Math.floor(100 + Math.random() * 900)}`;
+      const voice = defaultVoiceId || (gender === 'male' ? 'ne-NP-SagarNeural' : 'ne-NP-HemkalaNeural');
+
+      const newAvatar: any = {
+        id: `avt_custom_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        userId,
+        name: avatarName,
+        category: 'custom',
+        gender,
+        imageUrl: imageResult.url,
+        thumbnailUrl: imageResult.url,
+        defaultVoiceId: voice,
+        defaultLanguage,
+        stylePreset,
+        description: `AI-Generated Presenter: "${prompt.trim().slice(0, 100)}"`,
+        consentStatus: 'verified',
+        consentTimestamp: new Date().toISOString(),
+        consentLegalDeclaration: 'AI-Generated Synthetic Presenter - Licensed for Commercial Video Production',
+        signerFullName: signerFullName || user.name || 'Creator User',
+        signerRelationship: 'AI Model Licensee / Creator',
+        moderationStatus: 'approved',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const created = db.createAvatar(newAvatar);
+      res.json({ success: true, avatar: created });
+    } catch (err: any) {
+      console.error('[API /api/avatar/ai-create] Error:', err);
+      res.status(500).json({ success: false, error: err.message || 'Failed to generate AI avatar presenter' });
+    }
+  });
+
   // 5. Generate Synchronized Presenter Video (POST /api/avatar/generate)
   app.post('/api/avatar/generate', async (req, res) => {
     try {
@@ -1064,6 +1182,7 @@ async function startServer() {
         aspectRatio = '16:9',
         backgroundPreset = 'newsroom',
         customBackgroundUrl,
+        pose = 'seated',
         consentConfirmed,
         signerFullName,
       } = req.body;
@@ -1103,8 +1222,10 @@ async function startServer() {
         aspectRatio,
         backgroundPreset,
         customBackgroundUrl,
+        pose,
         consentConfirmed,
         signerFullName,
+        isFreeAvatarRender: check.isFreeAvatarRender,
       });
 
       const user = db.getUserById(userId);
@@ -1119,6 +1240,7 @@ async function startServer() {
         aspectRatio: result.aspectRatio,
         creditsDeducted: result.creditsDeducted,
         remainingCredits: user?.credits ?? 0,
+        watermark: result.watermark,
         trialUsage: db.getTrialUsage(userId),
       });
     } catch (err: any) {
@@ -2514,28 +2636,38 @@ async function startServer() {
   // Serve Local Storage Bucket File
   app.get('/api/storage/file/:filename', (req, res) => {
     const { filename } = req.params;
-    let { buffer, exists, filePath } = storageBucket.getLocalFile(filename);
+    const safeName = path.basename(filename).replace(/[^a-zA-Z0-9_.-]/g, '_');
+    let { buffer, exists, filePath } = storageBucket.getLocalFile(safeName);
 
-    if (!exists || (!filePath && (!buffer || buffer.length === 0))) {
-      // Fallback for missing or expired media files to prevent browser decode 404 errors
-      const safeName = path.basename(filename);
-      if (safeName.endsWith('.mp4') || safeName.endsWith('.mov') || safeName.endsWith('.webm')) {
-        const fallback = path.join(publicSamplesDir, 'everest_sunrise.mp4');
-        if (fs.existsSync(fallback)) {
-          filePath = fallback;
-          exists = true;
-        }
-      } else if (safeName.endsWith('.mp3') || safeName.endsWith('.wav') || safeName.endsWith('.ogg')) {
-        const fallback = path.join(publicAudioDir, 'sfx_whoosh.mp3');
-        if (fs.existsSync(fallback)) {
-          filePath = fallback;
-          exists = true;
+    // Direct fallback check across known storage folders
+    if (!exists || !filePath) {
+      const candidatePaths = [
+        path.join(process.cwd(), 'data', 'storage', safeName),
+        path.join(process.cwd(), 'public', 'uploads', safeName),
+        path.join(process.cwd(), 'dist', 'uploads', safeName),
+        path.join(process.cwd(), 'public', 'renders', safeName),
+        path.join(process.cwd(), 'dist', 'renders', safeName),
+        path.join(process.cwd(), 'public', 'samples', safeName),
+        path.join(process.cwd(), 'dist', 'samples', safeName),
+        path.join(process.cwd(), 'public', 'audio', safeName),
+        path.join(process.cwd(), 'dist', 'audio', safeName),
+      ];
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          try {
+            const stat = fs.statSync(p);
+            if (stat.isFile() && stat.size > 0) {
+              filePath = p;
+              exists = true;
+              break;
+            }
+          } catch (_) {}
         }
       }
     }
 
-    if (!exists) {
-      return res.status(404).json({ error: 'File not found in storage bucket' });
+    if (!exists || !filePath) {
+      return res.status(404).json({ error: `File '${safeName}' not found in storage bucket` });
     }
 
     let mimeType = 'application/octet-stream';

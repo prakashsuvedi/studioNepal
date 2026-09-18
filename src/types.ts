@@ -79,10 +79,59 @@ export interface UserTrialQuota {
   audioDurationSeconds: number;
   rendersCount: number;
   maxRenders: number;
+  avatarCount?: number;
+  maxAvatar?: number;
+  freeAvatarRenderUsed?: boolean;
   totalTokensUsed: number;
   lastUsedAt: string;
   lastResetDate?: string;
   lastResetAt?: string;
+}
+
+export interface Avatar {
+  id: string;
+  userId: string;
+  name: string;
+  category: 'stock' | 'custom';
+  gender: 'male' | 'female' | 'non-binary';
+  imageUrl: string;
+  thumbnailUrl?: string;
+  defaultVoiceId?: string;
+  defaultLanguage?: string;
+  stylePreset?: string;
+  description?: string;
+  consentStatus: 'verified' | 'pending' | 'rejected';
+  consentTimestamp?: string;
+  consentLegalDeclaration?: string;
+  signerFullName?: string;
+  signerRelationship?: string;
+  moderationStatus: 'approved' | 'in_review' | 'flagged';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AvatarVideoJob {
+  id: string;
+  userId: string;
+  avatarId: string;
+  avatarName: string;
+  avatarImageUrl: string;
+  script: string;
+  language: string;
+  voiceId: string;
+  aspectRatio: '16:9' | '9:16' | '1:1';
+  backgroundStyle?: string;
+  pose?: 'seated' | 'standing';
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  videoUrl?: string;
+  audioUrl?: string;
+  durationSeconds?: number;
+  creditsDeducted?: number;
+  watermark?: boolean;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface StripeTransactionItem {

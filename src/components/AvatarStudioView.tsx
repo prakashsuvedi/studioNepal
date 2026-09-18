@@ -4,8 +4,8 @@ import {
   apiGetAvatars,
   apiGetAvatarVoices,
   apiCreateCustomAvatar,
+  apiGenerateAIAvatar,
   apiGenerateAvatarVideo,
-  apiGetAvatarJobStatus,
   apiGetAvatarHistory,
   apiDeleteAvatar,
   extractErrorText,
@@ -17,29 +17,26 @@ import {
   Volume2,
   VolumeX,
   Download,
-  Share2,
   Film,
   Plus,
   ShieldCheck,
-  CheckCircle2,
   AlertCircle,
   RefreshCw,
-  Sliders,
   UserCheck,
   Languages,
   Clock,
   Layers,
   Sparkle,
   Trash2,
-  Maximize2,
   FileText,
-  Info,
   Check,
   Tv,
   Smartphone,
   Square,
   Camera,
   UploadCloud,
+  Image as ImageIcon,
+  Wand2,
 } from 'lucide-react';
 
 export interface PresenterMediaClip {
@@ -61,12 +58,41 @@ interface AvatarStudioViewProps {
 }
 
 const BACKGROUND_PRESETS = [
-  { id: 'newsroom', name: 'Broadcast Newsroom', icon: Tv, description: 'High-end TV studio with video wall' },
-  { id: 'studio_gradient', name: 'Studio Gradient', icon: Layers, description: 'Clean navy & slate aesthetic' },
-  { id: 'office', name: 'Executive Office', icon: Tv, description: 'Modern architectural workplace' },
-  { id: 'kathmandu', name: 'Kathmandu Heritage', icon: Sparkle, description: 'Traditional Nepali cultural backdrop' },
-  { id: 'tech_neon', name: 'Cyberpunk Tech', icon: Sparkles, description: 'Futuristic AI & tech stage' },
-  { id: 'green_screen', name: 'Chroma Green Screen', icon: Square, description: 'Pure green backdrop for keying' },
+  {
+    id: 'newsroom',
+    name: 'Broadcast Newsroom',
+    icon: Tv,
+    description: 'National TV studio with live monitor backdrop',
+    previewUrl: '/assets/backgrounds/newsroom.jpg',
+  },
+  {
+    id: 'office',
+    name: 'Executive Office Room',
+    icon: Tv,
+    description: 'Contemporary corporate high-rise office',
+    previewUrl: '/assets/backgrounds/office.jpg',
+  },
+  {
+    id: 'podcast',
+    name: 'Podcast Room Studio',
+    icon: Layers,
+    description: 'Acoustic wood slats, warm neon & studio mic',
+    previewUrl: '/assets/backgrounds/podcast.jpg',
+  },
+  {
+    id: 'kathmandu',
+    name: 'Kathmandu Valley Studio',
+    icon: Sparkle,
+    description: 'Himalayan mountain panorama & valley view',
+    previewUrl: '/assets/backgrounds/kathmandu.jpg',
+  },
+  {
+    id: 'green_screen',
+    name: 'Chroma Green Screen',
+    icon: Square,
+    description: 'Pure studio green backdrop for post-production',
+    previewUrl: '/assets/backgrounds/green_screen.png',
+  },
 ];
 
 const SCRIPT_TEMPLATES = [
@@ -80,7 +106,7 @@ const SCRIPT_TEMPLATES = [
     title: 'नमस्ते तथा स्वागत (Greeting)',
     lang: 'ne-NP',
     voice: 'ne-NP-HemkalaNeural',
-    text: 'नमस्ते! म नेपाल एआई स्टुडियोको डिजिटल प्रस्तोता हुँ। अब तपाईं नेपाली भाषामा आफ्ना सन्देश, विज्ञापन र प्रस्तुतीहरू सहजै भिडियोमा रूपान्तरण गर्न सक्नुहुन्छ।',
+    text: 'नमस्ते! म नेपाल एआई स्टुडियोको डिजिटल प्रस्तोता हुँ। अब तपाईं नेपाली भाषामा आफ्ना सन्देश, विज्ञापन र प्रस्तुतीहरू सहजै उच्च गुणस्तरीय भिडियोमा रूपान्तरण गर्न सक्नुहुन्छ।',
   },
   {
     title: 'Himalayan Tourism Guide',
@@ -111,6 +137,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   const [selectedLanguage, setSelectedLanguage] = useState<string>('ne-NP');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
   const [backgroundPreset, setBackgroundPreset] = useState<string>('newsroom');
+  const [selectedPose, setSelectedPose] = useState<'seated' | 'standing'>('seated');
 
   // Voice Tuners
   const [speechSpeed, setSpeechSpeed] = useState<string>('normal');
@@ -118,31 +145,36 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
 
   // Script & Text State
   const [script, setScript] = useState<string>(
-    'नमस्ते! नेपाल एआई स्टुडियोमा तपाईंलाई स्वागत छ। अब तपाईं कुनै पनि पाठलाई जीवित डिजिटल प्रस्तोताको भिडियोमा रूपान्तरण गर्न सक्नुहुन्छ।'
+    'नमस्ते! नेपाल एआई स्टुडियोको डिजिटल प्रस्तोता स्टुडियोमा स्वागत छ। आज हामी तपाईंको लागि नयाँ भिडियो प्रस्तुत गर्दैछौं।'
   );
 
   // Legal Consent State (Mandatory Gate)
   const [consentConfirmed, setConsentConfirmed] = useState<boolean>(true);
   const [signerFullName, setSignerFullName] = useState<string>(user?.name || 'Verified Creator');
-  const [showConsentModal, setShowConsentModal] = useState<boolean>(false);
 
   // Custom Avatar Modal State
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [creationMode, setCreationMode] = useState<'upload' | 'ai_prompt'>('upload');
+  
+  // Upload picture mode
+  const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState<string>('');
   const [newAvatarName, setNewAvatarName] = useState<string>('');
-  const [newAvatarGender, setNewAvatarGender] = useState<string>('female');
-  const [newAvatarImageUrl, setNewAvatarImageUrl] = useState<string>('');
+  const [newAvatarGender, setNewAvatarGender] = useState<'male' | 'female' | 'non-binary'>('female');
   const [newAvatarSignerName, setNewAvatarSignerName] = useState<string>(user?.name || '');
-  const [newAvatarSignerRelation, setNewAvatarSignerRelation] = useState<string>('Direct Rights Holder');
-  const [newAvatarConsentChecked, setNewAvatarConsentChecked] = useState<boolean>(false);
+  const [newAvatarConsentChecked, setNewAvatarConsentChecked] = useState<boolean>(true);
   const [isCreatingAvatar, setIsCreatingAvatar] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // AI Prompt Avatar mode
+  const [aiPrompt, setAiPrompt] = useState<string>('Nepali professional female news anchor in dark blue blazer, studio lighting, photorealistic 8k portrait');
+  const [aiGeneratedAvatarPreview, setAiGeneratedAvatarPreview] = useState<string>('');
+  const [isGeneratingAiAvatar, setIsGeneratingAiAvatar] = useState<boolean>(false);
 
   // Generation & Status State
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [currentJob, setCurrentJob] = useState<any | null>(null);
   const [generatedResult, setGeneratedResult] = useState<any | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [historyJobs, setHistoryJobs] = useState<any[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
 
   // Video Player Ref
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -150,6 +182,12 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [currentTime, setCurrentTime] = useState<number>(0);
+
+  // Quota & Free Render State
+  const avatarCount = trialUsage?.avatarCount ?? 0;
+  const freeAvatarUsed = Boolean(trialUsage?.freeAvatarRenderUsed || avatarCount >= 1);
+  const isFreeRenderEligible = !freeAvatarUsed && (user?.tier === 'free_trial' || !user?.credits || user.credits === 0);
+  const isAdmin = user?.role === 'admin';
 
   // Load Avatars and Voices on Mount
   useEffect(() => {
@@ -188,7 +226,6 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
 
   const loadHistory = async () => {
     if (!user) return;
-    setIsLoadingHistory(true);
     try {
       const data = await apiGetAvatarHistory(user.id);
       if (data.success) {
@@ -196,12 +233,11 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
       }
     } catch (err) {
       console.warn('Failed to load history:', err);
-    } finally {
-      setIsLoadingHistory(false);
     }
   };
 
   const selectedAvatar = avatars.find((a) => a.id === selectedAvatarId) || avatars[0];
+  const selectedBackground = BACKGROUND_PRESETS.find((b) => b.id === backgroundPreset) || BACKGROUND_PRESETS[0];
 
   // Handle Voice and Avatar Selection Sync
   const handleSelectAvatar = (avatar: any) => {
@@ -223,28 +259,53 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
     }
   };
 
-  // Estimate Script Duration (avg ~130-150 words per min or ~3.5 syllables per sec)
+  // Estimate Script Duration
   const calculateEstimatedDuration = () => {
     const trimmed = script.trim();
     if (!trimmed) return 0;
     const words = trimmed.split(/\s+/).length;
-    // For Nepali/English mix, ~2.2 words per second
     return Math.max(3, Math.round((words / 2.3) * 10) / 10);
   };
 
-  // Create Custom Presenter Avatar
-  const handleCreateCustomAvatar = async (e: React.FormEvent) => {
+  // Handle Picture File Upload
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload a valid image file (PNG, JPG, or WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setUploadedImageDataUrl(dataUrl);
+      if (!newAvatarName) {
+        const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        setNewAvatarName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Create Avatar from Uploaded Picture
+  const handleSaveUploadedAvatar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
       onOpenAuth('user');
       return;
     }
-    if (!newAvatarName.trim() || !newAvatarImageUrl.trim()) {
-      alert('Please provide avatar name and valid portrait image.');
+    if (!uploadedImageDataUrl) {
+      alert('Please upload your portrait image.');
       return;
     }
-    if (!newAvatarConsentChecked || !newAvatarSignerName.trim()) {
-      alert('Legal likeness confirmation and full signer legal name are required.');
+    if (!newAvatarName.trim()) {
+      alert('Please enter a name for your avatar presenter.');
+      return;
+    }
+    if (!newAvatarConsentChecked) {
+      alert('Please confirm the Likeness Rights & Broadcast Consent declaration.');
       return;
     }
 
@@ -254,9 +315,9 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
         userId: user.id,
         name: newAvatarName.trim(),
         gender: newAvatarGender,
-        imageUrl: newAvatarImageUrl.trim(),
-        signerFullName: newAvatarSignerName.trim(),
-        signerRelationship: newAvatarSignerRelation.trim(),
+        imageUrl: uploadedImageDataUrl,
+        signerFullName: newAvatarSignerName.trim() || user.name || 'Creator User',
+        signerRelationship: 'Direct Rights Holder / Authorized Creator',
         consentConfirmed: newAvatarConsentChecked,
       });
 
@@ -264,14 +325,47 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
         setAvatars((prev) => [res.avatar, ...prev]);
         setSelectedAvatarId(res.avatar.id);
         setShowCreateModal(false);
+        setUploadedImageDataUrl('');
         setNewAvatarName('');
-        setNewAvatarImageUrl('');
-        setNewAvatarConsentChecked(false);
       }
     } catch (err: any) {
       alert(`Avatar creation error: ${err.message}`);
     } finally {
       setIsCreatingAvatar(false);
+    }
+  };
+
+  // Generate AI Avatar via Prompt
+  const handleGenerateAiAvatar = async () => {
+    if (!user) {
+      onOpenAuth('user');
+      return;
+    }
+    if (!aiPrompt.trim()) {
+      alert('Please enter a description prompt for the AI presenter portrait.');
+      return;
+    }
+
+    setIsGeneratingAiAvatar(true);
+    try {
+      const res = await apiGenerateAIAvatar({
+        userId: user.id,
+        prompt: aiPrompt.trim(),
+        name: newAvatarName.trim() || undefined,
+        gender: newAvatarGender,
+        signerFullName: newAvatarSignerName.trim() || user.name || 'Creator User',
+      });
+
+      if (res.success && res.avatar) {
+        setAiGeneratedAvatarPreview(res.avatar.imageUrl);
+        setAvatars((prev) => [res.avatar, ...prev]);
+        setSelectedAvatarId(res.avatar.id);
+        setShowCreateModal(false);
+      }
+    } catch (err: any) {
+      alert(`AI Avatar generation error: ${err.message}`);
+    } finally {
+      setIsGeneratingAiAvatar(false);
     }
   };
 
@@ -304,23 +398,18 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
     }
 
     if (!consentConfirmed) {
-      setShowConsentModal(true);
+      alert('Please confirm likeness rights and voice consent before generating.');
       return;
     }
 
-    // Check credits
-    if ((user.credits ?? 0) < 15 && user.role !== 'admin') {
+    // Check credits: allow free render for Google login / free users on first render!
+    if (!isFreeRenderEligible && (user.credits ?? 0) < 15 && !isAdmin) {
       onOpenPaywall();
       return;
     }
 
     setErrorMessage(null);
     setIsGenerating(true);
-    setCurrentJob({
-      status: 'synthesizing_voice',
-      progress: 15,
-      stageLabel: 'Synthesizing Neural Voice Track...',
-    });
 
     try {
       const res = await apiGenerateAvatarVideo({
@@ -333,19 +422,18 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
         pitch: speechPitch,
         aspectRatio,
         backgroundPreset,
+        pose: selectedPose,
         consentConfirmed: true,
         signerFullName: signerFullName.trim() || user.name || 'Verified User',
       });
 
       if (res.success) {
         setGeneratedResult(res);
-        setCurrentJob(null);
         loadHistory();
       }
     } catch (err: any) {
       console.error('Avatar generation error:', err);
       setErrorMessage(extractErrorText(err, 'Avatar video generation failed.'));
-      setCurrentJob(null);
     } finally {
       setIsGenerating(false);
     }
@@ -387,13 +475,13 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Header Banner */}
-      <div className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 sm:px-6 py-3 sticky top-13 z-20">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+    <div className="flex-1 flex flex-col bg-slate-950 text-slate-100 min-h-0 overflow-y-auto">
+      {/* Studio Header Bar */}
+      <div className="border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <Film className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -401,30 +489,54 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                   Avatar Presenter Studio
                 </h1>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-700/60">
-                  AI Digital Presenter v1.0
+                  Neural Studio v2.0
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Photorealistic AI presenters speaking Devanagari Nepali & English with synchronized lip motion.
+                Photorealistic AI presenters with synchronized speech, studio backdrops, and bold lower-third script.
               </p>
             </div>
           </div>
 
-          {/* Credits & Rights Verification Badge */}
+          {/* Credits & Free Render Policy Badge */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span className="hidden sm:inline">Likeness Rights:</span>
-              <span className="text-emerald-400 font-semibold">Consent Verified</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-950/40 border border-teal-800/50 text-xs">
-              <span className="text-slate-400">Cost:</span>
-              <span className="text-teal-300 font-bold">15 Credits / Render</span>
-            </div>
+            {isAdmin ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-950/40 border border-purple-800/50 text-xs">
+                <ShieldCheck className="w-4 h-4 text-purple-400" />
+                <span className="text-purple-300 font-bold">Admin Unlimited Bypass</span>
+              </div>
+            ) : isFreeRenderEligible ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/50 border border-emerald-700 text-xs shadow-sm">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-300 font-bold">1 Free Video Render Available!</span>
+                <span className="text-[10px] text-emerald-400/80 hidden sm:inline">(NepalAI logo)</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-950/40 border border-teal-800/50 text-xs">
+                <span className="text-slate-400">Cost:</span>
+                <span className="text-teal-300 font-bold">15 Credits / Master Video</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Free Tier Notice Banner */}
+      {isFreeRenderEligible && (
+        <div className="bg-gradient-to-r from-teal-950/80 via-indigo-950/80 to-slate-950 border-b border-teal-800/40 px-4 py-2">
+          <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-teal-200">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">🎁</span>
+              <span>
+                <strong>Welcome Google Login Creator:</strong> You have <strong>1 Free Full-Resolution Avatar Video Render</strong> included with NepalAI Studio logo watermark!
+              </span>
+            </div>
+            <span className="text-[10px] text-teal-400 uppercase tracking-wide font-mono font-bold bg-teal-900/50 px-2 py-0.5 rounded border border-teal-700/50">
+              Free Trial Ready
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Main Studio Content Workspace */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -438,15 +550,15 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
               <div className="flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-teal-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  1. Select Presenter
+                  1. Choose Presenter
                 </h2>
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 font-semibold hover:underline"
+                className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 font-semibold hover:underline cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Custom Avatar</span>
+                <span>Create Your Avatar</span>
               </button>
             </div>
 
@@ -475,7 +587,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                       <div className="text-[11px] font-bold text-white leading-tight truncate">
                         {avt.name}
                       </div>
-                      <div className="text-[9px] text-teal-300 font-medium capitalize">
+                      <div className="text-[9px] text-teal-300 font-medium capitalize truncate">
                         {avt.category || 'Presenter'}
                       </div>
                     </div>
@@ -499,28 +611,179 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 );
               })}
             </div>
+
+            {selectedAvatar && (
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 text-xs flex items-center gap-3">
+                <img
+                  src={selectedAvatar.imageUrl}
+                  alt={selectedAvatar.name}
+                  className="w-9 h-9 rounded-full object-cover border border-teal-500/50"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-white text-xs truncate">{selectedAvatar.name}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{selectedAvatar.description}</div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* 2. Neural Voice & Language Picker */}
+          {/* 2. Studio Background & Staging */}
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Tv className="w-4 h-4 text-indigo-400" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  2. Studio Room Backdrop
+                </h2>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">High Quality 1080p</span>
+            </div>
+
+            {/* Virtual Background Presets with Image Previews */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {BACKGROUND_PRESETS.map((bg) => {
+                const isSelected = backgroundPreset === bg.id;
+                return (
+                  <button
+                    key={bg.id}
+                    type="button"
+                    onClick={() => setBackgroundPreset(bg.id)}
+                    className={`group relative rounded-lg overflow-hidden text-left border transition p-2 flex items-center gap-2.5 ${
+                      isSelected
+                        ? 'bg-indigo-950/60 border-indigo-500 ring-1 ring-indigo-500/40'
+                        : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="w-12 h-9 rounded overflow-hidden relative shrink-0 bg-slate-900 border border-slate-800">
+                      <img
+                        src={bg.previewUrl}
+                        alt={bg.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-xs font-bold truncate ${isSelected ? 'text-indigo-300' : 'text-slate-200'}`}>
+                        {bg.name}
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">
+                        {bg.description}
+                      </div>
+                    </div>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Aspect Ratio Buttons */}
+            <div className="pt-2 border-t border-slate-800/80">
+              <div className="text-[10px] text-slate-400 mb-1.5 font-semibold">Video Framing Ratio</div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAspectRatio('16:9')}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium border transition ${
+                    aspectRatio === '16:9'
+                      ? 'bg-indigo-950/60 border-indigo-500 text-indigo-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Tv className="w-3.5 h-3.5" />
+                  <span>16:9 Broadcast</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAspectRatio('9:16')}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium border transition ${
+                    aspectRatio === '9:16'
+                      ? 'bg-indigo-950/60 border-indigo-500 text-indigo-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>9:16 Shorts/Reel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAspectRatio('1:1')}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium border transition ${
+                    aspectRatio === '1:1'
+                      ? 'bg-indigo-950/60 border-indigo-500 text-indigo-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span>1:1 Square</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Presenter Staging Pose (Seated Anchor vs Standing) */}
+            <div className="pt-2.5 border-t border-slate-800/80">
+              <div className="text-[10px] text-slate-400 mb-1.5 font-semibold flex items-center justify-between">
+                <span>Presenter Staging Pose</span>
+                <span className="text-[9px] text-teal-400 font-normal">Real-time Lipsync Active</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPose('seated')}
+                  className={`flex items-center justify-start gap-2.5 p-2 rounded-lg text-xs border transition ${
+                    selectedPose === 'seated'
+                      ? 'bg-teal-950/60 border-teal-500 text-teal-300 font-bold ring-1 ring-teal-500/30'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">
+                    <UserCheck className="w-3.5 h-3.5 text-teal-400" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <div className="text-[11px] font-bold leading-tight truncate">Anchor Desk (Seated)</div>
+                    <div className="text-[9px] text-slate-400 font-normal truncate">Executive chair & news desk</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPose('standing')}
+                  className={`flex items-center justify-start gap-2.5 p-2 rounded-lg text-xs border transition ${
+                    selectedPose === 'standing'
+                      ? 'bg-teal-950/60 border-teal-500 text-teal-300 font-bold ring-1 ring-teal-500/30'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">
+                    <Sparkle className="w-3.5 h-3.5 text-indigo-400" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <div className="text-[11px] font-bold leading-tight truncate">Standing Studio</div>
+                    <div className="text-[9px] text-slate-400 font-normal truncate">Full portrait presenter</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Neural Voice & Tone Picker */}
           <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Languages className="w-4 h-4 text-cyan-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  2. Voice & Cadence
+                  3. Neural Voice & Cadence
                 </h2>
               </div>
-              <span className="text-[10px] text-slate-400">Neural TTS Engine</span>
+              <span className="text-[10px] text-slate-400 font-mono">Nepali & English</span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
               {voices.map((v) => {
                 const isSelected = selectedVoiceId === v.id;
                 return (
                   <div
                     key={v.id}
                     onClick={() => handleSelectVoice(v.id)}
-                    className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition ${
+                    className={`p-2 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition ${
                       isSelected
                         ? 'bg-cyan-950/50 border-cyan-500/60 text-white font-medium'
                         : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
@@ -551,12 +814,11 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 <select
                   value={speechSpeed}
                   onChange={(e) => setSpeechSpeed(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200"
                 >
                   <option value="slow">Slow (-15%)</option>
                   <option value="normal">Normal Pace (1.0x)</option>
                   <option value="fast">Fast (+15%)</option>
-                  <option value="x-fast">Expressive Quick (+28%)</option>
                 </select>
               </div>
 
@@ -568,7 +830,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 <select
                   value={speechPitch}
                   onChange={(e) => setSpeechPitch(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200"
                 >
                   <option value="-10%">Deep / Warm (-10%)</option>
                   <option value="0%">Natural / Studio (0%)</option>
@@ -577,84 +839,9 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
               </div>
             </div>
           </div>
-
-          {/* 3. Staging & Format */}
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-3">
-            <div className="flex items-center gap-2">
-              <Tv className="w-4 h-4 text-indigo-400" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                3. Staging & Canvas
-              </h2>
-            </div>
-
-            {/* Aspect Ratio Buttons */}
-            <div>
-              <div className="text-[10px] text-slate-400 mb-1.5">Aspect Ratio</div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('16:9')}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium border transition ${
-                    aspectRatio === '16:9'
-                      ? 'bg-indigo-950/60 border-indigo-500 text-indigo-300 font-bold'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Tv className="w-3.5 h-3.5" />
-                  <span>16:9 Wide</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('9:16')}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium border transition ${
-                    aspectRatio === '9:16'
-                      ? 'bg-indigo-950/60 border-indigo-500 text-indigo-300 font-bold'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>9:16 Reels</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('1:1')}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium border transition ${
-                    aspectRatio === '1:1'
-                      ? 'bg-indigo-950/60 border-indigo-500 text-indigo-300 font-bold'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Square className="w-3.5 h-3.5" />
-                  <span>1:1 Post</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Virtual Background Presets */}
-            <div>
-              <div className="text-[10px] text-slate-400 mb-1.5">Studio Background</div>
-              <div className="grid grid-cols-2 gap-2">
-                {BACKGROUND_PRESETS.slice(0, 4).map((bg) => (
-                  <button
-                    key={bg.id}
-                    type="button"
-                    onClick={() => setBackgroundPreset(bg.id)}
-                    className={`p-2 rounded-lg text-left text-xs border transition flex items-center gap-2 ${
-                      backgroundPreset === bg.id
-                        ? 'bg-indigo-950/50 border-indigo-500 text-indigo-300 font-semibold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <bg.icon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{bg.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Right Column (7 Cols): Script Editor, Generation & Live Output Player */}
+        {/* Right Column (7 Cols): Script Editor, Live Visual Teleprompter & Video Player */}
         <div className="lg:col-span-7 space-y-5">
           
           {/* Script Editor Box */}
@@ -663,7 +850,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-teal-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Presenter Script (Devanagari & English)
+                  Bold Written Script & Teleprompter
                 </h2>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-slate-400">
@@ -695,14 +882,14 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
 
             {/* Script Textarea */}
             <textarea
-              rows={5}
+              rows={4}
               value={script}
               onChange={(e) => setScript(e.target.value)}
-              placeholder="Enter your presenter script in Nepali (Devanagari) or English..."
+              placeholder="Type your presenter script in Nepali (Devanagari) or English. This text will be spoken and rendered on the broadcast lower-third bar..."
               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition resize-y leading-relaxed font-sans"
             />
 
-            {/* Mandatory Likeness & Rights Consent Confirmation */}
+            {/* Likeness & Rights Consent Confirmation */}
             <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-800/40 space-y-2">
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
@@ -713,13 +900,13 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 />
                 <div className="text-xs text-slate-300 leading-snug">
                   <span className="font-semibold text-emerald-300">Likeness Rights & Broadcast Consent: </span>
-                  I confirm that I hold full commercial rights to broadcast this avatar and voiceover.
+                  I confirm that I hold commercial rights to broadcast this avatar and synthesized voiceover.
                 </div>
               </label>
 
               <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-emerald-900/40">
-                <span>Authorized Signer: <strong className="text-slate-200">{signerFullName}</strong></span>
-                <span>Audit Stamp: <span className="font-mono text-emerald-400">CRYPTOGRAPHIC_SIGNED</span></span>
+                <span>Signer: <strong className="text-slate-200">{signerFullName}</strong></span>
+                <span className="text-emerald-400 font-mono">AUDIT_CERTIFIED_OK</span>
               </div>
             </div>
 
@@ -732,50 +919,62 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
             )}
 
             {/* Generate Action Button */}
-            <div className="flex items-center gap-3 pt-2">
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating || !script.trim()}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold shadow-lg transition cursor-pointer ${
+                className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold shadow-lg transition cursor-pointer ${
                   isGenerating || !script.trim()
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : isFreeRenderEligible
+                    ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white shadow-emerald-500/25 hover:scale-[1.01]'
                     : 'bg-gradient-to-r from-teal-500 via-cyan-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white shadow-teal-500/25 hover:scale-[1.01]'
                 }`}
               >
                 {isGenerating ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                    <span>Rendering Presenter Video...</span>
+                    <span>Rendering Studio Video (FFmpeg + Audio Sync)...</span>
+                  </>
+                ) : isFreeRenderEligible ? (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Generate Free Avatar Video (Watermarked • 0 Credits)</span>
+                  </>
+                ) : isAdmin ? (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Generate Master Video (Admin Bypass)</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Generate Avatar Video (15 Credits)</span>
+                    <span>Generate Broadcast Video (15 Credits)</span>
                   </>
                 )}
               </button>
             </div>
           </div>
 
-          {/* Live Video Output Stage */}
+          {/* Live Studio Output Stage & Video Player */}
           <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Film className="w-4 h-4 text-teal-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Live Presenter Stage
+                  {generatedResult?.videoUrl ? 'Rendered Broadcast Master' : 'Live Studio Preview & Teleprompter'}
                 </h2>
               </div>
 
-              {generatedResult && (
+              {generatedResult?.videoUrl && (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleSendToTimeline}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow transition"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow transition cursor-pointer"
                   >
                     <Layers className="w-3.5 h-3.5" />
-                    <span>Send to Timeline</span>
+                    <span>Add to Timeline</span>
                   </button>
 
                   <a
@@ -791,9 +990,11 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
             </div>
 
             {/* Video Canvas Container */}
-            <div className={`relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center ${
-              aspectRatio === '9:16' ? 'aspect-[9/16] max-w-[320px] mx-auto' : 'aspect-video w-full'
-            }`}>
+            <div
+              className={`relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center ${
+                aspectRatio === '9:16' ? 'aspect-[9/16] max-w-[320px] mx-auto' : 'aspect-video w-full'
+              }`}
+            >
               {isGenerating ? (
                 <div className="text-center p-6 space-y-4">
                   <div className="w-12 h-12 rounded-2xl bg-teal-950 border border-teal-500/50 flex items-center justify-center mx-auto animate-pulse">
@@ -801,19 +1002,21 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                   </div>
                   <div className="space-y-1">
                     <div className="text-sm font-bold text-slate-100">
-                      Generating Neural Presenter
+                      Generating Neural Presenter Video
                     </div>
                     <div className="text-xs text-teal-400 animate-pulse">
-                      Synthesizing audio & lip-sync motion...
+                      Synthesizing audio voiceover, studio backdrop & script subtitles...
                     </div>
                   </div>
                 </div>
               ) : generatedResult?.videoUrl ? (
-                <div className="relative w-full h-full group">
+                <div className="relative w-full h-full group bg-black">
                   <video
                     ref={videoRef}
                     src={generatedResult.videoUrl}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
+                    controls
+                    autoPlay
                     loop
                     playsInline
                     onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
@@ -821,8 +1024,8 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                   />
 
                   {/* Player Overlay Controls */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between gap-3 pointer-events-none">
+                    <div className="flex items-center gap-2 pointer-events-auto">
                       <button
                         onClick={togglePlay}
                         className="p-1.5 rounded-lg bg-teal-500 text-slate-950 hover:bg-teal-400 transition"
@@ -846,17 +1049,42 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="text-center p-8 space-y-2">
+                /* Real-time Staging & Teleprompter Visual Preview */
+                <div className="relative w-full h-full overflow-hidden flex items-end justify-center">
+                  {/* Studio Background Layer */}
                   <img
-                    src={selectedAvatar?.imageUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80'}
-                    alt="Presenter Preview"
-                    className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-slate-700 shadow-md opacity-70"
+                    src={selectedBackground.previewUrl}
+                    alt={selectedBackground.name}
+                    className="absolute inset-0 w-full h-full object-cover filter blur-[1px]"
                   />
-                  <div className="text-xs font-semibold text-slate-300">
-                    Ready to render: {selectedAvatar?.name || 'Presenter'}
+                  <div className="absolute inset-0 bg-slate-950/20" />
+
+                  {/* Watermark Preview for Free Tier */}
+                  {isFreeRenderEligible && (
+                    <div className="absolute top-4 right-4 z-20 bg-slate-950/80 backdrop-blur-sm border border-slate-700/80 rounded px-2 py-1 flex items-center gap-1.5 shadow-md">
+                      <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                      <span className="text-[10px] font-bold text-white tracking-wider">NepalAI Studio</span>
+                    </div>
+                  )}
+
+                  {/* Presenter Portrait Layer */}
+                  <div className="relative z-10 w-[45%] max-w-[280px] h-[85%] flex items-end justify-center">
+                    <img
+                      src={selectedAvatar?.imageUrl}
+                      alt={selectedAvatar?.name || 'Presenter'}
+                      className="max-h-full object-contain drop-shadow-2xl"
+                    />
                   </div>
-                  <div className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                    Type or choose a script above and click "Generate Avatar Video" to create an ultra-smooth MP4.
+
+                  {/* Broadcast Lower-Third Banner with Bold Written Script */}
+                  <div className="absolute bottom-3 inset-x-3 sm:inset-x-6 z-20 bg-slate-950/85 backdrop-blur-md border border-slate-700/80 rounded-lg p-2.5 shadow-2xl border-l-4 border-l-amber-500">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-sky-400 mb-0.5">
+                      <span>प्रस्तोता: {selectedAvatar?.name || 'Aarav Sharma'}</span>
+                      <span className="text-[9px] text-amber-400 font-mono">LIVE STUDIO</span>
+                    </div>
+                    <div className="text-xs text-white font-semibold line-clamp-2 leading-relaxed font-sans">
+                      {script || 'Type your script above to see the live teleprompter preview...'}
+                    </div>
                   </div>
                 </div>
               )}
@@ -910,10 +1138,10 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
         </div>
       </div>
 
-      {/* Modal: Create Custom Presenter Avatar */}
+      {/* Modal: Create Custom Presenter Avatar (Upload Picture or AI Prompt) */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UserCheck className="w-5 h-5 text-teal-400" />
@@ -921,97 +1149,246 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="text-slate-400 hover:text-white text-xs cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateCustomAvatar} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Presenter Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newAvatarName}
-                  onChange={(e) => setNewAvatarName(e.target.value)}
-                  placeholder="e.g., Dr. Anjali Sharma"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100"
-                />
-              </div>
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setCreationMode('upload')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  creationMode === 'upload'
+                    ? 'bg-teal-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Upload Picture</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreationMode('ai_prompt')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  creationMode === 'ai_prompt'
+                    ? 'bg-teal-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>AI Prompt Portrait</span>
+              </button>
+            </div>
 
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Gender / Demeanor</label>
-                <select
-                  value={newAvatarGender}
-                  onChange={(e) => setNewAvatarGender(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100"
-                >
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
-                  <option value="neutral">Neutral</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Portrait Image URL</label>
-                <input
-                  type="url"
-                  required
-                  value={newAvatarImageUrl}
-                  onChange={(e) => setNewAvatarImageUrl(e.target.value)}
-                  placeholder="https://... or uploaded image URL"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 font-mono text-[11px]"
-                />
-              </div>
-
-              {/* Legal Confirmation within Modal */}
-              <div className="p-3 rounded-lg bg-teal-950/30 border border-teal-800/40 space-y-2">
-                <div className="text-[10px] font-bold text-teal-300 uppercase tracking-wide">
-                  Legal Likeness Rights Verification
-                </div>
+            {creationMode === 'upload' ? (
+              /* Mode 1: Upload Portrait Picture */
+              <form onSubmit={handleSaveUploadedAvatar} className="space-y-3.5 text-xs">
                 <div>
-                  <label className="block text-[10px] text-slate-400 mb-0.5">Signer Full Legal Name</label>
+                  <label className="block text-[11px] text-slate-400 mb-1">Upload Portrait Picture (PNG/JPG)</label>
                   <input
-                    type="text"
-                    required
-                    value={newAvatarSignerName}
-                    onChange={(e) => setNewAvatarSignerName(e.target.value)}
-                    placeholder="e.g. Johnathan Doe"
-                    className="w-full bg-slate-950 border border-slate-800 rounded p-1.5 text-slate-100 text-[11px]"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileUpload}
+                    className="hidden"
                   />
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-700 hover:border-teal-500 rounded-xl p-4 text-center cursor-pointer bg-slate-950 transition flex flex-col items-center justify-center gap-2"
+                  >
+                    {uploadedImageDataUrl ? (
+                      <div className="space-y-2">
+                        <img
+                          src={uploadedImageDataUrl}
+                          alt="Uploaded Preview"
+                          className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-teal-500 shadow-md"
+                        />
+                        <div className="text-[11px] text-teal-300 font-semibold">
+                          Click to choose a different photo
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-teal-400">
+                          <ImageIcon className="w-5 h-5" />
+                        </div>
+                        <div className="text-slate-200 font-medium">Click to select portrait photo</div>
+                        <div className="text-[10px] text-slate-500">Supports PNG, JPG, WebP up to 10MB</div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <label className="flex items-start gap-2 cursor-pointer pt-1">
-                  <input
-                    type="checkbox"
-                    checked={newAvatarConsentChecked}
-                    onChange={(e) => setNewAvatarConsentChecked(e.target.checked)}
-                    className="mt-0.5 w-3.5 h-3.5 rounded text-teal-500 bg-slate-900 border-slate-700"
-                  />
-                  <span className="text-[10px] text-slate-300 leading-snug">
-                    I declare under penalty of perjury that I hold explicit likeness and identity broadcasting consent for this avatar persona.
-                  </span>
-                </label>
-              </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreatingAvatar}
-                  className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold transition flex items-center gap-1.5"
-                >
-                  {isCreatingAvatar ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  <span>Save Presenter</span>
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Presenter Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAvatarName}
+                      onChange={(e) => setNewAvatarName(e.target.value)}
+                      placeholder="e.g. Dr. Anjali Sharma"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Gender Demeanor</label>
+                    <select
+                      value={newAvatarGender}
+                      onChange={(e) => setNewAvatarGender(e.target.value as any)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100"
+                    >
+                      <option value="female">Female</option>
+                      <option value="male">Male</option>
+                      <option value="non-binary">Non-Binary</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Legal Confirmation within Modal */}
+                <div className="p-3 rounded-lg bg-teal-950/30 border border-teal-800/40 space-y-2">
+                  <div className="text-[10px] font-bold text-teal-300 uppercase tracking-wide">
+                    Likeness Rights & Identity Consent
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-0.5">Signer Full Legal Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAvatarSignerName}
+                      onChange={(e) => setNewAvatarSignerName(e.target.value)}
+                      placeholder="e.g. Full Legal Name"
+                      className="w-full bg-slate-950 border border-slate-800 rounded p-1.5 text-slate-100 text-[11px]"
+                    />
+                  </div>
+                  <label className="flex items-start gap-2 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={newAvatarConsentChecked}
+                      onChange={(e) => setNewAvatarConsentChecked(e.target.checked)}
+                      className="mt-0.5 w-3.5 h-3.5 rounded text-teal-500 bg-slate-900 border-slate-700"
+                    />
+                    <span className="text-[10px] text-slate-300 leading-snug">
+                      I declare that I hold full commercial likeness and voice broadcasting rights for this portrait persona.
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingAvatar || !uploadedImageDataUrl || !newAvatarName.trim()}
+                    className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isCreatingAvatar ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    <span>Save Presenter</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Mode 2: AI Prompt Avatar Generation */
+              <div className="space-y-3.5 text-xs">
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Describe Your AI Presenter
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="e.g. Nepali professional female news anchor in dark blue blazer, studio lighting, photorealistic 8k portrait..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-teal-500"
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setAiPrompt('Nepali news anchor in professional blazer, broadcast studio lighting, cinematic 8k')}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300"
+                    >
+                      News Anchor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiPrompt('Executive tech startup founder in modern minimalist office, confident warm smile')}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300"
+                    >
+                      Tech Founder
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiPrompt('Himalayan cultural ambassador in traditional Nepali attire, Kathmandu temple background')}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300"
+                    >
+                      Cultural Host
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Avatar Name</label>
+                    <input
+                      type="text"
+                      value={newAvatarName}
+                      onChange={(e) => setNewAvatarName(e.target.value)}
+                      placeholder="e.g. AI News Host"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Gender Tone</label>
+                    <select
+                      value={newAvatarGender}
+                      onChange={(e) => setNewAvatarGender(e.target.value as any)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100"
+                    >
+                      <option value="female">Female</option>
+                      <option value="male">Male</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiAvatar}
+                    disabled={isGeneratingAiAvatar || !aiPrompt.trim()}
+                    className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isGeneratingAiAvatar ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating AI Portrait...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>Generate & Save Presenter</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}

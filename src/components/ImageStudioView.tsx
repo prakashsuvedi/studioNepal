@@ -95,7 +95,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
     }
   }, [initialPrompt]);
 
-  const [model, setModel] = useState<'gpt-image-1.5' | 'flux-schnell' | 'pollinations-free'>('gpt-image-1.5');
+  const [model, setModel] = useState<'gpt-image-2.5-flare' | 'gpt-image-1.5' | 'flux-schnell' | 'pollinations-free'>('gpt-image-2.5-flare');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1' | '4:5'>('1:1');
   const [quality, setQuality] = useState<'standard' | 'hd'>('hd');
   const [negativePrompt, setNegativePrompt] = useState('blurry, low quality, distorted, extra limbs, watermark, text');
@@ -167,7 +167,9 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
     setGenError(null);
 
     const modelDisplayName =
-      model === 'gpt-image-1.5'
+      model === 'gpt-image-2.5-flare'
+        ? 'OpenAI GPT-Image-2.5-Flare (Azure Foundry)'
+        : model === 'gpt-image-1.5'
         ? 'OpenAI GPT-Image-1.5 (Azure Foundry)'
         : model === 'flux-schnell'
         ? 'FLUX.1 Schnell'
@@ -187,7 +189,9 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
       const promptText = prompt.trim() || 'Nepal scenic Himalaya landscape';
       
       const apiModel =
-        model === 'gpt-image-1.5'
+        model === 'gpt-image-2.5-flare'
+          ? 'gpt-image-2.5-flare'
+          : model === 'gpt-image-1.5'
           ? 'gpt-image-1.5'
           : model === 'flux-schnell'
           ? 'black-forest-labs/FLUX.1-schnell'
@@ -352,7 +356,24 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                 <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Admin Bypass Enabled</span>
               )}
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <button
+                id="btn-model-gpt-image-flare"
+                type="button"
+                onClick={() => setModel('gpt-image-2.5-flare')}
+                className={`p-3 rounded-xl border text-left transition ${
+                  model === 'gpt-image-2.5-flare'
+                    ? 'bg-rose-50/60 border-rose-500 text-slate-900 ring-1 ring-rose-500/30'
+                    : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-xs text-slate-900">GPT-Image-2.5 Flare</div>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">AZURE 2.5</span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Azure AI Foundry • Flagship Flare Ultra-Res</div>
+              </button>
+
               <button
                 id="btn-model-gpt-image"
                 type="button"

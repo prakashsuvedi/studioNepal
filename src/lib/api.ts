@@ -721,6 +721,34 @@ export async function apiCreateCustomAvatar(params: {
   return res.json();
 }
 
+export async function apiGenerateAIAvatar(params: {
+  userId: string;
+  prompt: string;
+  referenceImageUrl?: string;
+  name?: string;
+  gender?: 'male' | 'female' | 'non-binary';
+  defaultVoiceId?: string;
+  defaultLanguage?: string;
+  stylePreset?: string;
+  signerFullName?: string;
+}): Promise<{ success: boolean; avatar: any }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch('/api/avatar/ai-create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': params.userId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'AI avatar creation failed' }));
+    throw new Error(extractErrorText(err, 'Failed to generate AI presenter avatar'));
+  }
+  return res.json();
+}
+
 export async function apiGenerateAvatarVideo(params: {
   userId: string;
   avatarId: string;
@@ -732,6 +760,7 @@ export async function apiGenerateAvatarVideo(params: {
   aspectRatio?: '16:9' | '9:16' | '1:1';
   backgroundPreset?: string;
   customBackgroundUrl?: string;
+  pose?: 'seated' | 'standing';
   consentConfirmed: boolean;
   signerFullName?: string;
 }): Promise<{

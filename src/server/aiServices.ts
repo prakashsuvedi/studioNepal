@@ -220,114 +220,126 @@ export async function serverGenerateImage(
 
   const enhancedPrompt = enhancePhotorealisticImagePrompt(prompt, options);
 
-  // 1. Real Azure OpenAI GPT-Image-1.5 Generation (prakashsuvedi-7749-resource)
+  // 1. Real Azure OpenAI Image Generation (gpt-image-2.5-flare and gpt-image-1.5 on prakashsuvedi-7749-resource)
   if (
     azureKey &&
     (model.includes('gpt-image') ||
+      model.includes('flare') ||
       model.includes('openai') ||
+      model === 'gpt-image-2.5-flare' ||
       model === 'gpt-image-1.5' ||
       !model.includes('flux'))
   ) {
     try {
+      const isFlareRequested = model.includes('flare') || model === 'gpt-image-2.5-flare';
+      const modelsToAttempt = isFlareRequested
+        ? ['gpt-image-2.5-flare', 'gpt-image-1.5']
+        : ['gpt-image-1.5', 'gpt-image-2.5-flare'];
+
       console.log(
-        `[Azure Image] Generating real gpt-image-1.5 high-grade image (${azureSize}): "${enhancedPrompt.slice(0, 70)}..."`
+        `[Azure Image] Generating high-grade image (${azureSize}, primary: ${modelsToAttempt[0]}): "${enhancedPrompt.slice(0, 70)}..."`
       );
       const azureImgUrl =
         'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/images/generations';
 
-      // Map quality to valid Azure gpt-image-1.5 values: 'low', 'medium', 'high', 'auto'
+      // Map quality to valid Azure gpt-image values: 'low', 'medium', 'high', 'auto'
       const mappedQuality = (quality === 'standard' || quality === 'hd' || quality === 'ultra') ? 'high' : (quality || 'auto');
 
-      const attemptAzureImage = async (sizeToUse: string, qualityToUse?: string) => {
-        const payload: Record<string, any> = {
-          prompt: enhancedPrompt,
-          model: 'gpt-image-1.5',
-          size: sizeToUse,
-        };
-        if (qualityToUse) {
-          payload.quality = qualityToUse;
-        }
-
-        return await fetch(azureImgUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'api-key': azureKey,
-            Authorization: `Bearer ${azureKey}`,
-          },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(45000),
-        });
-      };
-
-      // Try initial request with computed aspect ratio size and mapped quality
-      let imgRes = await attemptAzureImage(azureSize, mappedQuality);
-
-      // If initial attempt failed with 400 (e.g. invalid_request_error for size/quality), retry with standard 1024x1024
-      if (!imgRes.ok && imgRes.status === 400) {
-        console.warn(`[Azure Image] 400 Bad Request on (${azureSize}, ${mappedQuality}), retrying with standard (1024x1024)...`);
-        imgRes = await attemptAzureImage('1024x1024');
-      }
-
-      if (imgRes.ok) {
-        const data = await imgRes.json();
-        if (data.data && data.data[0]) {
-          const b64 = data.data[0].b64_json;
-          const directUrl = data.data[0].url;
-
-          if (b64) {
-            const buf = Buffer.from(b64, 'base64');
-            const filename = `gpt_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
-            const saved = await storageBucket.saveMedia(filename, buf, 'image/png');
-            console.log(
-              `[Azure Image] Successfully generated & stored gpt-image-1.5 (${buf.length} bytes, ${azureSize}): ${saved.url}`
-            );
-            return {
-              url: saved.url,
-              model: 'gpt-image-1.5 (High-Res Photorealistic Master)',
-              resolution: `${azureSize} (Studio Master High-Res)`,
-              engine:
-                'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
-              hfUser: 'prakashsuvedi',
+      for (const targetModel of modelsToAttempt) {
+        try {
+          const attemptAzureImage = async (sizeToUse: string, qualityToUse?: string) => {
+            const payload: Record<string, any> = {
+              prompt: enhancedPrompt,
+              model: targetModel,
+              size: sizeToUse,
             };
-          } else if (directUrl) {
-            // Fetch directUrl server-side to prevent browser CORS and SAS token expiration issues
-            try {
-              const fetchImg = await fetch(directUrl, { signal: AbortSignal.timeout(15000) });
-              if (fetchImg.ok) {
-                const imgBuf = Buffer.from(await fetchImg.arrayBuffer());
-                if (imgBuf.length > 1000) {
-                  const filename = `gpt_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
-                  const saved = await storageBucket.saveMedia(filename, imgBuf, 'image/png');
-                  return {
-                    url: saved.url,
-                    model: 'gpt-image-1.5 (High-Res Photorealistic Master)',
-                    resolution: `${azureSize} (Studio Master High-Res)`,
-                    engine:
-                      'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
-                    hfUser: 'prakashsuvedi',
-                  };
-                }
-              }
-            } catch (dlErr) {
-              console.warn('[Azure Image] Direct URL server fetch notice:', dlErr);
+            if (qualityToUse && targetModel !== 'gpt-image-2.5-flare') {
+              payload.quality = qualityToUse;
             }
-            return {
-              url: directUrl,
-              model: 'gpt-image-1.5 (High-Res Photorealistic Master)',
-              resolution: `${azureSize} (Studio Master High-Res)`,
-              engine:
-                'Azure AI Foundry (gpt-image-1.5) - https://prakashsuvedi-7749-resource.services.ai.azure.com',
-              hfUser: 'prakashsuvedi',
-            };
+
+            return await fetch(azureImgUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'api-key': azureKey,
+                Authorization: `Bearer ${azureKey}`,
+              },
+              body: JSON.stringify(payload),
+              signal: AbortSignal.timeout(45000),
+            });
+          };
+
+          // Try initial request with computed aspect ratio size and mapped quality
+          let imgRes = await attemptAzureImage(azureSize, mappedQuality);
+
+          // If initial attempt failed with 400, retry with standard 1024x1024
+          if (!imgRes.ok && imgRes.status === 400) {
+            console.warn(`[Azure Image] 400 Bad Request on ${targetModel} (${azureSize}), retrying with standard 1024x1024...`);
+            imgRes = await attemptAzureImage('1024x1024');
           }
+
+          if (imgRes.ok) {
+            const data = await imgRes.json();
+            if (data.data && data.data[0]) {
+              const b64 = data.data[0].b64_json;
+              const directUrl = data.data[0].url;
+
+              if (b64) {
+                const buf = Buffer.from(b64, 'base64');
+                const filename = `gpt_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
+                const saved = await storageBucket.saveMedia(filename, buf, 'image/png');
+                console.log(
+                  `[Azure Image] Successfully generated & stored ${targetModel} (${buf.length} bytes, ${azureSize}): ${saved.url}`
+                );
+                return {
+                  url: saved.url,
+                  model: `${targetModel} (Studio Master High-Res)`,
+                  resolution: `${azureSize} (Studio Master High-Res)`,
+                  engine:
+                    `Azure AI Foundry (${targetModel}) - https://prakashsuvedi-7749-resource.services.ai.azure.com`,
+                  hfUser: 'prakashsuvedi',
+                };
+              } else if (directUrl) {
+                try {
+                  const fetchImg = await fetch(directUrl, { signal: AbortSignal.timeout(15000) });
+                  if (fetchImg.ok) {
+                    const imgBuf = Buffer.from(await fetchImg.arrayBuffer());
+                    if (imgBuf.length > 1000) {
+                      const filename = `gpt_image_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`;
+                      const saved = await storageBucket.saveMedia(filename, imgBuf, 'image/png');
+                      return {
+                        url: saved.url,
+                        model: `${targetModel} (Studio Master High-Res)`,
+                        resolution: `${azureSize} (Studio Master High-Res)`,
+                        engine:
+                          `Azure AI Foundry (${targetModel}) - https://prakashsuvedi-7749-resource.services.ai.azure.com`,
+                        hfUser: 'prakashsuvedi',
+                      };
+                    }
+                  }
+                } catch (dlErr) {
+                  console.warn('[Azure Image] Direct URL server fetch notice:', dlErr);
+                }
+                return {
+                  url: directUrl,
+                  model: `${targetModel} (Studio Master High-Res)`,
+                  resolution: `${azureSize} (Studio Master High-Res)`,
+                  engine:
+                    `Azure AI Foundry (${targetModel}) - https://prakashsuvedi-7749-resource.services.ai.azure.com`,
+                  hfUser: 'prakashsuvedi',
+                };
+              }
+            }
+          } else {
+            const errText = await imgRes.text().catch(() => '');
+            console.warn(`[Azure Image] ${targetModel} returned ${imgRes.status}:`, errText);
+          }
+        } catch (modelErr) {
+          console.warn(`[Azure Image] Error attempting ${targetModel}:`, modelErr);
         }
-      } else {
-        const errText = await imgRes.text().catch(() => '');
-        console.warn(`[Azure Image] Request returned ${imgRes.status}:`, errText);
       }
     } catch (azureImgErr) {
-      console.warn('[Azure Image] Error generating gpt-image-1.5 image:', azureImgErr);
+      console.warn('[Azure Image] Error in Azure OpenAI image pipeline:', azureImgErr);
     }
   }
 
@@ -458,10 +470,10 @@ export async function serverCheckVideoJob(jobId: string): Promise<{
     });
 
     if (!checkRes.ok) {
+      console.warn(`[Azure Sora Status] Status poll returned HTTP ${checkRes.status} for job ${jobId}`);
       return {
-        status: 'completed',
-        progress: 100,
-        url: '/samples/ForBiggerBlazes.mp4',
+        status: 'in_progress',
+        progress: 35,
       };
     }
 
@@ -494,22 +506,23 @@ export async function serverCheckVideoJob(jobId: string): Promise<{
         url: `/api/video/content/${jobId}`,
       };
     } else if (data.status === 'failed') {
+      console.error(`[Azure Sora Status] Job ${jobId} failed:`, data.error);
       return {
-        status: 'completed',
-        progress: 100,
-        url: '/samples/ForBiggerBlazes.mp4',
+        status: 'failed',
+        progress: 0,
+        error: data.error?.message || 'Azure Sora generation did not succeed.',
       };
     } else {
       return {
-        status: data.status || 'in_progress',
-        progress: data.progress || 35,
+        status: data.status === 'queued' ? 'queued' : 'in_progress',
+        progress: typeof data.progress === 'number' ? Math.max(5, data.progress) : 25,
       };
     }
   } catch (err: any) {
+    console.warn(`[Azure Sora Status] Notice polling job ${jobId}:`, err?.message || err);
     return {
-      status: 'completed',
-      progress: 100,
-      url: '/samples/ForBiggerBlazes.mp4',
+      status: 'in_progress',
+      progress: 30,
     };
   }
 }
@@ -794,6 +807,122 @@ function applyPhoneticRules(text: string, phoneticDict: string, language: string
   return processed;
 }
 
+/**
+ * Azure OpenAI gpt-audio Speech Synthesis
+ * Endpoint: https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/chat/completions
+ * Model: gpt-audio (GlobalStandard deployment, 90,000 RPM, 15M TPM)
+ * High-grade broadcast speech for Nepali, English, and regional languages.
+ */
+export async function callAzureGptAudio(
+  text: string,
+  preferredVoice: string,
+  lang: string = 'ne-NP'
+): Promise<{
+  url: string;
+  storageUrl?: string;
+  filename: string;
+  duration: number;
+  voice: string;
+  language: string;
+  format: string;
+} | null> {
+  const azureKey = getAzureOpenAIKey();
+  if (!azureKey) return null;
+
+  const endpoint = 'https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/chat/completions';
+  const cleanText = text.replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!cleanText) return null;
+
+  // Map to one of the 6 OpenAI audio voices: 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'
+  let targetVoice = 'nova';
+  const v = (preferredVoice || '').toLowerCase();
+  if (v.includes('onyx') || v.includes('sagar') || v.includes('male') || v.includes('guy') || v.includes('deep') || v.includes('david')) {
+    targetVoice = 'onyx';
+  } else if (v.includes('echo') || v.includes('aarav') || v.includes('andrew')) {
+    targetVoice = 'echo';
+  } else if (v.includes('fable') || v.includes('story')) {
+    targetVoice = 'fable';
+  } else if (v.includes('shimmer') || v.includes('bright') || v.includes('upbeat')) {
+    targetVoice = 'shimmer';
+  } else if (v.includes('alloy') || v.includes('neutral')) {
+    targetVoice = 'alloy';
+  } else {
+    targetVoice = 'nova'; // Warm, natural expressive female default
+  }
+
+  console.log(`[Azure gpt-audio] Synthesizing speech with voice: ${targetVoice}, text: "${cleanText.slice(0, 60)}..."`);
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': azureKey,
+        Authorization: `Bearer ${azureKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-audio',
+        modalities: ['text', 'audio'],
+        audio: {
+          voice: targetVoice,
+          format: 'wav',
+        },
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional broadcast voice actor for NepalAI Studio. Read aloud the given text accurately and clearly in natural cadence. Do not add any conversational remarks, introductions, or disclaimers.',
+          },
+          {
+            role: 'user',
+            content: cleanText,
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const b64Audio = data.choices?.[0]?.message?.audio?.data;
+      if (b64Audio) {
+        let buf = Buffer.from(b64Audio, 'base64');
+        // Azure/OpenAI gpt-audio streams output 0xFFFFFFFF (unbounded) for WAV chunk sizes.
+        // Fix RIFF and data chunk sizes to actual buffer length so FFmpeg and media players parse cleanly without packet corruption.
+        if (buf.length >= 44 && buf.slice(0, 4).toString() === 'RIFF' && buf.slice(8, 12).toString() === 'WAVE') {
+          if (buf.readUInt32LE(4) === 0xFFFFFFFF) {
+            buf.writeUInt32LE(buf.length - 8, 4);
+          }
+          // Find 'data' subchunk if present
+          const dataChunkIdx = buf.indexOf('data', 12);
+          if (dataChunkIdx !== -1 && dataChunkIdx + 8 <= buf.length) {
+            if (buf.readUInt32LE(dataChunkIdx + 4) === 0xFFFFFFFF) {
+              buf.writeUInt32LE(buf.length - (dataChunkIdx + 8), dataChunkIdx + 4);
+            }
+          }
+        }
+        const filename = `gpt_audio_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.wav`;
+        const savedMedia = await storageBucket.saveMedia(filename, buf, 'audio/wav');
+        console.log(`[Azure gpt-audio] Success! Stored ${buf.length} bytes as ${filename}`);
+        return {
+          url: savedMedia.url || `/api/storage/file/${filename}`,
+          storageUrl: savedMedia.url,
+          filename: savedMedia.filename,
+          duration: Math.min(300, Math.max(3, Math.round(cleanText.length / 10))),
+          voice: `gpt-audio (${targetVoice})`,
+          language: lang,
+          format: 'Azure OpenAI gpt-audio Broadcast WAV (24kHz Studio)',
+        };
+      }
+    } else {
+      const errText = await res.text().catch(() => '');
+      console.warn('[Azure gpt-audio] API error response:', res.status, errText);
+    }
+  } catch (err: any) {
+    console.warn('[Azure gpt-audio] Dispatch notice:', err?.message || err);
+  }
+  return null;
+}
+
 export async function serverGenerateAudio(
   textOrParams: string | { text: string; voiceId?: string; language?: 'ne-NP' | 'en-US'; emotion?: string; deliveryStyle?: string; speed?: string; volume?: string; pitch?: string; phoneticDict?: string },
   voiceIdArg = 'aakash_ne',
@@ -895,6 +1024,17 @@ export async function serverGenerateAudio(
     }
     return val;
   };
+
+  // Check if OpenAI gpt-audio voice is specifically requested
+  const isGptAudioRequested = voiceId.includes('gpt-audio') ||
+    ['alloy', 'nova', 'echo', 'onyx', 'fable', 'shimmer'].some((v) => voiceId.toLowerCase().includes(v));
+
+  if (isGptAudioRequested) {
+    const gptAudioResult = await callAzureGptAudio(text, voiceId, normLang);
+    if (gptAudioResult) {
+      return gptAudioResult;
+    }
+  }
 
   // 1. Azure Cognitive Services Text-to-Speech REST API (eastus region)
   if (speechKey && speechKey.trim().length > 5) {
@@ -1025,6 +1165,17 @@ export async function serverGenerateAudio(
     } catch (azureTtsErr) {
       console.warn('Azure Speech API dispatch notice:', azureTtsErr);
     }
+  }
+
+  // 1.5. Azure OpenAI gpt-audio High-Fidelity Voice Synthesis (prakashsuvedi-7749-resource)
+  try {
+    const fallbackVoice = (azureVoice && azureVoice.includes('Sagar')) ? 'onyx' : 'nova';
+    const gptAudioRes = await callAzureGptAudio(text, voiceId || fallbackVoice, normLang);
+    if (gptAudioRes) {
+      return gptAudioRes;
+    }
+  } catch (gptAudioErr) {
+    console.warn('[Azure gpt-audio] Secondary fallback notice:', gptAudioErr);
   }
 
   // 2. High-Fidelity Hugging Face Neural Text-to-Speech (MMS Nepali / SpeechT5)

@@ -9,16 +9,22 @@ This file locks the architectural baseline, confirmed working AI services, and d
 The following four core pipelines have been manually and automatically tested and verified with real live credentials and payloads:
 
 ### 1. Audio Generation Studio (`/api/generate/audio`)
-- **Primary Engine**: Hugging Face SpeechT5 neural text-to-speech (`microsoft/speecht5_tts`).
-- **Nepali Voice Support**: Pre-configured acoustic speaker profiles and localized phoneme mappings.
+- **Flagship Engine**: OpenAI `gpt-audio` on Azure AI Foundry (`https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/chat/completions`).
+  - Model: `gpt-audio` (90k RPM, 15M TPM rate limit).
+  - Modalities: `['text', 'audio']` returning 24kHz broadcast studio WAV buffer.
+  - Supported voices: `nova`, `onyx`, `alloy`, `echo`, `fable`, `shimmer` with fluent Nepali and English synthesis.
 - **Secondary Engine**: Azure Speech Services (`AZURE_SPEECH` / `AZURE_SPEECH_KEY`, region `eastus`).
-- **Output**: Base64 WAV audio buffer (`data:audio/wav;base64,...`) directly ingestible into timeline audio tracks.
-- **Rule**: Never break or replace the base64 audio response schema expected by `VoiceStudioView.tsx`.
+- **Fallback Engine**: Hugging Face SpeechT5 neural text-to-speech (`microsoft/speecht5_tts` / `facebook/mms-tts-nep`).
+- **Output**: Base64 or stored WAV/MP3 audio buffer directly ingestible into timeline audio tracks and presenter video avatars.
+- **Rule**: Never break or replace the audio response schema expected by `VoiceStudioView.tsx` and `AvatarStudioView.tsx`.
 
 ### 2. Image Generation Studio (`/api/images/azure`, `/api/generate/image`)
-- **Primary Engine**: OpenAI `gpt-image-1.5` on Azure AI Foundry (`https://prakashsuvedi-7749-resource.services.ai.azure.com`).
+- **Flagship Engine 1**: OpenAI `gpt-image-2.5-flare` on Azure AI Foundry (`https://prakashsuvedi-7749-resource.services.ai.azure.com/openai/v1/images/generations`).
+  - Returns `data[0].b64_json` base64 PNG data stored to disk/bucket.
+  - Rate limit: 2 RPM (strictly managed with seamless failover).
+- **Flagship Engine 2**: OpenAI `gpt-image-1.5` on Azure AI Foundry.
   - **CRITICAL Azure Parameter**: Quality parameter MUST be `'low'`, `'medium'`, `'high'`, or `'auto'` (DO NOT send legacy `'standard'` or `'hd'` to Azure `gpt-image-1.5`, as Azure returns HTTP 400).
-  - Default size: `1024x1024`.
+  - Default size: `1024x1024` (also supports `1792x1024` and `1024x1792`).
 - **Secondary Engine**: Hugging Face FLUX.1 Schnell (`black-forest-labs/FLUX.1-schnell`).
 - **Free/Zero-Quota Engine**: Pollinations Turbo (`pollinations-free`) for unauthenticated or rate-limited guests.
 - **Storage/Serving**: Generated base64 images are written to `/dist/uploads/` and served via `/api/storage/file/:filename`.

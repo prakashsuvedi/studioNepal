@@ -378,8 +378,8 @@ async function startServer() {
       // Provision or find verified user
       const user = db.findOrCreateUser(email, name, avatar);
 
-      // If user is Prakash Suvedi, automatically assign Admin role
-      if (email.toLowerCase() === 'prakashsuvedi.backup@gmail.com') {
+      // If user is in the admin whitelist, automatically assign Admin role
+      if (ADMIN_WHITELIST_EMAILS.includes(email.toLowerCase())) {
         user.role = 'admin';
         user.tier = 'pro_studio';
         user.credits = 999999;
@@ -431,7 +431,10 @@ async function startServer() {
       recordAdminLoginSuccess(clientIp);
 
       // Elevate or retrieve admin account
-      const adminUser = db.findOrCreateUser(validAdminEmail, 'Prakash Suvedi (Admin)', undefined);
+      const targetAdminEmail = (email && ADMIN_WHITELIST_EMAILS.includes(email.toLowerCase()))
+        ? email.toLowerCase()
+        : validAdminEmail;
+      const adminUser = db.findOrCreateUser(targetAdminEmail);
       adminUser.role = 'admin';
       adminUser.credits = 999999;
       adminUser.tier = 'pro_studio';

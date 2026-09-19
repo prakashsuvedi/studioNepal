@@ -60,9 +60,13 @@ jobs:
           git checkout --orphan hf-publish
           git rm -rf --cached . 2>/dev/null || true
 
-          # Remove runtime generated binaries, logs, and any oversized files (> 5MB)
-          find . -maxdepth 4 -type f \( -name "*.mp3" -o -name "*.mp4" -o -name "*.wav" -o -name "*.png" -o -name "*.jpg" -o -name "*.aac" -o -name "*.tmp" -o -name "chat_*.txt" -o -name "full_chat_history.txt" \) -delete 2>/dev/null || true
-          find . -maxdepth 4 -type f -size +5M ! -path "./.git/*" -delete 2>/dev/null || true
+          # Install and initialize Git LFS
+          sudo apt-get update -qq && sudo apt-get install -y -qq git-lfs
+          git lfs install
+
+          # Remove runtime generated binaries, fonts, media, and temporary files that trigger HF binary hook
+          find . -type f \( -name "*.ttf" -o -name "*.otf" -o -name "*.woff" -o -name "*.woff2" -o -name "*.eot" -o -name "*.mp3" -o -name "*.mp4" -o -name "*.wav" -o -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.aac" -o -name "*.tmp" -o -name "chat_*.txt" -o -name "full_chat_history.txt" -o -name "Error:" -o -name "Status:" \) -delete 2>/dev/null || true
+          find . -type f -size +1M ! -path "./.git/*" -delete 2>/dev/null || true
 
           # Stage clean codebase
           git add -A

@@ -201,10 +201,14 @@ function resolveWatermarkImage(): string | null {
 // Resolve Subtitle Font
 function resolveSubtitleFont(): string {
   const candidates = [
+    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf',
+    '/usr/share/fonts/opentype/noto/NotoSansDevanagari-Bold.otf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+    '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
     path.join(process.cwd(), 'public', 'assets', 'fonts', 'NotoSansDevanagari-Bold.ttf'),
     path.join(process.cwd(), 'dist', 'assets', 'fonts', 'NotoSansDevanagari-Bold.ttf'),
-    '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
-    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;

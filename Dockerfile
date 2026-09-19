@@ -11,7 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libx264-dev \
     libx265-dev \
     fonts-liberation \
+    fonts-noto-core \
+    fonts-dejavu-core \
+    fonts-freefont-ttf \
     ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package manifest and install dependencies

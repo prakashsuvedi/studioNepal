@@ -23,7 +23,8 @@ import {
   Sliders,
   Terminal,
   AlertCircle,
-  Eye
+  Eye,
+  Globe
 } from 'lucide-react';
 import { HardwareAccelerationIndicator } from '../HardwareAccelerationIndicator';
 
@@ -42,6 +43,7 @@ interface CapCutTopBarProps {
   onNewProject?: () => void;
   onClearTimeline?: () => void;
   onImportProject?: () => void;
+  onOpenUrlToProject?: () => void;
   onOpenStoryboards?: () => void;
   onOpenDebugger?: () => void;
   onOpenSocialPublisher?: () => void;
@@ -65,6 +67,7 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
   onNewProject,
   onClearTimeline,
   onImportProject,
+  onOpenUrlToProject,
   onOpenStoryboards,
   onOpenDebugger,
   onOpenSocialPublisher,
@@ -101,6 +104,19 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
           </button>
         )}
 
+        {/* Quick URL Import CTA */}
+        {onOpenUrlToProject && (
+          <button
+            id="topbar-btn-import-url"
+            onClick={onOpenUrlToProject}
+            className="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 hover:text-indigo-100 border border-indigo-500/35 rounded-md text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0 shadow-xs"
+            title="Import blog or web article URL directly into video storyboard project"
+          >
+            <Globe className="w-3 h-3 text-indigo-400" />
+            <span className="hidden md:inline">Import URL</span>
+          </button>
+        )}
+
         {/* Menu Pill with Dropdown */}
         <div className="relative shrink-0">
           <button 
@@ -113,7 +129,7 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
 
           {showMenuDropdown && (
             <div 
-              className="absolute left-0 top-full mt-1 w-52 bg-slate-900 border border-slate-700/80 rounded-lg shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 text-xs text-slate-200"
+              className="absolute left-0 top-full mt-1 w-56 bg-slate-900 border border-slate-700/80 rounded-lg shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 text-xs text-slate-200"
               onMouseLeave={() => setShowMenuDropdown(false)}
             >
               {onNewProject && (
@@ -126,6 +142,20 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                 >
                   <Plus className="w-3.5 h-3.5 text-cyan-400" />
                   <span>New Project...</span>
+                </button>
+              )}
+
+              {onOpenUrlToProject && (
+                <button
+                  id="menu-btn-import-url"
+                  onClick={() => {
+                    setShowMenuDropdown(false);
+                    onOpenUrlToProject();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-indigo-950/50 rounded flex items-center gap-2 cursor-pointer text-indigo-300 font-semibold"
+                >
+                  <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Import URL (Blog to Video)...</span>
                 </button>
               )}
 

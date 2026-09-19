@@ -210,7 +210,7 @@ export class PostgresService {
           v_snapshot_id VARCHAR;
         BEGIN
           INSERT INTO projects (id, user_id, status, project_type, language, source_external_id, title, aspect_ratio, scenes, subtitles, audio_tracks, metadata, version, created_at, updated_at)
-          VALUES (p_project_id, p_user_id, 'active', 'video', 'ne', 'none', p_title, p_aspect_ratio, p_scenes, p_subtitles, p_audio_tracks, p_metadata, 1, NOW(), NOW())
+          VALUES (p_project_id, p_user_id, 'active', 'video', 'ne', p_project_id, p_title, p_aspect_ratio, p_scenes, p_subtitles, p_audio_tracks, p_metadata, 1, NOW(), NOW())
           ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
             aspect_ratio = EXCLUDED.aspect_ratio,

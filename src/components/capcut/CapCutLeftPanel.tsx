@@ -53,6 +53,7 @@ interface CapCutLeftPanelProps {
   onOpenImageStudio: () => void;
   onOpenSoraStudio: () => void;
   onOpenVoiceStudio?: () => void;
+  onOpenUrlToProject?: () => void;
   onOpenSubtitleEditor?: () => void;
   onOpenSceneTemplates?: () => void;
   onOpenBrandWatermark?: () => void;
@@ -78,6 +79,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   onOpenImageStudio,
   onOpenSoraStudio,
   onOpenVoiceStudio,
+  onOpenUrlToProject,
   onOpenSubtitleEditor,
   onOpenSceneTemplates,
   onOpenBrandWatermark,
@@ -2291,6 +2293,30 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         {/* ==================== AI CREATE TAB ==================== */}
         {activeTab === 'ai' && (
           <div className="space-y-3">
+            {onOpenUrlToProject && (
+              <div
+                id="leftpanel-card-url-to-project"
+                onClick={onOpenUrlToProject}
+                className="p-3.5 bg-gradient-to-r from-indigo-950/50 to-purple-950/40 border border-indigo-500/50 rounded-xl hover:border-indigo-400 transition cursor-pointer flex items-center justify-between group shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-lg bg-indigo-600 text-white shadow-md group-hover:scale-105 transition-transform">
+                    <Globe className="w-5 h-5 font-bold" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      URL / Blog to Video
+                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-indigo-500/30 text-indigo-300 font-mono font-semibold border border-indigo-500/40">
+                        NEW
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-indigo-200/80">Turn web articles & blogs into video projects.</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-indigo-400 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            )}
+
             <div
               onClick={onOpenSoraStudio}
               className="p-3.5 bg-gradient-to-r from-purple-950/40 to-indigo-950/40 border border-purple-600/40 rounded-xl hover:border-purple-400 transition cursor-pointer flex items-center justify-between"

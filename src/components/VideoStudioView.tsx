@@ -108,6 +108,7 @@ import { AssetAndSoundLibraryModal } from './AssetAndSoundLibraryModal';
 import { PreRenderValidationModal } from './PreRenderValidationModal';
 import { CharacterConsistencyModal } from './CharacterConsistencyModal';
 import { ScriptToSceneModal } from './ScriptToSceneModal';
+import { UrlToProjectModal } from './UrlToProjectModal';
 import { AiMediaProcessingModal } from './AiMediaProcessingModal';
 import { AutomatedAdBuilderModal } from './AutomatedAdBuilderModal';
 import { TextStylingToolkitModal } from './TextStylingToolkitModal';
@@ -305,6 +306,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // 5 Production Studio Modules State
   const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] = useState(initialOpenModal === 'character_studio');
   const [showScriptToSceneModal, setShowScriptToSceneModal] = useState(false);
+  const [showUrlToProjectModal, setShowUrlToProjectModal] = useState(false);
   const [showAiMediaProcessingModal, setShowAiMediaProcessingModal] = useState(false);
   const [showAutomatedAdBuilderModal, setShowAutomatedAdBuilderModal] = useState(initialOpenModal === 'ad_builder');
   const [activeCharacterToken, setActiveCharacterToken] = useState<string>('');
@@ -1934,6 +1936,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           setTimeout(() => setProjectNotice(null), 3500);
         }}
         onImportProject={() => projectFileInputRef.current?.click()}
+        onOpenUrlToProject={() => setShowUrlToProjectModal(true)}
         onSave={() => {
           const exportData = {
             version: '2.0',
@@ -2008,6 +2011,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           onOpenImageStudio={onOpenImageStudio}
           onOpenSoraStudio={onOpenSoraStudio}
           onOpenVoiceStudio={onOpenVoiceStudio || (() => setShowCharacterConsistencyModal(true))}
+          onOpenUrlToProject={() => setShowUrlToProjectModal(true)}
           onOpenSubtitleEditor={() => setShowSubtitleModal(true)}
           onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
           onOpenBrandWatermark={() => setShowBrandModal(true)}
@@ -2809,6 +2813,31 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           setTimeout(() => setProjectNotice(null), 4000);
         }}
         lockedCharacterToken={activeCharacterToken}
+      />
+
+      {/* URL to Video Project (Blog-to-Video Pipeline) */}
+      <UrlToProjectModal
+        isOpen={showUrlToProjectModal}
+        onClose={() => setShowUrlToProjectModal(false)}
+        onApplyProject={(project) => {
+          pushToHistory(scenes);
+          setProjectTitle(project.title);
+          if (project.aspectRatio === '16:9' || project.aspectRatio === '9:16' || project.aspectRatio === '1:1') {
+            setAspectRatio(project.aspectRatio);
+          }
+          setScenes(project.scenes);
+          if (project.subtitles && project.subtitles.length > 0) {
+            setSubtitles(project.subtitles);
+          }
+          if (project.audioTracks && project.audioTracks.length > 0) {
+            setAudioTracks(project.audioTracks);
+          }
+          if (project.scenes[0]) {
+            setSelectedSceneId(project.scenes[0].id);
+          }
+          setProjectNotice(`Imported "${project.title}" (${project.scenes.length} scenes) into Timeline! Draft ready for review.`);
+          setTimeout(() => setProjectNotice(null), 5000);
+        }}
       />
 
       {/* Module 3: Pro-Grade NLE AI Media Processing Suite (BG Remover, Smart Crop, 4K Super-Resolution) */}

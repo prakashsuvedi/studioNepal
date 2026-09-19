@@ -540,25 +540,26 @@ export class AvatarEngine {
         if (rms > maxRms) maxRms = rms;
       }
 
-      // 4.2 Analyze presenter image and build localized visemes
-      const presMeta = await sharp(presenterImagePath).metadata();
-      const W = presMeta.width || 800;
-      const H = presMeta.height || 1000;
+      // 4.2 Normalize presenter image to exact presenter size (presW, presH)
+      const normalizedPresenter = await sharp(presenterImagePath)
+        .rotate()
+        .resize(presW, presH, { fit: 'cover' })
+        .toBuffer();
 
-      const mouthX = Math.round(W * 0.50);
-      const mouthY = Math.round(H * 0.58);
-      const mouthW = Math.round(W * 0.155);
+      const mouthX = Math.round(presW * 0.50);
+      const mouthY = Math.round(presH * 0.58);
+      const mouthW = Math.round(presW * 0.155);
 
-      const eyeL = Math.round(W * 0.437);
-      const eyeR = Math.round(W * 0.563);
-      const eyeY = Math.round(H * 0.37);
+      const eyeL = Math.round(presW * 0.437);
+      const eyeR = Math.round(presW * 0.563);
+      const eyeY = Math.round(presH * 0.37);
 
       const lipsyncOverlays: Buffer[] = [
         // Level 0: Rest (Closed mouth)
-        Buffer.from(`<svg width="${W}" height="${H}"></svg>`),
+        Buffer.from(`<svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg"></svg>`),
         // Level 1: Soft open
         Buffer.from(`
-          <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="${mouthX}" cy="${mouthY}" rx="${mouthW * 0.48}" ry="${mouthW * 0.16}" fill="#2a080c" />
             <path d="M ${mouthX - mouthW * 0.32} ${mouthY - 1} Q ${mouthX} ${mouthY + 1} ${mouthX + mouthW * 0.32} ${mouthY - 1}" stroke="#f8fafc" stroke-width="2.5" opacity="0.9" fill="none" />
             <path d="M ${mouthX - mouthW * 0.48} ${mouthY} Q ${mouthX} ${mouthY - mouthW * 0.18} ${mouthX + mouthW * 0.48} ${mouthY}" stroke="#e21d48" stroke-width="3" fill="none" />
@@ -566,7 +567,7 @@ export class AvatarEngine {
         `),
         // Level 2: Mid open with teeth & tongue
         Buffer.from(`
-          <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="${mouthX}" cy="${mouthY + 1}" rx="${mouthW * 0.54}" ry="${mouthW * 0.30}" fill="#1a0306" />
             <path d="M ${mouthX - mouthW * 0.42} ${mouthY - 3} Q ${mouthX} ${mouthY} ${mouthX + mouthW * 0.42} ${mouthY - 3}" stroke="#ffffff" stroke-width="4" opacity="0.95" fill="none" />
             <path d="M ${mouthX - mouthW * 0.30} ${mouthY + mouthW * 0.14} Q ${mouthX} ${mouthY + mouthW * 0.08} ${mouthX + mouthW * 0.30} ${mouthY + mouthW * 0.14}" fill="#f43f5e" opacity="0.85" />
@@ -575,7 +576,7 @@ export class AvatarEngine {
         `),
         // Level 3: Open vowel mouth
         Buffer.from(`
-          <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="${mouthX}" cy="${mouthY + 2}" rx="${mouthW * 0.58}" ry="${mouthW * 0.42}" fill="#0f0204" />
             <path d="M ${mouthX - mouthW * 0.46} ${mouthY - 5} Q ${mouthX} ${mouthY - 2} ${mouthX + mouthW * 0.46} ${mouthY - 5}" stroke="#ffffff" stroke-width="5" fill="none" />
             <path d="M ${mouthX - mouthW * 0.38} ${mouthY + mouthW * 0.22} Q ${mouthX} ${mouthY + mouthW * 0.10} ${mouthX + mouthW * 0.38} ${mouthY + mouthW * 0.22}" fill="#fb7185" opacity="0.9" />
@@ -584,14 +585,14 @@ export class AvatarEngine {
         `),
         // Level 4: Articulate / round
         Buffer.from(`
-          <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="${mouthX}" cy="${mouthY + 2}" rx="${mouthW * 0.36}" ry="${mouthW * 0.38}" fill="#180205" stroke="#be123c" stroke-width="3" />
             <path d="M ${mouthX - mouthW * 0.22} ${mouthY - 4} Q ${mouthX} ${mouthY - 2} ${mouthX + mouthW * 0.22} ${mouthY - 4}" stroke="#ffffff" stroke-width="3.5" fill="none" />
           </svg>
         `),
         // Level 5: Natural Blink
         Buffer.from(`
-          <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
             <path d="M ${eyeL - 26} ${eyeY} Q ${eyeL} ${eyeY + 12} ${eyeL + 26} ${eyeY}" stroke="#475569" stroke-width="4" fill="none" stroke-linecap="round" />
             <path d="M ${eyeR - 26} ${eyeY} Q ${eyeR} ${eyeY + 12} ${eyeR + 26} ${eyeY}" stroke="#475569" stroke-width="4" fill="none" stroke-linecap="round" />
           </svg>
@@ -601,9 +602,8 @@ export class AvatarEngine {
       // Build 6 face buffers scaled to presW, presH
       const faceBuffers: Buffer[] = [];
       for (const svgBuf of lipsyncOverlays) {
-        const face = await sharp(presenterImagePath)
+        const face = await sharp(normalizedPresenter)
           .composite([{ input: svgBuf, top: 0, left: 0 }])
-          .resize(presW, presH, { fit: 'cover' })
           .toBuffer();
         faceBuffers.push(face);
       }

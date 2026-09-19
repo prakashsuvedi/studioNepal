@@ -220,8 +220,11 @@ export async function serverGenerateImage(
 
   const enhancedPrompt = enhancePhotorealisticImagePrompt(prompt, options);
 
+  const isPollinationsRequested = model.includes('pollinations') || model === 'pollinations-free';
+
   // 1. Real Azure OpenAI Image Generation (gpt-image-2.5-flare and gpt-image-1.5 on prakashsuvedi-7749-resource)
   if (
+    !isPollinationsRequested &&
     azureKey &&
     (model.includes('gpt-image') ||
       model.includes('flare') ||
@@ -1386,11 +1389,12 @@ export async function serverHamroAiChat(params: {
   model: 'gpt-4o' | 'gpt-5-mini';
   language: 'ne' | 'hi' | 'en' | 'auto';
   systemInstruction?: string;
+  timeoutMs?: number;
 }): Promise<{
   reply: string;
   usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
 }> {
-  const { userId, messages, attachments = [], model = 'gpt-4o', language = 'auto', systemInstruction } = params;
+  const { userId, messages, attachments = [], model = 'gpt-4o', language = 'auto', systemInstruction, timeoutMs } = params;
 
   // Dynamic system prompt honoring Unicode guidelines for fallback models
   let dynamicUnicodeInstructions = '';
@@ -1524,9 +1528,11 @@ ${dynamicUnicodeInstructions}
     const targetDeployment = model === 'gpt-5-mini' ? 'gpt-5-mini' : 'gpt-4o';
     const isReasoningModel = targetDeployment.includes('mini') || targetDeployment.includes('o1') || targetDeployment.includes('o3');
 
+    // Primary: Direct OpenAI v1 API route (sub-second latency, confirmed 200)
+    // Secondary: Deployment versioned fallback routes
     const chatEndpoints = [
-      `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-10-21`,
       `https://solutions-ai-hub.services.ai.azure.com/openai/v1/chat/completions`,
+      `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-10-21`,
       `https://solutions-ai-hub.services.ai.azure.com/openai/deployments/${targetDeployment}/chat/completions?api-version=2024-08-01-preview`,
     ];
 
@@ -1542,6 +1548,8 @@ ${dynamicUnicodeInstructions}
       chatPayload.max_tokens = 2048;
     }
 
+    const requestTimeout = timeoutMs || 35000;
+
     for (const azureUrl of chatEndpoints) {
       try {
         let azureRes = await fetch(azureUrl, {
@@ -1552,7 +1560,7 @@ ${dynamicUnicodeInstructions}
             'api-key': azureChatKey,
           },
           body: JSON.stringify(chatPayload),
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(requestTimeout),
         });
 
         // If 400 Bad Request (e.g. invalid_request_error on parameters), retry with minimal payload
@@ -1569,7 +1577,7 @@ ${dynamicUnicodeInstructions}
               model: targetDeployment,
               messages: formattedMessages,
             }),
-            signal: AbortSignal.timeout(10000),
+            signal: AbortSignal.timeout(requestTimeout),
           });
         }
 
@@ -1665,7 +1673,12 @@ Let me know if you would like me to generate code, scripts, or direct creative v
           }
         }
       } catch (azureErr: any) {
-        console.warn(`[HamroAI Chat] Azure fetch error on ${azureUrl}:`, azureErr.message);
+        const isTimeout = azureErr.name === 'TimeoutError' || azureErr.name === 'AbortError' || /timeout|aborted/i.test(azureErr?.message || '');
+        if (isTimeout) {
+          console.warn(`[HamroAI Chat] Azure request timeout (${requestTimeout}ms) on ${azureUrl}. Switching to next gateway route...`);
+        } else {
+          console.warn(`[HamroAI Chat] Azure fetch notice on ${azureUrl}:`, azureErr.message);
+        }
       }
     }
   }

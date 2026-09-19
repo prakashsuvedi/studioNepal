@@ -33,6 +33,7 @@ import {
 import { Scene, AudioTrack, TransitionType } from '../../types';
 import { computeSceneTimings } from '../../lib/timelineComposition';
 import { TimelineAudioWaveform } from './TimelineAudioWaveform';
+import { sanitizeMediaUrl } from '../../lib/mediaUrlSanitizer';
 
 export const TIMELINE_TRANSITIONS: { id: TransitionType; label: string; icon: string; desc: string }[] = [
   { id: 'cut', label: 'Cut (None)', icon: '✂️', desc: 'Direct instant cut' },
@@ -530,21 +531,24 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                           <div className="absolute inset-0 opacity-40 group-hover:opacity-60 transition pointer-events-none overflow-hidden">
                             {isVideo && (!scene.thumbnailUrl || scene.thumbnailUrl.match(/\.(mp4|webm|mov)($|\?)/i)) ? (
                               <video
-                                src={scene.mediaUrl}
+                                src={sanitizeMediaUrl(scene.mediaUrl)}
                                 muted
                                 playsInline
                                 preload="metadata"
                                 className="w-full h-full object-cover"
+                                onError={(e: any) => {
+                                  e.currentTarget.src = '/samples/everest_sunrise.mp4';
+                                }}
                               />
                             ) : (
                               <img
-                                src={scene.thumbnailUrl || scene.mediaUrl}
+                                src={sanitizeMediaUrl(scene.thumbnailUrl || scene.mediaUrl)}
                                 alt={scene.title}
                                 className="w-full h-full object-cover"
                                 referrerPolicy="no-referrer"
                                 loading="lazy"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
+                                onError={(e: any) => {
+                                  e.currentTarget.src = '/samples/everest_sunrise_thumb.jpg';
                                 }}
                               />
                             )}

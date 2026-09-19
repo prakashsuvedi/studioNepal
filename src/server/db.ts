@@ -407,22 +407,38 @@ class Database {
 
   public getUserByEmail(email: string): User | undefined {
     if (!email) return undefined;
-    return this.store.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = this.store.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (user && ADMIN_WHITELIST_EMAILS.includes(email.toLowerCase()) && user.role !== 'admin') {
+      user.role = 'admin';
+      user.tier = 'pro_studio';
+      user.credits = Math.max(user.credits || 0, 999999);
+      this.save(this.store);
+    }
+    return user;
   }
 
   public findOrCreateUser(email: string, name?: string, avatar?: string): User {
-    const existing = this.getUserByEmail(email);
-    if (existing) {
-      return existing;
-    }
-
     const lower = email.toLowerCase();
     const isAdmin = ADMIN_WHITELIST_EMAILS.includes(lower);
 
+    const existing = this.getUserByEmail(email);
+    if (existing) {
+      if (isAdmin && existing.role !== 'admin') {
+        existing.role = 'admin';
+        existing.tier = 'pro_studio';
+        existing.credits = Math.max(existing.credits || 0, 999999);
+        this.save(this.store);
+      }
+      return existing;
+    }
+
+    const isPrakash = lower.includes('prakashsuvedi');
     const newUser: User = {
-      id: isAdmin ? 'usr_admin_01' : `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: isAdmin
+        ? (isPrakash ? 'usr_admin_01' : `usr_admin_${lower.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_')}`)
+        : `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       email,
-      name: name || (isAdmin ? 'Prakash Suvedi (Platform Owner)' : email.split('@')[0]),
+      name: name || (isAdmin ? (isPrakash ? 'Prakash Suvedi (Platform Owner)' : `${email.split('@')[0]} (Admin)`) : email.split('@')[0]),
       avatar: avatar || (isAdmin 
         ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
         : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),

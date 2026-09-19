@@ -20,6 +20,7 @@ import { Scene, BrandOverlayConfig } from '../../types';
 import { getCompositionAtTime } from '../../lib/timelineComposition';
 import { LivePreviewCanvas } from '../LivePreviewCanvas';
 import { SubtitleItem, SubtitleBurnOptions } from '../SubtitleEditorModal';
+import { sanitizeMediaUrl } from '../../lib/mediaUrlSanitizer';
 
 interface CapCutPlayerPanelProps {
   scenes: Scene[];
@@ -212,25 +213,34 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
                 {displayedScene?.mediaUrl ? (
                   displayedScene.mediaType === 'video' || displayedScene.mediaUrl.match(/\.(mp4|webm|mov|ogg)($|\?)/i) ? (
                     <video
-                      src={displayedScene.mediaUrl}
+                      src={sanitizeMediaUrl(displayedScene.mediaUrl)}
                       autoPlay={isPlaying}
                       muted={effectiveMuted}
                       loop
                       playsInline
                       className="w-full h-full object-contain"
+                      onError={(e: any) => {
+                        e.currentTarget.src = '/samples/everest_sunrise.mp4';
+                      }}
                     />
                   ) : (
                     <img
-                      src={displayedScene.mediaUrl}
+                      src={sanitizeMediaUrl(displayedScene.mediaUrl)}
                       alt={displayedScene.title}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-contain"
+                      onError={(e: any) => {
+                        e.currentTarget.src = '/samples/everest_sunrise_thumb.jpg';
+                      }}
                     />
                   )
                 ) : (
                   <div className="text-center p-6 text-slate-500">
-                    <Film className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                    <p className="text-xs">No media generated yet</p>
+                    <Film className="w-10 h-10 mx-auto mb-2 opacity-40 text-cyan-400" />
+                    <p className="text-xs text-slate-300 font-medium">{displayedScene?.title || 'Visual Scene Frame'}</p>
+                    <p className="text-[11px] text-slate-500 mt-1 max-w-xs line-clamp-1 italic">
+                      "{displayedScene?.promptNepali || displayedScene?.prompt || 'Scene prompt ready for generation'}"
+                    </p>
                   </div>
                 )}
 

@@ -12,11 +12,43 @@ export const ADMIN_CREDENTIALS = {
 
 export const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || ADMIN_CREDENTIALS.adminKey || 'nepalai_studio_secret_2026';
 
-export const ADMIN_WHITELIST_EMAILS = [
-  'prakashsuvedi.backup@gmail.com',
-  'prakashsuvedi@gmail.com',
-  ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase()) : [])
-];
+export function getAdminWhitelistEmails(): string[] {
+  const envEmails = process.env.ADMIN_EMAILS
+    ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+    : [];
+  const defaultAdmins = [
+    'prakashsuvedi.backup@gmail.com',
+    'prakashsuvedi@gmail.com',
+    'saghimire12@gmail.com',
+  ];
+  return Array.from(new Set([...defaultAdmins, ...envEmails]));
+}
+
+// Proxied array so all consumers of ADMIN_WHITELIST_EMAILS automatically
+// reflect any emails added or removed dynamically via process.env.ADMIN_EMAILS
+export const ADMIN_WHITELIST_EMAILS: string[] = new Proxy(
+  [
+    'prakashsuvedi.backup@gmail.com',
+    'prakashsuvedi@gmail.com',
+    'saghimire12@gmail.com',
+    ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean) : [])
+  ],
+  {
+    get(target, prop, receiver) {
+      const currentList = getAdminWhitelistEmails();
+      if (prop === 'includes') {
+        return (searchVal: string) => {
+          if (!searchVal || typeof searchVal !== 'string') return false;
+          return currentList.includes(searchVal.trim().toLowerCase());
+        };
+      }
+      if (prop === 'length') {
+        return currentList.length;
+      }
+      return Reflect.get(currentList, prop, receiver);
+    },
+  }
+);
 
 export interface TokenPayload {
   userId: string;

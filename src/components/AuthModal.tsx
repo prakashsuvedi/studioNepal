@@ -297,7 +297,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>Administrator Role-Based Access</span>
               </div>
               <p className="text-[11px] text-amber-200/80">
-                Authorized Platform Owner gateway for <span className="font-mono text-amber-300">prakashsuvedi.backup@gmail.com</span>.
+                Authorized Platform Administrator gateway for whitelisted admin accounts.
               </p>
             </div>
 

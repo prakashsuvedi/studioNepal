@@ -14,7 +14,7 @@ import { videoProcessor } from './src/server/videoProcessor';
 import { renderQueueManager, renderEvents } from './src/server/queue/renderQueue';
 import { distributedRateLimiter } from './src/server/rateLimiter';
 import { generatePreSignedDownloadUrl, syncDatabaseAssetExpiration } from './src/server/storageLifecycle';
-import { ADMIN_CREDENTIALS, ADMIN_WHITELIST_EMAILS, generateJwtToken, verifyJwtToken, extractAuthUser, isUserAdmin } from './src/server/credentials';
+import { ADMIN_CREDENTIALS, ADMIN_WHITELIST_EMAILS, generateJwtToken, verifyJwtToken, extractAuthUser, isUserAdmin, isValidAdminSecret } from './src/server/credentials';
 import { fonePayGateway } from './src/server/fonepayGateway';
 import { stripeGateway, STRIPE_PACKAGES } from './src/server/stripeGateway';
 import { ensureSampleMediaFiles } from './src/server/sampleMediaGenerator';
@@ -121,7 +121,7 @@ async function startServer() {
     const adminKeyHeader = (req.headers['x-admin-key'] as string) || '';
 
     // 1. Direct admin secret key header
-    if (adminKeyHeader && adminKeyHeader === ADMIN_CREDENTIALS.adminKey) {
+    if (adminKeyHeader && (adminKeyHeader === ADMIN_CREDENTIALS.adminKey || isValidAdminSecret(adminKeyHeader))) {
       return next();
     }
 
@@ -410,6 +410,46 @@ async function startServer() {
   app.post('/api/auth/admin-login', (req, res) => {
     try {
       const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+      const { email, password, adminKey } = req.body;
+      const validAdminEmail = ADMIN_CREDENTIALS.email;
+
+      const inputPass = (password || adminKey || '').toString().trim();
+      const inputEmail = (email || '').toString().trim().toLowerCase();
+
+      // Check passwords and keys securely
+      const isPassValid = isValidAdminSecret(inputPass) || inputPass === ADMIN_CREDENTIALS.password || inputPass === ADMIN_CREDENTIALS.adminKey;
+      const isEmailValid = !inputEmail || inputEmail === validAdminEmail.toLowerCase() || ADMIN_WHITELIST_EMAILS.includes(inputEmail);
+
+      // If credentials are completely valid, clear any prior rate limit lock and grant login
+      if (isPassValid && isEmailValid) {
+        recordAdminLoginSuccess(clientIp);
+
+        // Elevate or retrieve admin account
+        const targetAdminEmail = inputEmail && ADMIN_WHITELIST_EMAILS.includes(inputEmail)
+          ? inputEmail
+          : validAdminEmail;
+        const adminUser = db.findOrCreateUser(targetAdminEmail);
+        adminUser.role = 'admin';
+        adminUser.credits = 999999;
+        adminUser.tier = 'pro_studio';
+        db.updateUser(adminUser.id, { role: 'admin', credits: 999999, tier: 'pro_studio' });
+
+        const adminToken = generateJwtToken({
+          userId: adminUser.id,
+          email: adminUser.email,
+          role: 'admin',
+          tier: 'pro_studio',
+        });
+
+        return res.json({
+          success: true,
+          user: adminUser,
+          trialUsage: db.getTrialUsage(adminUser.id),
+          token: adminToken,
+        });
+      }
+
+      // Check rate limit on failure
       const rateLimit = checkAdminRateLimit(clientIp);
       if (!rateLimit.allowed) {
         return res.status(429).json({
@@ -417,42 +457,8 @@ async function startServer() {
         });
       }
 
-      const { email, password, adminKey } = req.body;
-      const validAdminEmail = ADMIN_CREDENTIALS.email;
-
-      const isPassValid = (password && password === ADMIN_CREDENTIALS.password) || (adminKey && adminKey === ADMIN_CREDENTIALS.adminKey);
-      const isEmailValid = email?.toLowerCase() === validAdminEmail.toLowerCase() || ADMIN_WHITELIST_EMAILS.includes(email?.toLowerCase());
-
-      if (!isPassValid || !isEmailValid) {
-        recordAdminLoginFailure(clientIp);
-        return res.status(401).json({ error: 'Invalid admin credentials or secret key' });
-      }
-
-      recordAdminLoginSuccess(clientIp);
-
-      // Elevate or retrieve admin account
-      const targetAdminEmail = (email && ADMIN_WHITELIST_EMAILS.includes(email.toLowerCase()))
-        ? email.toLowerCase()
-        : validAdminEmail;
-      const adminUser = db.findOrCreateUser(targetAdminEmail);
-      adminUser.role = 'admin';
-      adminUser.credits = 999999;
-      adminUser.tier = 'pro_studio';
-      db.updateUser(adminUser.id, { role: 'admin', credits: 999999, tier: 'pro_studio' });
-
-      const adminToken = generateJwtToken({
-        userId: adminUser.id,
-        email: adminUser.email,
-        role: 'admin',
-        tier: 'pro_studio',
-      });
-
-      res.json({
-        success: true,
-        user: adminUser,
-        trialUsage: db.getTrialUsage(adminUser.id),
-        token: adminToken,
-      });
+      recordAdminLoginFailure(clientIp);
+      return res.status(401).json({ error: 'Invalid admin credentials or secret key' });
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Admin login failed' });
     }

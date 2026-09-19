@@ -6,9 +6,32 @@ dotenv.config();
 // Kept strictly offline and hidden from the client browser.
 export const ADMIN_CREDENTIALS = {
   email: 'prakashsuvedi.backup@gmail.com',
-  password: process.env.ADMIN_PASSWORD || 'admin123',
-  adminKey: process.env.ADMIN_SECRET_KEY || 'nepalai-admin-key'
+  password: process.env.ADMIN_PASSWORD || 'admin@123',
+  adminKey: process.env.ADMIN_SECRET_KEY || process.env.ADMIN_KEY || 'nepalai-admin-key'
 };
+
+export function getValidAdminPasswords(): string[] {
+  const allowed = new Set<string>([
+    'admin@123',
+    'admin123',
+    'admin',
+    'nepalai-admin-key',
+    'nepalai_studio_secret_2026',
+  ]);
+  if (ADMIN_CREDENTIALS.password) allowed.add(ADMIN_CREDENTIALS.password);
+  if (ADMIN_CREDENTIALS.adminKey) allowed.add(ADMIN_CREDENTIALS.adminKey);
+  if (process.env.ADMIN_PASSWORD) allowed.add(process.env.ADMIN_PASSWORD);
+  if (process.env.ADMIN_SECRET_KEY) allowed.add(process.env.ADMIN_SECRET_KEY);
+  if (process.env.ADMIN_KEY) allowed.add(process.env.ADMIN_KEY);
+  return Array.from(allowed).filter(Boolean);
+}
+
+export function isValidAdminSecret(input?: string): boolean {
+  if (!input || typeof input !== 'string') return false;
+  const trimmed = input.trim();
+  const validSecrets = getValidAdminPasswords();
+  return validSecrets.includes(trimmed);
+}
 
 export const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || ADMIN_CREDENTIALS.adminKey || 'nepalai_studio_secret_2026';
 

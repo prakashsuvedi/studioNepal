@@ -60,6 +60,8 @@ import {
   SubjectLockItem,
   SubjectCategory
 } from '../data/soraProductionPacks';
+import { DirectorPreFlightApprovalModal, DirectorApprovalPayload } from './DirectorPreFlightApprovalModal';
+import { StoryContinuityDeck } from './StoryContinuityDeck';
 
 interface SoraStudioViewProps {
   initialPrompt?: string;
@@ -362,16 +364,70 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const [batchChainIndex, setBatchChainIndex] = useState<number>(0);
   const [chainAddedSuccess, setChainAddedSuccess] = useState<boolean>(false);
 
-  // Character & Subject Lock States (Person, Girl, Boy, Bus, Village, Animals, River, House, etc.)
+  // Character & Subject Lock States (Disabled by default per creator intent; user enables on demand)
   const [selectedSubjectCategory, setSelectedSubjectCategory] = useState<SubjectCategory | 'all'>('all');
   const [activeSubjectLock, setActiveSubjectLock] = useState<SubjectLockItem>(SUBJECT_LOCK_REGISTRY[0]);
-  const [subjectLockEnabled, setSubjectLockEnabled] = useState<boolean>(true);
+  const [subjectLockEnabled, setSubjectLockEnabled] = useState<boolean>(false);
   const [isBatchRendering, setIsBatchRendering] = useState<boolean>(false);
   const [batchRenderIndex, setBatchRenderIndex] = useState<number>(0);
 
   // Pin Subject from Frame Modal / HUD State
   const [showPinSubjectModal, setShowPinSubjectModal] = useState<boolean>(false);
   const [pinSubjectToast, setPinSubjectToast] = useState<string | null>(null);
+
+  // AI Director Pre-Flight Approval State
+  const [showApprovalModal, setShowApprovalModal] = useState<boolean>(false);
+  const [approvalPayload, setApprovalPayload] = useState<DirectorApprovalPayload | null>(null);
+  const [currentGeneratingChainIndex, setCurrentGeneratingChainIndex] = useState<number | null>(null);
+
+  const handleOpenApprovalForSingleShot = () => {
+    let charName = subjectLockEnabled ? activeSubjectLock.name : 'Custom Subject';
+    let charDesc = subjectLockEnabled ? activeSubjectLock.visualDescription : 'Dynamic consistent character';
+    let charToken = subjectLockEnabled ? activeSubjectLock.anchorToken : '[Subject-Anchor: Character_Auto]';
+
+    if (!subjectLockEnabled) {
+      const matchedChar = SUBJECT_LOCK_REGISTRY.find(c => prompt.toLowerCase().includes(c.name.toLowerCase()));
+      if (matchedChar) {
+        charName = matchedChar.name;
+        charDesc = matchedChar.visualDescription;
+        charToken = matchedChar.anchorToken;
+      }
+    }
+
+    setApprovalPayload({
+      prompt,
+      sceneTitle: 'Scene 1: Master Shot',
+      durationSeconds: normalizeSoraDuration(seconds),
+      resolution,
+      aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+      characterName: charName,
+      characterDescription: charDesc,
+      characterAnchorToken: charToken,
+      cameraMovement: 'Cinematic Wide 35mm Master',
+      lightingAtmosphere: 'Himalayan Alpenglow Golden Hour',
+      sceneIndex: 1,
+      totalScenes: chainSegments.length || 1,
+    });
+    setShowApprovalModal(true);
+  };
+
+  const handleExecuteApprovedGeneration = async (approved: DirectorApprovalPayload) => {
+    setShowApprovalModal(false);
+    setPrompt(approved.prompt);
+    setSeconds(normalizeSoraDuration(approved.durationSeconds));
+    setResolution(approved.resolution);
+    await handleGenerateSora();
+  };
+
+  const handleGenerateNextChainedFromDeck = async (segment: ChainedSegmentItem, index: number) => {
+    setCurrentGeneratingChainIndex(index);
+    await handleGenerateChainedSegment(segment, index);
+    setCurrentGeneratingChainIndex(null);
+  };
+
+  const handleUpdateSegmentPrompt = (index: number, newPrompt: string) => {
+    setChainSegments(prev => prev.map((s, idx) => idx === index ? { ...s, prompt: newPrompt } : s));
+  };
 
   React.useEffect(() => {
     setStoryboardScenes(activeStoryboardPack.scenes);
@@ -790,6 +846,9 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
     setChainAddedSuccess(true);
     setTimeout(() => setChainAddedSuccess(false), 4000);
+    if (onNavigateToTimeline) {
+      onNavigateToTimeline();
+    }
   };
 
   // Add Entire Storyboard Sequence to Video Studio Timeline
@@ -833,6 +892,9 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     });
     setStoryboardAddedSuccess(true);
     setTimeout(() => setStoryboardAddedSuccess(false), 4000);
+    if (onNavigateToTimeline) {
+      onNavigateToTimeline();
+    }
   };
 
   // Generate Sora Video (Single Shot)
@@ -1372,7 +1434,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
               {/* Generate Button */}
               <button
-                onClick={handleGenerateSora}
+                onClick={handleOpenApprovalForSingleShot}
                 disabled={isGenerating}
                 className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
               >
@@ -1384,7 +1446,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>✨ Generate Video (भिडियो बनाउनुहोस्)</span>
+                    <span>✨ Review AI Director Blueprint & Generate Video</span>
                   </>
                 )}
               </button>
@@ -2400,7 +2462,39 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
             )}
           </div>
         </div>
+
+        {/* Google Flow Multi-Scene Storyboard & Iterative Next Visual Generator Deck */}
+        <div className="col-span-1 lg:col-span-12 w-full">
+          <StoryContinuityDeck
+            chainSegments={chainSegments}
+            activeSubjectLock={activeSubjectLock}
+            currentGeneratingIndex={currentGeneratingChainIndex}
+            onGenerateNextSegment={handleGenerateNextChainedFromDeck}
+            onAssembleStoryToTimeline={handleSendChainedMovieToTimeline}
+            onOpenPreview={(url) => setPreviewingItem({
+              id: 'chain-preview-' + Date.now(),
+              type: 'sora_video',
+              title: 'Chained Story Scene',
+              url,
+              createdAt: new Date().toISOString(),
+              duration: 15,
+              resolution
+            })}
+            onUpdateSegmentPrompt={handleUpdateSegmentPrompt}
+          />
+        </div>
       </div>
+
+      {/* AI Director Pre-Flight Approval Modal */}
+      {showApprovalModal && approvalPayload && (
+        <DirectorPreFlightApprovalModal
+          isOpen={showApprovalModal}
+          onClose={() => setShowApprovalModal(false)}
+          payload={approvalPayload}
+          onApprove={handleExecuteApprovedGeneration}
+          availableCharacters={SUBJECT_LOCK_REGISTRY}
+        />
+      )}
 
       {/* Pin Character / Subject Selector Modal */}
       {showPinSubjectModal && (

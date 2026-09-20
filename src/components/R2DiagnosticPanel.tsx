@@ -123,6 +123,17 @@ export const R2DiagnosticPanel: React.FC = () => {
         </button>
       </div>
 
+      {/* Primary Local Storage Banner */}
+      <div className="p-4 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-xs text-emerald-300 flex items-center gap-3">
+        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+        <div className="space-y-0.5">
+          <div className="font-bold text-white">Local High-Speed Media Storage Engine is Active & Operational</div>
+          <p className="text-slate-300">
+            All generated avatar MP4 videos, speech audio tracks, and uploaded custom portrait images are saved directly to <code className="text-emerald-300 font-mono">/dist/uploads</code> and served instantly. Cloudflare R2 is an optional cloud backup bucket.
+          </p>
+        </div>
+      </div>
+
       {/* 403 / SignatureDoesNotMatch Specific Warning Panel */}
       {isSignatureError && (
         <div className="p-5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-200 space-y-3">

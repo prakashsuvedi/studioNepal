@@ -90,7 +90,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
   const activeScene = compositionState.activeScene;
   const activeSceneIndex = compositionState.activeSceneIndex;
   const nextScene = compositionState.nextScene;
-  const isTransitioning = compositionState.isTransition;
+  const isTransitioning = compositionState.isTransitioning;
   const transitionProgress = compositionState.transitionProgress;
 
   // Subscribe to performance metrics (TTFF, Jitter, Drops)

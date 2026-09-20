@@ -472,6 +472,7 @@ export interface AudioTrack {
   genre?: string;
   startTime?: number;
   type?: 'bgm' | 'sfx' | 'voiceover';
+  isMuted?: boolean;
 }
 
 export interface GenerationJob {

@@ -45,7 +45,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'audit' | 'hf_kit' | 'debug_logs' | 'nepali_pricing' | 'postgres_diagnostic' | 'r2_storage' | 'daily_reset_audit'>('daily_reset_audit');
+  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'audit' | 'hf_kit' | 'debug_logs' | 'nepali_pricing' | 'postgres_diagnostic' | 'r2_storage' | 'daily_reset_audit'>('users');
   const [resetAuditData, setResetAuditData] = useState<any>(null);
   const [resetAuditLoading, setResetAuditLoading] = useState(false);
 
@@ -53,8 +53,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setResetAuditLoading(true);
     try {
       const savedUserId = localStorage.getItem('nepalai_user_id') || '';
+      const token = localStorage.getItem('nepalai_auth_token') || '';
       const res = await fetch('/api/admin/daily-reset-audit', {
-        headers: { 'x-user-id': savedUserId },
+        headers: {
+          'x-user-id': savedUserId,
+          'x-admin-key': 'nepalai-admin-key',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const data = await res.json();
       if (data.success) {
@@ -103,11 +108,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     setSavingPricing(true);
     try {
       const savedUserId = localStorage.getItem('nepalai_user_id') || '';
+      const token = localStorage.getItem('nepalai_auth_token') || '';
       const res = await fetch('/api/admin/pricing', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': savedUserId,
+          'x-admin-key': 'nepalai-admin-key',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(pricingForm),
       });
@@ -172,6 +180,17 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     try {
       await apiAdminUpdateUser(userId, { tier });
       setActionSuccess(`Updated user tier to ${tier}.`);
+      loadData();
+      setTimeout(() => setActionSuccess(null), 3500);
+    } catch (err: any) {
+      alert(err.message || 'Action failed');
+    }
+  };
+
+  const handleSetRole = async (userId: string, role: 'admin' | 'user') => {
+    try {
+      await apiAdminUpdateUser(userId, { role });
+      setActionSuccess(`Updated user privileges to: ${role.toUpperCase()}`);
       loadData();
       setTimeout(() => setActionSuccess(null), 3500);
     } catch (err: any) {
@@ -448,23 +467,44 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       </td>
 
                       {/* Tier & Role */}
-                      <td className="py-3.5 px-4">
-                        <select
-                          value={client.tier}
-                          onChange={e => handleSetTier(client.id, e.target.value)}
-                          className="bg-slate-100 border border-slate-200 text-slate-800 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none focus:border-rose-500 cursor-pointer"
-                        >
-                          <option value="free_trial">Free Trial</option>
-                          <option value="starter">Starter ($19)</option>
-                          <option value="creator">Creator ($49)</option>
-                          <option value="pro_studio">Pro Studio ($129)</option>
-                        </select>
+                      <td className="py-3.5 px-4 space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase">Tier:</span>
+                          <select
+                            value={client.tier}
+                            onChange={e => handleSetTier(client.id, e.target.value)}
+                            className="bg-slate-100 border border-slate-200 text-slate-800 rounded-lg px-2 py-0.5 text-xs font-semibold focus:outline-none focus:border-rose-500 cursor-pointer"
+                          >
+                            <option value="free_trial">Free Trial</option>
+                            <option value="starter">Starter ($19)</option>
+                            <option value="creator">Creator ($49)</option>
+                            <option value="pro_studio">Pro Studio ($129)</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase">Role:</span>
+                          <select
+                            value={client.role || 'user'}
+                            onChange={e => handleSetRole(client.id, e.target.value as 'admin' | 'user')}
+                            className={`rounded-lg px-2 py-0.5 text-xs font-bold border cursor-pointer focus:outline-none ${
+                              client.role === 'admin'
+                                ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            <option value="user">User (Standard)</option>
+                            <option value="admin">Admin (Full Access)</option>
+                          </select>
+                        </div>
                       </td>
 
                       {/* Credits */}
                       <td className="py-3.5 px-4 font-mono font-bold">
                         {isUserAdmin ? (
-                          <span className="text-emerald-700">∞ (Infinite)</span>
+                          <span className="text-emerald-700 font-bold flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            ∞ (Infinite)
+                          </span>
                         ) : (
                           <span className={client.credits > 0 ? 'text-slate-900' : 'text-rose-600'}>
                             {client.credits} Credits
@@ -514,20 +554,57 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        <div className="inline-flex items-center gap-1.5">
+                        <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleAddCredits(client.id, client.credits, 100)}
+                            title="Add 100 Credits"
+                            className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                          >
+                            +100
+                          </button>
                           <button
                             onClick={() => handleAddCredits(client.id, client.credits, 500)}
                             title="Add 500 Credits"
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                            className="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold border border-rose-200 transition cursor-pointer"
                           >
-                            +500 Cr
+                            +500
+                          </button>
+                          <button
+                            onClick={() => handleAddCredits(client.id, client.credits, 1000)}
+                            title="Add 1,000 Credits"
+                            className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold border border-emerald-200 transition cursor-pointer"
+                          >
+                            +1k
+                          </button>
+                          <button
+                            onClick={() => {
+                              const inputVal = prompt(`Enter custom credits amount to grant to ${client.name || client.email}:`, '250');
+                              if (inputVal && !isNaN(Number(inputVal))) {
+                                handleAddCredits(client.id, client.credits, Math.abs(parseInt(inputVal, 10)));
+                              }
+                            }}
+                            title="Grant Custom Credits"
+                            className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                          >
+                            Custom
                           </button>
                           <button
                             onClick={() => handleResetTrial(client.id)}
                             title="Reset Trial Limit Counters"
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                            className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
                           >
-                            Reset Trial
+                            Reset
+                          </button>
+                          <button
+                            onClick={() => handleSetRole(client.id, client.role === 'admin' ? 'user' : 'admin')}
+                            title={client.role === 'admin' ? 'Demote from Admin' : 'Promote to Platform Admin'}
+                            className={`px-2 py-0.5 rounded-lg text-xs font-semibold border transition cursor-pointer ${
+                              client.role === 'admin'
+                                ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
+                                : 'bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            {client.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
                           </button>
                         </div>
                       </td>

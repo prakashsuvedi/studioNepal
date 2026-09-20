@@ -36,15 +36,15 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_01',
     userId: 'system',
-    name: 'Aarav Sharma',
+    name: 'Aarav Sharma (राष्ट्रिय समाचार प्रस्तोता)',
     category: 'stock',
     gender: 'male',
-    imageUrl: '/assets/avatars/aarav.jpg',
-    thumbnailUrl: '/assets/avatars/aarav.jpg',
+    imageUrl: '/assets/avatars/aarav_newsroom.jpg',
+    thumbnailUrl: '/assets/avatars/aarav_newsroom.jpg',
     defaultVoiceId: 'ne-NP-SagarNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'newsroom',
-    description: 'National News Anchor & Broadcast Presenter with authoritative tone.',
+    description: 'National Prime News Anchor (नेपाली पुरुष प्रस्तोता) - Crisp, authoritative broadcast voice.',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -57,15 +57,15 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_02',
     userId: 'system',
-    name: 'Hemkala Thapa',
+    name: 'Hemkala Thapa (वरिष्ठ महिला समाचार प्रस्तोता)',
     category: 'stock',
     gender: 'female',
-    imageUrl: '/assets/avatars/hemkala.jpg',
-    thumbnailUrl: '/assets/avatars/hemkala.jpg',
+    imageUrl: '/assets/avatars/hemkala_newsroom.jpg',
+    thumbnailUrl: '/assets/avatars/hemkala_newsroom.jpg',
     defaultVoiceId: 'ne-NP-HemkalaNeural',
     defaultLanguage: 'ne-NP',
-    stylePreset: 'office',
-    description: 'Academic Lecturer & Educational Presenter with warm articulate cadence.',
+    stylePreset: 'newsroom',
+    description: 'Senior Female Broadcast Anchor (नेपाली महिला प्रस्तोता) - Warm, articulate television voice.',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -78,7 +78,7 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_03',
     userId: 'system',
-    name: 'Sagar KC',
+    name: 'Sagar KC (प्रविधि तथा संवाद प्रस्तोता)',
     category: 'stock',
     gender: 'male',
     imageUrl: '/assets/avatars/sagar.jpg',
@@ -86,7 +86,7 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     defaultVoiceId: 'ne-NP-SagarNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'podcast',
-    description: 'Tech Reviewer & Startup Pitch Host with energetic modern delivery.',
+    description: 'Tech Reviewer & Morning Host (नेपाली प्रविधि प्रस्तोता) - Energetic modern delivery.',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -99,7 +99,7 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_04',
     userId: 'system',
-    name: 'Maya Gurung',
+    name: 'Maya Gurung (सांस्कृतिक तथा पर्यटन प्रस्तोता)',
     category: 'stock',
     gender: 'female',
     imageUrl: '/assets/avatars/maya.jpg',
@@ -107,7 +107,7 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     defaultVoiceId: 'ne-NP-HemkalaNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'kathmandu',
-    description: 'Cultural Ambassador & Himalayan Tourism Host in traditional attire.',
+    description: 'Cultural Ambassador & Tourism Host in traditional attire (नेपाली सांस्कृतिक प्रस्तोता).',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -120,7 +120,7 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_05',
     userId: 'system',
-    name: 'Rajesh Commercial Host',
+    name: 'Rajesh Shrestha (व्यापारिक तथा आर्थिक प्रस्तोता)',
     category: 'stock',
     gender: 'male',
     imageUrl: '/assets/avatars/rajesh.jpg',
@@ -128,7 +128,7 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
     defaultVoiceId: 'ne-NP-SagarNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'office',
-    description: 'Commercial Endorsement & High-Impact Brand Spokesperson.',
+    description: 'Commercial Endorsement & High-Impact Brand Spokesperson (नेपाली आर्थिक प्रस्तोता).',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -141,15 +141,15 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_06',
     userId: 'system',
-    name: 'Priya Adhikari',
+    name: 'Priya Adhikari (कर्पोरेट तथा नीति प्रस्तोता)',
     category: 'stock',
     gender: 'female',
-    imageUrl: '/assets/avatars/priya.jpg',
-    thumbnailUrl: '/assets/avatars/priya.jpg',
+    imageUrl: '/assets/avatars/hemkala.jpg',
+    thumbnailUrl: '/assets/avatars/hemkala.jpg',
     defaultVoiceId: 'ne-NP-HemkalaNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'office',
-    description: 'Executive Corporate Briefing & Financial Analyst Presenter.',
+    description: 'Executive Corporate Briefing & Financial Analyst Presenter (नेपाली महिला विश्लेषक).',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -162,15 +162,15 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
   {
     id: 'avt_stock_07',
     userId: 'system',
-    name: 'Kabir Sen',
+    name: 'Kabir Sen (वार्ता तथा बहस प्रस्तोता)',
     category: 'stock',
     gender: 'male',
-    imageUrl: '/assets/avatars/kabir.jpg',
-    thumbnailUrl: '/assets/avatars/kabir.jpg',
+    imageUrl: '/assets/avatars/aarav.jpg',
+    thumbnailUrl: '/assets/avatars/aarav.jpg',
     defaultVoiceId: 'ne-NP-SagarNeural',
     defaultLanguage: 'ne-NP',
     stylePreset: 'podcast',
-    description: 'In-Depth Podcast & Interview Host with thoughtful, conversational tone.',
+    description: 'In-Depth Podcast & Interview Host with thoughtful, conversational tone (नेपाली संवाद प्रस्तोता).',
     consentStatus: 'verified',
     consentTimestamp: '2026-01-01T00:00:00.000Z',
     consentLegalDeclaration: 'Platform Verified Stock Presenter - Licensed for Commercial Video Production',
@@ -1003,8 +1003,11 @@ class Database {
       };
     }
 
-    const packages = {
-      sasta_50_npr: { name: 'Sasta Micro-Pass (3 HD Images, 1x5m Video, 1x5m Audio)', price: 0.38, credits: 60 },
+    const packages: Record<string, { name: string; price: number; credits: number }> = {
+      sasta_50_npr: { name: 'Sasta Micro-Pass (60 Credits)', price: 0.38, credits: 60 },
+      pack_100_npr: { name: 'Power Micro-Pack (130 Credits)', price: 0.75, credits: 130 },
+      pack_200_npr: { name: 'Super Micro-Pack (280 Credits)', price: 1.50, credits: 280 },
+      pack_300_npr: { name: 'Mega Micro-Pack (450 Credits)', price: 2.25, credits: 450 },
       starter: { name: 'Starter Tier (500 Credits)', price: 19.0, credits: 500 },
       creator: { name: 'Creator Tier (1,800 Credits)', price: 49.0, credits: 1800 },
       pro_studio: { name: 'Pro Studio Tier (5,000 Credits)', price: 129.0, credits: 5000 },
@@ -1149,7 +1152,7 @@ class Database {
   // Process FonePay Merchant Payment
   public processFonePayPayment(
     userId: string,
-    packageId: 'sasta_50_npr' | 'starter' | 'creator' | 'pro_studio',
+    packageId: string,
     prn: string,
     fonepayTraceId?: string
   ): Transaction {
@@ -1165,14 +1168,17 @@ class Database {
     }
 
     const pricing = this.getPricingConfig();
-    const packages = {
-      sasta_50_npr: { name: 'Sasta Micro-Pass (3 HD Images, 1x5m Video, 1x5m Audio)', nprPrice: 50, credits: 60 },
+    const packages: Record<string, { name: string; nprPrice: number; credits: number }> = {
+      sasta_50_npr: { name: 'Sasta Micro-Pass (60 Credits)', nprPrice: 50, credits: 60 },
+      pack_100_npr: { name: 'Power Micro-Pack (130 Credits)', nprPrice: 100, credits: 130 },
+      pack_200_npr: { name: 'Super Micro-Pack (280 Credits)', nprPrice: 200, credits: 280 },
+      pack_300_npr: { name: 'Mega Micro-Pack (450 Credits)', nprPrice: 300, credits: 450 },
       starter: { name: 'Starter Tier (500 Credits)', nprPrice: pricing.starterNpr, credits: 500 },
       creator: { name: 'Creator Tier (1,800 Credits)', nprPrice: pricing.creatorNpr, credits: 1800 },
       pro_studio: { name: 'Pro Studio Tier (5,000 Credits)', nprPrice: pricing.proStudioNpr, credits: 5000 },
     };
 
-    const pkg = packages[packageId];
+    const pkg = packages[packageId] || packages.sasta_50_npr;
     const tx: Transaction = {
       id: `tx_fonepay_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId,
@@ -1187,7 +1193,7 @@ class Database {
       createdAt: new Date().toISOString(),
     };
 
-    user.tier = packageId === 'sasta_50_npr' ? 'starter' : packageId;
+    user.tier = packageId.startsWith('pack_') || packageId === 'sasta_50_npr' ? 'starter' : (packageId as User['tier']);
     user.credits += pkg.credits;
     user.updatedAt = new Date().toISOString();
 
@@ -1247,6 +1253,19 @@ class Database {
     if (user) {
       user.tier = tier;
       this.save(this.store);
+      this.syncUserToPostgres(user);
+    }
+  }
+
+  public adminSetRole(userId: string, role: User['role']) {
+    const user = this.getUserById(userId);
+    if (user) {
+      user.role = role;
+      if (role === 'admin') {
+        user.credits = 999999;
+      }
+      this.save(this.store);
+      this.syncUserToPostgres(user);
     }
   }
 }

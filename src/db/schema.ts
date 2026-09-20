@@ -45,7 +45,7 @@ export interface Transaction {
   id: string;
   userId: string;
   userEmail: string;
-  packageId: 'sasta_50_npr' | 'starter' | 'creator' | 'pro_studio';
+  packageId: 'sasta_50_npr' | 'pack_100_npr' | 'pack_200_npr' | 'pack_300_npr' | 'starter' | 'creator' | 'pro_studio' | string;
   packageName: string;
   amount: number; // USD
   currency: string;

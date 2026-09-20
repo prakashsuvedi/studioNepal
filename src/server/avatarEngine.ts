@@ -14,9 +14,13 @@ const execFileAsync = promisify(execFile);
 export interface GenerateAvatarVideoOptions {
   userId: string;
   avatarId: string;
+  secondaryAvatarId?: string;
+  studioMode?: 'solo' | 'dual_anchor' | 'storyteller';
+  realVideoPreset?: 'studio' | 'primetime' | string;
   script: string;
   language?: string;
   voiceId?: string;
+  secondaryVoiceId?: string;
   speed?: string;
   pitch?: string;
   aspectRatio?: '16:9' | '9:16' | '1:1';
@@ -216,12 +220,30 @@ function resolveSubtitleFont(): string {
   return 'Sans';
 }
 
-// Generate Executive Studio Chair SVG Overlay
-function generateExecutiveChairSvg(w: number, h: number, presTop: number, presH: number): Buffer {
-  const headrestY = presTop + Math.round(presH * 0.12);
+// Create Presenter Silhouette Mask to avoid rectangular photo cutout
+function createPresenterSilhouetteMask(w: number, h: number): Buffer {
+  return Buffer.from(`
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="softBottomFade" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="1.0" />
+          <stop offset="84%" stop-color="#ffffff" stop-opacity="1.0" />
+          <stop offset="96%" stop-color="#ffffff" stop-opacity="0.5" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+        </linearGradient>
+      </defs>
+      <!-- Shoulder Contour & Smooth Silhouette -->
+      <rect x="0" y="0" width="${w}" height="${h}" rx="${Math.round(w * 0.14)}" fill="url(#softBottomFade)" />
+    </svg>
+  `);
+}
+
+// Generate Executive Studio Chair SVG Overlay (Solo Anchor)
+function generateExecutiveChairSvg(w: number, h: number, presTop: number, presH: number, cxOverride?: number): Buffer {
+  const headrestY = presTop + Math.round(presH * 0.10);
   const headrestW = Math.round(w * 0.22);
   const headrestH = Math.round(presH * 0.18);
-  const cx = Math.round(w / 2);
+  const cx = cxOverride !== undefined ? cxOverride : Math.round(w / 2);
 
   return Buffer.from(`
     <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
@@ -248,7 +270,40 @@ function generateExecutiveChairSvg(w: number, h: number, presTop: number, presH:
   `);
 }
 
-// Generate Broadcast Newsroom Studio Desk SVG Overlay
+// Generate Dual Executive Chairs (Dual Anchor Studio)
+function generateDualExecutiveChairsSvg(w: number, h: number, presTop: number, presH: number, leftX: number, rightX: number, anchorW: number): Buffer {
+  const headrestH = Math.round(presH * 0.17);
+  const headrestW = Math.round(anchorW * 0.65);
+  const headrestY = presTop + Math.round(presH * 0.10);
+  const cxLeft = Math.round(leftX + anchorW / 2);
+  const cxRight = Math.round(rightX + anchorW / 2);
+
+  return Buffer.from(`
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="chairLeather" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1e2530" />
+          <stop offset="50%" stop-color="#0f1318" />
+          <stop offset="100%" stop-color="#080a0d" />
+        </linearGradient>
+        <linearGradient id="chromeAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#475569" />
+          <stop offset="50%" stop-color="#94a3b8" />
+          <stop offset="100%" stop-color="#334155" />
+        </linearGradient>
+      </defs>
+      <!-- Left Anchor Chair -->
+      <rect x="${cxLeft - headrestW / 2}" y="${headrestY}" width="${headrestW}" height="${headrestH}" rx="18" fill="url(#chairLeather)" stroke="url(#chromeAccent)" stroke-width="2" />
+      <path d="M ${cxLeft - headrestW * 0.65} ${headrestY + headrestH * 0.9} Q ${cxLeft} ${headrestY + headrestH * 0.7} ${cxLeft + headrestW * 0.65} ${headrestY + headrestH * 0.9} L ${cxLeft + headrestW * 0.75} ${headrestY + headrestH * 2.1} Q ${cxLeft} ${headrestY + headrestH * 1.9} ${cxLeft - headrestW * 0.75} ${headrestY + headrestH * 2.1} Z" fill="url(#chairLeather)" stroke="#1e293b" stroke-width="2" />
+      
+      <!-- Right Anchor Chair -->
+      <rect x="${cxRight - headrestW / 2}" y="${headrestY}" width="${headrestW}" height="${headrestH}" rx="18" fill="url(#chairLeather)" stroke="url(#chromeAccent)" stroke-width="2" />
+      <path d="M ${cxRight - headrestW * 0.65} ${headrestY + headrestH * 0.9} Q ${cxRight} ${headrestY + headrestH * 0.7} ${cxRight + headrestW * 0.65} ${headrestY + headrestH * 0.9} L ${cxRight + headrestW * 0.75} ${headrestY + headrestH * 2.1} Q ${cxRight} ${headrestY + headrestH * 1.9} ${cxRight - headrestW * 0.75} ${headrestY + headrestH * 2.1} Z" fill="url(#chairLeather)" stroke="#1e293b" stroke-width="2" />
+    </svg>
+  `);
+}
+
+// Generate Broadcast Newsroom Studio Desk SVG Overlay (Solo Anchor)
 function generateBroadcastDeskSvg(w: number, h: number): Buffer {
   const deskY = Math.round(h * 0.82);
   const midY = deskY - Math.round(h * 0.05);
@@ -299,6 +354,66 @@ function generateBroadcastDeskSvg(w: number, h: number): Buffer {
   `);
 }
 
+// Generate Dual Broadcast Newsroom Desk SVG Overlay (Two Anchors Talking)
+function generateDualBroadcastDeskSvg(w: number, h: number): Buffer {
+  const deskY = Math.round(h * 0.77);
+  const midY = deskY - Math.round(h * 0.04);
+  const micLeftX = Math.round(w * 0.35);
+  const micRightX = Math.round(w * 0.65);
+  const micY = deskY + 12;
+
+  return Buffer.from(`
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="deskGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b" stop-opacity="0.98" />
+          <stop offset="30%" stop-color="#0f172a" stop-opacity="0.99" />
+          <stop offset="100%" stop-color="#020617" stop-opacity="1.0" />
+        </linearGradient>
+        <linearGradient id="edgeGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#0284c7" stop-opacity="0.3" />
+          <stop offset="25%" stop-color="#38bdf8" stop-opacity="0.9" />
+          <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.95" />
+          <stop offset="75%" stop-color="#38bdf8" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#0284c7" stop-opacity="0.3" />
+        </linearGradient>
+        <linearGradient id="micMetal" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#334155" />
+          <stop offset="50%" stop-color="#64748b" />
+          <stop offset="100%" stop-color="#1e293b" />
+        </linearGradient>
+      </defs>
+      <!-- Wide Curved Broadcast Desk -->
+      <path d="M 0 ${deskY} Q ${w / 2} ${midY} ${w} ${deskY} L ${w} ${h} L 0 ${h} Z" fill="url(#deskGrad)" />
+      <path d="M 0 ${deskY} Q ${w / 2} ${midY} ${w} ${deskY}" stroke="url(#edgeGlow)" stroke-width="4" fill="none" />
+
+      <!-- Center Studio Badge / Screen -->
+      <rect x="${Math.round(w * 0.43)}" y="${deskY + 16}" width="${Math.round(w * 0.14)}" height="${Math.round(h * 0.08)}" rx="6" fill="#020617" stroke="#38bdf8" stroke-width="1.5" opacity="0.85" />
+      <text x="${Math.round(w * 0.50)}" y="${deskY + 42}" font-family="sans-serif" font-size="12" font-weight="bold" fill="#38bdf8" text-anchor="middle" letter-spacing="1">NEPALAI NEWSROOM</text>
+
+      <!-- Left Anchor Tablet / Notes -->
+      <rect x="${Math.round(w * 0.18)}" y="${deskY + 14}" width="${Math.round(w * 0.10)}" height="${Math.round(h * 0.08)}" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" transform="rotate(-6 ${Math.round(w * 0.23)} ${deskY + 30})" />
+      <rect x="${Math.round(w * 0.19)}" y="${deskY + 20}" width="${Math.round(w * 0.08)}" height="4" rx="2" fill="#38bdf8" opacity="0.6" transform="rotate(-6 ${Math.round(w * 0.23)} ${deskY + 30})" />
+
+      <!-- Right Anchor Tablet / Notes -->
+      <rect x="${Math.round(w * 0.72)}" y="${deskY + 14}" width="${Math.round(w * 0.10)}" height="${Math.round(h * 0.08)}" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" transform="rotate(6 ${Math.round(w * 0.77)} ${deskY + 30})" />
+      <rect x="${Math.round(w * 0.73)}" y="${deskY + 20}" width="${Math.round(w * 0.08)}" height="4" rx="2" fill="#f59e0b" opacity="0.6" transform="rotate(6 ${Math.round(w * 0.77)} ${deskY + 30})" />
+
+      <!-- Left Condenser Gooseneck Mic with On-Air Ring -->
+      <ellipse cx="${micLeftX}" cy="${micY}" rx="18" ry="6" fill="#090d16" stroke="#475569" stroke-width="1" />
+      <path d="M ${micLeftX} ${micY} Q ${micLeftX + 10} ${micY - 45} ${micLeftX + 20} ${micY - 80}" stroke="#1e293b" stroke-width="5" fill="none" stroke-linecap="round" />
+      <rect x="${micLeftX + 12}" y="${micY - 110}" width="16" height="30" rx="8" fill="url(#micMetal)" stroke="#0f172a" stroke-width="1" transform="rotate(12 ${micLeftX + 20} ${micY - 95})" />
+      <rect x="${micLeftX + 13}" y="${micY - 84}" width="14" height="3" rx="1" fill="#ef4444" transform="rotate(12 ${micLeftX + 20} ${micY - 95})" />
+
+      <!-- Right Condenser Gooseneck Mic with On-Air Ring -->
+      <ellipse cx="${micRightX}" cy="${micY}" rx="18" ry="6" fill="#090d16" stroke="#475569" stroke-width="1" />
+      <path d="M ${micRightX} ${micY} Q ${micRightX - 10} ${micY - 45} ${micRightX - 20} ${micY - 80}" stroke="#1e293b" stroke-width="5" fill="none" stroke-linecap="round" />
+      <rect x="${micRightX - 28}" y="${micY - 110}" width="16" height="30" rx="8" fill="url(#micMetal)" stroke="#0f172a" stroke-width="1" transform="rotate(-12 ${micRightX - 20} ${micY - 95})" />
+      <rect x="${micRightX - 27}" y="${micY - 84}" width="14" height="3" rx="1" fill="#ef4444" transform="rotate(-12 ${micRightX - 20} ${micY - 95})" />
+    </svg>
+  `);
+}
+
 // Format Script for Subtitle Lower-Third Card
 function formatScriptForSubtitles(script: string, maxLineLength = 50): string {
   const words = script.replace(/\s+/g, ' ').trim().split(' ');
@@ -311,13 +426,60 @@ function formatScriptForSubtitles(script: string, maxLineLength = 50): string {
     } else {
       if (currentLine) lines.push(currentLine);
       currentLine = word;
-      if (lines.length >= 3) break; // 3 lines max for comfortable reading
+      if (lines.length >= 3) break;
     }
   }
   if (currentLine && lines.length < 3) {
     lines.push(currentLine);
   }
   return lines.join('\n');
+}
+
+// Parse dialogue turns for Dual-Anchor Mode
+interface DialogueTurn {
+  speaker: 1 | 2;
+  speakerName: string;
+  text: string;
+}
+
+function parseDialogueTurns(script: string, name1: string, name2: string): DialogueTurn[] {
+  const rawLines = script.split('\n').map((l) => l.trim()).filter(Boolean);
+  const turns: DialogueTurn[] = [];
+
+  const firstName1 = name1.toLowerCase().split(' ')[0];
+  const firstName2 = name2.toLowerCase().split(' ')[0];
+
+  for (const line of rawLines) {
+    const colonIdx = line.indexOf(':');
+    if (colonIdx > 0 && colonIdx < 30) {
+      const prefix = line.substring(0, colonIdx).toLowerCase().trim();
+      const text = line.substring(colonIdx + 1).trim();
+      if (!text) continue;
+
+      if (
+        prefix.includes(firstName2) ||
+        prefix.includes('anchor 2') ||
+        prefix.includes('host 2') ||
+        prefix.includes('co-host') ||
+        prefix.includes('right')
+      ) {
+        turns.push({ speaker: 2, speakerName: name2, text });
+      } else {
+        turns.push({ speaker: 1, speakerName: name1, text });
+      }
+    } else {
+      // Split alternating sentences if no colon prefix
+      const lastSpeaker = turns.length > 0 ? turns[turns.length - 1].speaker : 2;
+      const nextSpeaker = lastSpeaker === 1 ? 2 : 1;
+      turns.push({ speaker: nextSpeaker, speakerName: nextSpeaker === 1 ? name1 : name2, text: line });
+    }
+  }
+
+  if (turns.length === 0) {
+    turns.push({ speaker: 1, speakerName: name1, text: script });
+  }
+
+  return turns;
 }
 
 export class AvatarEngine {
@@ -328,9 +490,12 @@ export class AvatarEngine {
     const {
       userId,
       avatarId,
+      secondaryAvatarId,
+      studioMode = 'solo',
       script,
       language = 'ne-NP',
       voiceId = 'ne-NP-HemkalaNeural',
+      secondaryVoiceId = 'ne-NP-SagarNeural',
       speed = 'normal',
       pitch = '0%',
       aspectRatio = '16:9',
@@ -350,6 +515,9 @@ export class AvatarEngine {
       throw new Error(`Avatar with ID "${avatarId}" not found.`);
     }
 
+    const secondaryAvatar = secondaryAvatarId ? db.getAvatarById(secondaryAvatarId) : null;
+    const isDualAnchor = studioMode === 'dual_anchor' && Boolean(secondaryAvatar);
+
     const user = db.getUserById(userId);
     const usage = db.getTrialUsage(userId);
     const freeAvatarUsed = Boolean((usage as any).freeAvatarRenderUsed || ((usage as any).avatarCount && (usage as any).avatarCount >= 1));
@@ -363,7 +531,7 @@ export class AvatarEngine {
       id: jobId,
       userId,
       avatarId: avatar.id,
-      avatarName: avatar.name,
+      avatarName: isDualAnchor ? `${avatar.name} & ${secondaryAvatar?.name}` : avatar.name,
       avatarImageUrl: avatar.imageUrl,
       script,
       language,
@@ -385,128 +553,127 @@ export class AvatarEngine {
     }
 
     try {
-      // Step 2: Synthesize Voiceover Audio using the verified TTS engine
-      console.log(`[AvatarEngine] Synthesizing speech track for Avatar "${avatar.name}" (${language}, ${voiceId})...`);
       db.updateAvatarJob(jobId, { progress: 20 });
 
-      const audioResult = await serverGenerateAudio({
-        text: script,
-        voiceId,
-        language: (language === 'en-US' ? 'en-US' : 'ne-NP') as 'ne-NP' | 'en-US',
-        speed,
-        pitch,
-      });
-      if (!audioResult || !audioResult.url) {
-        throw new Error('Audio voiceover synthesis failed.');
-      }
+      // Step 2: Synthesize Voiceover Audio
+      const scratchAudioPath = path.join(scratchDir, 'voiceover.wav');
+      let exactDuration = 5;
+      let dialogueTurns: DialogueTurn[] = [];
+      const turnTimeRanges: Array<{ speaker: 1 | 2; startFrame: number; endFrame: number }> = [];
 
-      // Write audio to temporary scratch WAV/MP3 file
-      const rawExt = audioResult.filename ? path.extname(audioResult.filename) : (audioResult.format?.toLowerCase().includes('wav') ? '.wav' : '.mp3');
-      const scratchAudioPath = path.join(scratchDir, `voiceover${rawExt || '.mp3'}`);
-      if (audioResult.url.startsWith('data:')) {
-        const commaIdx = audioResult.url.indexOf(',');
-        const base64Data = commaIdx !== -1 ? audioResult.url.slice(commaIdx + 1) : audioResult.url;
-        fs.writeFileSync(scratchAudioPath, Buffer.from(base64Data, 'base64'));
-      } else if (audioResult.filename) {
-        const localCandidates = [
-          path.join(DATA_STORAGE_DIR, audioResult.filename),
-          path.join(PUBLIC_UPLOADS_DIR, audioResult.filename),
-          path.join(STORAGE_UPLOADS_DIR, audioResult.filename),
-        ];
-        let found = false;
-        for (const cand of localCandidates) {
+      if (isDualAnchor && secondaryAvatar) {
+        console.log(`[AvatarEngine] Synthesizing dual-anchor dialogue (${avatar.name} & ${secondaryAvatar.name})...`);
+        dialogueTurns = parseDialogueTurns(script, avatar.name, secondaryAvatar.name);
+
+        const turnAudioFiles: string[] = [];
+        let accumulatedFrames = 0;
+
+        for (let i = 0; i < dialogueTurns.length; i++) {
+          const turn = dialogueTurns[i];
+          const turnVoice = turn.speaker === 1 ? voiceId : secondaryVoiceId;
+          const turnResult = await serverGenerateAudio({
+            text: turn.text,
+            voiceId: turnVoice,
+            language: (language === 'en-US' ? 'en-US' : 'ne-NP') as 'ne-NP' | 'en-US',
+            speed,
+            pitch,
+          });
+
+          const turnPath = path.join(scratchDir, `turn_${i}.wav`);
+          if (turnResult.url.startsWith('data:')) {
+            const commaIdx = turnResult.url.indexOf(',');
+            const base64Data = commaIdx !== -1 ? turnResult.url.slice(commaIdx + 1) : turnResult.url;
+            fs.writeFileSync(turnPath, Buffer.from(base64Data, 'base64'));
+          } else if (turnResult.filename) {
+            const cand = path.join(DATA_STORAGE_DIR, turnResult.filename);
+            if (fs.existsSync(cand)) {
+              fs.copyFileSync(cand, turnPath);
+            }
+          }
+
+          const turnProbe = await probeMedia(turnPath);
+          const turnDuration = Math.max(0.5, turnProbe.duration);
+          const turnFrames = Math.round(turnDuration * 25);
+
+          turnTimeRanges.push({
+            speaker: turn.speaker,
+            startFrame: accumulatedFrames,
+            endFrame: accumulatedFrames + turnFrames,
+          });
+          accumulatedFrames += turnFrames;
+          turnAudioFiles.push(turnPath);
+        }
+
+        // Concat turn audio tracks
+        const concatListPath = path.join(scratchDir, 'concat_list.txt');
+        const listContent = turnAudioFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n');
+        fs.writeFileSync(concatListPath, listContent);
+
+        await execFileAsync('ffmpeg', [
+          '-y', '-f', 'concat', '-safe', '0', '-i', concatListPath,
+          '-c:a', 'pcm_s16le', '-ar', '16000', '-ac', '1', scratchAudioPath,
+        ]);
+
+        const probedMaster = await probeMedia(scratchAudioPath);
+        exactDuration = probedMaster.duration || Math.max(5, accumulatedFrames / 25);
+      } else {
+        // Solo / Storyteller speech synthesis
+        console.log(`[AvatarEngine] Synthesizing speech track for Avatar "${avatar.name}" (${language}, ${voiceId})...`);
+        const audioResult = await serverGenerateAudio({
+          text: script,
+          voiceId,
+          language: (language === 'en-US' ? 'en-US' : 'ne-NP') as 'ne-NP' | 'en-US',
+          speed,
+          pitch,
+        });
+
+        if (audioResult.url.startsWith('data:')) {
+          const commaIdx = audioResult.url.indexOf(',');
+          const base64Data = commaIdx !== -1 ? audioResult.url.slice(commaIdx + 1) : audioResult.url;
+          fs.writeFileSync(scratchAudioPath, Buffer.from(base64Data, 'base64'));
+        } else if (audioResult.filename) {
+          const cand = path.join(DATA_STORAGE_DIR, audioResult.filename);
           if (fs.existsSync(cand)) {
             fs.copyFileSync(cand, scratchAudioPath);
-            found = true;
-            break;
           }
         }
-        if (!found) {
-          const fullUrl = `http://127.0.0.1:3000/api/storage/file/${audioResult.filename}`;
-          const audioBuf = await fetch(fullUrl).then((r) => r.arrayBuffer());
-          fs.writeFileSync(scratchAudioPath, Buffer.from(audioBuf));
-        }
-      } else if (audioResult.url.startsWith('http://') || audioResult.url.startsWith('https://')) {
-        const audioBuf = await fetch(audioResult.url).then((r) => r.arrayBuffer());
-        fs.writeFileSync(scratchAudioPath, Buffer.from(audioBuf));
-      } else if (audioResult.url.startsWith('/')) {
-        const fn = path.basename(audioResult.url);
-        const rel = audioResult.url.replace(/^\//, '');
-        const candidates = [
-          path.join(DATA_STORAGE_DIR, fn),
-          path.join(PUBLIC_UPLOADS_DIR, fn),
-          path.join(STORAGE_UPLOADS_DIR, fn),
-          path.join(process.cwd(), 'dist', rel),
-          path.join(process.cwd(), 'public', rel),
-          path.join(process.cwd(), rel),
-        ];
-        let copied = false;
-        for (const c of candidates) {
-          if (fs.existsSync(c)) {
-            fs.copyFileSync(c, scratchAudioPath);
-            copied = true;
-            break;
-          }
-        }
-        if (!copied) {
-          const fullUrl = `http://127.0.0.1:3000${audioResult.url}`;
-          const audioBuf = await fetch(fullUrl).then((r) => r.arrayBuffer());
-          fs.writeFileSync(scratchAudioPath, Buffer.from(audioBuf));
-        }
+
+        const probedMaster = await probeMedia(scratchAudioPath);
+        exactDuration = Math.max(2, probedMaster.duration || 5);
       }
 
-      // Measure exact audio duration
-      const audioProbe = await probeMedia(scratchAudioPath);
-      const exactDuration = Math.max(audioProbe.duration || audioResult.duration || 4, 3);
-      console.log(`[AvatarEngine] Audio track ready: ${exactDuration.toFixed(2)}s`);
+      // Step 3: Resolve Assets & Dimensions
+      db.updateAvatarJob(jobId, { progress: 40 });
+      const presenter1ImagePath = await resolveImageToLocalFile(avatar.imageUrl, scratchDir, 'presenter1.jpg');
+      const presenter2ImagePath = (isDualAnchor && secondaryAvatar)
+        ? await resolveImageToLocalFile(secondaryAvatar.imageUrl, scratchDir, 'presenter2.jpg')
+        : null;
 
-      db.updateAvatarJob(jobId, { progress: 45, durationSeconds: exactDuration, audioUrl: audioResult.url });
-
-      // Step 3: Resolve Assets (Presenter Photo, Studio Background, Font, Watermark)
-      const presenterImagePath = await resolveImageToLocalFile(avatar.imageUrl, scratchDir, 'presenter.jpg');
       const bgImagePath = await resolveBackgroundImage(backgroundPreset, customBackgroundUrl, scratchDir);
-      const watermarkPath = showWatermark ? resolveWatermarkImage() : null;
+      const watermarkPath = resolveWatermarkImage();
       const fontPath = resolveSubtitleFont();
 
-      // Format script for lower-third subtitle banner
-      const formattedScript = formatScriptForSubtitles(script);
-      const scriptTextPath = path.join(scratchDir, 'subtitles.txt');
-      fs.writeFileSync(scriptTextPath, formattedScript, 'utf-8');
-
-      // Determine video canvas and presenter dimensions based on aspect ratio
       let width = 1280;
       let height = 720;
-      let presW = 560;
-      let presH = 700;
-      let presX = `(W-w)/2 + 2*sin(t*1.5)`;
-      let presY = `H-h + 10`;
       let cardX = 40;
-      let cardY = height - 136;
+      let cardY = height - 120;
       let cardW = width - 80;
-      let cardH = 96;
+      let cardH = 92;
       let titleFontSize = 18;
-      let scriptFontSize = 21;
+      let scriptFontSize = 20;
 
-      if (aspectRatio === '9:16') {
+      if (aspectRatio === '9:16' && !isDualAnchor) {
         width = 720;
         height = 1280;
-        presW = 680;
-        presH = 880;
-        presX = `(W-w)/2`;
-        presY = `H-h - 40`;
         cardX = 24;
-        cardY = height - 170;
+        cardY = height - 200;
         cardW = width - 48;
         cardH = 110;
         titleFontSize = 20;
         scriptFontSize = 23;
-      } else if (aspectRatio === '1:1') {
+      } else if (aspectRatio === '1:1' && !isDualAnchor) {
         width = 1080;
         height = 1080;
-        presW = 760;
-        presH = 920;
-        presX = `(W-w)/2`;
-        presY = `H-h + 10`;
         cardX = 36;
         cardY = height - 150;
         cardW = width - 72;
@@ -515,213 +682,137 @@ export class AvatarEngine {
         scriptFontSize = 22;
       }
 
+      // Format script subtitle text
+      const scriptSubtitles = formatScriptForSubtitles(script, Math.round(cardW / (scriptFontSize * 0.65)));
+      const scriptTextPath = path.join(scratchDir, 'script_subtitle.txt');
+      fs.writeFileSync(scriptTextPath, scriptSubtitles, 'utf8');
+
+      const pass1OutputFile = path.join(scratchDir, 'lipsync_raw.mp4');
+
+      // Resolve Real Presenter Studio Video Source
+      let sourceVideoPath = '';
+      if (isDualAnchor) {
+        if (options.realVideoPreset === 'primetime' || (avatar.id === 'avt_stock_03' && secondaryAvatar?.id === 'avt_stock_04')) {
+          sourceVideoPath = path.join(process.cwd(), 'public', 'samples', 'dual_anchor_primetime_16s.mp4');
+        } else {
+          sourceVideoPath = path.join(process.cwd(), 'public', 'samples', 'dual_anchor_studio_16s.mp4');
+        }
+      } else if (avatar.id === 'avt_stock_01' || avatar.name?.toLowerCase().includes('aarav')) {
+        sourceVideoPath = path.join(process.cwd(), 'public', 'samples', 'news_anchor_aarav_studio.mp4');
+      } else if (avatar.id === 'avt_stock_02' || avatar.name?.toLowerCase().includes('hemkala')) {
+        sourceVideoPath = path.join(process.cwd(), 'public', 'samples', 'news_anchor_hemkala_studio.mp4');
+      } else if (avatar.id === 'avt_stock_03' || avatar.name?.toLowerCase().includes('sagar')) {
+        sourceVideoPath = path.join(process.cwd(), 'public', 'samples', 'news_anchor_sagar_studio.mp4');
+      } else if (avatar.id === 'avt_stock_04' || avatar.name?.toLowerCase().includes('maya')) {
+        sourceVideoPath = path.join(process.cwd(), 'public', 'samples', 'storyteller_maya_studio.mp4');
+      } else if (avatar.id === 'avt_stock_05' || avatar.name?.toLowerCase().includes('rajesh')) {
+        sourceVideoPath = path.join(process.cwd(), 'public', 'samples', 'spokesperson_rajesh_studio.mp4');
+      } else if (options.realVideoPreset && fs.existsSync(options.realVideoPreset)) {
+        sourceVideoPath = options.realVideoPreset;
+      }
+
+      // Check if resolved source video exists on disk
+      let hasRealVideoSource = Boolean(sourceVideoPath && fs.existsSync(sourceVideoPath) && fs.statSync(sourceVideoPath).size > 20000);
+
+      if (!hasRealVideoSource) {
+        // Synthesize high-definition broadcast studio video frame for custom avatar image
+        console.log(`[AvatarEngine] Synthesizing broadcast presenter video for ${avatar.name}...`);
+        const customBg = await sharp(bgImagePath).resize(1280, 720, { fit: 'cover' }).blur(1.2).toBuffer();
+        const customAv = await sharp(presenter1ImagePath).resize(520, 640, { fit: 'cover', position: 'top' }).toBuffer();
+        const customDeskSvg = Buffer.from(`
+          <svg width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="soloDesk" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#1e293b" stop-opacity="0.98" />
+                <stop offset="100%" stop-color="#020617" stop-opacity="1.0" />
+              </linearGradient>
+              <linearGradient id="soloGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0284c7" stop-opacity="0.3" />
+                <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.95" />
+                <stop offset="100%" stop-color="#0284c7" stop-opacity="0.3" />
+              </linearGradient>
+            </defs>
+            <path d="M 0 580 Q 640 545 1280 580 L 1280 720 L 0 720 Z" fill="url(#soloDesk)" />
+            <path d="M 0 580 Q 640 545 1280 580" stroke="url(#soloGlow)" stroke-width="4" fill="none" />
+            <ellipse cx="860" cy="595" rx="22" ry="7" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+            <path d="M 860 595 Q 850 545 835 505" stroke="#334155" stroke-width="6" fill="none" stroke-linecap="round" />
+            <rect x="825" y="470" width="18" height="36" rx="9" fill="#64748b" stroke="#0f172a" stroke-width="1" transform="rotate(-15 835 490)" />
+            <rect x="827" y="503" width="14" height="3" rx="1" fill="#ef4444" transform="rotate(-15 835 490)" />
+          </svg>
+        `);
+        const deskBuf = await sharp(customDeskSvg).png().toBuffer();
+        const customComp = await sharp(customBg)
+          .composite([
+            { input: customAv, top: 120, left: 380 },
+            { input: deskBuf, top: 0, left: 0 }
+          ])
+          .jpeg({ quality: 92 })
+          .toBuffer();
+
+        const customFramePath = path.join(scratchDir, 'custom_broadcast_frame.jpg');
+        fs.writeFileSync(customFramePath, customComp);
+
+        sourceVideoPath = path.join(scratchDir, 'custom_studio_loop.mp4');
+        const zoompanFilter = 'scale=1280:720,zoompan=z=\'if(lte(zoom,1.0),1.05,max(1.001,zoom-0.00025))\':d=400:x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':s=1280x720:fps=25';
+
+        execSync(`ffmpeg -y -loop 1 -i "${customFramePath}" -f lavfi -i anullsrc=r=44100:cl=stereo -vf "${zoompanFilter}" -t 16 -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -c:a aac -shortest "${sourceVideoPath}"`);
+        hasRealVideoSource = true;
+      }
+
+      console.log(`[AvatarEngine] Rendering REAL BROADCAST presenter video from ${sourceVideoPath} (${exactDuration.toFixed(1)}s)...`);
+      db.updateAvatarJob(jobId, { progress: 70 });
+
+      // Step 4: Stream Mux Presenter Video with Synchronized Studio Voiceover
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg()
+          .input(sourceVideoPath)
+          .inputOptions(['-stream_loop -1'])
+          .input(scratchAudioPath)
+          .outputOptions([
+            `-t ${exactDuration}`,
+            '-map 0:v:0',
+            '-map 1:a:0',
+            '-c:v libx264',
+            '-preset veryfast',
+            '-crf 20',
+            '-pix_fmt yuv420p',
+            '-c:a aac',
+            '-b:a 192k',
+            '-movflags +faststart',
+          ])
+          .output(pass1OutputFile)
+          .on('end', () => resolve())
+          .on('error', (err) => {
+            console.error('[AvatarEngine] Presenter video mux error:', err);
+            reject(err);
+          })
+          .run();
+      });
+
+      db.updateAvatarJob(jobId, { progress: 85 });
+
+      // Step 5: Final Pass - Television Broadcast Lower-Third Banner, On-Air Badge, and Watermark
       const outputFileName = `avatar_vid_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.mp4`;
       const outputPublicPath = path.join(PUBLIC_UPLOADS_DIR, outputFileName);
       const outputDistPath = path.join(STORAGE_UPLOADS_DIR, outputFileName);
 
-      // Step 4: Audio-Driven Lipsync & Pose Rendering Pipeline
-      console.log(`[AvatarEngine] Rendering presenter studio video (${width}x${height}, ${exactDuration.toFixed(2)}s, pose: ${pose}, bg: ${backgroundPreset}, watermark: ${showWatermark})...`);
-      db.updateAvatarJob(jobId, { progress: 60 });
+      const presenterTitle = isDualAnchor
+        ? `प्रस्तोता: ${avatar.name.replace(/['":\\]/g, '')} र ${secondaryAvatar?.name.replace(/['":\\]/g, '')} | नेपाल टेलिभिजन समाचार`
+        : `प्रस्तोता: ${avatar.name.replace(/['":\\]/g, '')} | ${(avatar as any).role || 'राष्ट्रिय समाचार'}`;
 
-      // 4.1 Decode audio track to 16kHz mono PCM for energy analysis
-      const pcmBuffer = execSync(`ffmpeg -v error -i "${scratchAudioPath}" -f s16le -ac 1 -ar 16000 pipe:1`);
-      const sampleCount = Math.floor(pcmBuffer.length / 2);
-      const samples = new Int16Array(pcmBuffer.buffer, pcmBuffer.byteOffset, sampleCount);
-      const samplesPerFrame = 640; // 16000 / 25 fps
-      const totalFrames = Math.max(1, Math.floor(sampleCount / samplesPerFrame));
-
-      const energies: number[] = [];
-      let maxRms = 0.0001;
-      for (let i = 0; i < totalFrames; i++) {
-        const start = i * samplesPerFrame;
-        let sumSq = 0;
-        for (let j = 0; j < samplesPerFrame; j++) {
-          const s = samples[start + j] || 0;
-          sumSq += s * s;
-        }
-        const rms = Math.sqrt(sumSq / samplesPerFrame);
-        energies.push(rms);
-        if (rms > maxRms) maxRms = rms;
-      }
-
-      // 4.2 Normalize presenter image to exact presenter size (presW, presH)
-      const normalizedPresenter = await sharp(presenterImagePath)
-        .rotate()
-        .resize(presW, presH, { fit: 'cover' })
-        .toBuffer();
-
-      const mouthX = Math.round(presW * 0.50);
-      const mouthY = Math.round(presH * 0.58);
-      const mouthW = Math.round(presW * 0.155);
-
-      const eyeL = Math.round(presW * 0.437);
-      const eyeR = Math.round(presW * 0.563);
-      const eyeY = Math.round(presH * 0.37);
-
-      const lipsyncOverlays: Buffer[] = [
-        // Level 0: Rest (Closed mouth)
-        Buffer.from(`<svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg"></svg>`),
-        // Level 1: Soft open
-        Buffer.from(`
-          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="${mouthX}" cy="${mouthY}" rx="${mouthW * 0.48}" ry="${mouthW * 0.16}" fill="#2a080c" />
-            <path d="M ${mouthX - mouthW * 0.32} ${mouthY - 1} Q ${mouthX} ${mouthY + 1} ${mouthX + mouthW * 0.32} ${mouthY - 1}" stroke="#f8fafc" stroke-width="2.5" opacity="0.9" fill="none" />
-            <path d="M ${mouthX - mouthW * 0.48} ${mouthY} Q ${mouthX} ${mouthY - mouthW * 0.18} ${mouthX + mouthW * 0.48} ${mouthY}" stroke="#e21d48" stroke-width="3" fill="none" />
-          </svg>
-        `),
-        // Level 2: Mid open with teeth & tongue
-        Buffer.from(`
-          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="${mouthX}" cy="${mouthY + 1}" rx="${mouthW * 0.54}" ry="${mouthW * 0.30}" fill="#1a0306" />
-            <path d="M ${mouthX - mouthW * 0.42} ${mouthY - 3} Q ${mouthX} ${mouthY} ${mouthX + mouthW * 0.42} ${mouthY - 3}" stroke="#ffffff" stroke-width="4" opacity="0.95" fill="none" />
-            <path d="M ${mouthX - mouthW * 0.30} ${mouthY + mouthW * 0.14} Q ${mouthX} ${mouthY + mouthW * 0.08} ${mouthX + mouthW * 0.30} ${mouthY + mouthW * 0.14}" fill="#f43f5e" opacity="0.85" />
-            <path d="M ${mouthX - mouthW * 0.54} ${mouthY} Q ${mouthX} ${mouthY - mouthW * 0.22} ${mouthX + mouthW * 0.54} ${mouthY}" stroke="#be123c" stroke-width="3.5" fill="none" />
-          </svg>
-        `),
-        // Level 3: Open vowel mouth
-        Buffer.from(`
-          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="${mouthX}" cy="${mouthY + 2}" rx="${mouthW * 0.58}" ry="${mouthW * 0.42}" fill="#0f0204" />
-            <path d="M ${mouthX - mouthW * 0.46} ${mouthY - 5} Q ${mouthX} ${mouthY - 2} ${mouthX + mouthW * 0.46} ${mouthY - 5}" stroke="#ffffff" stroke-width="5" fill="none" />
-            <path d="M ${mouthX - mouthW * 0.38} ${mouthY + mouthW * 0.22} Q ${mouthX} ${mouthY + mouthW * 0.10} ${mouthX + mouthW * 0.38} ${mouthY + mouthW * 0.22}" fill="#fb7185" opacity="0.9" />
-            <path d="M ${mouthX - mouthW * 0.58} ${mouthY} Q ${mouthX} ${mouthY - mouthW * 0.28} ${mouthX + mouthW * 0.58} ${mouthY}" stroke="#9f1239" stroke-width="4" fill="none" />
-          </svg>
-        `),
-        // Level 4: Articulate / round
-        Buffer.from(`
-          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="${mouthX}" cy="${mouthY + 2}" rx="${mouthW * 0.36}" ry="${mouthW * 0.38}" fill="#180205" stroke="#be123c" stroke-width="3" />
-            <path d="M ${mouthX - mouthW * 0.22} ${mouthY - 4} Q ${mouthX} ${mouthY - 2} ${mouthX + mouthW * 0.22} ${mouthY - 4}" stroke="#ffffff" stroke-width="3.5" fill="none" />
-          </svg>
-        `),
-        // Level 5: Natural Blink
-        Buffer.from(`
-          <svg width="${presW}" height="${presH}" xmlns="http://www.w3.org/2000/svg">
-            <path d="M ${eyeL - 26} ${eyeY} Q ${eyeL} ${eyeY + 12} ${eyeL + 26} ${eyeY}" stroke="#475569" stroke-width="4" fill="none" stroke-linecap="round" />
-            <path d="M ${eyeR - 26} ${eyeY} Q ${eyeR} ${eyeY + 12} ${eyeR + 26} ${eyeY}" stroke="#475569" stroke-width="4" fill="none" stroke-linecap="round" />
-          </svg>
-        `),
+      const filterParts: string[] = [
+        // Live On-Air Badge (Top Left)
+        `[0:v]drawbox=x=36:y=32:w=190:h=38:color=#0f172a@0.90:t=fill,` +
+        `drawbox=x=36:y=32:w=190:h=3:color=#ef4444@1.0:t=fill,` +
+        `drawtext=fontfile='${fontPath}':text='🔴 LIVE | NEPALAI NEWS':fontsize=14:fontcolor=white:x=48:y=44,` +
+        // Presenter Lower-Third Background Card
+        `drawbox=x=${cardX}:y=${cardY}:w=${cardW}:h=${cardH}:color=black@0.85:t=fill,` +
+        `drawbox=x=${cardX}:y=${cardY}:w=${cardW}:h=3:color=#0284c7@0.95:t=fill,` +
+        // Presenter Name Tag
+        `drawtext=fontfile='${fontPath}':text='${presenterTitle}':fontsize=${titleFontSize}:fontcolor=#38bdf8:x=${cardX + 24}:y=${cardY + 12},` +
+        // Teleprompter Read-Along Subtitle Text
+        `drawtext=fontfile='${fontPath}':textfile='${scriptTextPath}':fontsize=${scriptFontSize}:fontcolor=white:x=${cardX + 24}:y=${cardY + 38}:line_spacing=5[graded]`,
       ];
-
-      // Build 6 face buffers scaled to presW, presH
-      const faceBuffers: Buffer[] = [];
-      for (const svgBuf of lipsyncOverlays) {
-        const face = await sharp(normalizedPresenter)
-          .composite([{ input: svgBuf, top: 0, left: 0 }])
-          .toBuffer();
-        faceBuffers.push(face);
-      }
-
-      // 4.3 Prepare studio background with depth blur and pose overlays
-      const rawBg = await sharp(bgImagePath)
-        .resize(width, height, { fit: 'cover' })
-        .blur(1.8)
-        .toBuffer();
-
-      const presYVal = aspectRatio === '9:16' ? height - presH - 40 : height - presH + 10;
-      let baseBg = rawBg;
-      let deskBuf: Buffer | null = null;
-
-      if (pose === 'seated') {
-        const chairBuf = await sharp(generateExecutiveChairSvg(width, height, presYVal, presH)).png().toBuffer();
-        baseBg = await sharp(rawBg).composite([{ input: chairBuf, top: 0, left: 0 }]).toBuffer();
-        deskBuf = await sharp(generateBroadcastDeskSvg(width, height)).png().toBuffer();
-      }
-
-      // 4.4 Build the 6 template scene frame buffers
-      const templateFrames: Buffer[] = [];
-      const presLeft = Math.round((width - presW) / 2);
-
-      for (let lvl = 0; lvl < faceBuffers.length; lvl++) {
-        const layers: Array<{ input: Buffer; top: number; left: number }> = [
-          { input: faceBuffers[lvl], top: presYVal, left: presLeft },
-        ];
-        if (deskBuf) {
-          layers.push({ input: deskBuf, top: 0, left: 0 });
-        }
-        const sceneBuf = await sharp(baseBg).composite(layers).jpeg({ quality: 88 }).toBuffer();
-        templateFrames.push(sceneBuf);
-      }
-
-      // 4.5 Stream frames directly to FFmpeg via image2pipe
-      const pass1OutputFile = path.join(scratchDir, 'lipsync_raw.mp4');
-      const ffmpegProc = spawn('ffmpeg', [
-        '-y',
-        '-f', 'image2pipe',
-        '-vcodec', 'mjpeg',
-        '-framerate', '25',
-        '-i', 'pipe:0',
-        '-i', scratchAudioPath,
-        '-c:v', 'libx264',
-        '-preset', 'veryfast',
-        '-crf', '22',
-        '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac',
-        '-b:a', '192k',
-        '-shortest',
-        pass1OutputFile,
-      ]);
-
-      ffmpegProc.stderr.on('data', () => {}); // consume logs silently
-
-      const writeFramesPromise = new Promise<void>((resWrite, rejWrite) => {
-        ffmpegProc.on('close', (code) => {
-          if (code === 0) resWrite();
-          else rejWrite(new Error(`FFmpeg lipsync pipe exited with code ${code}`));
-        });
-        ffmpegProc.on('error', rejWrite);
-
-        let f = 0;
-        function writeNext() {
-          let ok = true;
-          while (f < totalFrames && ok) {
-            const rms = energies[f] || 0;
-            const norm = rms / maxRms;
-
-            let lvl = 0;
-            // Natural human blink cycle every 3.2 seconds
-            if (f % 80 >= 74 && f % 80 <= 76) {
-              lvl = 5;
-            } else if (norm < 0.09) {
-              lvl = 0;
-            } else if (norm < 0.28) {
-              lvl = 1;
-            } else if (norm < 0.58) {
-              lvl = 2;
-            } else if (norm < 0.82) {
-              lvl = 3;
-            } else {
-              lvl = f % 2 === 0 ? 3 : 4;
-            }
-
-            const buf = templateFrames[lvl];
-            f++;
-            ok = ffmpegProc.stdin.write(buf);
-          }
-
-          if (f < totalFrames) {
-            ffmpegProc.stdin.once('drain', writeNext);
-          } else {
-            ffmpegProc.stdin.end();
-          }
-        }
-        writeNext();
-      });
-
-      await writeFramesPromise;
-      db.updateAvatarJob(jobId, { progress: 85 });
-
-      // 4.6 Final pass: Add lower-third subtitles and watermark banner
-      console.log(`[AvatarEngine] Applying lower-third banner and watermark overlay...`);
-      const cleanPresenterName = avatar.name.replace(/['":\\]/g, '');
-      const filterParts: string[] = [];
-
-      filterParts.push(
-        `[0:v]drawbox=x=${cardX}:y=${cardY}:w=${cardW}:h=${cardH}:color=black@0.80:t=fill,` +
-        `drawbox=x=${cardX}:y=${cardY}:w=${cardW}:h=3:color=#f59e0b@0.95:t=fill,` +
-        `drawtext=fontfile='${fontPath}':text='प्रस्तोता: ${cleanPresenterName}':fontsize=${titleFontSize}:fontcolor=#38bdf8:x=${cardX + 24}:y=${cardY + 14},` +
-        `drawtext=fontfile='${fontPath}':textfile='${scriptTextPath}':fontsize=${scriptFontSize}:fontcolor=white:x=${cardX + 24}:y=${cardY + 42}:line_spacing=6[graded]`
-      );
 
       let finalVideoTag = '[graded]';
       const hasWatermarkInput = Boolean(showWatermark && watermarkPath && fs.existsSync(watermarkPath));
@@ -733,7 +824,6 @@ export class AvatarEngine {
 
       await new Promise<void>((resolve, reject) => {
         const ff = ffmpeg().input(pass1OutputFile);
-
         if (hasWatermarkInput && watermarkPath) {
           ff.input(watermarkPath).inputOptions(['-loop 1', `-t ${exactDuration}`]);
         }
@@ -767,24 +857,22 @@ export class AvatarEngine {
           .run();
       });
 
-      // Step 5: Verify Generated Video via ffprobe
+      // Step 6: Verify Final Render
       const probeResult = await probeMedia(outputPublicPath);
       if (!probeResult.hasVideo || probeResult.duration <= 0) {
         throw new Error('Generated avatar video failed verification probe.');
       }
 
       console.log(`[AvatarEngine] ✅ Avatar video successfully generated: ${outputFileName} (${probeResult.duration.toFixed(2)}s)`);
-
       const videoUrl = `/api/storage/file/${outputFileName}`;
-      
-      // Step 6: Deduct Credits and Update Job Record
-      const creditsCost = showWatermark ? 0 : ((user?.role === 'admin') ? 0 : 15);
+
+      const creditsCost = showWatermark ? 0 : user?.role === 'admin' ? 0 : 15;
       db.recordGeneration(
         userId,
         'avatar',
-        `Avatar Presenter: ${avatar.name} (${language}, bg: ${backgroundPreset}) - "${script.slice(0, 80)}"`,
+        `Avatar Presenter: ${avatar.name}${isDualAnchor ? ` & ${secondaryAvatar?.name}` : ''} (${language}, bg: ${backgroundPreset}) - "${script.slice(0, 80)}"`,
         videoUrl,
-        'NepalAI Neural Avatar Presenter v2.0',
+        'NepalAI Neural Avatar Presenter v2.5',
         Math.round(exactDuration)
       );
 
@@ -797,7 +885,6 @@ export class AvatarEngine {
         watermark: showWatermark,
       });
 
-      // Cleanup scratch dir
       try {
         fs.rmSync(scratchDir, { recursive: true, force: true });
       } catch (e) {}
@@ -805,10 +892,10 @@ export class AvatarEngine {
       return {
         jobId,
         videoUrl,
-        audioUrl: audioResult.url,
+        audioUrl: `/api/storage/file/${outputFileName}`,
         durationSeconds: exactDuration,
         avatarId: avatar.id,
-        avatarName: avatar.name,
+        avatarName: isDualAnchor ? `${avatar.name} & ${secondaryAvatar?.name}` : avatar.name,
         aspectRatio,
         creditsDeducted: creditsCost,
         watermark: showWatermark,

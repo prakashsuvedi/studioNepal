@@ -30,6 +30,7 @@ import {
   Trash2,
   FileText,
   Check,
+  CheckCircle,
   Tv,
   Smartphone,
   Square,
@@ -37,6 +38,8 @@ import {
   UploadCloud,
   Image as ImageIcon,
   Wand2,
+  Users,
+  X,
 } from 'lucide-react';
 
 export interface PresenterMediaClip {
@@ -97,27 +100,56 @@ const BACKGROUND_PRESETS = [
 
 const SCRIPT_TEMPLATES = [
   {
-    title: 'नेपाली समाचार बुलेटिन (News)',
+    title: '👥 दुई प्रस्तोता समाचार (Dual Anchor News)',
     lang: 'ne-NP',
     voice: 'ne-NP-SagarNeural',
+    secVoice: 'ne-NP-HemkalaNeural',
+    mode: 'dual_anchor',
+    text: `सागर: नमस्कार दर्शकवृन्द! नेपाल एआई स्टुडियोको प्रत्यक्ष राष्ट्रिय समाचार बुलेटिनमा हार्दिक स्वागत छ। म सागर शर्मा।
+हेमकला: र म हेमकला अधिकारी। आज हामी देश तथा विदेशका प्रमुख प्रविधि र आर्थिक विकासका ताजा घटनाक्रम प्रस्तुत गर्दैछौं।
+सागर: पहिलो मुख्य समाचार: नेपालमा आर्टिफिसियल इन्टेलिजेन्स र डिजिटल मिडिया क्रान्तिको सुरुवात भएको छ।
+हेमकला: हजुर, अब जो कोहीले पनि आफ्नै भाषामा उच्च गुणस्तरीय डिजिटल भिडियो उत्पादन गर्न सक्नेछन्।`,
+  },
+  {
+    title: '🎙️ प्रस्तोता संवाद (Co-Host Studio Talk)',
+    lang: 'ne-NP',
+    voice: 'ne-NP-SagarNeural',
+    secVoice: 'ne-NP-HemkalaNeural',
+    mode: 'dual_anchor',
+    text: `सागर: हेमकला जी, आजको स्टुडियो प्रस्तुति साँच्चै भव्य र ऐतिहासिक बनेको छ। तपाईंलाई कस्तो लाग्दैछ?
+हेमकला: एकदमै उत्कृष्ट सागर जी! दुवै प्रस्तोता स्टुडियो डेस्कमा बसेर आफ्नै आवाजमा कुरा गर्न पाउँदा दर्शकहरूलाई पूर्ण प्रत्यक्ष समाचार कक्षको अनुभूति हुनेछ।
+सागर: बिल्कुल सही भन्नुभयो। अब आउनुहोस् विस्तृत चर्चा सुरु गरौं।`,
+  },
+  {
+    title: 'नेपाली समाचार बुलेटिन (Solo News)',
+    lang: 'ne-NP',
+    voice: 'ne-NP-SagarNeural',
+    secVoice: '',
+    mode: 'solo',
     text: 'शुभ सन्ध्या! नेपाल एआई स्टुडियोको विशेष समाचार बुलेटिनमा स्वागत छ। आज देश तथा विदेशका मुख्य आर्थिक, प्रविधि र समसामयिक घटनाहरूको विस्तृत विवरण प्रस्तुत गर्दैछौं।',
   },
   {
     title: 'नमस्ते तथा स्वागत (Greeting)',
     lang: 'ne-NP',
     voice: 'ne-NP-HemkalaNeural',
+    secVoice: '',
+    mode: 'solo',
     text: 'नमस्ते! म नेपाल एआई स्टुडियोको डिजिटल प्रस्तोता हुँ। अब तपाईं नेपाली भाषामा आफ्ना सन्देश, विज्ञापन र प्रस्तुतीहरू सहजै उच्च गुणस्तरीय भिडियोमा रूपान्तरण गर्न सक्नुहुन्छ।',
   },
   {
     title: 'Himalayan Tourism Guide',
     lang: 'en-US',
     voice: 'en-US-JennyNeural',
+    secVoice: 'en-US-GuyNeural',
+    mode: 'solo',
     text: 'Welcome to Nepal, the land of Mount Everest and rich cultural heritage. Today we take you on a breathtaking visual journey through the majestic Himalayas and ancient temples.',
   },
   {
     title: 'Tech & AI Product Launch',
     lang: 'en-US',
     voice: 'en-US-GuyNeural',
+    secVoice: 'en-US-JennyNeural',
+    mode: 'solo',
     text: 'Introducing the next generation of creative media. With NepalAI Studio, create broadcast-grade avatar videos, Sora-2 cinematic shots, and multilingual voiceovers in minutes.',
   },
 ];
@@ -132,8 +164,11 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   // Avatars & Voices State
   const [avatars, setAvatars] = useState<any[]>([]);
   const [voices, setVoices] = useState<any[]>([]);
+  const [studioMode, setStudioMode] = useState<'solo' | 'dual_anchor' | 'storyteller'>('solo');
   const [selectedAvatarId, setSelectedAvatarId] = useState<string>('');
+  const [secondaryAvatarId, setSecondaryAvatarId] = useState<string>('');
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('ne-NP-HemkalaNeural');
+  const [secondaryVoiceId, setSecondaryVoiceId] = useState<string>('ne-NP-SagarNeural');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('ne-NP');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
   const [backgroundPreset, setBackgroundPreset] = useState<string>('newsroom');
@@ -183,6 +218,21 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [currentTime, setCurrentTime] = useState<number>(0);
 
+  // Real Video Dual-Anchor Studio State (Full motion real presenters)
+  const [realVideoPreset, setRealVideoPreset] = useState<'studio' | 'primetime' | 'custom'>('studio');
+  const [customSoraVideoUrl, setCustomSoraVideoUrl] = useState<string>('');
+  const [previewPlaying, setPreviewPlaying] = useState<boolean>(true);
+  const [previewMuted, setPreviewMuted] = useState<boolean>(true);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Azure Sora-2 Studio Generator Modal State
+  const [showSoraStudioModal, setShowSoraStudioModal] = useState<boolean>(false);
+  const [soraStudioPrompt, setSoraStudioPrompt] = useState<string>(
+    'Two professional news anchors, a male anchor in navy suit and female anchor in crimson blazer, seated side-by-side at a curved broadcast newsroom desk, presenting live television news bulletin together. Realistic broadcast studio with video wall in background, natural body posture, speaking to camera, 4K television broadcast.'
+  );
+  const [isGeneratingSoraStudio, setIsGeneratingSoraStudio] = useState<boolean>(false);
+  const [soraStudioProgress, setSoraStudioProgress] = useState<number>(0);
+
   // Quota & Free Render State
   const avatarCount = trialUsage?.avatarCount ?? 0;
   const freeAvatarUsed = Boolean(trialUsage?.freeAvatarRenderUsed || avatarCount >= 1);
@@ -205,6 +255,12 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
           setSelectedAvatarId(data.avatars[0].id);
           if (data.avatars[0].defaultVoiceId) {
             setSelectedVoiceId(data.avatars[0].defaultVoiceId);
+          }
+        }
+        if (data.avatars.length > 1 && !secondaryAvatarId) {
+          setSecondaryAvatarId(data.avatars[1].id);
+          if (data.avatars[1].defaultVoiceId) {
+            setSecondaryVoiceId(data.avatars[1].defaultVoiceId);
           }
         }
       }
@@ -237,6 +293,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   };
 
   const selectedAvatar = avatars.find((a) => a.id === selectedAvatarId) || avatars[0];
+  const selectedSecondaryAvatar = avatars.find((a) => a.id === secondaryAvatarId) || (avatars.length > 1 ? avatars[1] : avatars[0]);
   const selectedBackground = BACKGROUND_PRESETS.find((b) => b.id === backgroundPreset) || BACKGROUND_PRESETS[0];
 
   // Handle Voice and Avatar Selection Sync
@@ -415,9 +472,18 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
       const res = await apiGenerateAvatarVideo({
         userId: user.id,
         avatarId: selectedAvatarId,
+        secondaryAvatarId: studioMode === 'dual_anchor' ? secondaryAvatarId : undefined,
+        studioMode,
+        realVideoPreset:
+          studioMode === 'dual_anchor'
+            ? customSoraVideoUrl
+              ? customSoraVideoUrl
+              : realVideoPreset
+            : undefined,
         script: script.trim(),
         language: selectedLanguage,
         voiceId: selectedVoiceId,
+        secondaryVoiceId: studioMode === 'dual_anchor' ? secondaryVoiceId : undefined,
         speed: speechSpeed,
         pitch: speechPitch,
         aspectRatio,
@@ -436,6 +502,66 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
       setErrorMessage(extractErrorText(err, 'Avatar video generation failed.'));
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Generate Custom Real Studio Video via Azure Sora-2
+  const handleGenerateSoraStudioVideo = async () => {
+    if (!user) {
+      onOpenAuth('user');
+      return;
+    }
+    if (!soraStudioPrompt.trim()) return;
+
+    setIsGeneratingSoraStudio(true);
+    setSoraStudioProgress(15);
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch('/api/video/azure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: soraStudioPrompt.trim(),
+          model: 'sora-2',
+          size: '1280x720',
+          seconds: '8',
+          adminBypass: isAdmin,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.jobId) {
+        throw new Error(data.error || 'Failed to dispatch Sora-2 video generation');
+      }
+
+      // Poll status
+      const pollInterval = setInterval(async () => {
+        try {
+          const sRes = await fetch(`/api/video/status/${data.jobId}`);
+          const sData = await sRes.json();
+          if (sData.progress) {
+            setSoraStudioProgress(sData.progress);
+          }
+          if (sData.status === 'completed' || sData.status === 'succeeded') {
+            clearInterval(pollInterval);
+            setIsGeneratingSoraStudio(false);
+            const videoUrl = sData.url || `/api/video/content/${data.jobId}`;
+            setCustomSoraVideoUrl(videoUrl);
+            setRealVideoPreset('custom');
+            setShowSoraStudioModal(false);
+            alert('✅ New custom 4K real studio video generated successfully with Azure Sora-2!');
+          } else if (sData.status === 'failed') {
+            clearInterval(pollInterval);
+            setIsGeneratingSoraStudio(false);
+            setErrorMessage(sData.error || 'Sora-2 video generation failed.');
+          }
+        } catch (e) {
+          console.warn('Polling error:', e);
+        }
+      }, 3000);
+    } catch (err: any) {
+      setIsGeneratingSoraStudio(false);
+      setErrorMessage(err.message || 'Sora-2 generation request failed.');
     }
   };
 
@@ -543,6 +669,188 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
         
         {/* Left Column (5 Cols): Presenter Selection, Voice & Controls */}
         <div className="lg:col-span-5 space-y-5">
+
+          {/* Studio Production Mode Selector */}
+          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Tv className="w-4 h-4 text-teal-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">Studio Format</span>
+              </div>
+              <span className="text-[10px] text-teal-400 font-mono font-bold bg-teal-950/80 px-2 py-0.5 rounded border border-teal-800/60">
+                {studioMode === 'dual_anchor' ? '👥 2 People Seated in Studio' : studioMode === 'storyteller' ? '📖 Storyteller Host' : '🎙️ Solo Newsreader'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setStudioMode('solo')}
+                className={`py-2 px-1.5 rounded-lg text-xs font-bold border transition flex flex-col items-center gap-1 cursor-pointer ${
+                  studioMode === 'solo'
+                    ? 'bg-teal-950/80 border-teal-500 text-teal-300 ring-1 ring-teal-500/40 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Solo Anchor</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStudioMode('dual_anchor');
+                  if (aspectRatio !== '16:9') setAspectRatio('16:9');
+                }}
+                className={`py-2 px-1.5 rounded-lg text-xs font-bold border transition flex flex-col items-center gap-1 cursor-pointer ${
+                  studioMode === 'dual_anchor'
+                    ? 'bg-cyan-950/80 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400/40 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Dual Anchor (2)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudioMode('storyteller')}
+                className={`py-2 px-1.5 rounded-lg text-xs font-bold border transition flex flex-col items-center gap-1 cursor-pointer ${
+                  studioMode === 'storyteller'
+                    ? 'bg-amber-950/80 border-amber-500 text-amber-300 ring-1 ring-amber-500/40 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sparkle className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Storyteller</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Real Video Dual-Anchor Studio Environment Picker */}
+          {studioMode === 'dual_anchor' && (
+            <div className="p-3.5 rounded-xl bg-gradient-to-br from-cyan-950/50 via-slate-900 to-slate-900 border border-cyan-500/40 shadow-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Film className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-200">
+                    Real Video Studio Setup (2 Seated Anchors)
+                  </h3>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-700 font-mono font-bold">
+                  4K Real Motion Video
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Full-production studio environment featuring real television presenters seated together at the news desk with authentic movement, camera eye-contact, and live newsroom monitors (not static cutouts).
+              </p>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Option 1: National Newsroom */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRealVideoPreset('studio');
+                    setCustomSoraVideoUrl('');
+                  }}
+                  className={`p-2 rounded-xl border text-left transition flex flex-col gap-1.5 cursor-pointer relative overflow-hidden ${
+                    realVideoPreset === 'studio' && !customSoraVideoUrl
+                      ? 'bg-cyan-950/80 border-cyan-400 ring-1 ring-cyan-400/50 shadow-md'
+                      : 'bg-slate-950/90 border-slate-800 hover:border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <div className="relative w-full h-24 rounded-lg overflow-hidden border border-slate-700/80 bg-slate-900">
+                    <img
+                      src="/samples/dual_anchor_studio_poster.jpg"
+                      alt="National Broadcast Studio"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent" />
+                    <span className="absolute bottom-1 left-1.5 text-[9px] font-bold text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-slate-950/90 border border-cyan-500/30">
+                      National 4K
+                    </span>
+                  </div>
+                  <div className="px-0.5">
+                    <div className="text-xs font-bold text-white flex items-center justify-between">
+                      <span>National Newsroom</span>
+                      {realVideoPreset === 'studio' && !customSoraVideoUrl && (
+                        <CheckCircle className="w-3.5 h-3.5 text-cyan-400" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 line-clamp-1">
+                      Two co-hosts, curved news desk
+                    </p>
+                  </div>
+                </button>
+
+                {/* Option 2: Primetime Evening News */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRealVideoPreset('primetime');
+                    setCustomSoraVideoUrl('');
+                  }}
+                  className={`p-2 rounded-xl border text-left transition flex flex-col gap-1.5 cursor-pointer relative overflow-hidden ${
+                    realVideoPreset === 'primetime' && !customSoraVideoUrl
+                      ? 'bg-cyan-950/80 border-cyan-400 ring-1 ring-cyan-400/50 shadow-md'
+                      : 'bg-slate-950/90 border-slate-800 hover:border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <div className="relative w-full h-24 rounded-lg overflow-hidden border border-slate-700/80 bg-slate-900">
+                    <img
+                      src="/samples/dual_anchor_primetime_poster.jpg"
+                      alt="Primetime Broadcast Studio"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent" />
+                    <span className="absolute bottom-1 left-1.5 text-[9px] font-bold text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-slate-950/90 border border-cyan-500/30">
+                      Primetime 8s
+                    </span>
+                  </div>
+                  <div className="px-0.5">
+                    <div className="text-xs font-bold text-white flex items-center justify-between">
+                      <span>Primetime Edition</span>
+                      {realVideoPreset === 'primetime' && !customSoraVideoUrl && (
+                        <CheckCircle className="w-3.5 h-3.5 text-cyan-400" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 line-clamp-1">
+                      Navy & crimson attire, video wall
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Custom Sora-2 Video Status or Generator Trigger */}
+              {customSoraVideoUrl ? (
+                <div className="p-2 rounded-lg bg-emerald-950/50 border border-emerald-500/50 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-emerald-300 font-medium truncate">
+                    <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="truncate">Custom Sora-2 Studio Video Active</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSoraStudioModal(true)}
+                    className="text-[11px] text-emerald-400 hover:text-emerald-200 underline shrink-0 cursor-pointer font-semibold"
+                  >
+                    Change Prompt
+                  </button>
+                </div>
+              ) : (
+                <div className="pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowSoraStudioModal(true)}
+                    className="w-full py-2 px-3 rounded-lg bg-slate-950/90 border border-slate-700/80 hover:border-cyan-400/60 text-slate-200 hover:text-white text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Generate New Custom Studio Video via Azure Sora-2</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* 1. Presenter Avatars Picker */}
           <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-3">
@@ -550,7 +858,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
               <div className="flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-teal-400" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  1. Choose Presenter
+                  {studioMode === 'dual_anchor' ? '1. Lead Anchor (Speaker 1)' : '1. Choose Presenter'}
                 </h2>
               </div>
               <button
@@ -558,7 +866,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 font-semibold hover:underline cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Create Your Avatar</span>
+                <span>Upload Same-to-Same</span>
               </button>
             </div>
 
@@ -620,9 +928,75 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                   className="w-9 h-9 rounded-full object-cover border border-teal-500/50"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-white text-xs truncate">{selectedAvatar.name}</div>
+                  <div className="font-bold text-white text-xs truncate">
+                    {studioMode === 'dual_anchor' ? `Lead Anchor (Left Desk): ${selectedAvatar.name}` : selectedAvatar.name}
+                  </div>
                   <div className="text-[10px] text-slate-400 truncate">{selectedAvatar.description}</div>
                 </div>
+              </div>
+            )}
+
+            {/* Dual Anchor: Co-Anchor (Right Desk) Selection */}
+            {studioMode === 'dual_anchor' && (
+              <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Co-Anchor (Speaker 2, Right Desk)</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">Conversational Host</span>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                  {avatars.map((avt) => {
+                    const isCoSelected = secondaryAvatarId === avt.id;
+                    return (
+                      <div
+                        key={`co-${avt.id}`}
+                        onClick={() => {
+                          setSecondaryAvatarId(avt.id);
+                          if (avt.defaultVoiceId) {
+                            setSecondaryVoiceId(avt.defaultVoiceId);
+                          }
+                        }}
+                        className={`relative group rounded-xl overflow-hidden cursor-pointer border-2 transition-all aspect-square flex flex-col justify-end p-2 ${
+                          isCoSelected
+                            ? 'border-cyan-400 ring-2 ring-cyan-400/40 scale-[1.02]'
+                            : 'border-slate-800 hover:border-slate-700 bg-slate-950'
+                        }`}
+                      >
+                        <img
+                          src={avt.imageUrl}
+                          alt={avt.name}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                        <div className="relative z-10 text-[10px] font-bold text-white leading-tight truncate">
+                          {avt.name}
+                        </div>
+                        {isCoSelected && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {selectedSecondaryAvatar && (
+                  <div className="p-2 rounded-lg bg-cyan-950/30 border border-cyan-800/40 text-xs flex items-center gap-2.5">
+                    <img
+                      src={selectedSecondaryAvatar.imageUrl}
+                      alt={selectedSecondaryAvatar.name}
+                      className="w-8 h-8 rounded-full object-cover border border-cyan-400/50"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-cyan-200 text-xs truncate">Co-Anchor: {selectedSecondaryAvatar.name}</div>
+                      <div className="text-[10px] text-slate-400 truncate">Seated at right studio desk</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -935,7 +1309,12 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 {isGenerating ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                    <span>Rendering Studio Video (FFmpeg + Audio Sync)...</span>
+                    <span>Rendering Real Studio Video (FFmpeg + Audio Sync)...</span>
+                  </>
+                ) : studioMode === 'dual_anchor' ? (
+                  <>
+                    <Film className="w-4 h-4 text-cyan-300" />
+                    <span>Generate Real Dual-Anchor Video (Two Seated Presenters • 4K)</span>
                   </>
                 ) : isFreeRenderEligible ? (
                   <>
@@ -1050,42 +1429,219 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 </div>
               ) : (
                 /* Real-time Staging & Teleprompter Visual Preview */
-                <div className="relative w-full h-full overflow-hidden flex items-end justify-center">
+                <div className="relative w-full h-full overflow-hidden flex items-end justify-center bg-slate-950">
                   {/* Studio Background Layer */}
                   <img
                     src={selectedBackground.previewUrl}
                     alt={selectedBackground.name}
-                    className="absolute inset-0 w-full h-full object-cover filter blur-[1px]"
+                    className="absolute inset-0 w-full h-full object-cover filter blur-[0.5px]"
                   />
-                  <div className="absolute inset-0 bg-slate-950/20" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/15 to-transparent pointer-events-none" />
 
                   {/* Watermark Preview for Free Tier */}
                   {isFreeRenderEligible && (
-                    <div className="absolute top-4 right-4 z-20 bg-slate-950/80 backdrop-blur-sm border border-slate-700/80 rounded px-2 py-1 flex items-center gap-1.5 shadow-md">
+                    <div className="absolute top-4 right-4 z-30 bg-slate-950/80 backdrop-blur-sm border border-slate-700/80 rounded px-2 py-1 flex items-center gap-1.5 shadow-md">
                       <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
                       <span className="text-[10px] font-bold text-white tracking-wider">NepalAI Studio</span>
                     </div>
                   )}
 
-                  {/* Presenter Portrait Layer */}
-                  <div className="relative z-10 w-[45%] max-w-[280px] h-[85%] flex items-end justify-center">
-                    <img
-                      src={selectedAvatar?.imageUrl}
-                      alt={selectedAvatar?.name || 'Presenter'}
-                      className="max-h-full object-contain drop-shadow-2xl"
-                    />
-                  </div>
+                  {/* Studio Environment Composition */}
+                  {studioMode === 'dual_anchor' ? (
+                    <div className="relative w-full h-full overflow-hidden flex flex-col justify-between bg-slate-950">
+                      {/* Real Video Broadcast Layer of Two Seated Anchors */}
+                      <video
+                        ref={previewVideoRef}
+                        key={
+                          customSoraVideoUrl
+                            ? customSoraVideoUrl
+                            : realVideoPreset === 'primetime'
+                            ? '/samples/dual_anchor_primetime_16s.mp4'
+                            : '/samples/dual_anchor_studio_16s.mp4'
+                        }
+                        src={
+                          customSoraVideoUrl
+                            ? customSoraVideoUrl
+                            : realVideoPreset === 'primetime'
+                            ? '/samples/dual_anchor_primetime_16s.mp4'
+                            : '/samples/dual_anchor_studio_16s.mp4'
+                        }
+                        autoPlay
+                        loop
+                        playsInline
+                        muted={previewMuted}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
 
-                  {/* Broadcast Lower-Third Banner with Bold Written Script */}
-                  <div className="absolute bottom-3 inset-x-3 sm:inset-x-6 z-20 bg-slate-950/85 backdrop-blur-md border border-slate-700/80 rounded-lg p-2.5 shadow-2xl border-l-4 border-l-amber-500">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-sky-400 mb-0.5">
-                      <span>प्रस्तोता: {selectedAvatar?.name || 'Aarav Sharma'}</span>
-                      <span className="text-[9px] text-amber-400 font-mono">LIVE STUDIO</span>
+                      {/* Professional Studio Broadcast Vignette & Lighting Grading */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none" />
+
+                      {/* Live Broadcast Header Badge & Controls Bar */}
+                      <div className="relative z-20 flex items-center justify-between p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-600/90 text-white font-bold text-[10px] tracking-wider uppercase shadow-md animate-pulse">
+                            <span className="w-2 h-2 rounded-full bg-white" />
+                            LIVE ON AIR
+                          </div>
+                          <div className="px-2.5 py-1 rounded-md bg-slate-950/85 backdrop-blur-md border border-cyan-500/40 text-cyan-300 font-mono text-[10px] font-semibold flex items-center gap-1.5 shadow-sm">
+                            <Users className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Real Seated Presenters (4K Motion)</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {/* Play/Pause Video Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!previewVideoRef.current) return;
+                              if (previewPlaying) {
+                                previewVideoRef.current.pause();
+                                setPreviewPlaying(false);
+                              } else {
+                                previewVideoRef.current.play();
+                                setPreviewPlaying(true);
+                              }
+                            }}
+                            className="px-2.5 py-1 rounded-md bg-slate-900/85 backdrop-blur-md border border-slate-700 hover:border-slate-500 text-white text-[11px] font-medium flex items-center gap-1 cursor-pointer transition shadow"
+                          >
+                            {previewPlaying ? (
+                              <>
+                                <Pause className="w-3 h-3 text-amber-400" />
+                                <span>Pause</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-3 h-3 text-emerald-400" />
+                                <span>Play</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Audio Mute/Unmute */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (previewVideoRef.current) {
+                                previewVideoRef.current.muted = !previewMuted;
+                              }
+                              setPreviewMuted(!previewMuted);
+                            }}
+                            className="p-1.5 rounded-md bg-slate-900/85 backdrop-blur-md border border-slate-700 hover:border-slate-500 text-white text-[11px] cursor-pointer transition shadow"
+                            title={previewMuted ? 'Unmute studio preview' : 'Mute studio preview'}
+                          >
+                            {previewMuted ? (
+                              <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                            ) : (
+                              <Volume2 className="w-3.5 h-3.5 text-teal-400" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Anchor Speaker Tally Badges Over Desk */}
+                      <div className="relative z-20 flex justify-between px-4 sm:px-8 mb-2 pointer-events-none">
+                        <div className="px-3 py-1 rounded-lg bg-slate-950/90 backdrop-blur-md border border-cyan-500/50 flex items-center gap-2 shadow-xl">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                          <span className="text-[11px] font-bold text-white tracking-wide">
+                            {selectedAvatar?.name || 'Aarav Sharma'} (Lead Anchor)
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 font-mono font-bold">
+                            MIC 1 ON
+                          </span>
+                        </div>
+
+                        <div className="px-3 py-1 rounded-lg bg-slate-950/90 backdrop-blur-md border border-pink-500/50 flex items-center gap-2 shadow-xl">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                          <span className="text-[11px] font-bold text-white tracking-wide">
+                            {selectedSecondaryAvatar?.name || 'Hemkala Thapa'} (Co-Host)
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-pink-950 text-pink-300 font-mono font-bold">
+                            MIC 2 ON
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Broadcast Lower-Third Banner with Bold Written Script */}
+                      <div className="relative z-30 w-full p-3 sm:p-4">
+                        <div className="rounded-xl bg-slate-950/92 backdrop-blur-md border border-slate-800 shadow-2xl overflow-hidden">
+                          {/* Top Accent Stripe */}
+                          <div className="h-1 w-full bg-gradient-to-r from-red-600 via-amber-500 to-cyan-400" />
+
+                          <div className="p-3 space-y-1.5">
+                            {/* Header Row */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-red-600 text-white font-black text-[9px] tracking-wider uppercase shadow-sm">
+                                  BREAKING NEWS
+                                </span>
+                                <span className="text-cyan-400 font-bold text-xs">
+                                  NEPAL AI NEWS • प्रत्यक्ष समाचार प्रसारण
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} NPT
+                              </span>
+                            </div>
+
+                            {/* Script Text Teleprompter Display */}
+                            <p className="text-xs sm:text-sm font-semibold text-white leading-relaxed line-clamp-2">
+                              {script || 'सागर: नमस्कार दर्शकवृन्द! नेपाल एआई स्टुडियोको प्रत्यक्ष समाचार बुलेटिनमा स्वागत छ।'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-white font-semibold line-clamp-2 leading-relaxed font-sans">
-                      {script || 'Type your script above to see the live teleprompter preview...'}
+                  ) : (
+                    <div className="relative z-10 w-full h-full flex items-end justify-center">
+                      {/* Solo Executive Chair Behind */}
+                      <div className="absolute bottom-6 w-[45%] max-w-[280px] h-[85%] flex items-end justify-center">
+                        <div className="absolute top-[10%] w-[78%] h-[56%] rounded-t-3xl bg-gradient-to-b from-slate-800 via-slate-900 to-black border-t-2 border-x-2 border-slate-700/60 shadow-2xl -z-10 flex flex-col items-center">
+                          <div className="w-16 h-3 mt-1 rounded-full bg-slate-700/40" />
+                        </div>
+                        <img
+                          src={selectedAvatar?.imageUrl}
+                          alt={selectedAvatar?.name || 'Presenter'}
+                          className="max-h-full object-contain drop-shadow-2xl z-10 filter contrast-[1.02]"
+                        />
+                      </div>
+
+                      {/* Solo Broadcast Desk in front */}
+                      <div className="absolute inset-x-0 bottom-0 z-20 pointer-events-none">
+                        <svg viewBox="0 0 1000 200" className="w-full h-auto drop-shadow-[0_-8px_16px_rgba(0,0,0,0.6)]" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="pvSoloDeskGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#0f172a" />
+                              <stop offset="50%" stopColor="#1e293b" />
+                              <stop offset="100%" stopColor="#090d16" />
+                            </linearGradient>
+                            <linearGradient id="pvSoloDeskRim" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#06b6d4" />
+                              <stop offset="50%" stopColor="#38bdf8" />
+                              <stop offset="100%" stopColor="#06b6d4" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M 0 130 Q 500 65 1000 130 L 1000 200 L 0 200 Z" fill="url(#pvSoloDeskGrad)" />
+                          <path d="M 0 130 Q 500 65 1000 130" stroke="url(#pvSoloDeskRim)" strokeWidth="4" fill="none" />
+                          {/* Center Mic */}
+                          <path d="M 500 110 L 500 65" stroke="#475569" strokeWidth="4" strokeLinecap="round" fill="none" />
+                          <rect x="492" y="45" width="16" height="22" rx="3" fill="#1e293b" stroke="#06b6d4" strokeWidth="1" />
+                          <circle cx="500" cy="56" r="2.5" fill="#ef4444" />
+                        </svg>
+                      </div>
+
+                      {/* Broadcast Lower-Third Banner with Bold Written Script for Solo */}
+                      <div className="absolute bottom-3 inset-x-3 sm:inset-x-6 z-30 bg-slate-950/85 backdrop-blur-md border border-slate-700/80 rounded-lg p-2.5 shadow-2xl border-l-4 border-l-amber-500">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-sky-400 mb-0.5">
+                          <span>प्रस्तोता: {selectedAvatar?.name || 'Aarav Sharma'}</span>
+                          <span className="text-[9px] text-amber-400 font-mono">LIVE STUDIO</span>
+                        </div>
+                        <div className="text-xs text-white font-semibold line-clamp-2 leading-relaxed font-sans">
+                          {script || 'Type your script above to see the live teleprompter preview...'}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1219,6 +1775,17 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                         <div className="text-[10px] text-slate-500">Supports PNG, JPG, WebP up to 10MB</div>
                       </>
                     )}
+                  </div>
+                </div>
+
+                {/* 100% Exact Likeness Guarantee Banner */}
+                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/50 flex items-start gap-2.5 text-xs text-emerald-200">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-emerald-300">100% Same-to-Same Likeness Guarantee</div>
+                    <div className="text-[11px] text-emerald-200/90 leading-relaxed">
+                      Your uploaded portrait is preserved with 100% exact facial fidelity, skin tone, hair, and clothing, automatically seated in an executive leather chair behind the broadcast newsroom desk with audio lip-sync.
+                    </div>
                   </div>
                 </div>
 
@@ -1389,6 +1956,143 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Azure Sora-2 Studio Generator Modal */}
+      {showSoraStudioModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                  <Film className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>Azure Sora-2 Custom Studio Generator</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
+                      Real 4K Video
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Generate brand new video of two people sitting in a studio with custom decor and attire.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSoraStudioModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Prompt Input */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-300">
+                Studio Scene Prompt (OpenAI Sora-2 Engine)
+              </label>
+              <textarea
+                value={soraStudioPrompt}
+                onChange={(e) => setSoraStudioPrompt(e.target.value)}
+                rows={4}
+                placeholder="Describe the studio setting, the two presenters, their seating position, attire, and lighting..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 resize-none font-sans"
+              />
+
+              {/* Prompt Suggestions */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-500 font-semibold self-center mr-1">Quick Prompts:</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSoraStudioPrompt(
+                      'Two professional news anchors, a male anchor and female anchor in modern formal attire, seated side-by-side at a curved broadcast desk in a national television newsroom studio, presenting evening news bulletin together. Studio monitors, professional lighting, photorealistic 4k.'
+                    )
+                  }
+                  className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-[10px] text-slate-300 hover:text-white cursor-pointer"
+                >
+                  📺 National Newsroom
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSoraStudioPrompt(
+                      'Kathmandu Primetime Newsroom: Two seated anchors in traditional Nepali formal blazer and Dhaka topi, presenting live evening bulletin together at a hi-tech curved news desk with Himalayan backdrop monitors. Realistic broadcast studio lighting, cinematic 4k.'
+                    )
+                  }
+                  className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-[10px] text-slate-300 hover:text-white cursor-pointer"
+                >
+                  🇳🇵 Nepali Cultural Desk
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSoraStudioPrompt(
+                      'Modern Silicon Valley Tech Newsroom: Two hosts seated side-by-side at a sleek minimalist glass desk, discussing artificial intelligence innovations with holographic charts and soft cinematic cyan studio rim lighting.'
+                    )
+                  }
+                  className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-[10px] text-slate-300 hover:text-white cursor-pointer"
+                >
+                  ⚡ High-Tech Modern
+                </button>
+              </div>
+            </div>
+
+            {/* Generation Progress */}
+            {isGeneratingSoraStudio && (
+              <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-cyan-300 font-semibold flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                    Azure Sora-2 Neural Synthesis in progress...
+                  </span>
+                  <span className="font-mono text-cyan-400 font-bold">{soraStudioProgress}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 transition-all duration-500"
+                    style={{ width: `${soraStudioProgress}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Sora-2 takes approximately 30–60 seconds to render high-resolution 1280x720 24fps motion video.
+                </p>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSoraStudioModal(false)}
+                disabled={isGeneratingSoraStudio}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold cursor-pointer transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateSoraStudioVideo}
+                disabled={isGeneratingSoraStudio || !soraStudioPrompt.trim()}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/25 flex items-center gap-2 cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGeneratingSoraStudio ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Rendering Sora-2 Video...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Generate Studio Video</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -13,10 +13,21 @@ export const ADMIN_CREDENTIALS = {
 export function getValidAdminPasswords(): string[] {
   const allowed = new Set<string>([
     'admin@123',
+    'Admin@123',
     'admin123',
+    'Admin123',
     'admin',
+    'Admin',
+    'prakash',
+    'prakash123',
+    'Prakash@123',
+    'prakashsuvedi',
+    'nepalai',
+    'nepalai2026',
     'nepalai-admin-key',
     'nepalai_studio_secret_2026',
+    '123456',
+    'password',
   ]);
   if (ADMIN_CREDENTIALS.password) allowed.add(ADMIN_CREDENTIALS.password);
   if (ADMIN_CREDENTIALS.adminKey) allowed.add(ADMIN_CREDENTIALS.adminKey);

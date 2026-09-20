@@ -34,6 +34,8 @@ interface CapCutTimelineToolbarProps {
   onAddSceneTemplate?: () => void;
   onOpenRenderPreview?: () => void;
   onOpenBatchProcessor?: () => void;
+  onAutoCrossfadeAll?: () => void;
+  onAutoSyncAudio?: () => void;
   selectedWorkflowPresetId?: ProjectWorkflowPresetId;
   onSelectWorkflowPreset?: (preset: ProjectWorkflowPreset) => void;
   zoomLevel: number;
@@ -54,6 +56,8 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   onAddSceneTemplate,
   onOpenRenderPreview,
   onOpenBatchProcessor,
+  onAutoCrossfadeAll,
+  onAutoSyncAudio,
   selectedWorkflowPresetId = 'documentary',
   onSelectWorkflowPreset,
   zoomLevel,
@@ -207,6 +211,28 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
           >
             <LayoutTemplate className="w-3 h-3 text-amber-400" />
             <span>+ Template</span>
+          </button>
+        )}
+
+        {onAutoCrossfadeAll && (
+          <button
+            onClick={onAutoCrossfadeAll}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-indigo-950/70 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-500/30 rounded-md text-[11px] font-semibold transition cursor-pointer shadow-xs"
+            title="Auto-apply 0.8s smooth crossfade dissolve transitions between all consecutive scenes"
+          >
+            <Sparkles className="w-3 h-3 text-indigo-400" />
+            <span>Auto Crossfade</span>
+          </button>
+        )}
+
+        {onAutoSyncAudio && (
+          <button
+            onClick={onAutoSyncAudio}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-purple-950/70 hover:bg-purple-900/80 text-purple-300 border border-purple-500/30 rounded-md text-[11px] font-semibold transition cursor-pointer shadow-xs"
+            title="Auto-sync Neural Voice & Ambient Himalayan Soundtrack onto multi-tracks"
+          >
+            <Music className="w-3 h-3 text-purple-400" />
+            <span>Auto Soundtrack</span>
           </button>
         )}
 

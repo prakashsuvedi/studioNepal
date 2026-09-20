@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, 
   Pause, 
@@ -53,78 +54,6 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
 
   const totalDuration = 30; // 30 seconds demo loop
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const oscRef = useRef<OscillatorNode | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-
-  // Playback timeline timer loop
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setCurrentTime((prev) => {
-          if (prev >= totalDuration) {
-            return 0;
-          }
-          return Math.round((prev + 0.5) * 10) / 10;
-        });
-      }, 500);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isPlaying]);
-
-  // Gentle ambient audio tone for demo preview when unmuted
-  useEffect(() => {
-    if (!isMuted && isPlaying) {
-      try {
-        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (!audioCtxRef.current) {
-          audioCtxRef.current = new AudioContextClass();
-        }
-        if (audioCtxRef.current.state === 'suspended') {
-          audioCtxRef.current.resume();
-        }
-
-        if (!oscRef.current) {
-          const osc = audioCtxRef.current.createOscillator();
-          const gain = audioCtxRef.current.createGain();
-          // Gentle meditative harmonic tone (warm pad frequency ~220Hz / 330Hz)
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(activeDemo === 'voice' ? 320 : 220, audioCtxRef.current.currentTime);
-          gain.gain.setValueAtTime(0.04, audioCtxRef.current.currentTime);
-
-          osc.connect(gain);
-          gain.connect(audioCtxRef.current.destination);
-          osc.start();
-          oscRef.current = osc;
-          gainRef.current = gain;
-        }
-      } catch (e) {
-        // Web audio blocked or unsupported, fail silently
-      }
-    } else {
-      if (oscRef.current) {
-        try {
-          oscRef.current.stop();
-          oscRef.current.disconnect();
-        } catch (e) {}
-        oscRef.current = null;
-        gainRef.current = null;
-      }
-    }
-
-    return () => {
-      if (oscRef.current) {
-        try {
-          oscRef.current.stop();
-          oscRef.current.disconnect();
-        } catch (e) {}
-        oscRef.current = null;
-      }
-    };
-  }, [isMuted, isPlaying, activeDemo]);
 
   // Subtitle phrases with sync for karaoke
   const subtitlesData = {
@@ -154,6 +83,84 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
   const currentSubtitleList = subtitlesData[activeDemo];
   const activeSub = currentSubtitleList.find((s) => currentTime >= s.start && currentTime <= s.end) || currentSubtitleList[0];
 
+  // Playback timeline timer loop
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setCurrentTime((prev) => {
+          if (prev >= totalDuration) {
+            return 0;
+          }
+          return Math.round((prev + 0.5) * 10) / 10;
+        });
+      }, 500);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying]);
+
+  // Natural Speech Synthesis playback for preview voices when unmuted
+  useEffect(() => {
+    if (isMuted || !isPlaying) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    const speakCurrentSubtitle = () => {
+      try {
+        window.speechSynthesis.cancel();
+        const textToSpeak = lang === 'en' ? activeSub.en : activeSub.ne;
+        if (!textToSpeak) return;
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        const voices = window.speechSynthesis.getVoices();
+
+        if (selectedVoice === 'aakash') {
+          utterance.pitch = 0.95;
+          utterance.rate = 1.0;
+          const matched = voices.find(v => v.lang.startsWith('ne') || v.lang.startsWith('hi') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('male')));
+          if (matched) utterance.voice = matched;
+        } else if (selectedVoice === 'preeti') {
+          utterance.pitch = 1.25;
+          utterance.rate = 1.02;
+          const matched = voices.find(v => (v.lang.startsWith('ne') || v.lang.startsWith('hi') || v.lang.startsWith('en')) && v.name.toLowerCase().includes('female'));
+          if (matched) utterance.voice = matched;
+        } else if (selectedVoice === 'kabir') {
+          utterance.pitch = 0.85;
+          utterance.rate = 0.98;
+          const matched = voices.find(v => v.lang.startsWith('hi') || v.lang.startsWith('ne') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('male')));
+          if (matched) utterance.voice = matched;
+        } else if (selectedVoice === 'sunita') {
+          utterance.pitch = 1.15;
+          utterance.rate = 0.96;
+          const matched = voices.find(v => v.lang.startsWith('ne') || v.lang.startsWith('hi') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('female')));
+          if (matched) utterance.voice = matched;
+        }
+
+        utterance.volume = 1.0;
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        // Fail gracefully if Web Speech API blocked by browser policy
+      }
+    };
+
+    // Slight debounce so quick timeline seeks don't stutter
+    const timer = setTimeout(speakCurrentSubtitle, 80);
+
+    return () => {
+      clearTimeout(timer);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [activeSub.ne, activeSub.en, isMuted, isPlaying, selectedVoice, lang]);
+
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
@@ -172,19 +179,19 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
   return (
     <div 
       ref={containerRef}
-      className="w-full max-w-5xl mx-auto bg-slate-950/90 border border-slate-800/80 rounded-3xl p-3 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all"
+      className="w-full bg-[#0B0F19] text-white border border-slate-800/90 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-xl overflow-hidden transition-all"
     >
       {/* Top Header Dock & Mode Switcher */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between border-b border-slate-800/80 pb-3 sm:pb-4 gap-3">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between border-b border-slate-800/80 p-3 sm:px-5 sm:py-3.5 gap-3 bg-slate-950/80">
         {/* Terminal / Live Studio Indicator */}
         <div className="flex items-center justify-between sm:justify-start gap-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50" />
-            <div className="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
-            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
           </div>
-          <span className="text-xs text-slate-400 font-mono pl-1 hidden xs:inline">
-            studio.nepalai.tech / <span className="text-rose-400 font-semibold">live-player</span>
+          <span className="text-xs text-slate-300 font-mono pl-1 hidden xs:inline">
+            nepalai-studio / <span className="text-rose-400 font-semibold">live-player</span>
           </span>
           <div className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold ml-auto sm:ml-2">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
@@ -192,18 +199,18 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
           </div>
         </div>
 
-        {/* 4 Interactive Mode Tabs (Responsive wrap / scroll) */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-xs gap-1">
+        {/* 4 Interactive Mode Tabs */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs gap-1">
           <button
             id="player-tab-video"
             onClick={() => {
               setActiveDemo('video');
               setCurrentTime(0);
             }}
-            className={`px-3 py-2 sm:py-1.5 rounded-xl transition font-bold cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[34px] ${
+            className={`px-3 py-1.5 rounded-lg transition font-semibold cursor-pointer flex items-center justify-center gap-1.5 min-h-[34px] ${
               activeDemo === 'video'
                 ? 'bg-rose-600 text-white shadow-md shadow-rose-950/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Youtube className="w-3.5 h-3.5 text-rose-300 shrink-0" />
@@ -216,10 +223,10 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
               setActiveDemo('shorts');
               setCurrentTime(0);
             }}
-            className={`px-3 py-2 sm:py-1.5 rounded-xl transition font-bold cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[34px] ${
+            className={`px-3 py-1.5 rounded-lg transition font-semibold cursor-pointer flex items-center justify-center gap-1.5 min-h-[34px] ${
               activeDemo === 'shorts'
                 ? 'bg-rose-600 text-white shadow-md shadow-rose-950/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Smartphone className="w-3.5 h-3.5 text-amber-300 shrink-0" />
@@ -232,10 +239,10 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
               setActiveDemo('business');
               setCurrentTime(0);
             }}
-            className={`px-3 py-2 sm:py-1.5 rounded-xl transition font-bold cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[34px] ${
+            className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer flex items-center justify-center gap-1.5 min-h-[34px] ${
               activeDemo === 'business'
-                ? 'bg-amber-600 text-slate-950 shadow-md font-black shadow-amber-950/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-950/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Store className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -248,10 +255,10 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
               setActiveDemo('voice');
               setCurrentTime(0);
             }}
-            className={`px-3 py-2 sm:py-1.5 rounded-xl transition font-bold cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[34px] ${
+            className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer flex items-center justify-center gap-1.5 min-h-[34px] ${
               activeDemo === 'voice'
-                ? 'bg-emerald-600 text-slate-950 font-black shadow-md shadow-emerald-950/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Mic className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -261,69 +268,232 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
       </div>
 
       {/* Main Interactive Screen Canvas */}
-      <div className="relative mt-3 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl group min-h-[320px] sm:min-h-[440px] flex flex-col justify-between">
+      <div className="relative bg-[#07090E] flex flex-col justify-between min-h-[300px] sm:min-h-[400px]">
         
         {/* ================= MODE 1: YOUTUBE 16:9 CINEMATIC ================= */}
         {activeDemo === 'video' && (
           <div className="relative w-full h-full min-h-[340px] sm:min-h-[460px] flex flex-col justify-between p-4 sm:p-6 overflow-hidden">
-            {/* Animated Cinematic Atmospheric Layer (Guaranteed to NEVER fail or be blank) */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-950 to-rose-950">
-              {/* Dynamic SVG Animated Panoramic Stupa Landscape */}
+            {/* Photorealistic Himalayan Twilight Scene: Sun Behind Mountain, Electric Pole & 5-Color Flags */}
+            <div className="absolute inset-0 overflow-hidden select-none pointer-events-none">
               <svg 
-                className="w-full h-full object-cover opacity-60 transition duration-1000 transform scale-105" 
+                className="w-full h-full object-cover pointer-events-none" 
                 viewBox="0 0 1200 675" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
+                preserveAspectRatio="xMidYMid slice"
               >
                 <defs>
-                  <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#1e1b4b" />
-                    <stop offset="50%" stopColor="#431407" />
+                  {/* Sky Twilight Gradient */}
+                  <linearGradient id="skyAtmosphere" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#080c1a" />
+                    <stop offset="35%" stopColor="#1e1b4b" />
+                    <stop offset="60%" stopColor="#4c1d24" />
+                    <stop offset="78%" stopColor="#9a3412" />
+                    <stop offset="92%" stopColor="#ea580c" />
+                    <stop offset="100%" stopColor="#f59e0b" />
+                  </linearGradient>
+
+                  {/* Sun Corona Radial Glow (Behind the Mountain) */}
+                  <radialGradient id="sunCorona" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#fffbeb" stopOpacity="1" />
+                    <stop offset="25%" stopColor="#fef08a" stopOpacity="0.95" />
+                    <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.75" />
+                    <stop offset="75%" stopColor="#ea580c" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#7c2d12" stopOpacity="0" />
+                  </radialGradient>
+
+                  {/* Distant Mountain Peak Alpenglow */}
+                  <linearGradient id="snowPeakGlow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fef08a" stopOpacity="0.95" />
+                    <stop offset="20%" stopColor="#fde047" stopOpacity="0.85" />
+                    <stop offset="45%" stopColor="#f97316" stopOpacity="0.6" />
+                    <stop offset="75%" stopColor="#1e293b" />
+                    <stop offset="100%" stopColor="#0f172a" />
+                  </linearGradient>
+
+                  {/* Mid-Ground Mountain Ridge */}
+                  <linearGradient id="midRidge" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#334155" />
+                    <stop offset="50%" stopColor="#1e293b" />
                     <stop offset="100%" stopColor="#090d16" />
                   </linearGradient>
-                  <linearGradient id="sunGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#e11d48" stopOpacity="0" />
+
+                  {/* Foreground Mountain Terrain */}
+                  <linearGradient id="foreTerrain" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1e293b" />
+                    <stop offset="100%" stopColor="#05080f" />
                   </linearGradient>
-                  <linearGradient id="peakGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-                    <stop offset="60%" stopColor="#334155" stopOpacity="0.7" />
+
+                  {/* Electric Pole Gradients */}
+                  <linearGradient id="poleGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#0b0f19" />
+                    <stop offset="50%" stopColor="#1e293b" />
+                    <stop offset="100%" stopColor="#080c14" />
+                  </linearGradient>
+                  <linearGradient id="transformerBody" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#334155" />
                     <stop offset="100%" stopColor="#0f172a" />
+                  </linearGradient>
+                  <linearGradient id="stupaGold" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#fde047" />
+                    <stop offset="50%" stopColor="#d97706" />
+                    <stop offset="100%" stopColor="#78350f" />
                   </linearGradient>
                 </defs>
 
-                {/* Sky */}
-                <rect width="1200" height="675" fill="url(#skyGrad)" />
-                
-                {/* Sun Glow Behind Himalayan Mountains */}
-                <circle cx="600" cy="380" r="280" fill="url(#sunGlow)" className="animate-pulse" />
+                {/* 1. LAYER 1: SKY BACKGROUND */}
+                <rect width="1200" height="675" fill="url(#skyAtmosphere)" />
 
-                {/* Distant Mountain Peaks */}
-                <path d="M0 450 L180 320 L350 420 L520 280 L700 400 L880 290 L1050 390 L1200 310 L1200 675 L0 675 Z" fill="url(#peakGrad)" />
-                <path d="M120 450 L280 350 L420 440 L600 310 L780 430 L940 330 L1100 420 L1200 360 L1200 675 L0 675 Z" fill="#090d16" opacity="0.85" />
+                {/* Stars in Upper Twilight Sky */}
+                <circle cx="150" cy="40" r="1" fill="#ffffff" opacity="0.8" />
+                <circle cx="280" cy="65" r="1.2" fill="#ffffff" opacity="0.9" />
+                <circle cx="450" cy="35" r="0.8" fill="#ffffff" opacity="0.7" />
+                <circle cx="820" cy="50" r="1.5" fill="#ffffff" opacity="0.95" />
+                <circle cx="950" cy="75" r="1" fill="#ffffff" opacity="0.8" />
+                <circle cx="1100" cy="45" r="1.2" fill="#ffffff" opacity="0.85" />
 
-                {/* Boudhanath Stupa Silhouette */}
-                <g transform="translate(480, 260)">
-                  {/* Spire */}
-                  <polygon points="120,40 114,140 126,140" fill="#f59e0b" />
-                  <circle cx="120" cy="35" r="8" fill="#fef08a" />
-                  {/* Harmika (Square with Buddha Eyes) */}
-                  <rect x="95" y="140" width="50" height="30" fill="#d97706" rx="2" />
-                  <circle cx="110" cy="155" r="4" fill="#0f172a" />
-                  <circle cx="130" cy="155" r="4" fill="#0f172a" />
-                  {/* Dome */}
-                  <path d="M40 220 C40 170 80 170 120 170 C160 170 200 170 200 220 Z" fill="#f8fafc" />
-                  {/* Plinth */}
-                  <rect x="20" y="220" width="200" height="50" fill="#1e293b" rx="4" />
-                  <rect x="0" y="270" width="240" height="70" fill="#0f172a" />
+                {/* 2. LAYER 2: THE SUN (SITTING BEHIND THE MOUNTAIN RIDGELINE) */}
+                <g transform="translate(620, 275)">
+                  {/* Atmospheric Sun Glow Halo */}
+                  <circle cx="0" cy="0" r="260" fill="url(#sunCorona)" opacity="0.85" />
+                  {/* Sun Corona Core */}
+                  <circle cx="0" cy="0" r="75" fill="#fffbeb" />
+                  {/* Upward Twilight Sky Rays */}
+                  <polygon points="0,0 -80,-275 -30,-275" fill="#fde047" opacity="0.15" />
+                  <polygon points="0,0 20,-275 80,-275" fill="#fde047" opacity="0.15" />
+                  <polygon points="0,0 120,-275 190,-275" fill="#fde047" opacity="0.12" />
                 </g>
 
-                {/* Golden Prayer Flags */}
-                <path d="M100 280 Q 300 330 600 290 Q 900 330 1100 280" stroke="#f59e0b" strokeWidth="2" strokeDasharray="10 15" opacity="0.7" />
+                {/* 3. LAYER 3: DISTANT HIMALAYAN SNOW PEAKS (IN FRONT OF SUN - OCCLUDING LOWER SUN) */}
+                {/* Back Snow Peaks (Everest, Lhotse, Ama Dablam crests physically covering bottom half of the sun) */}
+                <path 
+                  d="M0 410 L90 320 L180 370 L290 280 L380 330 L520 220 L610 270 L720 190 L830 280 L960 210 L1080 300 L1200 230 L1200 675 L0 675 Z" 
+                  fill="url(#snowPeakGlow)" 
+                />
+                
+                {/* Snow Ridge Shading & Glacial Couloirs */}
+                <path d="M520 220 L550 290 L610 270 L650 340 L720 190 L750 280 L830 280 L890 350 L960 210 L1010 300 L1080 300 L1200 675 L520 675 Z" fill="#0f172a" opacity="0.65" />
+                <path d="M0 410 L90 320 L130 390 L180 370 L240 420 L290 280 L340 370 L380 330 L450 420 L520 220 L0 675 Z" fill="#1e293b" opacity="0.7" />
+
+                {/* Middle Mountain Ridge (Rich Slate/Indigo with Depth) */}
+                <path 
+                  d="M0 460 L140 360 L280 430 L440 330 L600 410 L750 310 L910 390 L1070 320 L1200 380 L1200 675 L0 675 Z" 
+                  fill="url(#midRidge)" 
+                />
+
+                {/* Closer Valley Foothill Ridge */}
+                <path 
+                  d="M0 520 L180 430 L360 500 L550 410 L780 490 L990 420 L1200 480 L1200 675 L0 675 Z" 
+                  fill="url(#foreTerrain)" 
+                />
+
+                {/* 4. LAYER 4: BOUDHANATH STUPA SILHOUETTE (MIDDLE-RIGHT GROUND) */}
+                <g transform="translate(720, 345)" opacity="0.95">
+                  {/* Golden Pinnacle / Gajur */}
+                  <path d="M60,10 L56,35 L64,35 Z" fill="#fef08a" />
+                  <circle cx="60" cy="8" r="4" fill="#fef08a" />
+                  {/* 13 Steps Golden Spire */}
+                  <polygon points="60,35 46,110 74,110" fill="url(#stupaGold)" />
+                  {/* Harmika (Square Cube) */}
+                  <rect x="42" y="110" width="36" height="22" fill="#92400e" rx="1" />
+                  {/* Eyes of Buddha */}
+                  <circle cx="53" cy="121" r="2.5" fill="#fef08a" />
+                  <circle cx="67" cy="121" r="2.5" fill="#fef08a" />
+                  {/* White Hemisphere Dome (Garba) */}
+                  <path d="M12,175 C12,130 38,132 60,132 C82,132 108,130 108,175 Z" fill="#f1f5f9" />
+                  {/* Stupa Multi-tiered Plinth */}
+                  <polygon points="2,175 118,175 126,200 -6,200" fill="#1e293b" />
+                  <rect x="-18" y="200" width="156" height="40" fill="#090d16" />
+                </g>
+
+                {/* 5. LAYER 5: KATHMANDU ELECTRIC UTILITY POLE & POWER/FIBER CABLES */}
+                <g transform="translate(130, 140)">
+                  {/* Main Vertical Pole (Tapered Concrete/Timber) */}
+                  <polygon points="38,0 32,535 48,535 42,0" fill="url(#poleGrad)" stroke="#05080f" strokeWidth="1" />
+                  
+                  {/* Top Crossarm Horizontal Beam 1 */}
+                  <rect x="-35" y="45" width="150" height="9" fill="#1e293b" rx="1" stroke="#05080f" strokeWidth="0.8" />
+                  {/* Crossarm Diagonal Metal Braces */}
+                  <line x1="40" y1="75" x2="-15" y2="54" stroke="#475569" strokeWidth="2.5" />
+                  <line x1="40" y1="75" x2="95" y2="54" stroke="#475569" strokeWidth="2.5" />
+
+                  {/* High-Voltage Ceramic Pin Insulators with Caps */}
+                  <rect x="-24" y="32" width="8" height="14" fill="#64748b" rx="2" />
+                  <circle cx="-20" cy="30" r="3" fill="#cbd5e1" />
+                  <rect x="22" y="32" width="8" height="14" fill="#64748b" rx="2" />
+                  <circle cx="26" cy="30" r="3" fill="#cbd5e1" />
+                  <rect x="60" y="32" width="8" height="14" fill="#64748b" rx="2" />
+                  <circle cx="64" cy="30" r="3" fill="#cbd5e1" />
+                  <rect x="102" y="32" width="8" height="14" fill="#64748b" rx="2" />
+                  <circle cx="106" cy="30" r="3" fill="#cbd5e1" />
+
+                  {/* Middle Crossarm Horizontal Beam 2 */}
+                  <rect x="-20" y="110" width="125" height="8" fill="#1e293b" rx="1" stroke="#05080f" strokeWidth="0.8" />
+                  <line x1="40" y1="135" x2="0" y2="118" stroke="#475569" strokeWidth="2" />
+                  <line x1="40" y1="135" x2="80" y2="118" stroke="#475569" strokeWidth="2" />
+
+                  {/* Distribution Step-down Transformer Unit */}
+                  <rect x="46" y="145" width="34" height="48" fill="url(#transformerBody)" rx="3" stroke="#090d16" strokeWidth="1" />
+                  {/* Transformer Vertical Cooling Fins */}
+                  <line x1="50" y1="152" x2="50" y2="186" stroke="#475569" strokeWidth="1.5" />
+                  <line x1="56" y1="152" x2="56" y2="186" stroke="#475569" strokeWidth="1.5" />
+                  <line x1="63" y1="152" x2="63" y2="186" stroke="#475569" strokeWidth="1.5" />
+                  <line x1="70" y1="152" x2="70" y2="186" stroke="#475569" strokeWidth="1.5" />
+                  <line x1="76" y1="152" x2="76" y2="186" stroke="#475569" strokeWidth="1.5" />
+                  {/* Transformer Bushings on Top */}
+                  <rect x="52" y="137" width="5" height="9" fill="#94a3b8" rx="1" />
+                  <rect x="68" y="137" width="5" height="9" fill="#94a3b8" rx="1" />
+
+                  {/* Streetlamp Fixture Extension */}
+                  <path d="M38,130 C-30,120 -55,140 -75,170" stroke="#1e293b" strokeWidth="3" fill="none" />
+                  <polygon points="-83,172 -67,172 -75,165" fill="#334155" />
+                  <ellipse cx="-75" cy="173" rx="6" ry="2.5" fill="#fef08a" opacity="0.9" />
+
+                  {/* Lower Telecom / Internet Cable Coils */}
+                  <circle cx="40" cy="240" r="14" stroke="#0a0e17" strokeWidth="3" fill="none" opacity="0.8" />
+                  <circle cx="40" cy="240" r="10" stroke="#0a0e17" strokeWidth="2" fill="none" opacity="0.8" />
+                  <rect x="32" y="270" width="16" height="6" fill="#1e293b" />
+                </g>
+
+                {/* Multi-layered Sagging Transmission & Optical Fiber Wires */}
+                {/* Top High-Voltage Line 1 */}
+                <path d="M0,172 Q110,170 195,170 Q650,240 1200,120" stroke="#0f172a" strokeWidth="1.8" fill="none" opacity="0.85" />
+                {/* Top High-Voltage Line 2 */}
+                <path d="M0,185 Q150,183 236,183 Q700,265 1200,145" stroke="#090d16" strokeWidth="2" fill="none" opacity="0.9" />
+                {/* Secondary Power Lines */}
+                <path d="M0,250 Q170,250 230,250 Q750,350 1200,220" stroke="#090d16" strokeWidth="1.6" fill="none" opacity="0.8" />
+                {/* Lower Drooping Broadband Fiber Cable Bundle */}
+                <path d="M0,380 Q170,380 170,380 Q620,510 1200,340" stroke="#05080f" strokeWidth="2.4" fill="none" opacity="0.75" />
+
+                {/* Authentic 5-Color Tibetan / Nepali Lungta Prayer Flags */}
+                <path d="M170,250 Q450,370 780,380" stroke="#475569" strokeWidth="1" fill="none" opacity="0.6" />
+                {[
+                  { x: 210, y: 275, c: '#2563eb' }, // Blue (Sky)
+                  { x: 250, y: 298, c: '#f8fafc' }, // White (Air)
+                  { x: 290, y: 318, c: '#dc2626' }, // Red (Fire)
+                  { x: 330, y: 332, c: '#16a34a' }, // Green (Water)
+                  { x: 370, y: 340, c: '#eab308' }, // Yellow (Earth)
+                  { x: 410, y: 344, c: '#2563eb' },
+                  { x: 450, y: 345, c: '#f8fafc' },
+                  { x: 490, y: 343, c: '#dc2626' },
+                  { x: 530, y: 340, c: '#16a34a' },
+                  { x: 570, y: 338, c: '#eab308' },
+                  { x: 610, y: 339, c: '#2563eb' },
+                  { x: 650, y: 344, c: '#f8fafc' },
+                  { x: 690, y: 352, c: '#dc2626' },
+                  { x: 730, y: 364, c: '#16a34a' },
+                ].map((flag, idx) => (
+                  <polygon
+                    key={idx}
+                    points={`${flag.x},${flag.y} ${flag.x + 13},${flag.y + 6} ${flag.x + 11},${flag.y + 22} ${flag.x - 2},${flag.y + 16}`}
+                    fill={flag.c}
+                    opacity="0.9"
+                  />
+                ))}
               </svg>
 
-              {/* Cinematic Vignette */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/20" />
+              {/* Cinematic Vignette Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/10 pointer-events-none" />
             </div>
 
             {/* Top Bar HUD */}
@@ -340,7 +510,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                 <button
                   onClick={() => setIsMuted(!isMuted)}
                   className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-200 hover:text-white transition cursor-pointer"
-                  title={isMuted ? 'Click to enable ambient preview audio' : 'Mute'}
+                  title={isMuted ? 'Click to enable voice preview audio' : 'Mute'}
                 >
                   {isMuted ? <VolumeX className="w-4 h-4 text-slate-400" /> : <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />}
                 </button>
@@ -360,17 +530,17 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
             )}
 
             {/* Bottom Scene Info & Dynamic Subtitle Display */}
-            <div className="relative z-10 space-y-3 mt-auto">
+            <div className="relative z-10 space-y-2.5 mt-auto">
               {/* Karaoke Subtitle Banner */}
-              <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-3 max-w-xl text-left shadow-lg">
-                <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
+              <div className="bg-black/75 backdrop-blur-md border border-white/20 rounded-xl p-3 max-w-xl text-left shadow-xl">
+                <div className="text-[10px] text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
                   <span>Devanagari Karaoke Subtitles</span>
                 </div>
                 <p className="text-base sm:text-lg font-bold text-white font-serif leading-snug">
                   "{activeSub.ne}"
                 </p>
-                <p className="text-xs text-slate-300 font-sans mt-0.5">
+                <p className="text-xs text-slate-200 font-sans mt-0.5">
                   {activeSub.en}
                 </p>
               </div>
@@ -378,10 +548,10 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
               {/* Title & Action */}
               <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 pt-1">
                 <div className="text-left">
-                  <h3 className="text-lg sm:text-2xl font-black text-white leading-tight">
+                  <h3 className="text-base sm:text-xl font-extrabold text-white leading-tight">
                     Ancient Boudhanath Twilight Stupa
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-300 font-medium mt-0.5">
                     Auto-generated prompt • Sora-2 motion interpolation • 48kHz audio balance
                   </p>
                 </div>
@@ -389,7 +559,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                 <button
                   id="player-open-timeline-btn"
                   onClick={onLaunchStudio}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-rose-950/60 transition cursor-pointer flex items-center gap-2 shrink-0"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-rose-950/60 transition cursor-pointer flex items-center gap-2 shrink-0"
                 >
                   <Film className="w-4 h-4" />
                   <span>Open in Studio Timeline</span>
@@ -410,13 +580,103 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                 <div className="w-2 h-2 rounded-full bg-slate-800" />
               </div>
 
-              {/* Animated Sunrise Himalayas Backdrop */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-rose-950/40">
-                <svg className="w-full h-full object-cover opacity-80" viewBox="0 0 360 640" fill="none">
-                  <circle cx="180" cy="220" r="140" fill="#f59e0b" opacity="0.4" />
-                  <path d="M0 380 L90 260 L180 340 L270 240 L360 360 L360 640 L0 640 Z" fill="#0f172a" />
-                  <path d="M40 380 L140 290 L220 360 L320 280 L360 320 L360 640 L0 640 Z" fill="#020617" />
+              {/* Photorealistic Himalayan Twilight Scene in 9:16 (Sun Behind Mountain & Utility Pole) */}
+              <div className="absolute inset-0 overflow-hidden select-none pointer-events-none">
+                <svg 
+                  className="w-full h-full object-cover pointer-events-none" 
+                  viewBox="0 0 360 640" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                  preserveAspectRatio="xMidYMid slice"
+                >
+                  <defs>
+                    <linearGradient id="skyAtmosphereShorts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#080c1a" />
+                      <stop offset="35%" stopColor="#1e1b4b" />
+                      <stop offset="58%" stopColor="#4c1d24" />
+                      <stop offset="75%" stopColor="#9a3412" />
+                      <stop offset="90%" stopColor="#ea580c" />
+                      <stop offset="100%" stopColor="#f59e0b" />
+                    </linearGradient>
+
+                    <radialGradient id="sunCoronaShorts" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#fffbeb" stopOpacity="1" />
+                      <stop offset="25%" stopColor="#fef08a" stopOpacity="0.95" />
+                      <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.75" />
+                      <stop offset="75%" stopColor="#ea580c" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#7c2d12" stopOpacity="0" />
+                    </radialGradient>
+
+                    <linearGradient id="snowPeakGlowShorts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fef08a" stopOpacity="0.95" />
+                      <stop offset="20%" stopColor="#fde047" stopOpacity="0.85" />
+                      <stop offset="45%" stopColor="#f97316" stopOpacity="0.6" />
+                      <stop offset="75%" stopColor="#1e293b" />
+                      <stop offset="100%" stopColor="#0f172a" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* 1. Sky */}
+                  <rect width="360" height="640" fill="url(#skyAtmosphereShorts)" />
+                  <circle cx="80" cy="50" r="1" fill="#ffffff" opacity="0.8" />
+                  <circle cx="270" cy="70" r="1.2" fill="#ffffff" opacity="0.9" />
+
+                  {/* 2. The Sun Behind Mountain Peaks */}
+                  <g transform="translate(180, 260)">
+                    <circle cx="0" cy="0" r="140" fill="url(#sunCoronaShorts)" opacity="0.85" />
+                    <circle cx="0" cy="0" r="45" fill="#fffbeb" />
+                  </g>
+
+                  {/* 3. Mountain Ridge Occluding Lower Half of Sun */}
+                  <path 
+                    d="M0 380 L60 300 L120 340 L180 230 L240 310 L300 240 L360 330 L360 640 L0 640 Z" 
+                    fill="url(#snowPeakGlowShorts)" 
+                  />
+                  <path d="M0 420 L90 350 L180 400 L270 340 L360 390 L360 640 L0 640 Z" fill="#1e293b" opacity="0.8" />
+                  <path d="M0 470 L120 410 L240 460 L360 420 L360 640 L0 640 Z" fill="#090d16" />
+
+                  {/* 4. Stupa in 9:16 frame */}
+                  <g transform="translate(210, 360)" opacity="0.9">
+                    <polygon points="30,15 22,55 38,55" fill="#d97706" />
+                    <circle cx="30" cy="12" r="3" fill="#fef08a" />
+                    <rect x="20" y="55" width="20" height="12" fill="#92400e" rx="1" />
+                    <path d="M5,95 C5,70 18,72 30,72 C42,72 55,70 55,95 Z" fill="#f1f5f9" />
+                    <rect x="-5" y="95" width="70" height="20" fill="#090d16" />
+                  </g>
+
+                  {/* 5. Utility Pole on Left Edge */}
+                  <g transform="translate(30, 150)">
+                    <polygon points="18,0 15,490 23,490 20,0" fill="#1e293b" stroke="#05080f" strokeWidth="0.8" />
+                    <rect x="-15" y="40" width="70" height="6" fill="#334155" rx="1" />
+                    <circle cx="-6" cy="30" r="2.5" fill="#cbd5e1" />
+                    <circle cx="15" cy="30" r="2.5" fill="#cbd5e1" />
+                    <circle cx="36" cy="30" r="2.5" fill="#cbd5e1" />
+                    <rect x="22" y="110" width="20" height="30" fill="#0f172a" rx="2" stroke="#334155" />
+                  </g>
+
+                  {/* Power Lines & Prayer Flags */}
+                  <path d="M0,190 Q48,190 200,290 Q360,180 360,180" stroke="#090d16" strokeWidth="1.5" fill="none" opacity="0.85" />
+                  <path d="M0,300 Q48,300 220,410 Q360,320 360,320" stroke="#05080f" strokeWidth="1.8" fill="none" opacity="0.75" />
+                  <path d="M48,190 Q150,290 230,390" stroke="#475569" strokeWidth="1" fill="none" opacity="0.6" />
+                  
+                  {[
+                    { x: 70, y: 215, c: '#2563eb' },
+                    { x: 95, y: 240, c: '#f8fafc' },
+                    { x: 120, y: 265, c: '#dc2626' },
+                    { x: 145, y: 290, c: '#16a34a' },
+                    { x: 170, y: 315, c: '#eab308' },
+                    { x: 195, y: 340, c: '#2563eb' },
+                    { x: 215, y: 365, c: '#f8fafc' },
+                  ].map((fl, i) => (
+                    <polygon
+                      key={i}
+                      points={`${fl.x},${fl.y} ${fl.x + 10},${fl.y + 4} ${fl.x + 8},${fl.y + 16} ${fl.x - 2},${fl.y + 12}`}
+                      fill={fl.c}
+                      opacity="0.9"
+                    />
+                  ))}
                 </svg>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/20 to-slate-950/10 pointer-events-none" />
               </div>
 
               {/* Top Shorts HUD */}
@@ -424,7 +684,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                 <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-black text-[9px] flex items-center gap-1 shadow">
                   <Flame className="w-3 h-3" /> #SHORTS VIRAL
                 </span>
-                <span className="text-[10px] text-slate-300 font-mono bg-black/50 px-2 py-0.5 rounded">
+                <span className="text-[10px] text-slate-200 font-mono bg-black/60 px-2 py-0.5 rounded">
                   9:16 Full HD
                 </span>
               </div>
@@ -432,21 +692,21 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
               {/* Right Side Social Floating Icons */}
               <div className="absolute right-2 bottom-16 z-20 flex flex-col items-center gap-3 text-white">
                 <div className="flex flex-col items-center">
-                  <button className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center hover:text-red-500 transition">
+                  <button className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center hover:text-red-500 transition">
                     <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
                   </button>
                   <span className="text-[9px] font-bold mt-0.5">84.2K</span>
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <button className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
+                  <button className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center">
                     <MessageCircle className="w-4 h-4" />
                   </button>
                   <span className="text-[9px] font-bold mt-0.5">1,420</span>
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <button className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
+                  <button className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center">
                     <Bookmark className="w-4 h-4" />
                   </button>
                   <span className="text-[9px] font-bold mt-0.5">9,800</span>
@@ -467,7 +727,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                 <h4 className="text-xs font-black text-white leading-snug">
                   "{activeSub.ne}"
                 </h4>
-                <p className="text-[10px] text-slate-300 line-clamp-1">
+                <p className="text-[10px] text-slate-200 line-clamp-1">
                   NepalAI Sora-2 Engine • Mukta Subtitles • 1-Click Post
                 </p>
                 <div className="pt-1">
@@ -493,7 +753,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                   <Sliders className="w-3.5 h-3.5 text-amber-400" />
                   <span>{lang === 'ne' ? 'तपाईंको पसलको विवरण राखेर हेर्नुहोस् (Live Simulator):' : 'Customize Your Shop Ad Live:'}</span>
                 </span>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+                <span className="text-[10px] text-emerald-300 font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700">
                   बचत: रू ६०,००० / महिना
                 </span>
               </div>
@@ -501,7 +761,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
               {/* Quick Input Bar */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-0.5 font-bold">पसल / विजनेसको नाम:</label>
+                  <label className="text-[10px] text-slate-300 block mb-0.5 font-bold">पसल / विजनेसको नाम:</label>
                   <input
                     type="text"
                     value={businessName}
@@ -511,7 +771,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-0.5 font-bold">अफर / छुट विवरण:</label>
+                  <label className="text-[10px] text-slate-300 block mb-0.5 font-bold">अफर / छुट विवरण:</label>
                   <input
                     type="text"
                     value={businessOffer}
@@ -521,7 +781,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-0.5 font-bold">सम्पर्क फोन नम्बर:</label>
+                  <label className="text-[10px] text-slate-300 block mb-0.5 font-bold">सम्पर्क फोन नम्बर:</label>
                   <input
                     type="text"
                     value={businessPhone}
@@ -558,7 +818,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                   <span>अर्डर वा बुकिङका लागि: {businessPhone}</span>
                 </div>
 
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-slate-300">
                   होम डेलिभरी उपलब्ध • आजै सम्पर्क गर्नुहोस्
                 </div>
               </div>
@@ -566,7 +826,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
 
             {/* Action Footer */}
             <div className="relative z-20 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-300">
                 फेसबुक, इन्स्टाग्राम र टिकटकमा विज्ञापन चलाउन १-क्लिकमा तयार।
               </span>
               <button
@@ -584,32 +844,44 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
         {activeDemo === 'voice' && (
           <div className="relative w-full h-full min-h-[340px] sm:min-h-[460px] p-4 sm:p-6 flex flex-col justify-between bg-gradient-to-br from-emerald-950/40 via-slate-950 to-indigo-950">
             {/* Top Voice Spectrum Display */}
-            <div className="relative z-10 text-center space-y-3">
+            <div className="relative z-10 text-center space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold">
                 <Mic className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Hugging Face SpeechT5 + Azure EastUS Neural TTS</span>
               </div>
 
-              {/* Dynamic Audio Visualizer Bars */}
-              <div className="flex items-center justify-center gap-1.5 py-4">
-                {[40, 65, 85, 30, 95, 70, 50, 80, 100, 60, 45, 90, 75, 55, 85, 40].map((h, i) => (
+              {/* Dynamic Audio Visualizer Bars in Fixed Constant-Height Stage (Zero Layout Shift) */}
+              <div className="h-16 flex items-center justify-center gap-1.5 overflow-hidden select-none">
+                {[30, 48, 60, 24, 64, 50, 36, 56, 64, 44, 32, 58, 52, 38, 56, 28].map((h, i) => (
                   <div
                     key={i}
-                    className="w-2 rounded-full bg-gradient-to-t from-emerald-600 to-teal-400 transition-all duration-300"
+                    className="w-2 rounded-full bg-gradient-to-t from-emerald-500 to-teal-300 transition-all duration-150 shrink-0"
                     style={{
-                      height: isPlaying ? `${Math.max(12, (h * ((currentTime * 3 + i) % 10)) / 10)}px` : '12px',
+                      height: isPlaying ? `${Math.max(12, Math.min(54, 28 + Math.sin(currentTime * 3.5 + i * 0.45) * 18 + Math.cos(currentTime * 2 + i * 0.3) * 6))}px` : '12px',
                     }}
                   />
                 ))}
               </div>
 
-              <div className="max-w-xl mx-auto bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-left">
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block mb-1">
+              {/* Constant-Phase Subtitle Card (Fixed Height to Prevent Vertical Jumping) */}
+              <div className="max-w-xl mx-auto bg-slate-900/90 border border-slate-700 rounded-2xl p-4 text-left h-[100px] flex flex-col justify-center shadow-lg overflow-hidden">
+                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block mb-1 shrink-0">
                   Active Synthesized Speech ({selectedVoice.toUpperCase()}):
                 </span>
-                <h3 className="text-base sm:text-lg font-bold text-white font-serif leading-relaxed">
-                  "{activeSub.ne}"
-                </h3>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSub.ne}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "linear" }}
+                    className="min-h-[44px] flex items-center"
+                  >
+                    <h3 className="text-base sm:text-lg font-bold text-white font-serif leading-snug line-clamp-2">
+                      "{activeSub.ne}"
+                    </h3>
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
 
@@ -626,16 +898,16 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
                   onClick={() => setSelectedVoice(spk.id as typeof selectedVoice)}
                   className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                     selectedVoice === spk.id
-                      ? 'bg-emerald-950/80 border-emerald-500 text-white shadow-lg'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-emerald-950/90 border-emerald-400 text-white shadow-lg'
+                      : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-850'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-xs text-white">{spk.name}</span>
                     {selectedVoice === spk.id && <Check className="w-3.5 h-3.5 text-emerald-400" />}
                   </div>
-                  <span className="text-[10px] text-emerald-400 block">{spk.lang}</span>
-                  <span className="text-[9px] text-slate-500 block truncate">{spk.style}</span>
+                  <span className="text-[10px] text-emerald-300 font-medium block">{spk.lang}</span>
+                  <span className="text-[9px] text-slate-400 block truncate mt-0.5">{spk.style}</span>
                 </button>
               ))}
             </div>
@@ -652,7 +924,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
 
               <button
                 onClick={onLaunchStudio}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-950/60 transition cursor-pointer flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-950/60 transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <Mic className="w-4 h-4" />
                 <span>Open Voice Studio Timeline</span>
@@ -662,7 +934,7 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
         )}
 
         {/* Global Bottom Interactive Scrubber & Timeline Bar */}
-        <div className="relative z-30 bg-slate-950/95 border-t border-slate-800/80 px-3 sm:px-4 py-2.5 flex items-center gap-3">
+        <div className="relative z-30 bg-slate-950 border-t border-slate-800 px-3 sm:px-4 py-2.5 flex items-center gap-3">
           {/* Play / Pause Toggle */}
           <button
             onClick={() => setIsPlaying(!isPlaying)}
@@ -675,14 +947,14 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
           {/* Reset / Loop */}
           <button
             onClick={() => setCurrentTime(0)}
-            className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 hidden xs:flex"
+            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 hidden xs:flex"
             title="Restart"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
           {/* Time Counter */}
-          <span className="text-[11px] font-mono text-slate-400 shrink-0 select-none">
+          <span className="text-[11px] font-mono text-slate-300 shrink-0 select-none">
             <span className="text-white font-bold">{formatTime(currentTime)}</span> / {formatTime(totalDuration)}
           </span>
 
@@ -702,14 +974,14 @@ export const InteractiveStudioPlayer: React.FC<InteractiveStudioPlayerProps> = (
           {/* Sound Mute Toggle */}
           <button
             onClick={() => setIsMuted(!isMuted)}
-            className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
+            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
             title={isMuted ? 'Unmute Audio' : 'Mute'}
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
           </button>
 
           {/* Aspect Ratio Indicator */}
-          <span className="text-[10px] font-mono font-bold text-slate-500 px-2 py-0.5 rounded bg-slate-900 border border-slate-800 shrink-0 hidden sm:inline">
+          <span className="text-[10px] font-mono font-bold text-slate-400 px-2 py-0.5 rounded bg-slate-900 border border-slate-800 shrink-0 hidden sm:inline">
             {activeDemo === 'shorts' ? '9:16' : '16:9'}
           </span>
         </div>

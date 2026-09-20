@@ -2135,6 +2135,40 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onAddAudio={() => setShowAudioAddModal(true)}
         onAddSceneTemplate={() => setShowSceneTemplatesModal(true)}
         onOpenRenderPreview={() => setShowRenderPreviewModal(true)}
+        onAutoCrossfadeAll={() => {
+          if (scenes.length <= 1) {
+            setProjectNotice('Add multiple scenes to auto-crossfade');
+            setTimeout(() => setProjectNotice(null), 2500);
+            return;
+          }
+          pushToHistory(scenes);
+          setScenes(prev => prev.map((s, idx) => ({
+            ...s,
+            transition: idx === 0 ? 'cut' : 'dissolve',
+            transitionDuration: 0.8,
+          })));
+          setProjectNotice('✨ Auto-applied smooth 0.8s crossfade dissolves between all story scenes!');
+          setTimeout(() => setProjectNotice(null), 3500);
+        }}
+        onAutoSyncAudio={() => {
+          const ambientBgm: AudioTrack = {
+            id: 'bgm-himalayan-' + Date.now(),
+            title: 'Himalayan Serenade (Traditional Bansuri & Sarangi)',
+            artist: 'NepalAI Atmospheric Studio',
+            url: 'https://assets.mixkit.co/music/preview/mixkit-ethereal-fairy-win-576.mp3',
+            duration: Math.max(30, totalDuration || 30),
+            volume: 40,
+            isMuted: false,
+            startTime: 0,
+            type: 'bgm'
+          };
+          setAudioTracks(prev => {
+            const hasBgm = prev.some(t => t.type === 'bgm');
+            return hasBgm ? prev : [...prev, ambientBgm];
+          });
+          setProjectNotice('🎵 Multi-track atmospheric soundtrack auto-synced to story timeline!');
+          setTimeout(() => setProjectNotice(null), 3500);
+        }}
         zoomLevel={pixelsPerSecond}
         setZoomLevel={(z) => setTimelineZoom(z / 36)}
         isSnapping={snapEnabled}

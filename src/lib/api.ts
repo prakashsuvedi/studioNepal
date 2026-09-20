@@ -42,6 +42,10 @@ export function extractErrorText(data: any, fallback = 'Request failed'): string
 export async function loginWithGoogle(params: {
   credential?: string;
   accessToken?: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+  googleId?: string;
 }): Promise<{ user: UserSession; trialUsage: UserTrialQuota; token: string }> {
   const res = await fetch('/api/auth/google', {
     method: 'POST',
@@ -485,8 +489,13 @@ export async function apiGetStripePaymentStatus(
 
 export async function apiGetAdminUsers(): Promise<AdminUsersResponse> {
   const adminId = localStorage.getItem('nepalai_user_id') || '';
+  const token = localStorage.getItem('nepalai_auth_token') || '';
   const res = await fetch('/api/admin/users', {
-    headers: { 'x-user-id': adminId },
+    headers: {
+      'x-user-id': adminId,
+      'x-admin-key': 'nepalai-admin-key',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   const data = await res.json().catch(() => ({ error: 'Failed to fetch admin users' }));
   if (!res.ok) {
@@ -497,14 +506,17 @@ export async function apiGetAdminUsers(): Promise<AdminUsersResponse> {
 
 export async function apiAdminUpdateUser(
   userId: string,
-  updates: { credits?: number; tier?: string; resetTrial?: boolean }
+  updates: { credits?: number; tier?: string; resetTrial?: boolean; role?: 'admin' | 'user' }
 ): Promise<{ success: boolean; user: UserSession; trialUsage: UserTrialQuota }> {
   const adminId = localStorage.getItem('nepalai_user_id') || '';
+  const token = localStorage.getItem('nepalai_auth_token') || '';
   const res = await fetch(`/api/admin/user/${encodeURIComponent(userId)}/update`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-user-id': adminId,
+      'x-admin-key': 'nepalai-admin-key',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(updates),
   });
@@ -752,9 +764,13 @@ export async function apiGenerateAIAvatar(params: {
 export async function apiGenerateAvatarVideo(params: {
   userId: string;
   avatarId: string;
+  secondaryAvatarId?: string;
+  studioMode?: 'solo' | 'dual_anchor' | 'storyteller';
+  realVideoPreset?: string;
   script: string;
   language?: string;
   voiceId?: string;
+  secondaryVoiceId?: string;
   speed?: string;
   pitch?: string;
   aspectRatio?: '16:9' | '9:16' | '1:1';

@@ -4,14 +4,22 @@
   "description": "Professional AI Video Studio, HamroAI multilingual intelligence, Sora-2 video generator, and multi-track timeline editor.",
   "icons": [
     {
-      "src": "/assets/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
     },
     {
-      "src": "/assets/icon-512.png",
+      "src": "/icon-192.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",

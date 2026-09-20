@@ -159,6 +159,37 @@ async function startServer() {
   };
 
   // Health check (Legacy & Standard)
+  app.get('/googleaed061dca2a421f8.html', (_req, res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.send('google-site-verification: googleaed061dca2a421f8.html');
+  });
+
+  app.get('/google:hash.html', (req, res) => {
+    const filename = `google${req.params.hash}.html`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.send(`google-site-verification: ${filename}`);
+  });
+
+  app.get('/robots.txt', (_req, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send('User-agent: *\nAllow: /\n\nSitemap: https://studio.nepalai.tech/sitemap.xml\n');
+  });
+
+  app.get('/sitemap.xml', (_req, res) => {
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://studio.nepalai.tech/</loc>
+    <lastmod>2026-09-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`);
+  });
+
   app.get('/api/health', (req, res) => {
     const hasAzureSpeech = Boolean(
       process.env.AZURE_SPEECH ||

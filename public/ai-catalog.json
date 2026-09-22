@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/ai-plugin.json",
+  "schema_version": "v1",
+  "name_for_human": "NepalAI Studio",
+  "name_for_model": "nepalai_studio",
+  "description_for_human": "Professional AI Video Generation, Digital Presenter Avatars, and Multilingual Creative Suite in Nepali, English, and Hindi.",
+  "description_for_model": "NepalAI Studio platform for generating high-definition AI videos with Azure Sora-2, synthesizing photorealistic avatar presenter videos, creating broadcast-grade neural audio in Nepali and English, generating art with GPT-Image 2.5 Flare, and assembling multi-track timeline videos.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://studio.nepalai.tech/openapi.json"
+  },
+  "logo_url": "https://studio.nepalai.tech/favicon.svg",
+  "contact_email": "support@nepalai.tech",
+  "legal_info_url": "https://studio.nepalai.tech/privacy"
+}

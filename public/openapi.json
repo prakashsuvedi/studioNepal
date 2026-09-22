@@ -1,0 +1,57 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NepalAI Studio Public Discovery API",
+    "description": "Public machine-readable documentation and discovery endpoints for NepalAI Studio AI video generation, avatar synthesis, and multilingual assistant.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://studio.nepalai.tech",
+      "description": "Production NepalAI Studio server"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health and AI service readiness status",
+        "operationId": "getHealthStatus",
+        "responses": {
+          "200": {
+            "description": "System and AI service credentials health",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "timestamp": { "type": "string" },
+                    "services": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sitemap.xml": {
+      "get": {
+        "summary": "XML Sitemap indexing all public studio workspaces and pages",
+        "operationId": "getSitemap",
+        "responses": {
+          "200": {
+            "description": "XML Sitemap data",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

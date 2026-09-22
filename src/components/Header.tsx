@@ -481,6 +481,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="relative" ref={utilitiesMenuRef}>
               <button
                 type="button"
+                aria-label="Studio Preferences & Tools"
                 onClick={() => setIsUtilitiesMenuOpen(!isUtilitiesMenuOpen)}
                 className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
                 title="Studio Preferences & Tools"

@@ -33,6 +33,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
         <button
           type="button"
+          aria-label={`Current Language: ${currentMeta.name}`}
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer shadow-xs"
           title={`Current Language: ${currentMeta.name}`}

@@ -1,0 +1,24 @@
+# NepalAI Studio
+
+> NepalAI Studio is a next-generation multilingual AI Video Generation & Creative Suite powered by Azure OpenAI Sora-2, GPT-Image 2.5 Flare, photorealistic Digital Presenter Avatars, HamroAI cultural LLM (GPT-4o & GPT-5-mini), 24kHz broadcast neural speech synthesis, and a browser-based multi-track timeline video editor.
+
+## Core Capabilities
+- [Azure Sora-2 AI Video Studio](https://studio.nepalai.tech/sora): High-definition video generation with native 4s, 8s, and 12s durations, 1080p rendering, and continuous character locking.
+- [AI News Presenter & Storyteller Avatars](https://studio.nepalai.tech/avatar): Photorealistic AI digital presenters with natural lip-sync, customizable newsroom backdrops, and 4K export.
+- [HamroAI Multilingual Assistant](https://studio.nepalai.tech/hamroai): Cultural intelligence engine fluent in Nepali (Devanagari script), Romanized Nepali, Hindi, and English.
+- [Dynamic Character Continuity Engine](https://studio.nepalai.tech/character-continuity): Prompt context analyzer powered by GPT-4o enforcing subject visual DNA and sequence consistency.
+- [CapCut-Style Multi-Track Video Editor](https://studio.nepalai.tech/video-editor): Non-linear video timeline editor with B-roll tracks, audio mixing, speed curves, auto-subtitles, and visual effects.
+- [Neural Audio & Voiceover Studio](https://studio.nepalai.tech/tts-studio): 24kHz broadcast neural voiceover synthesis in Nepali, English, and South Asian voices.
+- [AI Art & Image Studio](https://studio.nepalai.tech/image-studio): OpenAI GPT-Image 2.5 Flare and Black Forest Labs FLUX.1 high-resolution art generator.
+
+## Discoverability & Documentation
+- [Pricing & Credit Tiers](https://studio.nepalai.tech/pricing): Transparent credit packages with Stripe USD ($0-$129) and Fonepay NPR (रू 50 - रू 16,900) gateway support.
+- [About & Architecture](https://studio.nepalai.tech/about): System architecture, Azure AI Foundry integration, and cultural LLM fine-tuning.
+- [Frequently Asked Questions](https://studio.nepalai.tech/faq): Complete guides for creators, businesses, and developers.
+- [Privacy Policy & Terms](https://studio.nepalai.tech/privacy): Data security, zero unauthorized retention, and creator rights policies.
+- [Contact Support](https://studio.nepalai.tech/contact): Direct assistance for enterprise inquiries and creator help.
+
+## Optional & Extended Resources
+- [Full LLMs Context & Documentation](https://studio.nepalai.tech/llms-full.txt): Detailed specifications, model hyperparameters, and prompt engineering protocols.
+- [AI Discovery Catalog](https://studio.nepalai.tech/ai-catalog.json): Machine-readable catalog for WebMCP agents and AI orchestrators.
+- [XML Sitemap](https://studio.nepalai.tech/sitemap.xml): Complete search engine index.

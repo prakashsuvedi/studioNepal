@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
     <meta name="theme-color" content="#020617" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -45,8 +45,8 @@
     <meta property="og:site_name" content="NepalAI Studio" />
     <meta property="og:title" content="NepalAI Studio - AI Video & Creative Suite" />
     <meta property="og:description" content="Professional AI Video Studio, HamroAI multilingual intelligence (GPT-4o & GPT-5-mini for Nepali, Hindi & Global), Azure Sora-2 & GPT-Image generator, multi-track timeline editor, bilingual Nepali/English creation suite, and comprehensive cPanel/Hugging Face system audit." />
-    <meta property="og:image" content="/og-image.png" />
-    <meta property="og:image:secure_url" content="/og-image.png" />
+    <meta property="og:image" content="https://studio.nepalai.tech/og-image.png" />
+    <meta property="og:image:secure_url" content="https://studio.nepalai.tech/og-image.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -60,7 +60,7 @@
     <meta name="twitter:creator" content="@NepalAIStudio" />
     <meta name="twitter:title" content="NepalAI Studio - AI Video & Creative Suite" />
     <meta name="twitter:description" content="Professional AI Video Studio, HamroAI multilingual intelligence (GPT-4o & GPT-5-mini for Nepali, Hindi & Global), Azure Sora-2 & GPT-Image generator, multi-track timeline editor, bilingual Nepali/English creation suite, and comprehensive cPanel/Hugging Face system audit." />
-    <meta name="twitter:image" content="/og-image.png" />
+    <meta name="twitter:image" content="https://studio.nepalai.tech/og-image.png" />
     <meta name="twitter:image:alt" content="NepalAI Studio - Himalaya Circle AI Video & Creative Suite" />
 
     <!-- Google Search Rich Snippets: Schema.org Structured Data (JSON-LD) -->
@@ -69,46 +69,203 @@
       "@context": "https://schema.org",
       "@graph": [
         {
-          "@type": "WebApplication",
-          "@id": "https://nepalai.studio/#webapp",
+          "@type": ["SoftwareApplication", "WebApplication"],
+          "@id": "https://studio.nepalai.tech/#softwareapplication",
           "name": "NepalAI Studio",
           "alternateName": ["NepalAI", "Nepal AI Studio Creative Suite", "HamroAI"],
-          "url": "https://nepalai.studio",
+          "url": "https://studio.nepalai.tech/",
           "applicationCategory": "MultimediaApplication",
-          "operatingSystem": "All modern browsers (Web, Desktop, iOS, Android)",
-          "description": "Next-generation AI creative studio for Sora-2 video generation, photorealistic news anchor presenter avatars, HamroAI multilingual intelligence, voice synthesis, and multi-track video timeline editing.",
+          "applicationSubCategory": "AI Video Generator, Audio Studio & Creative Suite",
+          "operatingSystem": "All modern web browsers (Chrome, Safari, Firefox, Edge, iOS, Android)",
+          "description": "Professional AI Video Studio and Multilingual Creative Suite featuring Azure Sora-2 video generation, photorealistic AI News Anchor & Storyteller avatars, HamroAI cultural LLM (GPT-4o & GPT-5-mini), 24kHz broadcast neural speech synthesis, GPT-Image 2.5 Flare art studio, and multi-track timeline video editing.",
           "browserRequirements": "Requires JavaScript. Requires HTML5.",
+          "inLanguage": ["en-US", "ne-NP", "hi-IN"],
+          "availableLanguage": [
+            {
+              "@type": "Language",
+              "name": "Nepali",
+              "alternateName": "ne",
+              "description": "Native Devanagari script and Romanized Nepali support across chat, TTS, and video captioning"
+            },
+            {
+              "@type": "Language",
+              "name": "English",
+              "alternateName": "en",
+              "description": "Global English studio interface, broadcast narration, and prompt engineering"
+            },
+            {
+              "@type": "Language",
+              "name": "Hindi",
+              "alternateName": "hi",
+              "description": "Multilingual chat intelligence and cross-border South Asian creative support"
+            }
+          ],
+          "featureList": [
+            "Azure OpenAI Sora-2 Video Generation (4s, 8s, 12s durations with 1080p rendering)",
+            "Prompt Context Analyzer powered by GPT-4o for Scene Continuity & Sequential Dependency",
+            "Photorealistic AI News Anchor & Storyteller Avatars with accurate lip-sync and 4K export",
+            "HamroAI Multilingual Assistant (Nepali Devanagari, English, Romanized Nepali, Hindi)",
+            "Dynamic Character Continuity Engine with Subject DNA Lock & Token Injection",
+            "Broadcast Studio Neural Voiceovers (24kHz broadcast WAV, Azure Speech & SpeechT5)",
+            "OpenAI GPT-Image 2.5 Flare & Black Forest Labs FLUX.1 Image Studio",
+            "CapCut-Style Multi-Track Timeline Video Editor with B-Roll, VFX, Speed Curves & Auto-Captions",
+            "Instant URL-to-Video Story & News Synthesis",
+            "Story Continuity Deck with Scene Dependency Graph & Multi-Beat Rendering",
+            "Dual Payment Infrastructure: Stripe (USD) and Fonepay (NPR eSewa / Khalti / Mobile Banking)"
+          ],
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "USD",
+            "lowPrice": "0",
+            "highPrice": "129",
+            "offerCount": "4",
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Free Starter Trial",
+                "description": "Free exploration credits for HamroAI chat, trial video generation, neural voiceovers, and public story templates",
+                "price": "0",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "url": "https://studio.nepalai.tech/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Starter Tier (500 Credits)",
+                "description": "500 AI generation credits, Azure Sora-2 generation, GPT-Image 2.5 Flare, Voice Studio, and timeline export",
+                "price": "19",
+                "priceCurrency": "USD",
+                "priceSpecification": {
+                  "@type": "PriceSpecification",
+                  "price": "2500",
+                  "priceCurrency": "NPR",
+                  "description": "NPR 2,500 via Fonepay / eSewa"
+                },
+                "availability": "https://schema.org/InStock",
+                "url": "https://studio.nepalai.tech/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Creator Tier (1,800 Credits)",
+                "description": "1,800 AI credits, extended video generation, Character Continuity Engine, HD 1080p rendering, and priority queue",
+                "price": "49",
+                "priceCurrency": "USD",
+                "priceSpecification": {
+                  "@type": "PriceSpecification",
+                  "price": "6500",
+                  "priceCurrency": "NPR",
+                  "description": "NPR 6,500 via Fonepay / eSewa"
+                },
+                "availability": "https://schema.org/InStock",
+                "url": "https://studio.nepalai.tech/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Pro Studio Tier (5,000 Credits)",
+                "description": "5,000 AI credits, 4K rendering, full commercial license, custom avatar presenter creation, and dedicated priority cloud inference",
+                "price": "129",
+                "priceCurrency": "USD",
+                "priceSpecification": {
+                  "@type": "PriceSpecification",
+                  "price": "16900",
+                  "priceCurrency": "NPR",
+                  "description": "NPR 16,900 via Fonepay / eSewa"
+                },
+                "availability": "https://schema.org/InStock",
+                "url": "https://studio.nepalai.tech/pricing"
+              }
+            ]
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "320",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "screenshot": "https://studio.nepalai.tech/og-image.png"
+        },
+        {
+          "@type": "Product",
+          "@id": "https://studio.nepalai.tech/#product",
+          "name": "NepalAI Studio - AI Video & Creative Production Suite",
+          "description": "Enterprise-ready and Creator AI Production Suite for automated video generation, multilingual digital presenters, high-fidelity neural voiceover, and multi-track timeline editing.",
+          "brand": {
+            "@type": "Brand",
+            "name": "NepalAI"
+          },
+          "category": "Software > Video Software > AI Video Generator",
+          "image": "https://studio.nepalai.tech/og-image.png",
           "inLanguage": ["en", "ne", "hi"],
           "offers": {
-            "@type": "Offer",
-            "price": "0",
+            "@type": "AggregateOffer",
             "priceCurrency": "USD",
-            "availability": "https://schema.org/InStock"
-          },
-          "featureList": [
-            "Azure Sora-2 AI Video Generation",
-            "Photorealistic AI News Anchor & Storyteller Avatars",
-            "HamroAI Multilingual Chat in Nepali & English (GPT-4o & GPT-5-mini)",
-            "Neural Audio Studio & Broadcast Voiceovers",
-            "GPT-Image 2.5 Flare & Flux Image Generation",
-            "Multi-Track Timeline Video Editor with B-Roll & Captions"
-          ],
-          "screenshot": "/og-image.png"
+            "lowPrice": "0",
+            "highPrice": "129",
+            "offerCount": "4",
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Free Tier",
+                "price": "0",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock"
+              },
+              {
+                "@type": "Offer",
+                "name": "Starter Plan",
+                "price": "19",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock"
+              },
+              {
+                "@type": "Offer",
+                "name": "Creator Plan",
+                "price": "49",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock"
+              },
+              {
+                "@type": "Offer",
+                "name": "Pro Studio Plan",
+                "price": "129",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock"
+              }
+            ]
+          }
         },
         {
           "@type": "Organization",
-          "@id": "https://nepalai.studio/#organization",
+          "@id": "https://studio.nepalai.tech/#organization",
           "name": "NepalAI Studio",
-          "url": "https://nepalai.studio",
+          "url": "https://studio.nepalai.tech/",
           "logo": {
             "@type": "ImageObject",
-            "url": "/favicon.svg",
+            "url": "https://studio.nepalai.tech/favicon.svg",
             "width": 160,
             "height": 160
           },
           "sameAs": [
-            "https://twitter.com/NepalAIStudio"
-          ]
+            "https://twitter.com/NepalAIStudio",
+            "https://github.com/nepalai-studio"
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "Customer Support",
+            "email": "support@nepalai.tech",
+            "availableLanguage": ["English", "Nepali", "Hindi"]
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://studio.nepalai.tech/#website",
+          "name": "NepalAI Studio",
+          "url": "https://studio.nepalai.tech/",
+          "inLanguage": ["en", "ne", "hi"],
+          "publisher": {
+            "@id": "https://studio.nepalai.tech/#organization"
+          }
         }
       ]
     }

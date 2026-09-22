@@ -62,15 +62,21 @@ import {
 } from '../data/soraProductionPacks';
 import { DirectorPreFlightApprovalModal, DirectorApprovalPayload } from './DirectorPreFlightApprovalModal';
 import { StoryContinuityDeck } from './StoryContinuityDeck';
+import { NarrativeFlowManager } from './NarrativeFlowManager';
 import { CharacterContinuityManager, CharacterModeSelection } from './CharacterContinuityManager';
 import {
   DynamicCharacterIdentity,
   SequentialSceneNode,
+  ExportedSceneSequenceProject,
   extractCharactersFromPrompt,
+  extractSceneContextFromPrompt,
+  generateChainedSegmentsFromPrompt,
   resolveSceneContinuity,
   predictNextSceneBeat,
   initializeProjectContinuity,
-  formatCharacterPromptDescriptor
+  formatCharacterPromptDescriptor,
+  quickSwapSceneCharacter,
+  downloadSceneSequenceProjectJSON
 } from '../services/characterContinuityEngine';
 
 interface SoraStudioViewProps {
@@ -409,11 +415,12 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const [projectScenes, setProjectScenes] = useState<SequentialSceneNode[]>(() => projectState.scenes);
   const [projectCharacterRegistry, setProjectCharacterRegistry] = useState<DynamicCharacterIdentity[]>(() => projectState.characters);
   const [selectedContinuityCharId, setSelectedContinuityCharId] = useState<string | null>(() => projectState.characters[0]?.id || null);
+  const [selectedSequenceSceneIndex, setSelectedSequenceSceneIndex] = useState<number>(1);
   const [characterMode, setCharacterMode] = useState<CharacterModeSelection>('reuse');
   const [currentGeneratingSceneIndex, setCurrentGeneratingSceneIndex] = useState<number | null>(null);
   const [isBatchRenderingScenes, setIsBatchRenderingScenes] = useState<boolean>(false);
 
-  // Dynamically extract character identity from prompt changes without forcing fixed presets
+  // Dynamically extract character identity and synthesize scene sequence from prompt changes
   React.useEffect(() => {
     if (!prompt.trim()) return;
     const { extractedCharacter, isNewCharacter } = extractCharactersFromPrompt(prompt, 1, projectCharacterRegistry);
@@ -437,6 +444,25 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       // Enable lock by default so continuity is preserved
       setSubjectLockEnabled(true);
     }
+
+    // Dynamically update chained segments if they haven't been rendered yet
+    setChainSegments(prev => {
+      const hasAnyRendered = prev.some(s => !!s.videoUrl);
+      if (hasAnyRendered) return prev;
+      return generateChainedSegmentsFromPrompt(prompt, extractedCharacter || null);
+    });
+
+    // Dynamically re-derive unrendered storyboard project scenes from the new prompt
+    setProjectScenes(prev => {
+      // If Scene 1 already has a generated video, do not overwrite
+      if (prev.length > 0 && prev[0]?.videoUrl) return prev;
+
+      const derivedState = initializeProjectContinuity(
+        prompt,
+        resolution === '720x1280' ? '9:16' : '16:9'
+      );
+      return derivedState.scenes;
+    });
   }, [prompt]);
 
   // AI Director Pre-Flight Approval State
@@ -718,6 +744,67 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         characterTokensInjected: res.activeCharacters.map(c => c.anchorToken)
       };
 
+      // If Scene 1 prompt was modified, automatically re-derive all unrendered subsequent scenes!
+      if (index === 0) {
+        let parentScene = updated[0];
+        for (let i = 1; i < updated.length; i++) {
+          if (!updated[i].videoUrl) {
+            const activeChars = res.updatedRegistry.filter(c => parentScene.activeCharacterIds.includes(c.id));
+            const pred = predictNextSceneBeat(parentScene, activeChars, res.updatedRegistry);
+            const subRes = resolveSceneContinuity({
+              sceneIndex: i + 1,
+              userPrompt: pred.nextPrompt,
+              projectRegistry: res.updatedRegistry,
+              previousScene: parentScene,
+              duration: pred.recommendedDuration
+            });
+            updated[i] = {
+              ...updated[i],
+              title: pred.nextTitle,
+              userPrompt: pred.nextPrompt,
+              constructedPrompt: subRes.constructedPrompt,
+              framing: pred.framing,
+              cameraMovement: pred.cameraMovement,
+              subtitleEn: pred.nextSubtitleEn,
+              subtitleNe: pred.nextSubtitleNe,
+              exitLatentContext: subRes.exitLatentContext,
+              characterTokensInjected: subRes.activeCharacters.map(c => c.anchorToken)
+            };
+            parentScene = updated[i];
+          } else {
+            parentScene = updated[i];
+          }
+        }
+      }
+
+      return updated;
+    });
+  };
+
+  // Apply continuity-aware prompt from GPT-4o Prompt Context Analyzer
+  const handleApplyPromptToScene = (sceneIndex: number, promptText: string, title?: string, duration?: '4' | '8' | '12') => {
+    setProjectScenes(prev => {
+      const updated = [...prev];
+      if (!updated[sceneIndex]) return prev;
+      const prevScene = sceneIndex > 0 ? updated[sceneIndex - 1] : undefined;
+      const res = resolveSceneContinuity({
+        sceneIndex: sceneIndex + 1,
+        userPrompt: promptText,
+        projectRegistry: projectCharacterRegistry,
+        previousScene: prevScene,
+        duration: duration || updated[sceneIndex].duration
+      });
+
+      updated[sceneIndex] = {
+        ...updated[sceneIndex],
+        title: title || updated[sceneIndex].title,
+        userPrompt: promptText,
+        constructedPrompt: res.constructedPrompt,
+        activeCharacterIds: res.activeCharacters.map(c => c.id),
+        duration: duration || updated[sceneIndex].duration,
+        exitLatentContext: res.exitLatentContext,
+        characterTokensInjected: res.activeCharacters.map(c => c.anchorToken)
+      };
       return updated;
     });
   };
@@ -1016,6 +1103,97 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       }
       return filtered;
     });
+  };
+
+  // Quick-Swap character in a specific scene maintaining motion & transition settings
+  const handleQuickSwapSceneCharacter = (sceneIndex: number, oldCharId: string, newCharId: string) => {
+    setProjectScenes(prev => {
+      const updated = [...prev];
+      const targetScene = updated[sceneIndex];
+      if (!targetScene) return prev;
+
+      const prevScene = sceneIndex > 0 ? updated[sceneIndex - 1] : undefined;
+      const swapResult = quickSwapSceneCharacter({
+        scene: targetScene,
+        sceneIndex: sceneIndex + 1,
+        previousScene: prevScene,
+        oldCharacterId: oldCharId,
+        newCharacterId: newCharId,
+        projectRegistry: projectCharacterRegistry
+      });
+
+      updated[sceneIndex] = swapResult.updatedScene;
+      return updated;
+    });
+  };
+
+  // Export full scene sequence project file
+  const handleExportSceneSequence = () => {
+    const sceneToCharMapping = projectScenes.map(s => {
+      const activeChars = projectCharacterRegistry.filter(c => s.activeCharacterIds.includes(c.id));
+      return {
+        sceneIndex: s.sceneIndex,
+        sceneTitle: s.title,
+        duration: s.duration,
+        cameraMovement: s.cameraMovement,
+        framing: s.framing,
+        lightingAtmosphere: s.lightingAtmosphere,
+        activeCharacterIds: s.activeCharacterIds,
+        characterNames: activeChars.map(c => c.name),
+        userPrompt: s.userPrompt,
+        constructedPrompt: s.constructedPrompt,
+        hasVideoUrl: Boolean(s.videoUrl),
+        status: s.status
+      };
+    });
+
+    const snapshotsCount = projectCharacterRegistry.filter(c => Boolean(c.snapshotBase64 || c.referenceImage)).length;
+
+    const projectData: ExportedSceneSequenceProject = {
+      formatVersion: '1.0',
+      exportTimestamp: new Date().toISOString(),
+      exportedBy: 'NepalAI Studio - Sora-2 Character Continuity Engine',
+      projectId: `proj-${Date.now()}`,
+      projectTitle: projectScenes[0]?.title ? `Continuity Project: ${projectScenes[0].title}` : 'Sora-2 Character Sequence',
+      worldTheme: 'Himalayan Cinematic Realism',
+      visualStyle: 'Photorealistic 4k 35mm',
+      aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+      characterMode,
+      selectedCharacterId: selectedContinuityCharId,
+      characters: projectCharacterRegistry,
+      scenes: projectScenes,
+      sceneToCharacterMapping: sceneToCharMapping,
+      totalScenes: projectScenes.length,
+      totalLockedCharacters: projectCharacterRegistry.length,
+      snapshotsIncluded: snapshotsCount
+    };
+
+    downloadSceneSequenceProjectJSON(projectData, `nepalai_sora_sequence_project_${Date.now()}.json`);
+  };
+
+  // Import full scene sequence project file
+  const handleImportSceneSequence = (importedData: any) => {
+    if (!importedData) return;
+
+    if (Array.isArray(importedData.characters) && importedData.characters.length > 0) {
+      setProjectCharacterRegistry(importedData.characters);
+    }
+    if (Array.isArray(importedData.scenes) && importedData.scenes.length > 0) {
+      setProjectScenes(importedData.scenes);
+    }
+    if (importedData.characterMode === 'reuse' || importedData.characterMode === 'new') {
+      setCharacterMode(importedData.characterMode);
+    }
+    if (importedData.selectedCharacterId) {
+      setSelectedContinuityCharId(importedData.selectedCharacterId);
+    }
+    if (importedData.aspectRatio === '9:16') {
+      setResolution('720x1280');
+    } else if (importedData.aspectRatio === '16:9') {
+      setResolution('1280x720');
+    }
+    setSnapshotToast(`📂 Successfully loaded sequence project with ${importedData.scenes?.length || 0} scenes and ${importedData.characters?.length || 0} character profiles!`);
+    setTimeout(() => setSnapshotToast(null), 4000);
   };
 
   // Add custom character to bank
@@ -2180,6 +2358,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 characters={projectCharacterRegistry}
                 selectedCharacterId={selectedContinuityCharId}
                 characterMode={characterMode}
+                scenes={projectScenes}
                 onSelectCharacter={handleSelectCharacter}
                 onSetCharacterMode={(mode) => setCharacterMode(mode)}
                 onAddNewCharacter={(charData) => {
@@ -2195,8 +2374,21 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 onUpdateCharacterDescriptors={handleUpdateCharacterDescriptors}
                 onDeleteCharacter={handleDeleteCharacter}
                 onCaptureSnapshotFromCurrent={() => handleCaptureCharacterSnapshot()}
+                onQuickSwapSceneCharacter={handleQuickSwapSceneCharacter}
+                onExportSceneSequence={handleExportSceneSequence}
+                onImportSceneSequence={handleImportSceneSequence}
+                onApplyContinuityKeywords={(keywords, updatedScenes) => {
+                  setProjectScenes(updatedScenes);
+                }}
+                onLoadScenePrompt={(promptText, dur) => {
+                  setPrompt(promptText);
+                  setSeconds(normalizeSoraDuration(parseInt(dur, 10) || 8));
+                }}
                 currentSceneNumber={projectScenes.length}
                 totalScenes={projectScenes.length}
+                worldTheme="Himalayan Cinematic Realism"
+                visualStyle="Photorealistic 4k 35mm"
+                aspectRatio={resolution === '720x1280' ? '9:16' : '16:9'}
               />
 
               {/* Standard Quick Presets Reference Bar */}
@@ -3134,7 +3326,17 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         </div>
 
         {/* Multi-Scene Sequential Storyboard & Dynamic Character Continuity Engine */}
-        <div className="col-span-1 lg:col-span-12 w-full">
+        <div className="col-span-1 lg:col-span-12 w-full space-y-4">
+          <NarrativeFlowManager
+            currentPrompt={prompt}
+            projectScenes={projectScenes}
+            projectRegistry={projectCharacterRegistry}
+            activeCharacterId={selectedContinuityCharId || undefined}
+            selectedSceneIndex={selectedSequenceSceneIndex}
+            onSelectScene={(idx) => setSelectedSequenceSceneIndex(idx)}
+            onApplyPromptToScene={handleApplyPromptToScene}
+          />
+
           <StoryContinuityDeck
             scenes={projectScenes}
             characterRegistry={projectCharacterRegistry}

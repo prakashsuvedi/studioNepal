@@ -302,13 +302,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {/* Quick 1-Click Verification Card for Active Account */}
             <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-medium">Google Account Email:</span>
+                <label htmlFor="custom-google-email" className="text-slate-400 font-medium cursor-pointer">Google Account Email:</label>
                 <span className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Ready
                 </span>
               </div>
               <input
+                id="custom-google-email"
+                name="customGoogleEmail"
                 type="email"
+                aria-label="Google Account Email"
                 value={customGoogleEmail}
                 onChange={e => setCustomGoogleEmail(e.target.value)}
                 placeholder="your.email@gmail.com"
@@ -346,8 +349,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div className="space-y-3 text-xs">
               <div className="space-y-1">
-                <label className="text-slate-300 font-medium">Admin Email</label>
+                <label htmlFor="admin-email-input" className="text-slate-300 font-medium block">Admin Email</label>
                 <input
+                  id="admin-email-input"
+                  name="adminEmail"
                   type="email"
                   required
                   value={adminEmail}
@@ -358,7 +363,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-slate-300 font-medium flex items-center gap-1.5">
+                  <label htmlFor="admin-password-input" className="text-slate-300 font-medium flex items-center gap-1.5">
                     <Key className="w-3.5 h-3.5 text-slate-400" />
                     <span>Admin Secret Password</span>
                   </label>
@@ -371,6 +376,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
                 </div>
                 <input
+                  id="admin-password-input"
+                  name="adminPassword"
                   type="password"
                   required
                   value={adminPassword}

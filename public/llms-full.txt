@@ -1,0 +1,49 @@
+# NepalAI Studio — Full Technical & Creative Documentation
+
+> Complete developer, agentic, and creator specification for NepalAI Studio.
+
+## 1. Overview
+NepalAI Studio (`https://studio.nepalai.tech/`) provides an end-to-end cloud production environment for AI video generation, synthetic avatars, multilingual conversation, neural voiceover, and multi-track non-linear video editing.
+
+## 2. Supported Languages & Locales
+- **Nepali (`ne-NP`)**: Full support for native Devanagari script, Romanized Nepali, and local cultural contexts.
+- **English (`en-US`, `en-GB`)**: Global English prompting, audio narration, and UI.
+- **Hindi (`hi-IN`)**: South Asian multilingual chat intelligence and voice assistance.
+
+## 3. Core Engine Architecture
+### 3.1 Sora-2 AI Video Generation
+- Endpoint: `/api/video/azure`, `/api/generate/video`
+- Engine: Azure OpenAI `sora-2`
+- Supported Durations: 4s, 8s, 12s (strictly normalized)
+- Resolution: Up to 1080p high definition (with 4K timeline upscaling)
+- Frame Continuity: Character DNA token injection and latent context transfer across multi-beat scenes.
+
+### 3.2 Photorealistic Avatars
+- Endpoint: `/api/avatar/generate`
+- Digital presenters: News anchors, cultural storytellers, corporate educators
+- Lip-sync: Broadcast-grade neural alignment
+- Resolution: Up to 4K WebM / MP4 export
+
+### 3.3 HamroAI Multilingual Assistant
+- Endpoint: `/api/ai/chat`
+- Models: Azure OpenAI GPT-4o, GPT-5-mini, Gemini 2.5 Flash
+- Context window: 128k tokens with cultural grounding
+
+### 3.4 Neural Speech & Voice Studio
+- Engine: OpenAI `gpt-audio`, Azure Neural Speech Services, SpeechT5
+- Audio Format: 24kHz studio WAV and 320kbps MP3
+
+### 3.5 Timeline Video Editor
+- Architecture: Client-side CapCut-style non-linear editor
+- Features: Video tracks, B-roll overlays, audio mixer, auto-subtitles, speed ramping, transitions, and export renderer.
+
+## 4. Pricing & Tiers
+- **Free Trial**: 0 USD / 0 NPR (Exploration credits)
+- **Starter Tier**: 19 USD / 2,500 NPR (500 credits)
+- **Creator Tier**: 49 USD / 6,500 NPR (1,800 credits)
+- **Pro Studio Tier**: 129 USD / 16,900 NPR (5,000 credits)
+
+## 5. Contact & Support
+- Email: support@nepalai.tech
+- Organization: NepalAI Studio (Kathmandu, Nepal)
+- Website: https://studio.nepalai.tech/

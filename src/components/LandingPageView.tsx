@@ -394,7 +394,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <div className="hero-glass-input relative flex-1 flex items-center pl-3 rounded-xl py-1">
                 <Wand2 className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mr-2" />
+                <label htmlFor="hero-prompt-input" className="sr-only">Video prompt description</label>
                 <input
+                  id="hero-prompt-input"
+                  name="heroPrompt"
+                  aria-label="Describe the video you want to generate"
                   type="text"
                   value={heroPrompt}
                   onChange={(e) => setHeroPrompt(e.target.value)}
@@ -693,14 +697,23 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         >
           <div className="space-y-3 mb-8">
             <div className="flex items-center justify-between text-xs sm:text-sm">
-              <span className="font-bold text-slate-800 dark:text-slate-200">Videos Created Monthly:</span>
+              <label htmlFor="calc-video-count" className="font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                Videos Created Monthly:
+              </label>
               <span className="text-rose-600 dark:text-rose-400 font-bold text-base">{videoCount} videos / month</span>
             </div>
             <input
+              id="calc-video-count"
+              name="monthlyVideoCount"
               type="range"
               min={3}
               max={60}
               value={videoCount}
+              aria-label="Videos Created Monthly Slider"
+              aria-valuemin={3}
+              aria-valuemax={60}
+              aria-valuenow={videoCount}
+              aria-valuetext={`${videoCount} videos per month`}
               onChange={(e) => setVideoCount(Number(e.target.value))}
               className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
             />

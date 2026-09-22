@@ -26,9 +26,28 @@ import {
   Copy,
   Info,
   Sliders,
-  ZoomIn
+  ZoomIn,
+  ArrowLeftRight,
+  Download,
+  Upload,
+  Film,
+  Zap,
+  CheckCheck,
+  Tag
 } from 'lucide-react';
-import { DynamicCharacterIdentity } from '../services/characterContinuityEngine';
+import { 
+  DynamicCharacterIdentity, 
+  SequentialSceneNode, 
+  ExportedSceneSequenceProject, 
+  downloadSceneSequenceProjectJSON,
+  quickSwapSceneCharacter,
+  ContinuityKeyword,
+  extractContinuityKeywordsFromScene,
+  formatContinuityKeywordsPrefix,
+  applyContinuityKeywordsToSequence
+} from '../services/characterContinuityEngine';
+import { SequencePreviewWireframe } from './SequencePreviewWireframe';
+import { ContinuityKeywordsPanel } from './ContinuityKeywordsPanel';
 
 export type CharacterModeSelection = 'reuse' | 'new';
 
@@ -36,6 +55,7 @@ interface CharacterContinuityManagerProps {
   characters: DynamicCharacterIdentity[];
   selectedCharacterId: string | null;
   characterMode: CharacterModeSelection;
+  scenes?: SequentialSceneNode[];
   onSelectCharacter: (characterId: string) => void;
   onSetCharacterMode: (mode: CharacterModeSelection) => void;
   onAddNewCharacter: (character: {
@@ -62,31 +82,79 @@ interface CharacterContinuityManagerProps {
   ) => void;
   onDeleteCharacter?: (characterId: string) => void;
   onCaptureSnapshotFromCurrent?: (characterId: string) => void;
+  onQuickSwapSceneCharacter?: (sceneIndex: number, oldCharId: string, newCharId: string) => void;
+  onExportSceneSequence?: () => void;
+  onImportSceneSequence?: (importedData: any) => void;
+  onApplyContinuityKeywords?: (keywords: ContinuityKeyword[], updatedScenes: SequentialSceneNode[]) => void;
+  onLoadScenePrompt?: (prompt: string, duration: string) => void;
+  initialKeywords?: ContinuityKeyword[];
+  initialKeywordsEnabled?: boolean;
   currentSceneNumber?: number;
   totalScenes?: number;
+  worldTheme?: string;
+  visualStyle?: string;
+  aspectRatio?: '16:9' | '9:16';
 }
 
 export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProps> = ({
   characters,
   selectedCharacterId,
   characterMode,
+  scenes = [],
   onSelectCharacter,
   onSetCharacterMode,
   onAddNewCharacter,
   onUpdateCharacterDescriptors,
   onDeleteCharacter,
   onCaptureSnapshotFromCurrent,
+  onQuickSwapSceneCharacter,
+  onExportSceneSequence,
+  onImportSceneSequence,
+  onApplyContinuityKeywords,
+  onLoadScenePrompt,
+  initialKeywords,
+  initialKeywordsEnabled = true,
   currentSceneNumber = 1,
-  totalScenes = 1
+  totalScenes = 1,
+  worldTheme = 'Himalayan Cinematic Realism',
+  visualStyle = 'Photorealistic 4k 35mm',
+  aspectRatio = '16:9'
 }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'gallery' | 'mode_selector'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'quick_swap' | 'sequence_preview' | 'continuity_keywords' | 'mode_selector'>('gallery');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
   const [previewingSnapshot, setPreviewingSnapshot] = useState<{ name: string; base64: string; token: string } | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const projectJsonInputRef = useRef<HTMLInputElement | null>(null);
   const [targetUploadCharId, setTargetUploadCharId] = useState<string | null>(null);
+
+  // Quick-Swap local state
+  const [quickSwapSceneIdx, setQuickSwapSceneIdx] = useState<number>(0);
+  const [quickSwapOldCharId, setQuickSwapOldCharId] = useState<string>('');
+  const [quickSwapNewCharId, setQuickSwapNewCharId] = useState<string>('');
+
+  // Sync Quick-Swap default selection when scene or characters change
+  React.useEffect(() => {
+    if (scenes && scenes.length > 0) {
+      const validSceneIdx = Math.min(quickSwapSceneIdx, scenes.length - 1);
+      const activeScene = scenes[validSceneIdx];
+      if (activeScene && activeScene.activeCharacterIds.length > 0) {
+        if (!activeScene.activeCharacterIds.includes(quickSwapOldCharId)) {
+          setQuickSwapOldCharId(activeScene.activeCharacterIds[0]);
+        }
+      }
+    }
+  }, [scenes, quickSwapSceneIdx]);
+
+  React.useEffect(() => {
+    if (characters.length > 0 && !quickSwapNewCharId) {
+      const otherChar = characters.find(c => c.id !== quickSwapOldCharId) || characters[0];
+      setQuickSwapNewCharId(otherChar.id);
+    }
+  }, [characters, quickSwapOldCharId]);
 
   // New character form state
   const [newName, setNewName] = useState('');
@@ -184,6 +252,106 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
     e.target.value = '';
   };
 
+  // Export Scene Sequence JSON Handler
+  const handleTriggerExportJSON = () => {
+    if (onExportSceneSequence) {
+      onExportSceneSequence();
+      return;
+    }
+
+    const sceneToCharMapping = scenes.map(s => {
+      const activeChars = characters.filter(c => s.activeCharacterIds.includes(c.id));
+      return {
+        sceneIndex: s.sceneIndex,
+        sceneTitle: s.title,
+        duration: s.duration,
+        cameraMovement: s.cameraMovement,
+        framing: s.framing,
+        lightingAtmosphere: s.lightingAtmosphere,
+        activeCharacterIds: s.activeCharacterIds,
+        characterNames: activeChars.map(c => c.name),
+        userPrompt: s.userPrompt,
+        constructedPrompt: s.constructedPrompt,
+        hasVideoUrl: Boolean(s.videoUrl),
+        status: s.status
+      };
+    });
+
+    const snapshotsCount = characters.filter(c => Boolean(c.snapshotBase64 || c.referenceImage)).length;
+
+    const projectData: ExportedSceneSequenceProject = {
+      formatVersion: '1.0',
+      exportTimestamp: new Date().toISOString(),
+      exportedBy: 'NepalAI Studio - Sora-2 Character Continuity Engine',
+      projectId: `proj-${Date.now()}`,
+      projectTitle: scenes[0]?.title ? `Continuity Project: ${scenes[0].title}` : 'Sora-2 Character Sequence',
+      worldTheme,
+      visualStyle,
+      aspectRatio: (aspectRatio === '9:16' ? '9:16' : '16:9') as '16:9' | '9:16',
+      characterMode,
+      selectedCharacterId,
+      characters,
+      scenes,
+      sceneToCharacterMapping: sceneToCharMapping,
+      totalScenes: scenes.length,
+      totalLockedCharacters: characters.length,
+      snapshotsIncluded: snapshotsCount
+    };
+
+    downloadSceneSequenceProjectJSON(projectData, `sora_sequence_project_${Date.now()}.json`);
+    setToastMessage(`💾 Exported Scene Sequence JSON (${scenes.length} scenes, ${characters.length} characters, ${snapshotsCount} snapshots)`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Import Project JSON Handler
+  const handleTriggerImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (onImportSceneSequence) {
+          onImportSceneSequence(parsed);
+        } else {
+          setToastMessage(`📂 Read JSON Project file with ${parsed.scenes?.length || 0} scenes and ${parsed.characters?.length || 0} characters.`);
+          setTimeout(() => setToastMessage(null), 3500);
+        }
+      } catch (err) {
+        alert('Invalid JSON file. Please provide a valid exported Sora Sequence project file.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // Quick-Swap Execution
+  const handleExecuteQuickSwap = () => {
+    if (!quickSwapOldCharId || !quickSwapNewCharId) {
+      alert('Please select both the character to replace and the replacement character.');
+      return;
+    }
+
+    if (quickSwapOldCharId === quickSwapNewCharId) {
+      alert('The replacement character must be different from the current character.');
+      return;
+    }
+
+    if (onQuickSwapSceneCharacter) {
+      onQuickSwapSceneCharacter(quickSwapSceneIdx, quickSwapOldCharId, quickSwapNewCharId);
+    }
+
+    const oldName = characters.find(c => c.id === quickSwapOldCharId)?.name || 'Character';
+    const newName = characters.find(c => c.id === quickSwapNewCharId)?.name || 'Target';
+    setToastMessage(`⚡ Quick-Swapped Scene ${quickSwapSceneIdx + 1}: Replaced "${oldName}" with "${newName}" while maintaining all motion & camera settings!`);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const currentSelectedScene = scenes[quickSwapSceneIdx] || scenes[0];
+  const oldCharObj = characters.find(c => c.id === quickSwapOldCharId);
+  const newCharObj = characters.find(c => c.id === quickSwapNewCharId);
+
   return (
     <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 text-white">
       
@@ -193,6 +361,15 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
         ref={fileInputRef}
         onChange={handleFileUpload}
         accept="image/*"
+        className="hidden"
+      />
+
+      {/* Hidden file input for Project Sequence JSON Imports */}
+      <input
+        type="file"
+        ref={projectJsonInputRef}
+        onChange={handleTriggerImportJSON}
+        accept=".json,application/json"
         className="hidden"
       />
 
@@ -217,13 +394,36 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Tab Switcher: Visual Gallery vs Continuity Mode */}
-          <div className="flex items-center p-0.5 bg-slate-950 rounded-lg border border-slate-800 text-[11px]">
+        {/* Action Buttons & Tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Export JSON Download Button */}
+          <button
+            type="button"
+            onClick={handleTriggerExportJSON}
+            className="text-[11px] px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-emerald-500/50"
+            title="Download full character configuration, snapshots, and scene mapping as a reusable JSON project file"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Sequence (.json)</span>
+          </button>
+
+          {/* Import JSON Button */}
+          <button
+            type="button"
+            onClick={() => projectJsonInputRef.current?.click()}
+            className="text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold transition flex items-center gap-1.5 cursor-pointer border border-slate-700"
+            title="Import an existing sequence JSON project file"
+          >
+            <Upload className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Import JSON</span>
+          </button>
+
+          {/* Tab Switcher */}
+          <div className="flex items-center p-0.5 bg-slate-950 rounded-lg border border-slate-800 text-[11px] overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab('gallery')}
-              className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 cursor-pointer shrink-0 ${
                 activeTab === 'gallery'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-400 hover:text-white'
@@ -232,10 +432,55 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
               <ImageIcon className="w-3 h-3" />
               <span>Visual Gallery</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('quick_swap')}
+              className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 cursor-pointer shrink-0 ${
+                activeTab === 'quick_swap'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Zap className="w-3 h-3 text-amber-300" />
+              <span>Quick-Swap</span>
+              {scenes.length > 0 && (
+                <span className="ml-0.5 text-[9px] px-1 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-mono">
+                  {scenes.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('sequence_preview')}
+              className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 cursor-pointer shrink-0 ${
+                activeTab === 'sequence_preview'
+                  ? 'bg-cyan-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Film className="w-3 h-3 text-cyan-300" />
+              <span>Sequence Preview</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('continuity_keywords')}
+              className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 cursor-pointer shrink-0 ${
+                activeTab === 'continuity_keywords'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>Continuity Keywords</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('mode_selector')}
-              className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 cursor-pointer shrink-0 ${
                 activeTab === 'mode_selector'
                   ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-400 hover:text-white'
@@ -264,6 +509,14 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
           </button>
         </div>
       </div>
+
+      {/* Floating Notification Toast */}
+      {toastMessage && (
+        <div className="p-2.5 bg-emerald-950/90 border border-emerald-500/50 rounded-xl text-emerald-200 text-xs flex items-center gap-2 shadow-lg animate-in fade-in duration-150">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-semibold">{toastMessage}</span>
+        </div>
+      )}
 
       {isExpanded && (
         <div className="space-y-4 animate-in fade-in duration-200">
@@ -497,7 +750,7 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
                         </div>
 
                         {/* Card Footer Actions */}
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10.5px]">
+                        <div className="flex flex-wrap items-center justify-between pt-1 border-t border-slate-800/80 text-[10.5px] gap-1">
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
@@ -526,22 +779,41 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
                             </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectCharacter(char.id);
-                              onSetCharacterMode('reuse');
-                            }}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
-                              isSelected
-                                ? 'bg-indigo-600 text-white shadow-xs'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                            }`}
-                          >
-                            <Lock className="w-2.5 h-2.5" />
-                            <span>{isSelected ? 'Locked' : 'Lock ID'}</span>
-                          </button>
+                          <div className="flex items-center gap-1">
+                            {/* Quick-Swap Target Button */}
+                            {scenes.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setQuickSwapNewCharId(char.id);
+                                  setActiveTab('quick_swap');
+                                }}
+                                className="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-amber-200 font-bold transition cursor-pointer flex items-center gap-1 border border-amber-500/30"
+                                title="Swap this character into a specific scene"
+                              >
+                                <Zap className="w-2.5 h-2.5 text-amber-400" />
+                                <span>Swap Into...</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectCharacter(char.id);
+                                onSetCharacterMode('reuse');
+                              }}
+                              className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
+                                isSelected
+                                  ? 'bg-indigo-600 text-white shadow-xs'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                              }`}
+                            >
+                              <Lock className="w-2.5 h-2.5" />
+                              <span>{isSelected ? 'Locked' : 'Lock ID'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -551,7 +823,224 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
             </div>
           )}
 
-          {/* TAB 2: CONTINUITY MODE CONFIGURATION & INSPECTOR */}
+          {/* TAB 2: QUICK-SWAP CHARACTER FUNCTIONALITY */}
+          {activeTab === 'quick_swap' && (
+            <div className="space-y-4">
+              {/* Quick-Swap Intro & Motion Guarantee Banner */}
+              <div className="p-3.5 bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-emerald-500/10 rounded-xl border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                      <span>⚡ Quick-Swap Character in Specific Scene</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">
+                        Motion &amp; Camera Preserved
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-300">
+                      Replaces character identity &amp; DNA in any scene while strictly maintaining camera movement, framing, lighting atmosphere, speed, and transition settings.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {scenes.length === 0 ? (
+                <div className="p-8 text-center bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
+                  <Film className="w-8 h-8 text-slate-600 mx-auto" />
+                  <p className="text-xs text-slate-400 font-medium">No scenes created yet in the story sequence.</p>
+                  <p className="text-[11px] text-slate-500">Generate or add a scene beat in the Storyboard deck below to enable Quick-Swapping.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Step 1: Select Target Scene */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-200 block flex items-center gap-1.5">
+                      <Film className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>1. Select Target Scene to Modify:</span>
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {scenes.map((scene, idx) => {
+                        const isSceneSelected = quickSwapSceneIdx === idx;
+                        const assignedChars = characters.filter(c => scene.activeCharacterIds.includes(c.id));
+                        return (
+                          <div
+                            key={scene.id}
+                            onClick={() => {
+                              setQuickSwapSceneIdx(idx);
+                              if (scene.activeCharacterIds.length > 0) {
+                                setQuickSwapOldCharId(scene.activeCharacterIds[0]);
+                              }
+                            }}
+                            className={`p-3 rounded-xl border text-left transition cursor-pointer space-y-1.5 ${
+                              isSceneSelected
+                                ? 'bg-indigo-950/80 border-indigo-500 ring-2 ring-indigo-500/50 shadow-md'
+                                : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-white flex items-center gap-1">
+                                <span>Scene {scene.sceneIndex}</span>
+                                {scene.videoUrl && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400">{scene.duration}s</span>
+                            </div>
+
+                            <p className="text-[11px] text-slate-300 line-clamp-1 font-medium">{scene.title}</p>
+
+                            <div className="flex items-center gap-1 text-[10px] text-indigo-300">
+                              <span>Actor:</span>
+                              <span className="font-bold text-white truncate">
+                                {assignedChars.map(c => `${c.avatarEmoji} ${c.name}`).join(', ') || 'None'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Step 2: Preserved Cinematography & Motion Settings Display */}
+                  {currentSelectedScene && (
+                    <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                          <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Preserved Motion &amp; Cinematography Settings for Scene {currentSelectedScene.sceneIndex}</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+                          100% Locked &amp; Maintained
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div className="p-2 bg-slate-900/80 rounded-lg border border-slate-800 space-y-0.5">
+                          <span className="text-[10px] text-slate-400 block">🎥 Camera Movement</span>
+                          <span className="text-[11px] font-bold text-indigo-300 line-clamp-1">
+                            {currentSelectedScene.cameraMovement || 'Smooth Dynamic Dolly'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 bg-slate-900/80 rounded-lg border border-slate-800 space-y-0.5">
+                          <span className="text-[10px] text-slate-400 block">📐 Framing</span>
+                          <span className="text-[11px] font-bold text-indigo-300 line-clamp-1">
+                            {currentSelectedScene.framing || 'Cinematic Wide 35mm'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 bg-slate-900/80 rounded-lg border border-slate-800 space-y-0.5">
+                          <span className="text-[10px] text-slate-400 block">💡 Lighting Atmosphere</span>
+                          <span className="text-[11px] font-bold text-indigo-300 line-clamp-1">
+                            {currentSelectedScene.lightingAtmosphere || 'Natural Alpenglow Warm'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 bg-slate-900/80 rounded-lg border border-slate-800 space-y-0.5">
+                          <span className="text-[10px] text-slate-400 block">⏱️ Duration</span>
+                          <span className="text-[11px] font-bold text-indigo-300">
+                            {currentSelectedScene.duration} Seconds
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Interactive Side-by-Side Character Swap Console */}
+                  <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-center p-4 bg-slate-950 rounded-xl border border-slate-800">
+                    
+                    {/* Left: Old Character Currently in Scene */}
+                    <div className="md:col-span-5 space-y-2">
+                      <label className="text-[11px] font-bold text-rose-300 uppercase tracking-wider block flex items-center gap-1">
+                        <span>Current Character in Scene {currentSelectedScene?.sceneIndex || 1}</span>
+                      </label>
+
+                      <select
+                        value={quickSwapOldCharId}
+                        onChange={(e) => setQuickSwapOldCharId(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-rose-500 cursor-pointer"
+                      >
+                        {characters.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.avatarEmoji} {c.name} ({c.roleOrArchetype})
+                          </option>
+                        ))}
+                      </select>
+
+                      {oldCharObj && (
+                        <div className="p-2.5 bg-rose-950/20 border border-rose-500/30 rounded-lg space-y-1 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-rose-200">{oldCharObj.avatarEmoji} {oldCharObj.name}</span>
+                            <span className="text-[10px] text-rose-300 font-mono">Current Actor</span>
+                          </div>
+                          <p className="text-[10.5px] text-slate-300 line-clamp-2">
+                            {oldCharObj.visualDescription}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Middle: Swap Arrow Indicator */}
+                    <div className="md:col-span-1 flex flex-col items-center justify-center py-2">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center shadow-md">
+                        <ArrowLeftRight className="w-5 h-5" />
+                      </div>
+                    </div>
+
+                    {/* Right: Replacement Character from Gallery */}
+                    <div className="md:col-span-5 space-y-2">
+                      <label className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider block flex items-center gap-1">
+                        <span>Replacement Character from Gallery</span>
+                      </label>
+
+                      <select
+                        value={quickSwapNewCharId}
+                        onChange={(e) => setQuickSwapNewCharId(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        {characters.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.avatarEmoji} {c.name} ({c.roleOrArchetype}) {c.snapshotBase64 ? '• Has Snapshot' : ''}
+                          </option>
+                        ))}
+                      </select>
+
+                      {newCharObj && (
+                        <div className="p-2.5 bg-emerald-950/20 border border-emerald-500/30 rounded-lg space-y-1 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-emerald-200">{newCharObj.avatarEmoji} {newCharObj.name}</span>
+                            <span className="text-[10px] text-emerald-300 font-mono">New Injected Actor</span>
+                          </div>
+                          <p className="text-[10.5px] text-slate-300 line-clamp-2">
+                            {newCharObj.visualDescription}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Step 4: Execute Quick-Swap Button */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                    <p className="text-[11px] text-slate-400">
+                      ⚡ Ready to update Scene {currentSelectedScene?.sceneIndex || 1} prompt with <span className="text-white font-bold">{newCharObj?.name || 'Target'}</span>'s visual DNA &amp; anchor token.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={handleExecuteQuickSwap}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-indigo-600 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white text-xs font-bold shadow-lg shadow-indigo-950/40 flex items-center justify-center gap-2 transition cursor-pointer"
+                    >
+                      <Zap className="w-4 h-4 text-amber-200" />
+                      <span>⚡ Quick-Swap Character in Scene {currentSelectedScene?.sceneIndex || 1}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: CONTINUITY MODE CONFIGURATION & INSPECTOR */}
           {activeTab === 'mode_selector' && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -677,6 +1166,42 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
             </div>
           )}
 
+          {/* TAB 4: SEQUENCE PREVIEW & ANIMATED STORYBOARD WIREFRAME */}
+          {activeTab === 'sequence_preview' && (
+            <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 animate-in fade-in duration-200">
+              <SequencePreviewWireframe
+                scenes={scenes}
+                characters={characters}
+                aspectRatio={aspectRatio}
+                worldTheme={worldTheme}
+                visualStyle={visualStyle}
+                onSelectScene={(idx) => setQuickSwapSceneIdx(idx)}
+                onLoadScenePrompt={onLoadScenePrompt}
+              />
+            </div>
+          )}
+
+          {/* TAB 5: AUTOMATED CONTINUITY KEYWORDS ENGINE */}
+          {activeTab === 'continuity_keywords' && (
+            <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 animate-in fade-in duration-200">
+              <ContinuityKeywordsPanel
+                scenes={scenes}
+                characters={characters}
+                worldTheme={worldTheme}
+                visualStyle={visualStyle}
+                initialKeywords={initialKeywords}
+                initialEnabled={initialKeywordsEnabled}
+                onApplyKeywords={(kws, updatedScenes) => {
+                  if (onApplyContinuityKeywords) {
+                    onApplyContinuityKeywords(kws, updatedScenes);
+                  }
+                  setToastMessage(`✨ Applied ${kws.filter(k => k.enabled).length} Continuity Keywords to sequence!`);
+                  setTimeout(() => setToastMessage(null), 3500);
+                }}
+              />
+            </div>
+          )}
+
         </div>
       )}
 
@@ -727,7 +1252,7 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
               <button
                 type="button"
                 onClick={() => setEditingCharId(null)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -824,14 +1349,14 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
               <button
                 type="button"
                 onClick={() => setEditingCharId(null)}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => handleSaveEdit(editingCharId)}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md"
+                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md cursor-pointer"
               >
                 Save Descriptors
               </button>
@@ -852,7 +1377,7 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -963,13 +1488,13 @@ export const CharacterContinuityManager: React.FC<CharacterContinuityManagerProp
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
+                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md"
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md cursor-pointer"
                 >
                   Register &amp; Lock Profile
                 </button>

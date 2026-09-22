@@ -77,6 +77,9 @@ async function startServer() {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-admin-key, x-request-id, x-idempotency-key');
     res.setHeader('Access-Control-Expose-Headers', 'x-request-id, x-idempotency-key, x-ratelimit-remaining');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
     if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
@@ -172,22 +175,123 @@ async function startServer() {
     res.send(`google-site-verification: ${filename}`);
   });
 
-  app.get('/robots.txt', (_req, res) => {
+  app.get('/robots.txt', (req, res) => {
+    const host = req.get('host') || 'studio.nepalai.tech';
+    const proto = req.protocol || 'https';
+    const baseUrl = `${proto}://${host}`;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.send('User-agent: *\nAllow: /\n\nSitemap: https://studio.nepalai.tech/sitemap.xml\n');
+    res.send(`User-agent: *
+Allow: /
+Disallow: /api/admin/
+Disallow: /api/diagnostic/
+
+Sitemap: ${baseUrl}/sitemap.xml
+`);
   });
 
-  app.get('/sitemap.xml', (_req, res) => {
+  app.get('/sitemap.xml', (req, res) => {
+    const host = req.get('host') || 'studio.nepalai.tech';
+    const proto = req.protocol || 'https';
+    const baseUrl = `${proto}://${host}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    const sitemapEntries = [
+      // Core Public & Homepage
+      { path: '', priority: '1.0', changefreq: 'daily', title: 'NepalAI Studio - AI Video & Creative Suite' },
+      { path: 'pricing', priority: '0.9', changefreq: 'daily', title: 'Pricing & Credit Tiers (NPR & USD)' },
+      { path: 'about', priority: '0.8', changefreq: 'weekly', title: 'About NepalAI Studio & Cultural AI' },
+      { path: 'faq', priority: '0.8', changefreq: 'weekly', title: 'Frequently Asked Questions & Guides' },
+      { path: 'privacy', priority: '0.6', changefreq: 'monthly', title: 'Privacy Policy & Terms' },
+      { path: 'contact', priority: '0.7', changefreq: 'monthly', title: 'Contact & Creator Support' },
+      { path: 'auth', priority: '0.8', changefreq: 'monthly', title: 'Creator Login & Sign Up' },
+
+      // AI Studio Workspaces & Creative Tools
+      { path: 'sora', priority: '0.95', changefreq: 'daily', title: 'Azure Sora-2 AI Video Studio' },
+      { path: 'sora-studio', priority: '0.90', changefreq: 'daily', title: 'Sora Video Creation Suite' },
+      { path: 'avatar', priority: '0.95', changefreq: 'daily', title: 'Photorealistic AI News Anchor & Presenter Studio' },
+      { path: 'avatar-studio', priority: '0.90', changefreq: 'daily', title: 'AI Presenter & Storyteller Workspace' },
+      { path: 'hamroai', priority: '0.95', changefreq: 'daily', title: 'HamroAI Multilingual Assistant (Nepali, English, Hindi)' },
+      { path: 'chat', priority: '0.90', changefreq: 'daily', title: 'HamroAI Intelligent Chat' },
+      { path: 'video-editor', priority: '0.95', changefreq: 'daily', title: 'CapCut-Style Multi-Track Video Editor' },
+      { path: 'timeline', priority: '0.90', changefreq: 'daily', title: 'Timeline Video Editor & Audio Mixer' },
+      { path: 'tts-studio', priority: '0.90', changefreq: 'daily', title: 'Broadcast Studio Neural Voiceovers & TTS' },
+      { path: 'voice', priority: '0.90', changefreq: 'daily', title: 'AI Voice Cloning & Narration Studio' },
+      { path: 'image-studio', priority: '0.90', changefreq: 'daily', title: 'GPT-Image 2.5 Flare & Flux AI Art Studio' },
+      { path: 'image', priority: '0.90', changefreq: 'daily', title: 'AI Graphic & Visual Generator' },
+      { path: 'character-continuity', priority: '0.90', changefreq: 'weekly', title: 'Dynamic Character Continuity & Narrative Flow Manager' },
+      { path: 'storyboard', priority: '0.90', changefreq: 'weekly', title: 'Multi-Scene Sequential Storyboard Deck' },
+      { path: 'url-to-video', priority: '0.90', changefreq: 'weekly', title: 'Instant URL & Article to Video Studio' },
+      { path: 'templates', priority: '0.85', changefreq: 'weekly', title: 'Video Production Story Packs & Templates' },
+      { path: 'diagnostic', priority: '0.70', changefreq: 'weekly', title: 'Real-Time AI Service Latency & System Observability' }
+    ];
+
+    const xmlUrls = sitemapEntries
+      .map(entry => {
+        const url = entry.path ? `${baseUrl}/${entry.path}` : `${baseUrl}/`;
+        return `  <url>
+    <loc>${url}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${entry.changefreq}</changefreq>
+    <priority>${entry.priority}</priority>
+  </url>`;
+      })
+      .join('\n');
+
+    const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${xmlUrls}
+</urlset>`;
+
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://studio.nepalai.tech/</loc>
-    <lastmod>2026-09-20</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-</urlset>`);
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=14400');
+    res.send(sitemapXml);
+  });
+
+  // LLMs standard and AI discovery files
+  app.get(['/llms.txt', '/.well-known/llms.txt'], (_req, res) => {
+    const filePath = path.join(process.cwd(), 'public', 'llms.txt');
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.send('# NepalAI Studio\n\n> Multilingual AI Video & Creative Suite\n');
+    }
+  });
+
+  app.get('/llms-full.txt', (_req, res) => {
+    const filePath = path.join(process.cwd(), 'public', 'llms-full.txt');
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.send('# NepalAI Studio Detailed Docs\n');
+    }
+  });
+
+  app.get(['/ai-catalog.json', '/.well-known/ai-catalog.json'], (_req, res) => {
+    const filePath = path.join(process.cwd(), 'public', 'ai-catalog.json');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.json({ schema_version: 'v1', name_for_human: 'NepalAI Studio' });
+    }
+  });
+
+  app.get('/openapi.json', (_req, res) => {
+    const filePath = path.join(process.cwd(), 'public', 'openapi.json');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.json({ openapi: '3.1.0', info: { title: 'NepalAI Studio API', version: '1.0.0' } });
+    }
   });
 
   app.get('/api/health', (req, res) => {
@@ -560,6 +664,152 @@ async function startServer() {
         success: false,
         translatedText: req.body?.text || '',
         error: err?.message,
+      });
+    }
+  });
+
+  // Prompt Context Analyzer with GPT-4o for Scene Continuity & Sequential Dependency
+  app.post('/api/ai/analyze-scene-context', async (req, res) => {
+    try {
+      const {
+        currentScenePrompt,
+        sceneIndex = 2,
+        previousScenes = [],
+        lockedCharacters = [],
+        targetBeatType = 'continuation',
+      } = req.body;
+
+      if (!currentScenePrompt && previousScenes.length === 0) {
+        return res.status(400).json({ error: 'currentScenePrompt or previousScenes is required' });
+      }
+
+      const scene1Prompt = previousScenes[0]?.prompt || currentScenePrompt || '';
+
+      const systemInstruction = `You are an elite Hollywood Director and AI Video Continuity Engineer specializing in OpenAI Sora-2 and diffusion models.
+Your task is to analyze Scene ${sceneIndex - 1} (and all prior scenes, especially Scene 1 Master context) and synthesize a 100% context-faithful, continuity-locked prompt for Scene ${sceneIndex}.
+
+CRITICAL RULES:
+1. NO RANDOM ELEMENT INJECTION: Do NOT introduce unrelated elements (e.g. do not inject random mountain villages, random temples, or sudden sci-fi spaceships if the previous scene was a Korean apartment hallway, an office, or a coffee shop).
+2. LOCKED CHARACTER DESCRIPTORS: Identify all characters from Scene 1. Their physical traits, facial DNA, ethnicity, hair, clothing/wardrobe, color palette, and key accessories must be extracted and strictly locked.
+3. SEQUENTIAL DEPENDENCY: Scene ${sceneIndex} must logically evolve from Scene ${sceneIndex - 1}'s exit frame (e.g. stepping further down the hallway, reaching the elevator door, reacting to the sound, turning around).
+4. PRESERVE ENVIRONMENT & LIGHTING: Maintain exact environmental textures (e.g. flickering fluorescent lighting, peeling paint, rain-slicked pavement, atmospheric haze, color grading).
+
+Respond with valid JSON ONLY in this exact schema:
+{
+  "extractedEntities": {
+    "genre": "horror | cyberpunk | scifi | action | nature | urban | drama | cozy | cinematic",
+    "environment": "concise description of the setting extracted from prompt",
+    "lighting": "exact lighting scheme (e.g. flickering fluorescent tube lighting)",
+    "atmosphere": "mood, tension, atmospheric density",
+    "keyObjects": ["object1", "object2"],
+    "cameraLanguage": "e.g. Slow creeping 35mm low-angle tracking push-in"
+  },
+  "characterDescriptions": [
+    {
+      "name": "Character Name",
+      "role": "Archetype / Role",
+      "visualDescriptors": "Exact hair, ethnicity, facial features, clothing, colors",
+      "anchorToken": "[Subject-Anchor: ...]"
+    }
+  ],
+  "lockedParameters": [
+    { "key": "Character Wardrobe", "value": "...", "sourceSceneIndex": 1 },
+    { "key": "Lighting & Tone", "value": "...", "sourceSceneIndex": 1 },
+    { "key": "Spatial Setting", "value": "...", "sourceSceneIndex": 1 }
+  ],
+  "suggestedTitle": "Scene ${sceneIndex}: Title of Next Beat",
+  "continuityAwarePrompt": "The complete, detailed, cinematic video prompt for Scene ${sceneIndex} locking character visual traits and continuing the action without any random drift",
+  "suggestedDuration": "8",
+  "framing": "Tracking Medium Shot (35mm)",
+  "cameraMovement": "Smooth Creeping Dolly In",
+  "subtitles": {
+    "en": "Evocative English narration/subtitle for Scene ${sceneIndex}",
+    "ne": "Authentic Nepali subtitle in Devanagari script for Scene ${sceneIndex}"
+  },
+  "narrativeProgressionRationale": "Brief explanation of how this scene directly continues the narrative without element drift"
+}`;
+
+      const userContent = JSON.stringify({
+        targetSceneIndex: sceneIndex,
+        currentScenePrompt: currentScenePrompt || '',
+        previousScenes: previousScenes.map((s: any, idx: number) => ({
+          sceneNumber: s.sceneIndex || idx + 1,
+          title: s.title || `Scene ${idx + 1}`,
+          prompt: s.prompt || s.userPrompt || '',
+          exitLatentContext: s.exitLatentContext || '',
+        })),
+        lockedCharacters: lockedCharacters || [],
+        targetBeatType,
+      });
+
+      const result = await serverHamroAiChat({
+        userId: 'system_continuity_analyzer',
+        userRole: 'admin',
+        messages: [{ role: 'user', content: userContent }],
+        model: 'gpt-4o',
+        language: 'en',
+        systemInstruction,
+      });
+
+      let parsed: any = null;
+      try {
+        const rawReply = result.reply || '';
+        const jsonMatch = rawReply.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        }
+      } catch (parseErr) {
+        console.warn('Failed to parse GPT-4o continuity analysis JSON:', parseErr);
+      }
+
+      if (!parsed || !parsed.continuityAwarePrompt) {
+        // Fallback: build continuity prompt if JSON parsing had issues
+        return res.json({
+          success: true,
+          modelUsed: 'gpt-4o-fallback',
+          extractedEntities: {
+            genre: 'cinematic',
+            environment: scene1Prompt.slice(0, 50),
+            lighting: 'cinematic lighting matching Scene 1',
+            atmosphere: 'continuous narrative tension',
+            keyObjects: [],
+            cameraLanguage: 'Smooth 35mm Tracking Shot',
+          },
+          characterDescriptions: lockedCharacters.length > 0 ? lockedCharacters : [
+            {
+              name: 'The protagonist',
+              role: 'Main Subject',
+              visualDescriptors: 'Preserving exact attire, appearance, and physical traits from Scene 1',
+              anchorToken: '[Subject-Anchor: Character]',
+            },
+          ],
+          lockedParameters: [
+            { key: 'Subject Identity', value: 'Visual lock from Scene 1', sourceSceneIndex: 1 },
+            { key: 'Lighting Tone', value: 'Matched to Scene 1 atmosphere', sourceSceneIndex: 1 },
+          ],
+          suggestedTitle: `Scene ${sceneIndex}: Action Progression`,
+          continuityAwarePrompt: `Continuous tracking shot directly following the subject in the exact same environment from Scene 1 (${scene1Prompt.slice(0, 100)}). Maintaining identical lighting, character wardrobe, and realistic physical continuity.`,
+          suggestedDuration: '8',
+          framing: 'Tracking Medium Shot (35mm)',
+          cameraMovement: 'Smooth Forward Dolly',
+          subtitles: {
+            en: `The sequence moves deeper into the space, preserving every visual detail.`,
+            ne: `दृश्य निरन्तर अगाडि बढ्छ, सबै विवरणहरू सुरक्षित राख्दै।`,
+          },
+          narrativeProgressionRationale: 'Enforcing strict sequential continuity derived from Scene 1.',
+        });
+      }
+
+      return res.json({
+        success: true,
+        modelUsed: 'gpt-4o',
+        ...parsed,
+      });
+    } catch (err: any) {
+      console.error('Error in /api/ai/analyze-scene-context:', err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || 'Failed to analyze scene context',
       });
     }
   });
@@ -4511,7 +4761,16 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1d',
+      setHeaders: (res, pathUrl) => {
+        if (pathUrl.includes('/assets/')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (pathUrl.endsWith('.png') || pathUrl.endsWith('.svg') || pathUrl.endsWith('.ico') || pathUrl.endsWith('.mp4') || pathUrl.endsWith('.wav') || pathUrl.endsWith('.mp3')) {
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+        }
+      }
+    }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

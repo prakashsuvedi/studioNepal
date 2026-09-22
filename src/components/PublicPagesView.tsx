@@ -271,8 +271,10 @@ export const PublicPagesView: React.FC<PublicPagesViewProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 block">Your Name</label>
+                    <label htmlFor="contact-name" className="text-xs font-bold text-slate-700 block">Your Name</label>
                     <input
+                      id="contact-name"
+                      name="name"
                       type="text"
                       required
                       value={contactForm.name}
@@ -283,8 +285,10 @@ export const PublicPagesView: React.FC<PublicPagesViewProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 block">Email Address</label>
+                    <label htmlFor="contact-email" className="text-xs font-bold text-slate-700 block">Email Address</label>
                     <input
+                      id="contact-email"
+                      name="email"
                       type="email"
                       required
                       value={contactForm.email}
@@ -296,8 +300,10 @@ export const PublicPagesView: React.FC<PublicPagesViewProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Subject</label>
+                  <label htmlFor="contact-subject" className="text-xs font-bold text-slate-700 block">Subject</label>
                   <select
+                    id="contact-subject"
+                    name="subject"
                     value={contactForm.subject}
                     onChange={e => setContactForm({ ...contactForm, subject: e.target.value })}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
@@ -310,8 +316,10 @@ export const PublicPagesView: React.FC<PublicPagesViewProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 block">Your Message</label>
+                  <label htmlFor="contact-message" className="text-xs font-bold text-slate-700 block">Your Message</label>
                   <textarea
+                    id="contact-message"
+                    name="message"
                     rows={4}
                     required
                     value={contactForm.message}

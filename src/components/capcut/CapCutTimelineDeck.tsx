@@ -1101,13 +1101,20 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
             {/* Duration Slider */}
             <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-300 font-semibold flex items-center gap-1">
+                <label htmlFor="deck-trans-duration-slider" className="text-slate-300 font-semibold flex items-center gap-1 cursor-pointer">
                   <Clock className="w-3.5 h-3.5 text-cyan-400" />
                   Transition Duration
-                </span>
+                </label>
                 <span className="font-mono text-cyan-400 font-bold">{transDuration}s</span>
               </div>
+              <label htmlFor="deck-trans-duration-slider" className="visually-hidden">Transition duration in seconds</label>
               <input
+                id="deck-trans-duration-slider"
+                name="transitionDuration"
+                aria-label="Transition duration slider in seconds"
+                aria-valuemin={0.2}
+                aria-valuemax={2.5}
+                aria-valuenow={transDuration}
                 type="range"
                 min="0.2"
                 max="2.5"
@@ -1270,7 +1277,14 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                     </button>
                   ))}
                 </div>
+                <label htmlFor="deck-subtitle-custom-y" className="visually-hidden">Subtitle vertical placement percentage slider</label>
                 <input
+                  id="deck-subtitle-custom-y"
+                  name="subtitleCustomY"
+                  aria-label="Subtitle vertical placement percentage slider"
+                  aria-valuemin={10}
+                  aria-valuemax={95}
+                  aria-valuenow={subtitleCustomY}
                   type="range"
                   min={10}
                   max={95}

@@ -449,7 +449,15 @@ export const SequencePreviewWireframe: React.FC<SequencePreviewWireframeProps> =
             <span className="text-[10px] font-mono text-cyan-400 font-bold w-10 text-right">
               {currentSecondsElapsed}s
             </span>
+            <label htmlFor="sequence-preview-scrubber" className="visually-hidden">Sequence preview playback progress scrubber</label>
             <input
+              id="sequence-preview-scrubber"
+              name="previewScrubber"
+              aria-label="Sequence preview playback progress scrubber"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={playProgress}
+              aria-valuetext={`${currentSecondsElapsed}s of ${sceneDurationSec}s`}
               type="range"
               min="0"
               max="100"

@@ -394,7 +394,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <div className="hero-glass-input relative flex-1 flex items-center pl-3 rounded-xl py-1">
                 <Wand2 className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mr-2" />
-                <label htmlFor="hero-prompt-input" className="sr-only">Video prompt description</label>
+                <label htmlFor="hero-prompt-input" className="visually-hidden">Video prompt description</label>
                 <input
                   id="hero-prompt-input"
                   name="heroPrompt"
@@ -702,6 +702,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </label>
               <span className="text-rose-600 dark:text-rose-400 font-bold text-base">{videoCount} videos / month</span>
             </div>
+            <label htmlFor="calc-video-count" className="visually-hidden">
+              Monthly video production quantity slider (3 to 60 videos per month)
+            </label>
             <input
               id="calc-video-count"
               name="monthlyVideoCount"

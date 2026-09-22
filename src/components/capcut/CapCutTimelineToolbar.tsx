@@ -332,11 +332,19 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
             onClick={() => setZoomLevel(Math.max(10, zoomLevel - 8))}
             className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer"
             title="Zoom Out Timeline"
+            aria-label="Zoom Out Timeline"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
 
+          <label htmlFor="timeline-zoom-slider" className="visually-hidden">Timeline Zoom Level</label>
           <input
+            id="timeline-zoom-slider"
+            name="timelineZoom"
+            aria-label="Timeline Zoom Scale Slider"
+            aria-valuemin={12}
+            aria-valuemax={60}
+            aria-valuenow={zoomLevel}
             type="range"
             min="12"
             max="60"
@@ -350,6 +358,7 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
             onClick={() => setZoomLevel(Math.min(60, zoomLevel + 8))}
             className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition cursor-pointer"
             title="Zoom In Timeline"
+            aria-label="Zoom In Timeline"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>

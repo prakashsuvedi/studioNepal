@@ -354,10 +354,17 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
                 <div className="space-y-3 bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs">
                   <div className="space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-slate-300 font-semibold">Watermark Scale</span>
+                      <label htmlFor="brand-modal-scale" className="text-slate-300 font-semibold cursor-pointer">Watermark Scale</label>
                       <span className="font-mono text-amber-400">{config.scalePercent}%</span>
                     </div>
+                    <label htmlFor="brand-modal-scale" className="visually-hidden">Watermark scale percentage</label>
                     <input
+                      id="brand-modal-scale"
+                      name="watermarkScale"
+                      aria-label="Watermark scale percentage slider"
+                      aria-valuemin={10}
+                      aria-valuemax={50}
+                      aria-valuenow={config.scalePercent}
                       type="range"
                       min={10}
                       max={50}
@@ -369,10 +376,17 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
 
                   <div className="space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-slate-300 font-semibold">Opacity</span>
+                      <label htmlFor="brand-modal-opacity" className="text-slate-300 font-semibold cursor-pointer">Opacity</label>
                       <span className="font-mono text-amber-400">{config.opacityPercent}%</span>
                     </div>
+                    <label htmlFor="brand-modal-opacity" className="visually-hidden">Watermark opacity percentage</label>
                     <input
+                      id="brand-modal-opacity"
+                      name="watermarkOpacity"
+                      aria-label="Watermark opacity percentage slider"
+                      aria-valuemin={20}
+                      aria-valuemax={100}
+                      aria-valuenow={config.opacityPercent}
                       type="range"
                       min={20}
                       max={100}
@@ -384,10 +398,17 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
 
                   <div className="space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-slate-300 font-semibold">Corner Padding</span>
+                      <label htmlFor="brand-modal-margin" className="text-slate-300 font-semibold cursor-pointer">Corner Padding</label>
                       <span className="font-mono text-amber-400">{config.marginPx}px</span>
                     </div>
+                    <label htmlFor="brand-modal-margin" className="visually-hidden">Watermark corner padding in pixels</label>
                     <input
+                      id="brand-modal-margin"
+                      name="watermarkMargin"
+                      aria-label="Watermark corner padding in pixels slider"
+                      aria-valuemin={8}
+                      aria-valuemax={48}
+                      aria-valuenow={config.marginPx}
                       type="range"
                       min={8}
                       max={48}

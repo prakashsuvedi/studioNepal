@@ -1956,10 +1956,17 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               {/* Opacity Slider */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-slate-300 text-xs">
-                  <span className="font-semibold text-[11px]">Opacity</span>
+                  <label htmlFor="brand-overlay-opacity" className="font-semibold text-[11px] cursor-pointer">Opacity</label>
                   <span className="font-mono text-cyan-400 font-bold">{brandOverlayConfig?.opacityPercent ?? 85}%</span>
                 </div>
+                <label htmlFor="brand-overlay-opacity" className="visually-hidden">Brand Overlay Opacity Percentage</label>
                 <input
+                  id="brand-overlay-opacity"
+                  name="brandOverlayOpacity"
+                  aria-label="Brand overlay opacity slider percentage"
+                  aria-valuemin={20}
+                  aria-valuemax={100}
+                  aria-valuenow={brandOverlayConfig?.opacityPercent ?? 85}
                   type="range"
                   min="20"
                   max="100"
@@ -1977,10 +1984,17 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               {/* Scale Slider */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-slate-300 text-xs">
-                  <span className="font-semibold text-[11px]">Scale Size</span>
+                  <label htmlFor="brand-overlay-scale" className="font-semibold text-[11px] cursor-pointer">Scale Size</label>
                   <span className="font-mono text-cyan-400 font-bold">{brandOverlayConfig?.scalePercent ?? 25}%</span>
                 </div>
+                <label htmlFor="brand-overlay-scale" className="visually-hidden">Brand Overlay Scale Percentage</label>
                 <input
+                  id="brand-overlay-scale"
+                  name="brandOverlayScale"
+                  aria-label="Brand overlay scale percentage slider"
+                  aria-valuemin={10}
+                  aria-valuemax={50}
+                  aria-valuenow={brandOverlayConfig?.scalePercent ?? 25}
                   type="range"
                   min="10"
                   max="50"
@@ -2194,10 +2208,17 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
                 {/* Fine-tune vertical position slider */}
                 <div className="pt-1 space-y-1">
                   <div className="flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Vertical Height Custom</span>
+                    <label htmlFor="subtitle-vertical-height" className="cursor-pointer">Vertical Height Custom</label>
                     <span>5% (Top) — 95% (Bottom)</span>
                   </div>
+                  <label htmlFor="subtitle-vertical-height" className="visually-hidden">Subtitle vertical placement percentage</label>
                   <input
+                    id="subtitle-vertical-height"
+                    name="subtitleVerticalHeight"
+                    aria-label="Subtitle vertical placement slider"
+                    aria-valuemin={5}
+                    aria-valuemax={95}
+                    aria-valuenow={selectedScene?.textCustomYPercent ?? (selectedScene?.textPosition === 'top' ? 12 : selectedScene?.textPosition === 'center' ? 50 : selectedScene?.textPosition === 'lower_third' ? 74 : selectedScene?.textPosition === 'bottom_lifted' ? 82 : 88)}
                     type="range"
                     min="5"
                     max="95"

@@ -393,10 +393,17 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
                   </select>
                   <div className="pt-1.5 space-y-1">
                     <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <span>Fine-Tune Vertical Height</span>
+                      <label htmlFor="sub-modal-vertical-height" className="cursor-pointer">Fine-Tune Vertical Height</label>
                       <span>5% (Top) — 95% (Bottom)</span>
                     </div>
+                    <label htmlFor="sub-modal-vertical-height" className="visually-hidden">Subtitle vertical position percentage</label>
                     <input
+                      id="sub-modal-vertical-height"
+                      name="subtitleVerticalHeight"
+                      aria-label="Subtitle vertical position slider"
+                      aria-valuemin={5}
+                      aria-valuemax={95}
+                      aria-valuenow={burnOptions.customYPercent ?? (burnOptions.position === 'top' ? 12 : burnOptions.position === 'center' ? 50 : burnOptions.position === 'lower_third' ? 74 : burnOptions.position === 'bottom_lifted' ? 82 : 88)}
                       type="range"
                       min="5"
                       max="95"

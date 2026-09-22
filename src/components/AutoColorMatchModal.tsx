@@ -317,15 +317,23 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               
               {/* Exposure Slider */}
+              {/* Exposure Slider */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-semibold flex items-center gap-1">
+                  <label htmlFor="color-match-exposure" className="text-slate-300 font-semibold flex items-center gap-1 cursor-pointer">
                     <Sun className="w-3.5 h-3.5 text-amber-400" />
                     <span>Exposure Offset</span>
-                  </span>
+                  </label>
                   <span className="font-mono text-violet-300">{suggestedAdjustments.exposure}%</span>
                 </div>
+                <label htmlFor="color-match-exposure" className="visually-hidden">Exposure offset percentage</label>
                 <input
+                  id="color-match-exposure"
+                  name="colorMatchExposure"
+                  aria-label="Exposure offset percentage slider"
+                  aria-valuemin={-50}
+                  aria-valuemax={50}
+                  aria-valuenow={suggestedAdjustments.exposure}
                   type="range"
                   min={-50}
                   max={50}
@@ -338,13 +346,20 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
               {/* Color Temp Slider */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-semibold flex items-center gap-1">
+                  <label htmlFor="color-match-temp" className="text-slate-300 font-semibold flex items-center gap-1 cursor-pointer">
                     <Thermometer className="w-3.5 h-3.5 text-amber-400" />
                     <span>Color Temp (Warm/Cool)</span>
-                  </span>
+                  </label>
                   <span className="font-mono text-violet-300">{suggestedAdjustments.colorTemp}</span>
                 </div>
+                <label htmlFor="color-match-temp" className="visually-hidden">Color temperature warm/cool slider</label>
                 <input
+                  id="color-match-temp"
+                  name="colorMatchTemp"
+                  aria-label="Color temperature warm cool slider"
+                  aria-valuemin={-50}
+                  aria-valuemax={50}
+                  aria-valuenow={suggestedAdjustments.colorTemp}
                   type="range"
                   min={-50}
                   max={50}
@@ -357,10 +372,17 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
               {/* Contrast Slider */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-semibold">Contrast</span>
+                  <label htmlFor="color-match-contrast" className="text-slate-300 font-semibold cursor-pointer">Contrast</label>
                   <span className="font-mono text-violet-300">{suggestedAdjustments.contrast}%</span>
                 </div>
+                <label htmlFor="color-match-contrast" className="visually-hidden">Contrast adjustment percentage</label>
                 <input
+                  id="color-match-contrast"
+                  name="colorMatchContrast"
+                  aria-label="Contrast adjustment percentage slider"
+                  aria-valuemin={-50}
+                  aria-valuemax={50}
+                  aria-valuenow={suggestedAdjustments.contrast}
                   type="range"
                   min={-50}
                   max={50}
@@ -373,10 +395,17 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
               {/* Saturation Slider */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-semibold">Saturation</span>
+                  <label htmlFor="color-match-saturation" className="text-slate-300 font-semibold cursor-pointer">Saturation</label>
                   <span className="font-mono text-violet-300">{suggestedAdjustments.saturation}%</span>
                 </div>
+                <label htmlFor="color-match-saturation" className="visually-hidden">Saturation adjustment percentage</label>
                 <input
+                  id="color-match-saturation"
+                  name="colorMatchSaturation"
+                  aria-label="Saturation adjustment percentage slider"
+                  aria-valuemin={-50}
+                  aria-valuemax={50}
+                  aria-valuenow={suggestedAdjustments.saturation}
                   type="range"
                   min={-50}
                   max={50}
@@ -389,10 +418,17 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
               {/* Brightness Slider */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-semibold">Brightness</span>
+                  <label htmlFor="color-match-brightness" className="text-slate-300 font-semibold cursor-pointer">Brightness</label>
                   <span className="font-mono text-violet-300">{suggestedAdjustments.brightness}%</span>
                 </div>
+                <label htmlFor="color-match-brightness" className="visually-hidden">Brightness adjustment percentage</label>
                 <input
+                  id="color-match-brightness"
+                  name="colorMatchBrightness"
+                  aria-label="Brightness adjustment percentage slider"
+                  aria-valuemin={-50}
+                  aria-valuemax={50}
+                  aria-valuenow={suggestedAdjustments.brightness}
                   type="range"
                   min={-50}
                   max={50}
@@ -405,10 +441,17 @@ export const AutoColorMatchModal: React.FC<AutoColorMatchModalProps> = ({
               {/* Tint Slider */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-semibold">Tint (Green/Magenta)</span>
+                  <label htmlFor="color-match-tint" className="text-slate-300 font-semibold cursor-pointer">Tint (Green/Magenta)</label>
                   <span className="font-mono text-violet-300">{suggestedAdjustments.tint}</span>
                 </div>
+                <label htmlFor="color-match-tint" className="visually-hidden">Tint adjustment slider</label>
                 <input
+                  id="color-match-tint"
+                  name="colorMatchTint"
+                  aria-label="Tint green magenta adjustment slider"
+                  aria-valuemin={-50}
+                  aria-valuemax={50}
+                  aria-valuenow={suggestedAdjustments.tint}
                   type="range"
                   min={-50}
                   max={50}

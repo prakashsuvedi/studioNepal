@@ -2334,8 +2334,15 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
                   {/* Pitch Adjustment Slider */}
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">Pitch adjustment:</span>
+                    <label htmlFor="neural-pitch-val-slider" className="font-semibold cursor-pointer">Pitch adjustment:</label>
+                    <label htmlFor="neural-pitch-val-slider" className="visually-hidden">Neural pitch adjustment offset percentage</label>
                     <input
+                      id="neural-pitch-val-slider"
+                      name="pitchAdjustment"
+                      aria-label="Neural pitch adjustment offset slider"
+                      aria-valuemin={-30}
+                      aria-valuemax={30}
+                      aria-valuenow={pitchVal}
                       type="range"
                       min={-30}
                       max={30}
@@ -2567,10 +2574,17 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                  <span className="font-semibold">Speech Speed Rate</span>
+                  <label htmlFor="voice-speech-rate" className="font-semibold cursor-pointer">Speech Speed Rate</label>
                   <span className="font-bold text-slate-900 dark:text-white">{rate}x</span>
                 </div>
+                <label htmlFor="voice-speech-rate" className="visually-hidden">Speech playback speed rate</label>
                 <input
+                  id="voice-speech-rate"
+                  name="speechRate"
+                  aria-label="Speech speed rate slider"
+                  aria-valuemin={0.7}
+                  aria-valuemax={1.5}
+                  aria-valuenow={rate}
                   type="range"
                   min={0.7}
                   max={1.5}
@@ -2583,10 +2597,17 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                  <span className="font-semibold">Vocal Pitch Scale</span>
+                  <label htmlFor="voice-pitch-scale" className="font-semibold cursor-pointer">Vocal Pitch Scale</label>
                   <span className="font-bold text-slate-900 dark:text-white">{pitch}x</span>
                 </div>
+                <label htmlFor="voice-pitch-scale" className="visually-hidden">Vocal pitch scale multiplier</label>
                 <input
+                  id="voice-pitch-scale"
+                  name="pitchScale"
+                  aria-label="Vocal pitch scale slider"
+                  aria-valuemin={0.8}
+                  aria-valuemax={1.3}
+                  aria-valuenow={pitch}
                   type="range"
                   min={0.8}
                   max={1.3}
@@ -2736,7 +2757,14 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                       <span>{new Date(playerCurrentTime * 1000).toISOString().substr(14, 5)}</span>
                       <span>{new Date(playerDuration * 1000).toISOString().substr(14, 5)}</span>
                     </div>
+                    <label htmlFor="voice-player-scrubber" className="visually-hidden">Audio playback time scrubber</label>
                     <input
+                      id="voice-player-scrubber"
+                      name="audioPlaybackScrubber"
+                      aria-label="Audio playback time scrubber"
+                      aria-valuemin={0}
+                      aria-valuemax={playerDuration || 100}
+                      aria-valuenow={playerCurrentTime}
                       type="range"
                       min={0}
                       max={playerDuration || 100}
@@ -2756,6 +2784,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                         onClick={togglePlayerPlay}
                         className="p-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white transition shadow-md"
                         title={isPlaying ? "Pause Preview" : "Play Preview"}
+                        aria-label={isPlaying ? "Pause Preview" : "Play Preview"}
                       >
                         {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
                       </button>
@@ -2766,10 +2795,18 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                           onClick={togglePlayerMute}
                           className="p-2 text-slate-400 hover:text-white transition"
                           title={playerIsMuted ? "Unmute" : "Mute"}
+                          aria-label={playerIsMuted ? "Unmute Audio" : "Mute Audio"}
                         >
                           {playerIsMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume1 className="w-4 h-4" />}
                         </button>
+                        <label htmlFor="voice-player-volume" className="visually-hidden">Audio preview volume</label>
                         <input
+                          id="voice-player-volume"
+                          name="previewVolume"
+                          aria-label="Audio preview volume slider"
+                          aria-valuemin={0}
+                          aria-valuemax={1}
+                          aria-valuenow={playerIsMuted ? 0 : playerVolume}
                           type="range"
                           min={0}
                           max={1}
@@ -2957,8 +2994,15 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                           </select>
                           {masterSettings.ambientBed !== 'none' && (
                             <div className="flex items-center gap-2 pt-1">
-                              <span className="text-[9px] text-slate-400">Bed Vol:</span>
+                              <label htmlFor="voice-bed-volume" className="text-[9px] text-slate-400 cursor-pointer">Bed Vol:</label>
+                              <label htmlFor="voice-bed-volume" className="visually-hidden">Ambient background track volume</label>
                               <input
+                                id="voice-bed-volume"
+                                name="ambientBedVolume"
+                                aria-label="Ambient background track volume slider"
+                                aria-valuemin={0}
+                                aria-valuemax={0.5}
+                                aria-valuenow={masterSettings.ambientVolume}
                                 type="range"
                                 min={0}
                                 max={0.5}

@@ -262,10 +262,17 @@ export const AssetLibrarySidebar: React.FC<AssetLibrarySidebarProps> = ({
 
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] text-slate-500">
-                  <span>Opacity</span>
+                  <label htmlFor="asset-watermark-opacity" className="cursor-pointer">Opacity</label>
                   <span>{Math.round(opacity * 100)}%</span>
                 </div>
+                <label htmlFor="asset-watermark-opacity" className="visually-hidden">Watermark overlay opacity percentage</label>
                 <input
+                  id="asset-watermark-opacity"
+                  name="watermarkOpacity"
+                  aria-label="Watermark overlay opacity slider"
+                  aria-valuemin={0.1}
+                  aria-valuemax={1}
+                  aria-valuenow={opacity}
                   type="range"
                   min="0.1"
                   max="1"

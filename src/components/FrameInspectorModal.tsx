@@ -249,7 +249,15 @@ export const FrameInspectorModal: React.FC<FrameInspectorModalProps> = ({
                 <span className="text-sky-300 font-bold">{formatTimecode(currentFrameIndex)}</span>
                 <span>{formatTimecode(totalFrames)}</span>
               </div>
+              <label htmlFor="frame-inspector-scrubber" className="visually-hidden">Frame index inspector scrubber slider</label>
               <input
+                id="frame-inspector-scrubber"
+                name="frameIndex"
+                aria-label="Frame index scrubber slider"
+                aria-valuemin={0}
+                aria-valuemax={totalFrames - 1}
+                aria-valuenow={currentFrameIndex}
+                aria-valuetext={`Frame ${currentFrameIndex + 1} of ${totalFrames}`}
                 type="range"
                 min={0}
                 max={totalFrames - 1}

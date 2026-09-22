@@ -313,9 +313,12 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
 
               {/* URL input field */}
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 block">Or Paste Media URL (Image/Video):</label>
+                <label htmlFor={`media-url-${selectedScene.id}`} className="text-[10px] font-semibold text-slate-400 block">Or Paste Media URL (Image/Video):</label>
                 <div className="flex items-center gap-1.5">
                   <input
+                    id={`media-url-${selectedScene.id}`}
+                    name="mediaUrl"
+                    aria-label="Media image or video URL"
                     type="text"
                     value={selectedScene.mediaUrl || ''}
                     onChange={e => {
@@ -346,8 +349,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
 
             {/* Scene Title */}
             <div className="space-y-1.5">
-              <label className="font-semibold text-slate-300 block">Clip Title</label>
+              <label htmlFor={`scene-title-${selectedScene.id}`} className="font-semibold text-slate-300 block">Clip Title</label>
               <input
+                id={`scene-title-${selectedScene.id}`}
+                name="sceneTitle"
+                aria-label="Clip Title"
                 type="text"
                 value={selectedScene.title}
                 onChange={e => onUpdateScene({ title: e.target.value })}
@@ -358,10 +364,17 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
             {/* Clip Duration */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-slate-300">
-                <span className="font-semibold">Clip Duration</span>
+                <label htmlFor={`clip-duration-${selectedScene.id}`} className="font-semibold cursor-pointer">Clip Duration</label>
                 <span className="font-mono text-cyan-400 font-bold">{selectedScene.duration}s</span>
               </div>
+              <label htmlFor={`clip-duration-${selectedScene.id}`} className="visually-hidden">Clip duration in seconds</label>
               <input
+                id={`clip-duration-${selectedScene.id}`}
+                name="clipDuration"
+                aria-label="Clip duration slider in seconds"
+                aria-valuemin={0.5}
+                aria-valuemax={30}
+                aria-valuenow={selectedScene.duration}
                 type="range"
                 min="0.5"
                 max="30"
@@ -375,8 +388,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
             {/* Subtitle / Text Overlay */}
             <div className="space-y-2 pt-2 border-t border-slate-800">
               <div className="space-y-1">
-                <label className="font-semibold text-slate-300 block text-xs">Text Overlay / Subtitle</label>
+                <label htmlFor={`text-overlay-${selectedScene.id}`} className="font-semibold text-slate-300 block text-xs">Text Overlay / Subtitle</label>
                 <input
+                  id={`text-overlay-${selectedScene.id}`}
+                  name="textOverlay"
+                  aria-label="English or primary subtitle text overlay"
                   type="text"
                   value={selectedScene.textOverlay || ''}
                   onChange={e => onUpdateScene({ textOverlay: e.target.value })}
@@ -387,8 +403,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
 
               {/* Optional Devanagari translation field */}
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 block font-medium">Devanagari Subtitle (Optional Bilingual)</label>
+                <label htmlFor={`text-nepali-${selectedScene.id}`} className="text-[11px] text-slate-400 block font-medium">Devanagari Subtitle (Optional Bilingual)</label>
                 <input
+                  id={`text-nepali-${selectedScene.id}`}
+                  name="textNepali"
+                  aria-label="Devanagari Nepali subtitle translation"
                   type="text"
                   value={selectedScene.textNepali || ''}
                   onChange={e => onUpdateScene({ textNepali: e.target.value })}
@@ -501,10 +520,17 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
               {/* Fine-tune vertical height slider */}
               <div className="pt-1 space-y-1">
                 <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span>Custom Height Placement</span>
+                  <label htmlFor={`text-height-${selectedScene.id}`} className="cursor-pointer">Custom Height Placement</label>
                   <span>5% (Top) — 95% (Bottom)</span>
                 </div>
+                <label htmlFor={`text-height-${selectedScene.id}`} className="visually-hidden">Text overlay custom vertical placement position</label>
                 <input
+                  id={`text-height-${selectedScene.id}`}
+                  name="textCustomYPercent"
+                  aria-label="Text overlay vertical position slider"
+                  aria-valuemin={5}
+                  aria-valuemax={95}
+                  aria-valuenow={selectedScene.textCustomYPercent ?? (selectedScene.textPosition === 'top' ? 12 : selectedScene.textPosition === 'center' ? 50 : selectedScene.textPosition === 'bottom_lifted' ? 82 : selectedScene.textPosition === 'bottom' ? 88 : 74)}
                   type="range"
                   min="5"
                   max="95"
@@ -644,7 +670,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                       </button>
                     ))}
                   </div>
+                  <label htmlFor={`ticker-badge-${selectedScene.id}`} className="visually-hidden">Ticker badge tag text</label>
                   <input
+                    id={`ticker-badge-${selectedScene.id}`}
+                    name="tickerBadge"
+                    aria-label="Custom badge tag text"
                     type="text"
                     value={selectedScene.tickerConfig?.badgeText || ''}
                     onChange={e => onUpdateScene({
@@ -666,8 +696,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
 
                 {/* Main Headline Text */}
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-slate-300 block">Main English Text</label>
+                  <label htmlFor={`ticker-text-${selectedScene.id}`} className="font-semibold text-slate-300 block">Main English Text</label>
                   <input
+                    id={`ticker-text-${selectedScene.id}`}
+                    name="tickerMainText"
+                    aria-label="Main ticker headline text in English"
                     type="text"
                     value={selectedScene.tickerConfig?.text || ''}
                     onChange={e => onUpdateScene({
@@ -688,8 +721,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
 
                 {/* Nepali Ticker Text */}
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-slate-300 block">Nepali Ticker Text (Devanagari)</label>
+                  <label htmlFor={`ticker-text-nepali-${selectedScene.id}`} className="font-semibold text-slate-300 block">Nepali Ticker Text (Devanagari)</label>
                   <input
+                    id={`ticker-text-nepali-${selectedScene.id}`}
+                    name="tickerNepaliText"
+                    aria-label="Nepali ticker headline text in Devanagari"
                     type="text"
                     value={selectedScene.tickerConfig?.textNepali || ''}
                     onChange={e => onUpdateScene({
@@ -949,10 +985,17 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
               {/* Smooth Custom Speed Slider */}
               <div className="pt-2 space-y-1.5">
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Fine-Tune Speed Slider</span>
+                  <label htmlFor={`speed-slider-${selectedScene.id}`} className="cursor-pointer">Fine-Tune Speed Slider</label>
                   <span>0.25x (Slow-Mo) — 3.0x (Timelapse)</span>
                 </div>
+                <label htmlFor={`speed-slider-${selectedScene.id}`} className="visually-hidden">Clip playback speed multiplier</label>
                 <input
+                  id={`speed-slider-${selectedScene.id}`}
+                  name="playbackSpeed"
+                  aria-label="Clip playback speed slider"
+                  aria-valuemin={0.25}
+                  aria-valuemax={3.0}
+                  aria-valuenow={selectedScene.playbackRate ?? selectedScene.speed ?? 1}
                   type="range"
                   min="0.25"
                   max="3.0"
@@ -1091,10 +1134,17 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                 return (
                   <div key={slider.key} className="space-y-1">
                     <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                      <span>{slider.label}</span>
+                      <label htmlFor={`color-adj-${slider.key}-${selectedScene.id}`} className="cursor-pointer">{slider.label}</label>
                       <span className="font-mono text-cyan-400">{val > 0 ? `+${val}` : val}</span>
                     </div>
+                    <label htmlFor={`color-adj-${slider.key}-${selectedScene.id}`} className="visually-hidden">{slider.label} color adjustment level</label>
                     <input
+                      id={`color-adj-${slider.key}-${selectedScene.id}`}
+                      name={`colorAdjustment_${slider.key}`}
+                      aria-label={`${slider.label} color adjustment slider`}
+                      aria-valuemin={slider.min}
+                      aria-valuemax={slider.max}
+                      aria-valuenow={val}
                       type="range"
                       min={slider.min}
                       max={slider.max}
@@ -1152,12 +1202,19 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
               {/* Clip Volume Slider */}
               <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
                 <div className="flex items-center justify-between text-slate-300 text-xs">
-                  <span className="font-semibold">Clip Volume</span>
+                  <label htmlFor={`clip-vol-${selectedScene.id}`} className="font-semibold cursor-pointer">Clip Volume</label>
                   <span className="font-mono text-cyan-400 font-bold">
                     {selectedScene.isMuted ? '0% (Muted)' : `${selectedScene.volume ?? 100}%`}
                   </span>
                 </div>
+                <label htmlFor={`clip-vol-${selectedScene.id}`} className="visually-hidden">Clip audio volume level</label>
                 <input
+                  id={`clip-vol-${selectedScene.id}`}
+                  name="clipVolume"
+                  aria-label="Clip audio volume slider percentage"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={selectedScene.isMuted ? 0 : (selectedScene.volume ?? 100)}
                   type="range"
                   min="0"
                   max="100"
@@ -1210,10 +1267,17 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
               {/* BGM Volume */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-slate-300 text-xs">
-                  <span className="font-semibold">Music Soundtrack (BGM)</span>
+                  <label htmlFor="master-bgm-volume" className="font-semibold cursor-pointer">Music Soundtrack (BGM)</label>
                   <span className="font-mono text-purple-400 font-bold">{bgmVolume}%</span>
                 </div>
+                <label htmlFor="master-bgm-volume" className="visually-hidden">Master background music volume percentage</label>
                 <input
+                  id="master-bgm-volume"
+                  name="masterBgmVolume"
+                  aria-label="Master background music volume slider"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={bgmVolume}
                   type="range"
                   min="0"
                   max="100"
@@ -1226,10 +1290,17 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
               {/* Voiceover Volume */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-slate-300 text-xs">
-                  <span className="font-semibold">Voiceover / Narration</span>
+                  <label htmlFor="master-vo-volume" className="font-semibold cursor-pointer">Voiceover / Narration</label>
                   <span className="font-mono text-emerald-400 font-bold">{voVolume}%</span>
                 </div>
+                <label htmlFor="master-vo-volume" className="visually-hidden">Master voiceover narration volume percentage</label>
                 <input
+                  id="master-vo-volume"
+                  name="masterVoVolume"
+                  aria-label="Master voiceover narration volume slider"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={voVolume}
                   type="range"
                   min="0"
                   max="100"

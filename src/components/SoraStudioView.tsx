@@ -1947,22 +1947,22 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Header Banner */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900">Azure Sora-2 Video Studio</h2>
-            <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-200">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Azure Sora-2 Video Studio</h2>
+            <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200 dark:border-indigo-800/80">
               OpenAI Sora-2 Engine
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Generate high-temporal AI video clips using your configured Azure AI Foundry Sora endpoint.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500">Target Endpoint:</span>
-          <code className="text-xs bg-slate-100 px-2.5 py-1 rounded-md text-emerald-700 border border-slate-200 font-mono font-medium">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Target Endpoint:</span>
+          <code className="text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 font-mono font-medium">
             /videos (POST)
           </code>
         </div>
@@ -1970,16 +1970,16 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 6 Columns: Sora Prompt & Parameters */}
-        <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4 shadow-sm">
+        <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
           {/* Simple Mode vs Pro Studio Mode Toggle Switch */}
-          <div className="flex items-center justify-between p-1 bg-slate-100 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => setIsSimpleMode(true)}
               className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 isSimpleMode
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -1991,7 +1991,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
               className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 !isSimpleMode
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -2003,11 +2003,11 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
             /* Simple Mode Form */
             <div className="space-y-4">
               {/* Simple Mode Info Banner */}
-              <div className="p-3 bg-gradient-to-r from-indigo-50/80 to-blue-50/50 rounded-xl border border-indigo-100 flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+              <div className="p-3 bg-gradient-to-r from-indigo-50/80 to-blue-50/50 dark:from-indigo-950/40 dark:to-blue-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/50 flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold text-indigo-950">Simple Story Video Generator</div>
-                  <div className="text-[11px] text-slate-600">
+                  <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200">Simple Story Video Generator</div>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400">
                     Type your story script or choose a preset below. No technical jargon needed.
                   </div>
                 </div>
@@ -2018,8 +2018,8 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">1</span>
-                    <label className="text-xs font-bold text-slate-900">
-                      Write Your Story or Scene <span className="text-slate-500 font-normal font-['Mukta']">(कथा वा दृश्य लेख्नुहोस्)</span>
+                    <label className="text-xs font-bold text-slate-900 dark:text-white">
+                      Write Your Story or Scene <span className="text-slate-500 dark:text-slate-400 font-normal font-['Mukta']">(कथा वा दृश्य लेख्नुहोस्)</span>
                     </label>
                   </div>
 
@@ -2029,10 +2029,10 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                         type="button"
                         onClick={() => handleTranslatePrompt('en')}
                         disabled={isTranslating}
-                        className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
                         title="Translate Nepali prompt into English for Sora-2"
                       >
-                        <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                        <Sparkles className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isTranslating ? 'animate-spin' : ''}`} />
                         <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🌐 Translate to English'}</span>
                       </button>
                     ) : (
@@ -2040,10 +2040,10 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                         type="button"
                         onClick={() => handleTranslatePrompt('ne')}
                         disabled={isTranslating}
-                        className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
                         title="Translate prompt into Nepali"
                       >
-                        <Languages className={`w-3.5 h-3.5 text-amber-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                        <Languages className={`w-3.5 h-3.5 text-amber-600 dark:text-amber-400 ${isTranslating ? 'animate-spin' : ''}`} />
                         <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🇳🇵 नेपालीमा हेर्नुहोस्'}</span>
                       </button>
                     )}
@@ -2051,7 +2051,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                     <button
                       type="button"
                       onClick={handleCopyPrompt}
-                      className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 border border-slate-200"
+                      className="text-[11px] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
                     >
                       {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
@@ -2065,8 +2065,28 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
                   placeholder="उदा. सगरमाथामा बिहानीको घाम, काठमाडौंको मन्दिर, फेवातालमा डुङ्गा, गाउँमा चिया पसल..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed shadow-inner"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed shadow-inner"
                 />
+
+                {/* Auto-Locked Character Notification Badge */}
+                {subjectLockEnabled && activeSubjectLock && (
+                  <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{activeSubjectLock.avatarEmoji || '👤'}</span>
+                      <div>
+                        <span className="font-bold text-emerald-900 dark:text-emerald-200">
+                          Auto-Locked Character: {activeSubjectLock.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                          ({activeSubjectLock.roleOrType || 'Protagonist'}) • {activeSubjectLock.anchorToken}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold shrink-0">
+                      ✓ Continuity Active
+                    </span>
+                  </div>
+                )}
 
                 {/* Story Script Presets (1-Click Story Starter Pills) */}
                 <div className="space-y-1.5 pt-1">
@@ -2985,7 +3005,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                   <button
                     type="button"
                     onClick={handleCopyPrompt}
-                    className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 border border-slate-200"
+                    className="text-[11px] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
                   >
                     {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
@@ -2999,8 +3019,28 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 placeholder="उदा. सगरमाथामा बिहानीको घाम, काठमाडौंको मन्दिर, फेवातालमा डुङ्गा, गाउँमा चिया पसल..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed"
               />
+
+              {/* Auto-Locked Character Notification Badge (Pro Mode) */}
+              {subjectLockEnabled && activeSubjectLock && (
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{activeSubjectLock.avatarEmoji || '👤'}</span>
+                    <div>
+                      <span className="font-bold text-emerald-900 dark:text-emerald-200">
+                        Auto-Locked Character: {activeSubjectLock.name}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                        ({activeSubjectLock.roleOrType || 'Protagonist'}) • {activeSubjectLock.anchorToken}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold shrink-0">
+                    ✓ Continuity Active
+                  </span>
+                </div>
+              )}
 
               {/* 1-Click Popular Video Presets for Laymen */}
               <div className="space-y-1.5 pt-1">

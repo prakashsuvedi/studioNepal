@@ -423,6 +423,48 @@ ${xmlUrls}
     }
   });
 
+  // Database Backup Snapshot Creation (Admin Only)
+  app.post('/api/admin/backups/create', requireAdmin, (_req, res) => {
+    try {
+      const backupPath = db.createBackupSnapshot();
+      res.json({
+        success: Boolean(backupPath),
+        backupPath,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Database Backup List (Admin Only)
+  app.get('/api/admin/backups', requireAdmin, (_req, res) => {
+    try {
+      const backups = db.listBackups();
+      res.json({
+        success: true,
+        backups,
+        count: backups.length,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Database JSON Export (Admin Only)
+  app.get('/api/admin/db/export', requireAdmin, (_req, res) => {
+    try {
+      const exportData = db.exportDatabase();
+      res.json({
+        success: true,
+        exportData,
+        exportedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Hugging Face Integration Telemetry & Status
   app.get('/api/hf/status', async (req, res) => {
     try {
@@ -4771,8 +4813,69 @@ Respond with valid JSON ONLY in this exact schema:
         }
       }
     }));
+    const routeSeoMap: Record<string, { title: string; desc: string }> = {
+      '/sora': {
+        title: 'Azure Sora-2 AI Video Generator (Nepal & India) – NepalAI Studio',
+        desc: 'Generate cinematic 1080p AI video clips from text prompts using OpenAI Sora-2 in Nepal and India. Multi-scene continuity and prompt enhancement.',
+      },
+      '/avatar': {
+        title: 'AI News Presenter & Digital Anchor Studio (Hindi & Nepali) – NepalAI Studio',
+        desc: 'Create photorealistic AI avatars with accurate Nepali & Hindi lip-sync for news, education, Loksewa preparation, and viral social reels.',
+      },
+      '/hamroai': {
+        title: 'HamroAI Multilingual Assistant (Nepali, Hindi, English) – NepalAI Studio',
+        desc: 'Intelligent cultural AI chatbot powered by GPT-4o & GPT-5-mini for Nepali and Hindi scriptwriting, Devanagari translation, and creative ideas.',
+      },
+      '/pricing': {
+        title: 'NepalAI Studio Pricing – Pay via FonePay, eSewa, Khalti, UPI & Cards',
+        desc: 'Affordable AI creation passes starting at NPR 50 / ₹35 INR micro-pass. Full commercial licensing, 4K rendering, and neural voiceover credits.',
+      },
+      '/tts-studio': {
+        title: 'Nepali & Hindi Text to Speech (TTS) & AI Voiceover – NepalAI Studio',
+        desc: 'Broadcast-quality 24kHz neural speech synthesis in Nepali Devanagari, Hindi, and Indian English. Natural AI voice cloning for creators.',
+      },
+      '/faq': {
+        title: 'Frequently Asked Questions & Guides (Nepal & India) – NepalAI Studio',
+        desc: 'Everything you need to know about generating AI videos, commercial rights, Fonepay and UPI payments, and South Asian neural TTS.',
+      },
+      '/about': {
+        title: 'About NepalAI Studio – Developed by ScamSpike Solutions',
+        desc: 'Learn about NepalAI Studio, sovereign AI infrastructure, and creator engineering by ScamSpike Solutions Pvt. Ltd. and Prakash Suvedi.',
+      },
+    };
+
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+      }
+
+      const routeInfo = routeSeoMap[req.path];
+      if (!routeInfo) {
+        return res.sendFile(indexPath);
+      }
+
+      try {
+        let html = fs.readFileSync(indexPath, 'utf8');
+        const host = req.get('host') || 'studio.nepalai.tech';
+        const proto = req.protocol || 'https';
+        const canonicalUrl = `${proto}://${host}${req.path}`;
+
+        html = html
+          .replace(/<title>.*?<\/title>/i, `<title>${routeInfo.title}</title>`)
+          .replace(/<meta name="title" content=".*?" \/>/i, `<meta name="title" content="${routeInfo.title}" />`)
+          .replace(/<meta property="og:title" content=".*?" \/>/i, `<meta property="og:title" content="${routeInfo.title}" />`)
+          .replace(/<meta name="twitter:title" content=".*?" \/>/i, `<meta name="twitter:title" content="${routeInfo.title}" />`)
+          .replace(/<meta name="description" content=".*?" \/>/i, `<meta name="description" content="${routeInfo.desc}" />`)
+          .replace(/<meta property="og:description" content=".*?" \/>/i, `<meta property="og:description" content="${routeInfo.desc}" />`)
+          .replace(/<meta name="twitter:description" content=".*?" \/>/i, `<meta name="twitter:description" content="${routeInfo.desc}" />`)
+          .replace(/<link rel="canonical" href=".*?" \/>/i, `<link rel="canonical" href="${canonicalUrl}" />`);
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(html);
+      } catch {
+        return res.sendFile(indexPath);
+      }
     });
   }
 

@@ -321,25 +321,25 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
       />
 
       {/* Header Banner */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900">Azure GPT-Image & FLUX Studio</h2>
-            <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Azure GPT-Image & FLUX Studio</h2>
+            <span className="px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-semibold border border-rose-200 dark:border-rose-800/80">
               High-Precision AI Art Studio
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Generate cinematic Nepal imagery via Azure AI Foundry or free Pollinations tier, with Fabric.js Micro-Editor and one-click insertion into the Video Timeline.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-bold">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold">
+            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>Storage Retention: 24 Hours TTL</span>
           </div>
-          <code className="hidden md:inline text-xs bg-slate-100 px-2.5 py-1 rounded-md text-emerald-700 border border-slate-200 font-mono font-medium">
+          <code className="hidden md:inline text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 font-mono font-medium">
             /openai/v1/images/generations
           </code>
         </div>
@@ -347,13 +347,13 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 6 Columns: Generator Settings & Prompts */}
-        <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 space-y-5 shadow-sm">
+        <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 space-y-5 shadow-sm">
           {/* Model Selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
               <span>AI Image Model Provider</span>
               {bypassControlledMode && (
-                <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Admin Bypass Enabled</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">Admin Bypass Enabled</span>
               )}
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -361,62 +361,62 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                 id="btn-model-gpt-image-flare"
                 type="button"
                 onClick={() => setModel('gpt-image-2.5-flare')}
-                className={`p-3 rounded-xl border text-left transition ${
+                className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                   model === 'gpt-image-2.5-flare'
-                    ? 'bg-rose-50/60 border-rose-500 text-slate-900 ring-1 ring-rose-500/30'
-                    : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-500 text-slate-900 dark:text-white ring-1 ring-rose-500/30'
+                    : 'bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold text-xs text-slate-900">GPT-Image-2.5 Flare</div>
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">AZURE 2.5</span>
+                  <div className="font-semibold text-xs text-slate-900 dark:text-white">GPT-Image-2.5 Flare</div>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold">AZURE 2.5</span>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Azure AI Foundry • Flagship Flare Ultra-Res</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Azure AI Foundry • Flagship Flare Ultra-Res</div>
               </button>
 
               <button
                 id="btn-model-gpt-image"
                 type="button"
                 onClick={() => setModel('gpt-image-1.5')}
-                className={`p-3 rounded-xl border text-left transition ${
+                className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                   model === 'gpt-image-1.5'
-                    ? 'bg-rose-50/60 border-rose-500 text-slate-900 ring-1 ring-rose-500/30'
-                    : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-500 text-slate-900 dark:text-white ring-1 ring-rose-500/30'
+                    : 'bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold text-xs text-slate-900">GPT-Image-1.5</div>
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">AZURE</span>
+                  <div className="font-semibold text-xs text-slate-900 dark:text-white">GPT-Image-1.5</div>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-bold">AZURE</span>
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Azure AI Foundry • 1024px Photorealistic</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Azure AI Foundry • 1024px Photorealistic</div>
               </button>
 
               <button
                 id="btn-model-flux"
                 type="button"
                 onClick={() => setModel('flux-schnell')}
-                className={`p-3 rounded-xl border text-left transition ${
+                className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                   model === 'flux-schnell'
-                    ? 'bg-rose-50/60 border-rose-500 text-slate-900 ring-1 ring-rose-500/30'
-                    : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-500 text-slate-900 dark:text-white ring-1 ring-rose-500/30'
+                    : 'bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-slate-900">FLUX.1 Schnell</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Hugging Face • Neural Turbo</div>
+                <div className="font-semibold text-xs text-slate-900 dark:text-white">FLUX.1 Schnell</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Hugging Face • Neural Turbo</div>
               </button>
 
               <button
                 id="btn-model-pollinations"
                 type="button"
                 onClick={() => setModel('pollinations-free')}
-                className={`p-3 rounded-xl border text-left transition ${
+                className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                   model === 'pollinations-free'
-                    ? 'bg-rose-50/60 border-rose-500 text-slate-900 ring-1 ring-rose-500/30'
-                    : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-500 text-slate-900 dark:text-white ring-1 ring-rose-500/30'
+                    : 'bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold text-xs text-slate-900">Pollinations Turbo</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">Instant Rendering • Uncapped</div>
+                <div className="font-semibold text-xs text-slate-900 dark:text-white">Pollinations Turbo</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Instant Rendering • Uncapped</div>
               </button>
             </div>
           </div>
@@ -426,11 +426,11 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <span>Generation Prompt</span>
-                    <span className="text-[11px] font-normal text-slate-500 font-['Mukta']">(प्रम्प्ट)</span>
+                    <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 font-['Mukta']">(प्रम्प्ट)</span>
                   </label>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Active AI Input
                   </span>
@@ -442,10 +442,10 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                       type="button"
                       onClick={() => handleTranslatePrompt('en')}
                       disabled={isTranslating}
-                      className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
                       title="Translate Nepali prompt into rich English for optimal diffusion model results"
                     >
-                      <Sparkles className={`w-3.5 h-3.5 text-indigo-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                      <Sparkles className={`w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ${isTranslating ? 'animate-spin' : ''}`} />
                       <span>{isTranslating ? 'अनुवाद हुँदैछ...' : '🌐 Translate to English for AI'}</span>
                     </button>
                   ) : (
@@ -453,10 +453,10 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                       type="button"
                       onClick={() => handleTranslatePrompt('ne')}
                       disabled={isTranslating}
-                      className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50 font-['Mukta']"
                       title="Translate English prompt to Nepali"
                     >
-                      <Languages className={`w-3.5 h-3.5 text-amber-600 ${isTranslating ? 'animate-spin' : ''}`} />
+                      <Languages className={`w-3.5 h-3.5 text-amber-600 dark:text-amber-400 ${isTranslating ? 'animate-spin' : ''}`} />
                       <span>{isTranslating ? 'Translating...' : '🇳🇵 नेपालीमा अनुवाद'}</span>
                     </button>
                   )}
@@ -464,7 +464,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                   <button
                     type="button"
                     onClick={handleCopyPrompt}
-                    className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 border border-slate-200"
+                    className="text-[11px] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
                   >
                     {copiedPrompt ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
@@ -478,16 +478,16 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 placeholder="Describe your scene in English or नेपाली (e.g., Majestic Mount Everest with glowing golden sunlight at dawn, ultra-photorealistic 8k)..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-500 focus:bg-white focus:ring-1 focus:ring-rose-500 resize-none font-sans leading-relaxed"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-rose-500 resize-none font-sans leading-relaxed"
               />
 
               {/* Transparent Direct Model Payload Indicator */}
-              <div className="flex items-center justify-between text-[11px] px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200/80 text-slate-600">
+              <div className="flex items-center justify-between text-[11px] px-3 py-1.5 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400">
                 <div className="flex items-center gap-1.5 truncate">
-                  <span className="font-semibold text-slate-700 shrink-0">Model Payload ({model}):</span>
-                  <span className="truncate italic text-slate-500">"{prompt.trim() || 'Default scene prompt'}"</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0">Model Payload ({model}):</span>
+                  <span className="truncate italic text-slate-500 dark:text-slate-400">"{prompt.trim() || 'Default scene prompt'}"</span>
                 </div>
-                <span className="shrink-0 text-[10px] text-emerald-700 font-medium ml-2 flex items-center gap-1">
+                <span className="shrink-0 text-[10px] text-emerald-700 dark:text-emerald-400 font-medium ml-2 flex items-center gap-1">
                   <Check className="w-3 h-3 text-emerald-600" />
                   100% Direct Model Input
                 </span>
@@ -495,8 +495,8 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             </div>
 
             {/* Prompt Assist & Style Presets */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
-              <span className="text-[11px] font-extrabold uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+            <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+              <span className="text-[11px] font-extrabold uppercase text-indigo-700 dark:text-indigo-400 tracking-wider flex items-center gap-1.5">
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 <span>Prompt Assist & Style Presets</span>
               </span>
@@ -507,21 +507,21 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => applyStylePreset(pst.modifier)}
-                    className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border border-slate-200 font-semibold transition cursor-pointer"
+                    className="text-[10px] px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:text-indigo-700 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold transition cursor-pointer"
                   >
                     + {pst.label}
                   </button>
                 ))}
               </div>
 
-              <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60">
-                <span className="text-[10px] font-bold text-slate-500 self-center">Camera Angles:</span>
+              <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 self-center">Camera Angles:</span>
                 {CAMERA_ANGLES.map((ang, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => applyCameraAngle(ang)}
-                    className="text-[10px] px-2 py-0.5 rounded bg-white hover:bg-rose-50 hover:text-rose-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    className="text-[10px] px-2 py-0.5 rounded bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-300 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                   >
                     {ang}
                   </button>
@@ -532,19 +532,19 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             {/* Quick Scene Presets */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-600">Quick Scene Presets:</span>
-                <div className="flex items-center text-[10px] border border-slate-200 rounded-md overflow-hidden bg-white">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Quick Scene Presets:</span>
+                <div className="flex items-center text-[10px] border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden bg-white dark:bg-slate-800">
                   <button
                     type="button"
                     onClick={() => setPresetLang('en')}
-                    className={`px-2 py-0.5 font-medium transition cursor-pointer ${presetLang === 'en' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`px-2 py-0.5 font-medium transition cursor-pointer ${presetLang === 'en' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                   >
                     English
                   </button>
                   <button
                     type="button"
                     onClick={() => setPresetLang('ne')}
-                    className={`px-2 py-0.5 font-medium font-['Mukta'] transition cursor-pointer ${presetLang === 'ne' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`px-2 py-0.5 font-medium font-['Mukta'] transition cursor-pointer ${presetLang === 'ne' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                   >
                     नेपाली
                   </button>
@@ -559,10 +559,10 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                       key={idx}
                       type="button"
                       onClick={() => setPrompt(textVal)}
-                      className="text-[10px] p-2 text-left rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-800 text-slate-700 border border-slate-200 transition cursor-pointer group"
+                      className="text-[10px] p-2 text-left rounded-lg bg-slate-50 dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:text-indigo-800 dark:hover:text-indigo-200 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition cursor-pointer group"
                       title={textVal}
                     >
-                      <span className="font-bold block text-slate-900 group-hover:text-indigo-700">Preset {idx + 1}</span>
+                      <span className="font-bold block text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300">Preset {idx + 1}</span>
                       <span className="truncate block opacity-80">{textVal.slice(0, 34)}...</span>
                     </button>
                   );
@@ -571,9 +571,9 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             </div>
 
             {/* Optional On-Canvas Subtitle / Caption Overlay */}
-            <div className="p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl space-y-1.5">
+            <div className="p-3 bg-slate-50/70 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <span>On-Canvas Subtitle / Title Overlay</span>
                   <span className="text-[10px] font-normal text-slate-400">(Optional • Timeline Display)</span>
                 </label>
@@ -583,19 +583,19 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                 value={canvasSubtitle}
                 onChange={e => setCanvasSubtitle(e.target.value)}
                 placeholder="Optional text to display on the image/video timeline (Nepali or English)..."
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 font-sans"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 font-sans"
               />
             </div>
           </div>
 
           {/* Aspect Ratio & Quality */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">Multi-Aspect Ratio</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Multi-Aspect Ratio</label>
               <select
                 value={aspectRatio}
                 onChange={e => setAspectRatio(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-rose-500 focus:bg-white"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-rose-500 focus:bg-white dark:focus:bg-slate-900"
               >
                 <option value="16:9">16:9 (Landscape / 1024x576)</option>
                 <option value="9:16">9:16 (Vertical / 576x1024)</option>
@@ -605,11 +605,11 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">Quality Level</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Quality Level</label>
               <select
                 value={quality}
                 onChange={e => setQuality(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-rose-500 focus:bg-white"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 focus:bg-white dark:focus:bg-slate-900"
               >
                 <option value="hd">HD (1024x1024 / Neural Post-Process)</option>
                 <option value="standard">Standard Fast Render</option>
@@ -638,12 +638,12 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
         </div>
 
         {/* Right 6 Columns: Image Preview & Timeline Integration */}
-        <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-900">Generated Canvas Output</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white">Generated Canvas Output</span>
               {generationMetadata?.engine && (
-                <span className="text-[10px] text-emerald-700 font-mono bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded">
                   {generationMetadata.engine}
                 </span>
               )}
@@ -651,11 +651,11 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             
             {/* 24-Hour Expiration Badge */}
             <div className="flex items-center gap-2">
-              <div className="px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold flex items-center gap-1">
-                <Clock className="w-3 h-3 text-amber-600" />
+              <div className="px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[10px] font-bold flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                 <span>Downloads Expire in 24 Hours</span>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{aspectRatio}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">{aspectRatio}</span>
             </div>
           </div>
 
@@ -689,14 +689,14 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
           </div>
 
           {/* Actions: Send to Video Studio or Download */}
-          <div className="pt-2 border-t border-slate-100 space-y-2">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <a
                 href={generatedImageUrl}
                 target="_blank"
                 rel="noreferrer"
                 download="nepalai_image.png"
-                className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 flex items-center gap-1.5 transition"
+                className="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download HD Asset</span>
@@ -705,7 +705,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsMicroEditorOpen(true)}
-                className="px-3.5 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 flex items-center gap-1.5 transition cursor-pointer"
+                className="px-3.5 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 transition cursor-pointer"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit Canvas Overlays</span>
@@ -722,9 +722,9 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
             </div>
 
             {addedSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-200">
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-200">
                 <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span className="font-medium">Scene inserted into Video Studio Timeline!</span>
                 </div>
                 {onNavigateToTimeline && (
@@ -744,30 +744,30 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
       </div>
 
       {/* Persistent AI Art History & Media Library Section */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+            <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-900/50 flex items-center justify-center text-rose-600 dark:text-rose-400">
               <FolderHeart className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Generated Art History & Persistent Media Assets</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Generated Art History & Persistent Media Assets</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 All images generated here persist automatically. Add them to your Video Studio timeline at any time using stable asset IDs.
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold font-mono">
+            <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold font-mono">
               {historyImages.length} Assets
             </span>
             {onNavigateToTimeline && (
               <button
                 type="button"
                 onClick={onNavigateToTimeline}
-                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition cursor-pointer"
               >
-                <Film className="w-3.5 h-3.5 text-slate-600" />
+                <Film className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                 <span>View Timeline</span>
               </button>
             )}
@@ -775,17 +775,17 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
         </div>
 
         {historyImages.length === 0 ? (
-          <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-            <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400" />
-            <p className="text-xs font-medium text-slate-500">No generated images in library yet</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Generate an image above to automatically save and reference it here.</p>
+          <div className="py-12 text-center text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-950/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400 dark:text-slate-500" />
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">No generated images in library yet</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Generate an image above to automatically save and reference it here.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {historyImages.map((item) => (
               <div 
                 key={item.id}
-                className="bg-slate-50 rounded-xl border border-slate-200/80 overflow-hidden flex flex-col justify-between hover:shadow-md transition group"
+                className="bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700 overflow-hidden flex flex-col justify-between hover:shadow-md transition group"
               >
                 <div className="relative aspect-square w-full bg-slate-900 overflow-hidden">
                   <img
@@ -810,17 +810,17 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
 
                 <div className="p-3 space-y-2.5 flex-1 flex flex-col justify-between">
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-slate-900 truncate" title={item.title}>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate" title={item.title}>
                       {item.title}
                     </h4>
                     {item.prompt && (
-                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed" title={item.prompt}>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed" title={item.prompt}>
                         {item.prompt}
                       </p>
                     )}
                   </div>
 
-                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center justify-between gap-1.5">
                     <button
                       type="button"
                       onClick={() => handleAddHistoryItemToTimeline(item)}
@@ -852,7 +852,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                         title="Reuse Prompt in Generator"
-                        className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer"
+                        className="p-1.5 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition cursor-pointer"
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
@@ -864,7 +864,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                       rel="noreferrer"
                       download={`${item.title || 'nepalai_asset'}.png`}
                       title="Download Asset"
-                      className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition"
+                      className="p-1.5 rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition"
                     >
                       <Download className="w-3.5 h-3.5" />
                     </a>
@@ -873,7 +873,7 @@ export const ImageStudioView: React.FC<ImageStudioViewProps> = ({
                       type="button"
                       onClick={(e) => handleDeleteHistoryItem(item.id, e)}
                       title="Delete from Library"
-                      className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition cursor-pointer"
+                      className="p-1.5 rounded-lg bg-white dark:bg-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-600 hover:border-rose-200 dark:hover:border-rose-800 transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

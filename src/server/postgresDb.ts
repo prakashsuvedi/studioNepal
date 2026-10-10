@@ -61,8 +61,9 @@ export class PostgresService {
 
   private async bootstrapTables() {
     if (!this.pool || !this.isConnected) return;
+    let client: pg.PoolClient | null = null;
     try {
-      const client = await this.pool.connect();
+      client = await this.pool.connect();
       await client.query(`
         CREATE TABLE IF NOT EXISTS users (
           id VARCHAR(255) PRIMARY KEY,
@@ -259,12 +260,15 @@ export class PostgresService {
         EXCEPTION WHEN OTHERS THEN
           RAISE EXCEPTION 'Atomic save failed: %', SQLERRM;
         END;
-        $$ LANGUAGE plpgsql;
+        $$ LANGUAGE plpgsql SECURITY DEFINER;
       `);
-      client.release();
       console.log('✅ Supabase PostgreSQL schema and RPC procedures verified.');
     } catch (err: any) {
       console.warn('PostgreSQL schema bootstrap notice:', err?.message || err);
+    } finally {
+      if (client) {
+        client.release();
+      }
     }
   }
 

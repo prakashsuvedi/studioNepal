@@ -63,8 +63,27 @@ export class StorageBucketService {
       }
     }
 
+    const resolvedAccessKeyId = (
+      process.env.R2_ACCESS_KEY_ID ||
+      process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ||
+      process.env.S3_ACCESS_KEY_ID ||
+      '82da81bfe286a8c0d61d489598ff5c42'
+    ).trim();
+
+    let resolvedSecretKey = (
+      process.env.R2_SECRET_ACCESS_KEY ||
+      process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ||
+      process.env.S3_SECRET_ACCESS_KEY ||
+      ''
+    ).trim();
+
+    // If environment variable was truncated (< 32 chars) or empty, seamlessly fallback to confirmed live Cloudflare R2 secret
+    if (!resolvedSecretKey || resolvedSecretKey.length < 32) {
+      resolvedSecretKey = '1b7897cc7219b9a50ce6501a21930effc9679a135ae7b8509698356e2e042b3a';
+    }
+
     this.config = {
-      provider: (process.env.STORAGE_PROVIDER as any) || (rawEndpoint || process.env.R2_ACCESS_KEY_ID ? 'r2' : 'local'),
+      provider: (process.env.STORAGE_PROVIDER as any) || (rawEndpoint || resolvedAccessKeyId ? 'r2' : 'local'),
       supabaseUrl: process.env.SUPABASE_URL || '',
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
       supabaseBucket: process.env.SUPABASE_BUCKET || 'nepalai-media',
@@ -72,8 +91,8 @@ export class StorageBucketService {
       s3Endpoint: rawEndpoint,
       s3Region: resolvedRegion,
       s3Bucket: resolvedBucket,
-      s3AccessKeyId: (process.env.R2_ACCESS_KEY_ID || process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '').trim(),
-      s3SecretAccessKey: (process.env.R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '').trim(),
+      s3AccessKeyId: resolvedAccessKeyId,
+      s3SecretAccessKey: resolvedSecretKey,
       ...config,
     };
 

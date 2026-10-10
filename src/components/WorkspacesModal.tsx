@@ -527,9 +527,9 @@ export const WorkspacesModal: React.FC<WorkspacesModalProps> = ({
 
               {/* Members List */}
               <div className="space-y-1.5">
-                {activeWs.members.map((member) => (
+                {activeWs.members.map((member, mIdx) => (
                   <div
-                    key={member.id}
+                    key={`${member.id || 'mbr'}-${mIdx}`}
                     className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center gap-2.5">

@@ -739,15 +739,21 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                     <div>
                       <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                        <span>Interpupillary Distance (IPD Ratio)</span>
+                        <label htmlFor="char-ipd-ratio-slider" className="cursor-pointer">Interpupillary Distance (IPD Ratio)</label>
                         <span className="font-mono text-cyan-400">{editableParams.interpupillaryDistance.toFixed(2)}x</span>
                       </div>
+                      <label htmlFor="char-ipd-ratio-slider" className="visually-hidden">Interpupillary distance IPD ratio slider</label>
                       <input
+                        id="char-ipd-ratio-slider"
                         type="range"
                         min="0.85"
                         max="1.25"
                         step="0.01"
                         value={editableParams.interpupillaryDistance}
+                        aria-label="Interpupillary Distance (IPD Ratio)"
+                        aria-valuemin={0.85}
+                        aria-valuemax={1.25}
+                        aria-valuenow={editableParams.interpupillaryDistance}
                         onChange={(e) => handleUpdateParam('interpupillaryDistance', parseFloat(e.target.value))}
                         className="w-full accent-cyan-400 cursor-pointer"
                       />
@@ -763,9 +769,11 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-medium text-slate-300 mb-1 block">Nose Tip Profile</label>
+                        <label htmlFor="char-nose-tip-select" className="text-[11px] font-medium text-slate-300 mb-1 block">Nose Tip Profile</label>
                         <select
+                          id="char-nose-tip-select"
                           value={editableParams.noseTipAngle}
+                          aria-label="Nose Tip Profile"
                           onChange={(e) => handleUpdateParam('noseTipAngle', e.target.value as any)}
                           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
                         >
@@ -777,9 +785,11 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-medium text-slate-300 mb-1 block">Ear Lobe Attachment</label>
+                        <label htmlFor="char-ear-lobe-select" className="text-[11px] font-medium text-slate-300 mb-1 block">Ear Lobe Attachment</label>
                         <select
+                          id="char-ear-lobe-select"
                           value={editableParams.earLobeType}
+                          aria-label="Ear Lobe Attachment"
                           onChange={(e) => handleUpdateParam('earLobeType', e.target.value as any)}
                           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
                         >
@@ -793,15 +803,21 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                          <span>Nose-to-Ear Gap</span>
+                          <label htmlFor="char-ear-gap-slider" className="cursor-pointer">Nose-to-Ear Gap</label>
                           <span className="font-mono text-cyan-400">{editableParams.earPlacementRatio.toFixed(2)}x</span>
                         </div>
+                        <label htmlFor="char-ear-gap-slider" className="visually-hidden">Nose to ear gap placement ratio</label>
                         <input
+                          id="char-ear-gap-slider"
                           type="range"
                           min="0.85"
                           max="1.15"
                           step="0.01"
                           value={editableParams.earPlacementRatio}
+                          aria-label="Nose-to-Ear Gap"
+                          aria-valuemin={0.85}
+                          aria-valuemax={1.15}
+                          aria-valuenow={editableParams.earPlacementRatio}
                           onChange={(e) => handleUpdateParam('earPlacementRatio', parseFloat(e.target.value))}
                           className="w-full accent-cyan-400 cursor-pointer"
                         />
@@ -809,15 +825,21 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                       <div>
                         <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                          <span>Nose Bridge Height</span>
+                          <label htmlFor="char-nose-bridge-slider" className="cursor-pointer">Nose Bridge Height</label>
                           <span className="font-mono text-cyan-400">{editableParams.noseBridgeHeight.toFixed(2)}x</span>
                         </div>
+                        <label htmlFor="char-nose-bridge-slider" className="visually-hidden">Nose bridge height ratio</label>
                         <input
+                          id="char-nose-bridge-slider"
                           type="range"
                           min="0.7"
                           max="1.4"
                           step="0.01"
                           value={editableParams.noseBridgeHeight}
+                          aria-label="Nose Bridge Height"
+                          aria-valuemin={0.7}
+                          aria-valuemax={1.4}
+                          aria-valuenow={editableParams.noseBridgeHeight}
                           onChange={(e) => handleUpdateParam('noseBridgeHeight', parseFloat(e.target.value))}
                           className="w-full accent-cyan-400 cursor-pointer"
                         />
@@ -835,15 +857,21 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                          <span>Jawline Angle</span>
+                          <label htmlFor="char-jawline-angle-slider" className="cursor-pointer">Jawline Angle</label>
                           <span className="font-mono text-cyan-400">{editableParams.jawlineAngle}°</span>
                         </div>
+                        <label htmlFor="char-jawline-angle-slider" className="visually-hidden">Jawline angle in degrees</label>
                         <input
+                          id="char-jawline-angle-slider"
                           type="range"
                           min="90"
                           max="135"
                           step="1"
                           value={editableParams.jawlineAngle}
+                          aria-label="Jawline Angle"
+                          aria-valuemin={90}
+                          aria-valuemax={135}
+                          aria-valuenow={editableParams.jawlineAngle}
                           onChange={(e) => handleUpdateParam('jawlineAngle', parseInt(e.target.value))}
                           className="w-full accent-cyan-400 cursor-pointer"
                         />
@@ -851,15 +879,21 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                       <div>
                         <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                          <span>Cheekbone Prominence</span>
+                          <label htmlFor="char-cheekbone-slider" className="cursor-pointer">Cheekbone Prominence</label>
                           <span className="font-mono text-cyan-400">{editableParams.cheekboneProminence.toFixed(2)}x</span>
                         </div>
+                        <label htmlFor="char-cheekbone-slider" className="visually-hidden">Cheekbone prominence ratio</label>
                         <input
+                          id="char-cheekbone-slider"
                           type="range"
                           min="0.8"
                           max="1.4"
                           step="0.02"
                           value={editableParams.cheekboneProminence}
+                          aria-label="Cheekbone Prominence"
+                          aria-valuemin={0.8}
+                          aria-valuemax={1.4}
+                          aria-valuenow={editableParams.cheekboneProminence}
                           onChange={(e) => handleUpdateParam('cheekboneProminence', parseFloat(e.target.value))}
                           className="w-full accent-cyan-400 cursor-pointer"
                         />
@@ -868,9 +902,11 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-medium text-slate-300 mb-1 block">Lip Fullness</label>
+                        <label htmlFor="char-lip-fullness-select" className="text-[11px] font-medium text-slate-300 mb-1 block">Lip Fullness</label>
                         <select
+                          id="char-lip-fullness-select"
                           value={editableParams.lipFullness}
+                          aria-label="Lip Fullness"
                           onChange={(e) => handleUpdateParam('lipFullness', e.target.value as any)}
                           className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
                         >
@@ -882,15 +918,21 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                       <div>
                         <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                          <span>Nose-to-Lip (Philtrum)</span>
+                          <label htmlFor="char-philtrum-slider" className="cursor-pointer">Nose-to-Lip (Philtrum)</label>
                           <span className="font-mono text-cyan-400">{editableParams.philtrumDepth.toFixed(2)}x</span>
                         </div>
+                        <label htmlFor="char-philtrum-slider" className="visually-hidden">Nose to lip philtrum depth ratio</label>
                         <input
+                          id="char-philtrum-slider"
                           type="range"
                           min="0.75"
                           max="1.25"
                           step="0.01"
                           value={editableParams.philtrumDepth}
+                          aria-label="Nose-to-Lip (Philtrum)"
+                          aria-valuemin={0.75}
+                          aria-valuemax={1.25}
+                          aria-valuenow={editableParams.philtrumDepth}
                           onChange={(e) => handleUpdateParam('philtrumDepth', parseFloat(e.target.value))}
                           className="w-full accent-cyan-400 cursor-pointer"
                         />
@@ -911,15 +953,21 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                     <div>
                       <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                        <span>Pitch (Look Up / Down)</span>
+                        <label htmlFor="char-pitch-angle-slider" className="cursor-pointer">Pitch (Look Up / Down)</label>
                         <span className="font-mono text-cyan-400">{editableParams.pitchAngle}°</span>
                       </div>
+                      <label htmlFor="char-pitch-angle-slider" className="visually-hidden">Pitch look up down camera angle</label>
                       <input
+                        id="char-pitch-angle-slider"
                         type="range"
                         min="-30"
                         max="30"
                         step="1"
                         value={editableParams.pitchAngle}
+                        aria-label="Pitch (Look Up / Down)"
+                        aria-valuemin={-30}
+                        aria-valuemax={30}
+                        aria-valuenow={editableParams.pitchAngle}
                         onChange={(e) => handleUpdateParam('pitchAngle', parseInt(e.target.value))}
                         className="w-full accent-cyan-400 cursor-pointer"
                       />
@@ -927,24 +975,32 @@ export const CharacterConsistencyModal: React.FC<CharacterConsistencyModalProps>
 
                     <div>
                       <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-                        <span>Yaw (Head Turn Profile Left / Right)</span>
+                        <label htmlFor="char-yaw-angle-slider" className="cursor-pointer">Yaw (Head Turn Profile Left / Right)</label>
                         <span className="font-mono text-cyan-400">{editableParams.yawAngle}°</span>
                       </div>
+                      <label htmlFor="char-yaw-angle-slider" className="visually-hidden">Yaw head turn profile angle</label>
                       <input
+                        id="char-yaw-angle-slider"
                         type="range"
                         min="-45"
                         max="45"
                         step="1"
                         value={editableParams.yawAngle}
+                        aria-label="Yaw (Head Turn Profile Left / Right)"
+                        aria-valuemin={-45}
+                        aria-valuemax={45}
+                        aria-valuenow={editableParams.yawAngle}
                         onChange={(e) => handleUpdateParam('yawAngle', parseInt(e.target.value))}
                         className="w-full accent-cyan-400 cursor-pointer"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-medium text-slate-300 mb-1 block">Default Locked Facial Expression</label>
+                      <label htmlFor="char-expression-select" className="text-[11px] font-medium text-slate-300 mb-1 block">Default Locked Facial Expression</label>
                       <select
+                        id="char-expression-select"
                         value={editableParams.expression}
+                        aria-label="Default Locked Facial Expression"
                         onChange={(e) => handleUpdateParam('expression', e.target.value as any)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white"
                       >

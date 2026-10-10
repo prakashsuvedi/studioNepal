@@ -1812,7 +1812,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   };
 
   return (
-    <div className="w-full h-[calc(100vh-3.25rem)] bg-[#07090e] text-slate-100 flex flex-col overflow-hidden select-none">
+    <div className="w-full h-[calc(100vh-3.25rem)] bg-slate-100 dark:bg-[#07090e] text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none">
       {/* Hidden File Input for Importing Project JSON */}
       <input
         type="file"
@@ -1974,7 +1974,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       />
 
       {/* 2. Upper Deck: 3 Non-Overlapping Studio Columns */}
-      <div className="flex-1 flex overflow-hidden min-h-0 bg-[#07090e]">
+      <div className="flex-1 flex overflow-hidden min-h-0 bg-slate-100 dark:bg-[#07090e]">
         {/* Left: Media / Audio / Text / Effects Asset Browser */}
         <CapCutLeftPanel
           onAddSceneToTimeline={(newScene) => {
@@ -2183,7 +2183,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       />
 
       {/* 4. Bottom Deck: CapCut Multi-Track Timeline */}
-      <div className="h-44 sm:h-48 shrink-0 flex flex-col bg-[#090b12] relative">
+      <div className="h-44 sm:h-48 shrink-0 flex flex-col bg-slate-200 dark:bg-[#090b12] border-t border-slate-300 dark:border-slate-800/80 relative">
         <CapCutTimelineDeck
           scenes={scenes}
           selectedSceneId={selectedSceneId}

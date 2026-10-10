@@ -251,49 +251,68 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
                     <div className="flex justify-between text-slate-400 mb-1">
-                      <span>Font Size</span>
+                      <label htmlFor="text-styling-font-size" className="cursor-pointer">Font Size</label>
                       <span className="font-mono text-indigo-300">{fontSize}px</span>
                     </div>
+                    <label htmlFor="text-styling-font-size" className="visually-hidden">Text styling kinetic font size in pixels</label>
                     <input
+                      id="text-styling-font-size"
+                      name="kineticFontSize"
+                      aria-label="Kinetic Font Size"
+                      aria-valuemin={20}
+                      aria-valuemax={72}
+                      aria-valuenow={fontSize}
                       type="range"
                       min={20}
                       max={72}
                       value={fontSize}
                       onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="w-full accent-indigo-500"
+                      className="w-full accent-indigo-500 cursor-pointer"
                     />
                   </div>
 
                   <div>
                     <div className="flex justify-between text-slate-400 mb-1">
-                      <span>Animation Speed</span>
+                      <label htmlFor="text-styling-anim-speed" className="cursor-pointer">Animation Speed</label>
                       <span className="font-mono text-indigo-300">{animationSpeed}x</span>
                     </div>
+                    <label htmlFor="text-styling-anim-speed" className="visually-hidden">Kinetic animation playback speed multiplier</label>
                     <input
+                      id="text-styling-anim-speed"
+                      name="kineticAnimSpeed"
+                      aria-label="Kinetic Animation Speed"
+                      aria-valuemin={0.5}
+                      aria-valuemax={2.0}
+                      aria-valuenow={animationSpeed}
                       type="range"
                       min={0.5}
                       max={2.0}
                       step={0.1}
                       value={animationSpeed}
                       onChange={(e) => setAnimationSpeed(Number(e.target.value))}
-                      className="w-full accent-indigo-500"
+                      className="w-full accent-indigo-500 cursor-pointer"
                     />
                   </div>
 
                   <div>
                     <div className="flex justify-between text-slate-400 mb-1">
-                      <span>Glow Color</span>
+                      <label htmlFor="text-styling-glow-color" className="cursor-pointer">Glow Color</label>
                       <span className="font-mono text-indigo-300">{glowColor}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <input
+                        id="text-styling-glow-color"
                         type="color"
+                        aria-label="Glow Color Picker"
                         value={glowColor}
                         onChange={(e) => setGlowColor(e.target.value)}
                         className="w-8 h-8 rounded bg-transparent border border-slate-700 cursor-pointer"
                       />
+                      <label htmlFor="text-styling-glow-hex" className="visually-hidden">Glow Color Hex Value</label>
                       <input
+                        id="text-styling-glow-hex"
                         type="text"
+                        aria-label="Glow Color Hex Value"
                         value={glowColor}
                         onChange={(e) => setGlowColor(e.target.value)}
                         className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono text-[11px]"
@@ -303,16 +322,23 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
 
                   <div>
                     <div className="flex justify-between text-slate-400 mb-1">
-                      <span>Multi-Layer Depth</span>
+                      <label htmlFor="text-styling-layers-count" className="cursor-pointer">Multi-Layer Depth</label>
                       <span className="font-mono text-indigo-300">{layersCount} layers</span>
                     </div>
+                    <label htmlFor="text-styling-layers-count" className="visually-hidden">Multi-layer 3D depth layers count</label>
                     <input
+                      id="text-styling-layers-count"
+                      name="kineticLayerDepth"
+                      aria-label="Multi-Layer Depth"
+                      aria-valuemin={1}
+                      aria-valuemax={5}
+                      aria-valuenow={layersCount}
                       type="range"
                       min={1}
                       max={5}
                       value={layersCount}
                       onChange={(e) => setLayersCount(Number(e.target.value))}
-                      className="w-full accent-indigo-500"
+                      className="w-full accent-indigo-500 cursor-pointer"
                     />
                   </div>
                 </div>
@@ -327,12 +353,14 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
                 <div className="flex items-center gap-2.5">
                   <Radio className="w-4 h-4 text-rose-400" />
                   <div>
-                    <span className="font-bold text-white text-xs">Enable Lower-Third Ticker</span>
+                    <label htmlFor="text-styling-enable-ticker" className="font-bold text-white text-xs cursor-pointer block">Enable Lower-Third Ticker</label>
                     <p className="text-[11px] text-slate-400">Display continuous scrolling marquee banner across the video.</p>
                   </div>
                 </div>
                 <input
+                  id="text-styling-enable-ticker"
                   type="checkbox"
+                  aria-label="Enable Lower-Third Ticker"
                   checked={tickerEnabled}
                   onChange={(e) => setTickerEnabled(e.target.checked)}
                   className="w-5 h-5 accent-indigo-500 rounded cursor-pointer"
@@ -343,9 +371,11 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-slate-400 text-[11px] font-semibold block mb-1">Badge Tag</label>
+                      <label htmlFor="text-styling-ticker-badge" className="text-slate-400 text-[11px] font-semibold block mb-1 cursor-pointer">Badge Tag</label>
                       <input
+                        id="text-styling-ticker-badge"
                         type="text"
+                        aria-label="Badge Tag"
                         value={tickerBadge}
                         onChange={(e) => setTickerBadge(e.target.value)}
                         placeholder="e.g. BREAKING NEWS"
@@ -354,9 +384,11 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
                     </div>
 
                     <div>
-                      <label className="text-slate-400 text-[11px] font-semibold block mb-1">Ticker Style</label>
+                      <label htmlFor="text-styling-ticker-style" className="text-slate-400 text-[11px] font-semibold block mb-1 cursor-pointer">Ticker Style</label>
                       <select
+                        id="text-styling-ticker-style"
                         value={tickerStyle}
+                        aria-label="Ticker Style"
                         onChange={(e) => setTickerStyle(e.target.value as any)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-indigo-500 focus:outline-none"
                       >
@@ -370,9 +402,11 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
                   </div>
 
                   <div>
-                    <label className="text-slate-400 text-[11px] font-semibold block mb-1">Scrolling Marquee Text (English)</label>
+                    <label htmlFor="text-styling-ticker-text-en" className="text-slate-400 text-[11px] font-semibold block mb-1 cursor-pointer">Scrolling Marquee Text (English)</label>
                     <textarea
+                      id="text-styling-ticker-text-en"
                       value={tickerText}
+                      aria-label="Scrolling Marquee Text English"
                       onChange={(e) => setTickerText(e.target.value)}
                       rows={2}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white text-xs font-mono focus:border-indigo-500 focus:outline-none"
@@ -380,9 +414,11 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
                   </div>
 
                   <div>
-                    <label className="text-slate-400 text-[11px] font-semibold block mb-1">Scrolling Marquee Text (Nepali)</label>
+                    <label htmlFor="text-styling-ticker-text-np" className="text-slate-400 text-[11px] font-semibold block mb-1 cursor-pointer">Scrolling Marquee Text (Nepali)</label>
                     <textarea
+                      id="text-styling-ticker-text-np"
                       value={tickerTextNepali}
+                      aria-label="Scrolling Marquee Text Nepali"
                       onChange={(e) => setTickerTextNepali(e.target.value)}
                       rows={2}
                       className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-amber-300 font-['Mukta'] text-xs font-semibold focus:border-indigo-500 focus:outline-none"
@@ -391,9 +427,11 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-slate-400 text-[11px] font-semibold block mb-1">Scroll Speed</label>
+                      <label htmlFor="text-styling-ticker-speed" className="text-slate-400 text-[11px] font-semibold block mb-1 cursor-pointer">Scroll Speed</label>
                       <select
+                        id="text-styling-ticker-speed"
                         value={tickerSpeed}
+                        aria-label="Scroll Speed"
                         onChange={(e) => setTickerSpeed(e.target.value as any)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-indigo-500 focus:outline-none"
                       >
@@ -404,9 +442,11 @@ export const TextStylingToolkitModal: React.FC<TextStylingToolkitModalProps> = (
                     </div>
 
                     <div>
-                      <label className="text-slate-400 text-[11px] font-semibold block mb-1">Position</label>
+                      <label htmlFor="text-styling-ticker-position" className="text-slate-400 text-[11px] font-semibold block mb-1 cursor-pointer">Position</label>
                       <select
+                        id="text-styling-ticker-position"
                         value={tickerPosition}
+                        aria-label="Position"
                         onChange={(e) => setTickerPosition(e.target.value as any)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-indigo-500 focus:outline-none"
                       >

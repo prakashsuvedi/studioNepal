@@ -216,36 +216,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-100 space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-900 dark:text-slate-100 space-y-5">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="text-center space-y-1.5">
-          <div className="inline-flex p-3 rounded-2xl bg-rose-600/10 border border-rose-500/20 text-rose-400">
+          <div className="inline-flex p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h3 className="text-xl font-bold text-white">Sign In to NepalAI Studio</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Sign In to NepalAI Studio</h3>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Sign in with your Google account or Admin credentials to access your creative studio and unlimited AI tools.
           </p>
         </div>
 
         {/* Tab Selection */}
-        <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-semibold">
+        <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setTab('google')}
             className={`py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer ${
               tab === 'google'
                 ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <span>Google Client OAuth</span>
@@ -256,7 +256,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className={`py-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer ${
               tab === 'admin'
                 ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
@@ -265,7 +265,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -280,7 +280,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={handleLaunchGooglePopup}
-                className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-900 font-bold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-3 border border-slate-300"
+                className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-900 font-bold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-3 border border-slate-300 dark:border-slate-700"
               >
                 <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
@@ -300,10 +300,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             {/* Quick 1-Click Verification Card for Active Account */}
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
               <div className="flex items-center justify-between text-xs">
-                <label htmlFor="custom-google-email" className="text-slate-400 font-medium cursor-pointer">Google Account Email:</label>
-                <span className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
+                <label htmlFor="custom-google-email" className="text-slate-600 dark:text-slate-400 font-medium cursor-pointer">Google Account Email:</label>
+                <span className="text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Ready
                 </span>
               </div>
@@ -315,15 +315,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 value={customGoogleEmail}
                 onChange={e => setCustomGoogleEmail(e.target.value)}
                 placeholder="your.email@gmail.com"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-rose-500"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-rose-500"
               />
               <button
                 type="button"
                 disabled={loading}
                 onClick={handleDirectGoogleLogin}
-                className="w-full py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 border border-slate-700"
+                className="w-full py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-700"
               >
-                <UserCheck className="w-4 h-4 text-rose-400" />
+                <UserCheck className="w-4 h-4 text-rose-500 dark:text-rose-400" />
                 <span>Sign In as {customGoogleEmail.split('@')[0]}</span>
               </button>
             </div>
@@ -337,19 +337,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Admin Gateway Tab */}
         {tab === 'admin' && (
           <form onSubmit={handleAdminSubmit} className="space-y-4">
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 space-y-1">
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-xs">
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 <span>Administrator Role-Based Access</span>
               </div>
-              <p className="text-[11px] text-amber-200/80">
+              <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">
                 Master Platform Administrator gateway for whitelisted accounts with unlimited credits.
               </p>
             </div>
 
             <div className="space-y-3 text-xs">
               <div className="space-y-1">
-                <label htmlFor="admin-email-input" className="text-slate-300 font-medium block">Admin Email</label>
+                <label htmlFor="admin-email-input" className="text-slate-700 dark:text-slate-300 font-medium block">Admin Email</label>
                 <input
                   id="admin-email-input"
                   name="adminEmail"
@@ -357,20 +357,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   required
                   value={adminEmail}
                   onChange={e => setAdminEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="admin-password-input" className="text-slate-300 font-medium flex items-center gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-slate-400" />
+                  <label htmlFor="admin-password-input" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     <span>Admin Secret Password</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setAdminPassword('admin@123')}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                    className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                   >
                     Use default (admin@123)
                   </button>
@@ -383,7 +383,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={adminPassword}
                   onChange={e => setAdminPassword(e.target.value)}
                   placeholder="admin@123"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -392,7 +392,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-950/40 transition cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 transition cursor-pointer flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <span>Signing In as Administrator...</span>
@@ -412,7 +412,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   setAdminPassword('admin@123');
                   handleAdminSubmit();
                 }}
-                className="w-full py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-amber-400 border border-amber-500/30 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>1-Click Owner Sign In (Prakash Suvedi)</span>

@@ -47,11 +47,25 @@
     </linearGradient>
 
     <!-- Text Typography Gradients -->
+    <!-- High-Contrast Light Background Gradient (Deep Sapphire / Midnight Slate for White Backgrounds) -->
+    <linearGradient id="nepalTextGradLight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a1128"/>
+      <stop offset="70%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
     <!-- High-Contrast Nepal Gradient: Crisp White / Ice-Blue for Dark Backgrounds -->
-    <linearGradient id="nepalTextGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="nepalTextGradDark" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#ffffff"/>
       <stop offset="50%" stop-color="#e0f2fe"/>
       <stop offset="100%" stop-color="#93c5fd"/>
+    </linearGradient>
+
+    <!-- Backward-compatible default nepalTextGrad -->
+    <linearGradient id="nepalTextGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a1128"/>
+      <stop offset="70%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
 
     <!-- AI Cyan Vibrant Gradient -->
@@ -61,18 +75,37 @@
       <stop offset="100%" stop-color="#0369a1"/>
     </linearGradient>
 
-    <!-- Studio Rich Gold Gradient -->
+    <!-- Studio Rich Gold Gradient: Warm Amber Bronze for Crisp Visibility on White and Dark -->
     <linearGradient id="studioTextGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#fef08a"/>
-      <stop offset="35%" stop-color="#eab308"/>
-      <stop offset="70%" stop-color="#ca8a04"/>
-      <stop offset="100%" stop-color="#854d0e"/>
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="40%" stop-color="#f59e0b"/>
+      <stop offset="80%" stop-color="#b45309"/>
+      <stop offset="100%" stop-color="#78350f"/>
     </linearGradient>
 
-    <!-- Text Shadow Filter -->
+    <!-- Text Shadow Filter: High contrast dual-depth for white and dark backgrounds -->
     <filter id="textGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0284c7" flood-opacity="0.4"/>
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#091124" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#0284c7" flood-opacity="0.2"/>
     </filter>
+
+    <style>
+      /* Standalone file styling: 100% visible on white & light backgrounds by default */
+      .brand-nepal-text {
+        fill: #0a1128;
+      }
+      .brand-studio-text {
+        fill: #b45309;
+      }
+      @media (prefers-color-scheme: dark) {
+        .brand-nepal-text {
+          fill: url(#nepalTextGradDark);
+        }
+        .brand-studio-text {
+          fill: url(#studioTextGrad);
+        }
+      }
+    </style>
   </defs>
 
   <!-- Whole Transparent Logo Group -->
@@ -129,16 +162,17 @@
       <path d="M 22,92 C 45,124 94,124 126,94 C 100,118 48,118 28,94 Z" fill="#7dd3fc" opacity="0.6" />
     </g>
 
-    <!-- TYPOGRAPHY GROUP: NepalAI studio -->
+    <!-- TYPOGRAPHY GROUP: NepalAI studio (100% visible on both white & dark backgrounds) -->
     <g transform="translate(155, 15)" filter="url(#textGlow)">
-      <!-- Nepal (Crisp White/Ice Blue Gradient - 100% Readable on Dark Surfaces) -->
+      <!-- Nepal: High-contrast on white backgrounds & glowing in dark mode -->
       <text 
         x="0" 
         y="68" 
+        class="brand-nepal-text"
         font-family="System-UI, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif" 
         font-weight="900" 
         font-size="64" 
-        fill="url(#nepalTextGrad)" 
+        fill="url(#nepalTextGradLight)" 
         letter-spacing="-1.5"
       >Nepal</text>
 
@@ -157,6 +191,7 @@
       <text 
         x="125" 
         y="114" 
+        class="brand-studio-text"
         font-family="System-UI, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif" 
         font-weight="700" 
         font-size="40" 

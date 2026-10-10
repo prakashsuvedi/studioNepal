@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Users, Activity } from 'lucide-react';
 import { UserSession } from '../types';
 
@@ -81,17 +81,27 @@ export const RealtimePresence: React.FC<RealtimePresenceProps> = ({
     return () => clearInterval(interval);
   }, [projectId, user, currentSceneId]);
 
-  const displayUsers = activeUsers.length > 0 ? activeUsers : (user ? [{
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatar,
-    role: (user.role === 'admin' ? 'director' : 'editor') as PresenceUser['role'],
-    color: '#10B981',
-    isEditing: true,
-    currentSceneId,
-    statusText: 'Active in project',
-  }] : []);
+  const displayUsers = useMemo(() => {
+    const rawList = activeUsers.length > 0 ? activeUsers : (user ? [{
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      role: (user.role === 'admin' ? 'director' : 'editor') as PresenceUser['role'],
+      color: '#10B981',
+      isEditing: true,
+      currentSceneId,
+      statusText: 'Active in project',
+    }] : []);
+
+    const seen = new Set<string>();
+    return rawList.filter(u => {
+      const uniqueKey = u.id || u.email;
+      if (!uniqueKey || seen.has(uniqueKey)) return false;
+      seen.add(uniqueKey);
+      return true;
+    });
+  }, [activeUsers, user, currentSceneId]);
 
   return (
     <div className="relative inline-flex items-center shrink-0">
@@ -113,13 +123,13 @@ export const RealtimePresence: React.FC<RealtimePresenceProps> = ({
 
         {/* User Avatar Stack with Guaranteed Geometry & Fallback Initials */}
         <div className="flex items-center -space-x-1.5 overflow-visible shrink-0">
-          {displayUsers.map(u => {
+          {displayUsers.map((u, idx) => {
             const hasImgError = avatarErrors[u.id];
             const initial = (u.name || 'U').charAt(0).toUpperCase();
 
             return (
               <div
-                key={u.id}
+                key={`${u.id}-${idx}`}
                 className="relative group cursor-pointer shrink-0"
                 onMouseEnter={() => setShowTooltipUser(u.id)}
                 onMouseLeave={() => setShowTooltipUser(null)}

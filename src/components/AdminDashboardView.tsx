@@ -22,7 +22,8 @@ import {
   Code2,
   Terminal,
   Cpu,
-  Cloud
+  Cloud,
+  Server
 } from 'lucide-react';
 import { apiGetAdminUsers, apiAdminUpdateUser } from '../lib/api';
 import { UserSession } from '../types';
@@ -30,6 +31,7 @@ import { AuditReportView } from './AuditReportView';
 import { HfDeploymentKitView } from './HfDeploymentKitView';
 import { PostgresDiagnosticPanel } from './PostgresDiagnosticPanel';
 import { R2DiagnosticPanel } from './R2DiagnosticPanel';
+import { ApiGatewayManager } from './ApiGatewayManager';
 
 interface AdminDashboardViewProps {
   currentUser: UserSession | null;
@@ -45,7 +47,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'audit' | 'hf_kit' | 'debug_logs' | 'nepali_pricing' | 'postgres_diagnostic' | 'r2_storage' | 'daily_reset_audit'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'audit' | 'hf_kit' | 'debug_logs' | 'nepali_pricing' | 'postgres_diagnostic' | 'r2_storage' | 'daily_reset_audit' | 'api_gateway'>('users');
   const [resetAuditData, setResetAuditData] = useState<any>(null);
   const [resetAuditLoading, setResetAuditLoading] = useState(false);
 
@@ -392,6 +394,18 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </span>
           </button>
           <button
+            onClick={() => setActiveTab('api_gateway')}
+            className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'api_gateway' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Server className="w-3.5 h-3.5 text-indigo-600" />
+            <span>nepalai.tech API Gateway</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 font-bold uppercase">
+              REST Sync
+            </span>
+          </button>
+          <button
             onClick={() => setActiveTab('debug_logs')}
             className={`px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'debug_logs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
@@ -438,12 +452,13 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((client: any) => {
+                {filteredUsers.map((client: any, idx: number) => {
                   const isUserAdmin = client.role === 'admin';
                   const usage = client.usage;
+                  const rowKey = `${client.id || 'usr'}-${client.email || idx}`;
 
                   return (
-                    <tr key={client.id} className="hover:bg-slate-50/60 transition">
+                    <tr key={rowKey} className="hover:bg-slate-50/60 transition">
                       {/* Identity */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
@@ -640,8 +655,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data?.transactions?.map((tx: any) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/60 transition font-mono text-[11px]">
+                {data?.transactions?.map((tx: any, idx: number) => (
+                  <tr key={`${tx.id || 'tx'}-${idx}`} className="hover:bg-slate-50/60 transition font-mono text-[11px]">
                     <td className="py-3 px-4 text-slate-800 font-semibold">{tx.id}</td>
                     <td className="py-3 px-4 text-slate-700">{tx.userEmail}</td>
                     <td className="py-3 px-4 text-slate-900 font-sans font-medium">{tx.packageName}</td>
@@ -1045,8 +1060,8 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-mono text-slate-800">
-                      {resetAuditData.accountAuditDetails?.map((acc: any) => (
-                        <tr key={acc.userId} className="hover:bg-slate-50/80 transition">
+                      {resetAuditData.accountAuditDetails?.map((acc: any, idx: number) => (
+                        <tr key={`${acc.userId || 'acc'}-${acc.email || idx}`} className="hover:bg-slate-50/80 transition">
                           <td className="p-3 font-semibold font-sans">
                             <div>{acc.email}</div>
                             <div className="text-[10px] font-mono text-slate-400">{acc.userId}</div>
@@ -1085,6 +1100,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </div>
           ) : null}
         </div>
+      )}
+
+      {/* nepali.tech API Gateway Tab */}
+      {activeTab === 'api_gateway' && (
+        <ApiGatewayManager />
       )}
     </div>
   );

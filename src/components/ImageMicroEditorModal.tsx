@@ -419,12 +419,14 @@ export const ImageMicroEditorModal: React.FC<ImageMicroEditorModalProps> = ({
               {activeTab === 'text' && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300 block">
+                    <label htmlFor="micro-editor-text-input" className="text-xs font-bold text-slate-300 block">
                       Text Caption Content
                     </label>
                     <input
+                      id="micro-editor-text-input"
                       type="text"
                       value={textInput}
+                      aria-label="Text Caption Content"
                       onChange={e => setTextInput(e.target.value)}
                       placeholder="Enter text..."
                       className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-rose-500"
@@ -433,19 +435,23 @@ export const ImageMicroEditorModal: React.FC<ImageMicroEditorModalProps> = ({
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">Text Color</label>
+                      <label htmlFor="micro-editor-text-color" className="text-[11px] font-bold text-slate-400 block mb-1 cursor-pointer">Text Color</label>
                       <input
+                        id="micro-editor-text-color"
                         type="color"
                         value={textColor}
+                        aria-label="Text Color"
                         onChange={e => setTextColor(e.target.value)}
                         className="w-full h-9 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">Background Box</label>
+                      <label htmlFor="micro-editor-bg-color" className="text-[11px] font-bold text-slate-400 block mb-1 cursor-pointer">Background Box</label>
                       <input
+                        id="micro-editor-bg-color"
                         type="color"
                         value={bgColor === 'transparent' ? '#e11d48' : bgColor}
+                        aria-label="Background Box Color"
                         onChange={e => setBgColor(e.target.value)}
                         className="w-full h-9 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer"
                       />
@@ -478,10 +484,12 @@ export const ImageMicroEditorModal: React.FC<ImageMicroEditorModalProps> = ({
                   </button>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300 block">Brush Color</label>
+                    <label htmlFor="micro-editor-brush-color" className="text-xs font-bold text-slate-300 block cursor-pointer">Brush Color</label>
                     <input
+                      id="micro-editor-brush-color"
                       type="color"
                       value={brushColor}
+                      aria-label="Brush Color"
                       onChange={e => {
                         setBrushColor(e.target.value);
                         if (fabricCanvasRef.current?.freeDrawingBrush) {
@@ -493,12 +501,21 @@ export const ImageMicroEditorModal: React.FC<ImageMicroEditorModalProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300 block">Brush Size: {brushWidth}px</label>
+                    <div className="flex justify-between text-xs font-bold text-slate-300">
+                      <label htmlFor="micro-editor-brush-size" className="cursor-pointer">Brush Size</label>
+                      <span className="font-mono text-rose-400">{brushWidth}px</span>
+                    </div>
+                    <label htmlFor="micro-editor-brush-size" className="visually-hidden">Brush size in pixels</label>
                     <input
+                      id="micro-editor-brush-size"
                       type="range"
                       min={1}
                       max={30}
                       value={brushWidth}
+                      aria-label="Brush Size"
+                      aria-valuemin={1}
+                      aria-valuemax={30}
+                      aria-valuenow={brushWidth}
                       onChange={e => {
                         const val = Number(e.target.value);
                         setBrushWidth(val);
@@ -506,7 +523,7 @@ export const ImageMicroEditorModal: React.FC<ImageMicroEditorModalProps> = ({
                           fabricCanvasRef.current.freeDrawingBrush.width = val;
                         }
                       }}
-                      className="w-full accent-rose-500"
+                      className="w-full accent-rose-500 cursor-pointer"
                     />
                   </div>
                 </div>

@@ -79,15 +79,15 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   return (
-    <header className="h-12 bg-[#0a0d14] border-b border-slate-800/80 flex items-center justify-between px-3 select-none shrink-0 z-30 relative shadow-sm overflow-hidden gap-2">
+    <header className="h-12 bg-white dark:bg-[#0a0d14] border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between px-3 select-none shrink-0 z-30 relative shadow-sm overflow-hidden gap-2">
       {/* Left: Brand, New Project, Menu & AutoSave */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
         {/* Editor Identifier Tag */}
-        <div className="flex items-center gap-1.5 shrink-0 pr-1.5 border-r border-slate-800/80">
-          <div className="w-6 h-6 rounded-md bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 pr-1.5 border-r border-slate-200 dark:border-slate-800/80">
+          <div className="w-6 h-6 rounded-md bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0">
             <FileVideo className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[11px] font-bold text-slate-300 hidden sm:inline">
+          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 hidden sm:inline">
             Timeline Editor
           </span>
         </div>
@@ -109,10 +109,10 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
           <button
             id="topbar-btn-import-url"
             onClick={onOpenUrlToProject}
-            className="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 hover:text-indigo-100 border border-indigo-500/35 rounded-md text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0 shadow-xs"
+            className="px-2 py-1 bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/35 text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-indigo-100 border border-indigo-200 dark:border-indigo-500/35 rounded-md text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0 shadow-xs"
             title="Import blog or web article URL directly into video storyboard project"
           >
-            <Globe className="w-3 h-3 text-indigo-400" />
+            <Globe className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
             <span className="hidden md:inline">Import URL</span>
           </button>
         )}
@@ -121,15 +121,15 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
         <div className="relative shrink-0">
           <button 
             onClick={() => setShowMenuDropdown(!showMenuDropdown)}
-            className="px-2 py-1 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-medium border border-slate-800 transition flex items-center gap-0.5 cursor-pointer"
+            className="px-2 py-1 bg-slate-100 dark:bg-slate-900/90 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-md text-[11px] font-medium border border-slate-200 dark:border-slate-800 transition flex items-center gap-0.5 cursor-pointer"
           >
             <span>Menu</span>
-            <ChevronDown className="w-3 h-3 text-slate-400" />
+            <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
           </button>
 
           {showMenuDropdown && (
             <div 
-              className="absolute left-0 top-full mt-1 w-56 bg-slate-900 border border-slate-700/80 rounded-lg shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 text-xs text-slate-200"
+              className="absolute left-0 top-full mt-1 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-lg shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 text-xs text-slate-800 dark:text-slate-200"
               onMouseLeave={() => setShowMenuDropdown(false)}
             >
               {onNewProject && (
@@ -138,9 +138,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onNewProject();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 text-cyan-300 font-semibold cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 text-cyan-600 dark:text-cyan-300 font-semibold cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5 text-cyan-400" />
+                  <Plus className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>New Project...</span>
                 </button>
               )}
@@ -152,9 +152,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onOpenUrlToProject();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-indigo-950/50 rounded flex items-center gap-2 cursor-pointer text-indigo-300 font-semibold"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded flex items-center gap-2 cursor-pointer text-indigo-700 dark:text-indigo-300 font-semibold"
                 >
-                  <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                  <Globe className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Import URL (Blog to Video)...</span>
                 </button>
               )}
@@ -165,9 +165,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onImportProject();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer"
                 >
-                  <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
+                  <FolderOpen className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                   <span>Open Project JSON</span>
                 </button>
               )}
@@ -178,9 +178,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onSave();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer"
                 >
-                  <Save className="w-3.5 h-3.5 text-emerald-400" />
+                  <Save className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                   <span>Save Project (Ctrl+S)</span>
                 </button>
               )}
@@ -191,9 +191,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onOpenStoryboards();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer"
                 >
-                  <LayoutTemplate className="w-3.5 h-3.5 text-purple-400" />
+                  <LayoutTemplate className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
                   <span>AI Storyboard Wizard</span>
                 </button>
               )}
@@ -204,9 +204,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onOpenRenderPreview();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-cyan-300 font-semibold"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-cyan-600 dark:text-cyan-300 font-semibold"
                 >
-                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <Eye className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>Real-Time Render Preview...</span>
                 </button>
               )}
@@ -217,9 +217,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onOpenDebugger();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-cyan-300"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-cyan-600 dark:text-cyan-300"
                 >
-                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                  <Terminal className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>Rendering Debugger...</span>
                 </button>
               )}
@@ -230,14 +230,14 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onOpenSocialPublisher();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-rose-300 font-medium"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-rose-600 dark:text-rose-300 font-medium"
                 >
-                  <Share2 className="w-3.5 h-3.5 text-rose-400" />
+                  <Share2 className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                   <span>Social Publish Center...</span>
                 </button>
               )}
 
-              <div className="h-px bg-slate-800 my-1"></div>
+              <div className="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
 
               {onClearTimeline && (
                 <button
@@ -245,9 +245,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                     setShowMenuDropdown(false);
                     onClearTimeline();
                   }}
-                  className="w-full text-left px-2.5 py-1.5 hover:bg-rose-950/40 text-rose-300 rounded flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-red-600 dark:text-rose-300 rounded flex items-center gap-2 cursor-pointer"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <Trash2 className="w-3.5 h-3.5 text-red-500 dark:text-rose-400" />
                   <span>Clear All Timeline Clips</span>
                 </button>
               )}
@@ -262,9 +262,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
         />
 
         {/* Auto-save Status */}
-        <div className="hidden 2xl:flex items-center gap-1.5 text-[11px] text-slate-400 pl-2 border-l border-slate-800 shrink-0">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-          <span className="text-slate-400">Saved: <span className="text-slate-300 font-mono">{autoSaveTime}</span></span>
+        <div className="hidden 2xl:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></div>
+          <span className="text-slate-500 dark:text-slate-400">Saved: <span className="text-slate-700 dark:text-slate-300 font-mono">{autoSaveTime}</span></span>
         </div>
       </div>
 
@@ -274,7 +274,7 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
           type="text"
           value={projectTitle}
           onChange={(e) => setProjectTitle(e.target.value)}
-          className="bg-transparent hover:bg-slate-900/80 focus:bg-slate-900 px-2 sm:px-3 py-1 rounded-md text-xs font-semibold text-slate-200 focus:text-white border border-transparent focus:border-slate-700 outline-none text-center transition w-28 sm:w-44 md:w-56 max-w-full truncate"
+          className="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-900/80 focus:bg-white dark:focus:bg-slate-900 px-2 sm:px-3 py-1 rounded-md text-xs font-semibold text-slate-800 dark:text-slate-200 focus:text-slate-950 dark:focus:text-white border border-transparent focus:border-slate-300 dark:focus:border-slate-700 outline-none text-center transition w-28 sm:w-44 md:w-56 max-w-full truncate"
           title="Click to rename project"
         />
       </div>
@@ -287,12 +287,12 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
             onClick={onOpenDebugger}
             className={`px-2 py-1 rounded-md text-[11px] font-medium transition flex items-center gap-1 cursor-pointer border shrink-0 ${
               errorCount > 0
-                ? 'bg-rose-950/60 border-rose-800 text-rose-300 animate-pulse'
-                : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 border-slate-800'
+                ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 animate-pulse'
+                : 'bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 border-slate-200 dark:border-slate-800'
             }`}
             title="Open Media & Rendering Debugger Logs"
           >
-            <Terminal className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <Terminal className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
             <span className="hidden xl:inline">Debugger</span>
             {errorCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-slate-950 text-[9px] font-black">
@@ -303,12 +303,12 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
         )}
 
         {/* Undo / Redo */}
-        <div className="flex items-center gap-0.5 pr-1.5 sm:pr-2 border-r border-slate-800">
+        <div className="flex items-center gap-0.5 pr-1.5 sm:pr-2 border-r border-slate-200 dark:border-slate-800">
           <button
             onClick={onUndo}
             disabled={!canUndo}
             title="Undo (Ctrl+Z)"
-            className="p-1.5 text-slate-400 hover:text-slate-200 disabled:opacity-30 rounded hover:bg-slate-800/80 transition cursor-pointer"
+            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 rounded hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -316,18 +316,18 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
             onClick={onRedo}
             disabled={!canRedo}
             title="Redo (Ctrl+Y)"
-            className="p-1.5 text-slate-400 hover:text-slate-200 disabled:opacity-30 rounded hover:bg-slate-800/80 transition cursor-pointer"
+            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 rounded hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
           >
             <RotateCw className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Aspect Ratio Selector */}
-        <div className="flex items-center bg-slate-900/90 rounded-md p-0.5 border border-slate-800">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-900/90 rounded-md p-0.5 border border-slate-200 dark:border-slate-800">
           <button
             onClick={() => setAspectRatio('16:9')}
             className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] font-bold transition cursor-pointer ${
-              aspectRatio === '16:9' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'
+              aspectRatio === '16:9' ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-extrabold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
             title="Landscape 16:9 (YouTube / TV)"
           >
@@ -336,7 +336,7 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
           <button
             onClick={() => setAspectRatio('9:16')}
             className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] font-bold transition cursor-pointer ${
-              aspectRatio === '9:16' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'
+              aspectRatio === '9:16' ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-extrabold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
             title="Portrait 9:16 (TikTok / Reels / Shorts)"
           >
@@ -345,7 +345,7 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
           <button
             onClick={() => setAspectRatio('1:1')}
             className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] font-bold transition cursor-pointer ${
-              aspectRatio === '1:1' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'
+              aspectRatio === '1:1' ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-extrabold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
             title="Square 1:1 (Instagram Post)"
           >
@@ -357,10 +357,10 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
         {onOpenRenderPreview && (
           <button
             onClick={onOpenRenderPreview}
-            className="px-2.5 sm:px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-white border border-cyan-500/40 hover:border-cyan-400 font-semibold text-xs rounded-md shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-100 dark:bg-slate-900/90 hover:bg-slate-200 dark:hover:bg-slate-800 text-cyan-700 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-white border border-cyan-500/40 hover:border-cyan-500 font-semibold text-xs rounded-md shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
             title="Open Real-time Render Preview Modal"
           >
-            <Eye className="w-3.5 h-3.5 text-cyan-400" />
+            <Eye className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
             <span className="hidden lg:inline">Preview</span>
           </button>
         )}
@@ -369,10 +369,10 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
         {onOpenSocialPublisher && (
           <button
             onClick={onOpenSocialPublisher}
-            className="px-2.5 sm:px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-rose-300 hover:text-white border border-rose-500/30 hover:border-rose-500/60 font-semibold text-xs rounded-md shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-100 dark:bg-slate-900/90 hover:bg-slate-200 dark:hover:bg-slate-800 text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white border border-rose-500/30 hover:border-rose-500/60 font-semibold text-xs rounded-md shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
             title="Open Multi-Platform Social Publisher (YouTube, TikTok, Reels, X)"
           >
-            <Share2 className="w-3.5 h-3.5 text-rose-400" />
+            <Share2 className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
             <span className="hidden md:inline">Publish</span>
           </button>
         )}

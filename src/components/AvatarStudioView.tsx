@@ -601,9 +601,9 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-950 text-slate-100 min-h-0 overflow-y-auto">
+    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-0 overflow-y-auto">
       {/* Studio Header Bar */}
-      <div className="border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5">
+      <div className="border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
@@ -611,14 +611,14 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   Avatar Presenter Studio
                 </h1>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-950 text-teal-300 border border-teal-700/60">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700/60">
                   Neural Studio v2.0
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Photorealistic AI presenters with synchronized speech, studio backdrops, and bold lower-third script.
               </p>
             </div>
@@ -627,20 +627,20 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
           {/* Credits & Free Render Policy Badge */}
           <div className="flex items-center gap-3">
             {isAdmin ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-950/40 border border-purple-800/50 text-xs">
-                <ShieldCheck className="w-4 h-4 text-purple-400" />
-                <span className="text-purple-300 font-bold">Admin Unlimited Bypass</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 text-xs">
+                <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-purple-700 dark:text-purple-300 font-bold">Admin Unlimited Bypass</span>
               </div>
             ) : isFreeRenderEligible ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/50 border border-emerald-700 text-xs shadow-sm">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-300 font-bold">1 Free Video Render Available!</span>
-                <span className="text-[10px] text-emerald-400/80 hidden sm:inline">(NepalAI logo)</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-xs shadow-sm">
+                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-800 dark:text-emerald-300 font-bold">1 Free Video Render Available!</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400/80 hidden sm:inline">(NepalAI logo)</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-950/40 border border-teal-800/50 text-xs">
-                <span className="text-slate-400">Cost:</span>
-                <span className="text-teal-300 font-bold">15 Credits / Master Video</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/50 text-xs">
+                <span className="text-slate-500 dark:text-slate-400">Cost:</span>
+                <span className="text-teal-700 dark:text-teal-300 font-bold">15 Credits / Master Video</span>
               </div>
             )}
           </div>

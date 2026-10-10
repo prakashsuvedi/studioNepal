@@ -731,7 +731,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 // Bullet points
                 if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
                   return (
-                    <li key={lIdx} className="ml-4 list-disc text-slate-200">
+                    <li key={lIdx} className="ml-4 list-disc text-slate-800 dark:text-slate-200">
                       {formatInlineMarkdown(line.trim().substring(2))}
                     </li>
                   );
@@ -740,26 +740,26 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 const numMatch = line.match(/^(\d+)\.\s(.*)$/);
                 if (numMatch) {
                   return (
-                    <div key={lIdx} className="flex gap-2 ml-1 text-slate-200">
-                      <span className="font-semibold text-amber-400">{numMatch[1]}.</span>
+                    <div key={lIdx} className="flex gap-2 ml-1 text-slate-800 dark:text-slate-200">
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">{numMatch[1]}.</span>
                       <span>{formatInlineMarkdown(numMatch[2])}</span>
                     </div>
                   );
                 }
                 // Headings
                 if (line.startsWith('### ')) {
-                  return <h4 key={lIdx} className="font-bold text-base md:text-lg text-amber-300 mt-2 mb-1">{line.slice(4)}</h4>;
+                  return <h4 key={lIdx} className="font-bold text-base md:text-lg text-amber-700 dark:text-amber-300 mt-2 mb-1">{line.slice(4)}</h4>;
                 }
                 if (line.startsWith('## ')) {
-                  return <h3 key={lIdx} className="font-bold text-lg md:text-xl text-amber-400 mt-3 mb-1">{line.slice(3)}</h3>;
+                  return <h3 key={lIdx} className="font-bold text-lg md:text-xl text-amber-700 dark:text-amber-400 mt-3 mb-1">{line.slice(3)}</h3>;
                 }
                 if (line.startsWith('# ')) {
-                  return <h2 key={lIdx} className="font-extrabold text-xl md:text-2xl text-white mt-4 mb-2">{line.slice(2)}</h2>;
+                  return <h2 key={lIdx} className="font-extrabold text-xl md:text-2xl text-slate-900 dark:text-white mt-4 mb-2">{line.slice(2)}</h2>;
                 }
 
                 if (!line.trim()) return <div key={lIdx} className="h-1.5" />;
 
-                return <p key={lIdx} className="text-slate-200">{formatInlineMarkdown(line)}</p>;
+                return <p key={lIdx} className="text-slate-800 dark:text-slate-200">{formatInlineMarkdown(line)}</p>;
               })}
             </div>
           );
@@ -772,25 +772,25 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((seg, i) => {
       if (seg.startsWith('**') && seg.endsWith('**')) {
-        return <strong key={i} className="font-semibold text-white">{seg.slice(2, -2)}</strong>;
+        return <strong key={i} className="font-bold text-slate-900 dark:text-white">{seg.slice(2, -2)}</strong>;
       }
       return seg;
     });
   };
 
   return (
-    <div id="hamroai-root-container" className="flex h-[calc(100vh-3.25rem)] w-full bg-slate-950 text-slate-100 overflow-hidden select-none">
+    <div id="hamroai-root-container" className="flex h-[calc(100vh-3.25rem)] w-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-hidden select-none transition-colors">
       
       {/* ─────────────────────────────────────────────────────────────
           ZONE 1: LEFT AI WORKSPACE SIDEBAR
           ───────────────────────────────────────────────────────────── */}
       <aside
-        className={`flex flex-col border-r border-slate-800/80 bg-slate-950/95 backdrop-blur-xl flex-shrink-0 transition-all duration-200 ease-in-out z-20 ${
+        className={`flex flex-col border-r border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex-shrink-0 transition-all duration-200 ease-in-out z-20 ${
           isSidebarCollapsed ? 'w-16' : 'w-72 md:w-80'
         }`}
       >
         {/* Top Header: New Chat Button & Collapse Toggle */}
-        <div className="p-3 border-b border-slate-800/80 flex items-center justify-between gap-2">
+        <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2">
           {!isSidebarCollapsed ? (
             <>
               <button
@@ -802,7 +802,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               </button>
               <button
                 onClick={() => setIsSidebarCollapsed(true)}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition"
+                className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
                 title="Collapse sidebar"
               >
                 <PanelLeftClose className="w-4 h-4" />
@@ -812,7 +812,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             <div className="flex flex-col items-center gap-2 w-full">
               <button
                 onClick={() => setIsSidebarCollapsed(false)}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition"
+                className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
                 title="Expand sidebar"
               >
                 <PanelLeft className="w-4 h-4" />
@@ -829,9 +829,9 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
         </div>
 
         {/* Section 1: AI WORKSPACE Tools */}
-        <div className="p-2.5 border-b border-slate-800/60 space-y-1">
+        <div className="p-2.5 border-b border-slate-200 dark:border-slate-800/60 space-y-1">
           {!isSidebarCollapsed && (
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               AI Workspace
             </div>
           )}
@@ -841,16 +841,16 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             onClick={() => setIsTemplateModalOpen(true)}
             className={`w-full flex items-center ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-2.5 py-2'
-            } rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition group cursor-pointer`}
+            } rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group cursor-pointer`}
             title="Templates (Prompt Library)"
           >
             <div className="flex items-center gap-2.5 truncate">
-              <div className="p-1 rounded-md bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition">
+              <div className="p-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 transition">
                 <BookOpen className="w-4 h-4" />
               </div>
               {!isSidebarCollapsed && <span className="text-xs font-medium">Templates</span>}
             </div>
-            {!isSidebarCollapsed && <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 transition" />}
+            {!isSidebarCollapsed && <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:text-cyan-500 dark:group-hover:text-cyan-400 transition" />}
           </button>
 
           {/* AI Storyboard Generator */}
@@ -858,11 +858,11 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             onClick={() => setIsStoryboardModalOpen(true)}
             className={`w-full flex items-center ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-2.5 py-2'
-            } rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition group cursor-pointer`}
+            } rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group cursor-pointer`}
             title="AI Storyboard Generator (Summarize scripts to Video Studio)"
           >
             <div className="flex items-center gap-2.5 truncate">
-              <div className="p-1 rounded-md bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20 transition">
+              <div className="p-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500/20 transition">
                 <Film className="w-4 h-4" />
               </div>
               {!isSidebarCollapsed && (
@@ -872,7 +872,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 </div>
               )}
             </div>
-            {!isSidebarCollapsed && <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-400 transition" />}
+            {!isSidebarCollapsed && <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition" />}
           </button>
 
           {/* Image to Image */}
@@ -880,10 +880,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             onClick={() => onNavigateTab?.('image_studio')}
             className={`w-full flex items-center ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-2.5 px-2.5 py-2'
-            } rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition group cursor-pointer`}
+            } rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group cursor-pointer`}
             title="Image to Image Studio"
           >
-            <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20 transition">
+            <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-500/20 transition">
               <ImageIcon className="w-4 h-4" />
             </div>
             {!isSidebarCollapsed && <span className="text-xs font-medium">Image to Image</span>}
@@ -894,16 +894,16 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             onClick={() => openTextToImageModal()}
             className={`w-full flex items-center ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-2.5 px-2.5 py-2'
-            } rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition group cursor-pointer`}
+            } rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group cursor-pointer`}
             title="Text to Image (GPT-Image-1.5 Azure AI Foundry)"
           >
-            <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition">
+            <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/20 transition">
               <Sparkles className="w-4 h-4" />
             </div>
             {!isSidebarCollapsed && (
               <div className="flex items-center justify-between w-full">
                 <span className="text-xs font-medium">Text to Image</span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">1.5</span>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30">1.5</span>
               </div>
             )}
           </button>
@@ -913,10 +913,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             onClick={() => handleSendMessage('कृपया मलाई निम्न समस्याको लागि सफा, सुरक्षित र अप्टिमाइज्ड कोड लेख्न मद्दत गर्नुहोस्:\n\n[समस्या वा भाषा यहाँ उल्लेख गर्नुहोस्]')}
             className={`w-full flex items-center ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-2.5 px-2.5 py-2'
-            } rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition group cursor-pointer`}
+            } rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group cursor-pointer`}
             title="Code Assistant"
           >
-            <div className="p-1 rounded-md bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20 transition">
+            <div className="p-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500/20 transition">
               <Code2 className="w-4 h-4" />
             </div>
             {!isSidebarCollapsed && <span className="text-xs font-medium">Code Assistant</span>}
@@ -927,10 +927,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             onClick={() => handleSendMessage('नेपाल र अन्तर्राष्ट्रिय सन्दर्भमा [विषय] को विस्तृत अनुसन्धान, तथ्यपरक विश्लेषण र मुख्य निष्कर्षहरू तयार गर्नुहोस्।')}
             className={`w-full flex items-center ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-2.5 px-2.5 py-2'
-            } rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition group cursor-pointer`}
+            } rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group cursor-pointer`}
             title="Research & Analysis"
           >
-            <div className="p-1 rounded-md bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20 transition">
+            <div className="p-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-500/20 transition">
               <Compass className="w-4 h-4" />
             </div>
             {!isSidebarCollapsed && <span className="text-xs font-medium">Research & Analysis</span>}
@@ -941,10 +941,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             onClick={() => handleSendMessage('तल दिइएको पाठलाई नेपाली, अङ्ग्रेजी र हिन्दी बीच शुद्ध व्याकरण र प्राकृतिक शैलीमा अनुवाद गर्नुहोस्:\n\n"[पाठ यहाँ राख्नुहोस्]"')}
             className={`w-full flex items-center ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-2.5 px-2.5 py-2'
-            } rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition group cursor-pointer`}
+            } rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group cursor-pointer`}
             title="Translation Studio"
           >
-            <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500/20 transition">
+            <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-500/20 transition">
               <Languages className="w-4 h-4" />
             </div>
             {!isSidebarCollapsed && <span className="text-xs font-medium">Translation</span>}
@@ -956,11 +956,11 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               onClick={() => setIsMoreToolsOpen(!isMoreToolsOpen)}
               className={`w-full flex items-center ${
                 isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-2.5 py-2'
-              } rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition cursor-pointer`}
+              } rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition cursor-pointer`}
               title="More AI Creation Studios"
             >
               <div className="flex items-center gap-2.5">
-                <div className="p-1 rounded-md bg-slate-800 text-slate-400">
+                <div className="p-1 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   <MoreHorizontal className="w-4 h-4" />
                 </div>
                 {!isSidebarCollapsed && <span className="text-xs font-medium">More Tools</span>}
@@ -969,26 +969,26 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             </button>
 
             {isMoreToolsOpen && !isSidebarCollapsed && (
-              <div className="mt-1 p-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl space-y-0.5 animate-fade-in">
+              <div className="mt-1 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl space-y-0.5 animate-fade-in">
                 <button
                   onClick={() => { onNavigateTab?.('tts_studio'); setIsMoreToolsOpen(false); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-800 text-left transition"
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition"
                 >
-                  <Mic className="w-3.5 h-3.5 text-purple-400" />
+                  <Mic className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
                   <span>Nepali Voiceover Studio</span>
                 </button>
                 <button
                   onClick={() => { onNavigateTab?.('sora_studio'); setIsMoreToolsOpen(false); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-800 text-left transition"
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition"
                 >
-                  <Video className="w-3.5 h-3.5 text-blue-400" />
+                  <Video className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
                   <span>Sora-2 AI Video Studio</span>
                 </button>
                 <button
                   onClick={() => { onNavigateTab?.('video_studio'); setIsMoreToolsOpen(false); }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-800 text-left transition"
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition"
                 >
-                  <Film className="w-3.5 h-3.5 text-amber-400" />
+                  <Film className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                   <span>Full Video Timeline Editor</span>
                 </button>
               </div>
@@ -1000,24 +1000,24 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
         {!isSidebarCollapsed ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Search Input */}
-            <div className="p-2.5 border-b border-slate-800/60">
-              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 px-1">
+            <div className="p-2.5 border-b border-slate-200 dark:border-slate-800/60">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 px-1">
                 <span>Conversations</span>
-                <span className="text-[9px] text-slate-500 font-normal">{filteredThreads.length} total</span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal">{filteredThreads.length} total</span>
               </div>
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={conversationSearch}
                   onChange={(e) => setConversationSearch(e.target.value)}
                   placeholder="Search conversations..."
-                  className="w-full pl-8 pr-7 py-1.5 bg-slate-900/90 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/60 transition"
+                  className="w-full pl-8 pr-7 py-1.5 bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/60 transition"
                 />
                 {conversationSearch && (
                   <button
                     onClick={() => setConversationSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 p-0.5"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -1028,7 +1028,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             {/* Conversation Items */}
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {filteredThreads.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-500">
+                <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                   {conversationSearch ? 'No matching conversations' : 'No conversations yet'}
                 </div>
               ) : (
@@ -1040,25 +1040,25 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                       onClick={() => selectThread(thread.id)}
                       className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer text-xs transition relative ${
                         isActive
-                          ? 'bg-blue-950/50 text-cyan-200 font-semibold border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                          : 'text-slate-300 hover:bg-slate-900/80 hover:text-white border border-transparent'
+                          ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-cyan-200 font-semibold border border-blue-200 dark:border-cyan-500/40 shadow-xs dark:shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/80 hover:text-slate-900 dark:hover:text-white border border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate pr-2 min-w-0">
-                        <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
+                        <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-cyan-400' : 'text-slate-400 dark:text-slate-500'}`} />
                         <div className="truncate">
                           <div className="truncate text-xs font-medium">{thread.title || 'नयाँ सम्वाद'}</div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span className="text-[10px] text-slate-500 group-hover:hidden">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 group-hover:hidden">
                           {getRelativeTimeLabel(thread.createdAt)}
                         </span>
                         <button
                           onClick={(e) => deleteThread(thread.id, e)}
                           title="Delete conversation"
-                          className="hidden group-hover:flex p-1 text-slate-500 hover:text-red-400 transition"
+                          className="hidden group-hover:flex p-1 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1070,10 +1070,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             </div>
 
             {/* Bottom: View All Conversations */}
-            <div className="p-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+            <div className="p-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <button
                 onClick={() => setConversationSearch('')}
-                className="text-slate-400 hover:text-cyan-300 transition flex items-center gap-1 font-medium"
+                className="text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 transition flex items-center gap-1 font-medium"
               >
                 <span>View All Conversations</span>
                 <ArrowRight className="w-3 h-3" />
@@ -1082,7 +1082,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 <button
                   onClick={exportChatAsMarkdown}
                   title="Export active conversation"
-                  className="p-1 hover:text-white text-slate-500 transition"
+                  className="p-1 hover:text-slate-900 dark:hover:text-white text-slate-400 dark:text-slate-500 transition"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                 </button>
@@ -1100,8 +1100,8 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   title={thread.title}
                   className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${
                     isActive
-                      ? 'bg-blue-950/80 border border-cyan-500/50 text-cyan-300 shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                      ? 'bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-cyan-500/50 text-blue-700 dark:text-cyan-300 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
                   }`}
                 >
                   <MessageSquare className="w-4 h-4" />
@@ -1112,18 +1112,18 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
         )}
 
         {/* Azure Deployment Status Indicator */}
-        <div className="p-2.5 border-t border-slate-800/80 bg-slate-950/80 text-[11px] text-slate-400">
+        <div className="p-2.5 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/80 text-[11px] text-slate-500 dark:text-slate-400">
           {!isSidebarCollapsed ? (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-300 font-medium">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                 <span>Azure Foundry Active</span>
               </div>
-              <span className="text-[10px] text-emerald-400/90 font-mono font-semibold">gpt-4o / mini</span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400/90 font-mono font-semibold">gpt-4o / mini</span>
             </div>
           ) : (
             <div className="flex justify-center" title="Azure OpenAI Active">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
             </div>
           )}
         </div>
@@ -1132,28 +1132,28 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
       {/* ─────────────────────────────────────────────────────────────
           ZONE 2 & 3: CONVERSATION AREA & SMART FLOATING COMPOSER
           ───────────────────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-slate-950 via-[#0a0f1d] to-slate-950 relative">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-slate-50 via-slate-100/60 to-slate-50 dark:from-slate-950 dark:via-[#0a0f1d] dark:to-slate-950 relative">
         
         {/* Subtle Ambient Himalayan Sunrise Backdrop */}
         <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/10 via-indigo-900/10 to-transparent" />
         
         {/* Top Header: Model, Language & Quick Actions */}
-        <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 z-10">
+        <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 z-10">
           {/* Left: Identity & Language Info */}
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-amber-500 p-0.5 shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center justify-center flex-shrink-0">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-amber-400 font-black text-sm">
+              <div className="w-full h-full bg-slate-900 dark:bg-slate-950 rounded-[10px] flex items-center justify-center text-amber-400 font-black text-sm">
                 ✦
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm md:text-base font-extrabold text-white tracking-tight">HamroAI</h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                <h1 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">HamroAI</h1>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                   Multilingual LLM
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
                 नेपाली (देवनागरी/रोमन) • हिंदी • English (Global)
               </p>
             </div>
@@ -1162,13 +1162,13 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
           {/* Right: Model & Language Controls */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Model Selector Pills */}
-            <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs shadow-sm">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-900/90 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs shadow-sm">
               <button
                 onClick={() => setSelectedModel('gpt-4o')}
                 className={`px-3 py-1 rounded-lg transition font-semibold text-xs cursor-pointer ${
                   selectedModel === 'gpt-4o'
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white dark:text-slate-950 shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title="GPT-4o: Multilingual, Creative, High-Quality Reasoning"
               >
@@ -1179,7 +1179,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 className={`px-3 py-1 rounded-lg transition font-semibold text-xs cursor-pointer ${
                   selectedModel === 'gpt-5-mini'
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title="GPT-5-mini: Ultra Fast & Code Reasoning"
               >
@@ -1188,14 +1188,14 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             </div>
 
             {/* Daily Quota / Admin Status Badge */}
-            <div className="flex items-center px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+            <div className="flex items-center px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 mr-1.5 animate-pulse" />
               {user?.role === 'admin' ? (
-                <span className="text-emerald-400 font-bold">Admin: Unlimited</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">Admin: Unlimited</span>
               ) : (
-                <span className="text-slate-300">
+                <span className="text-slate-700 dark:text-slate-300">
                   Daily Quota:{' '}
-                  <strong className="text-cyan-300">
+                  <strong className="text-blue-600 dark:text-cyan-300">
                     {dailyStats?.dailyUsed ?? 0} / {dailyStats?.maxDailyChats ?? (user?.tier === 'pro_studio' ? 500 : user?.tier === 'creator' ? 150 : user?.tier === 'starter' ? 50 : 20)}
                   </strong>
                 </span>
@@ -1203,8 +1203,8 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             </div>
 
             {/* Language Selector Dropdown */}
-            <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl px-2.5 py-1 text-xs gap-2 shadow-sm">
-              <Languages className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <div className="flex items-center bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1 text-xs gap-2 shadow-sm">
+              <Languages className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400 shrink-0" />
               <select
                 value={selectedLanguage}
                 onChange={(e) => {
@@ -1212,18 +1212,18 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   setSelectedLanguage(newLang);
                   localStorage.setItem('hamroai_preferred_language', newLang);
                 }}
-                className="bg-transparent text-slate-100 outline-none cursor-pointer pr-1 font-semibold text-xs"
+                className="bg-transparent text-slate-800 dark:text-slate-100 outline-none cursor-pointer pr-1 font-semibold text-xs"
               >
-                <option value="ne" className="bg-slate-900 text-white">🇳🇵 नेपाली (Nepali)</option>
-                <option value="hi" className="bg-slate-900 text-white">🇮🇳 हिंदी (Hindi)</option>
-                <option value="en" className="bg-slate-900 text-white">🌐 English (Global)</option>
-                <option value="auto" className="bg-slate-900 text-white">Auto-Detect</option>
+                <option value="ne" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">🇳🇵 नेपाली (Nepali)</option>
+                <option value="hi" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">🇮🇳 हिंदी (Hindi)</option>
+                <option value="en" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">🌐 English (Global)</option>
+                <option value="auto" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Auto-Detect</option>
               </select>
 
               {/* System Prompt / Settings Modal Trigger */}
               <button
                 onClick={() => setShowSystemPromptModal(true)}
-                className="p-1 rounded-md text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition"
+                className="p-1 rounded-md text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                 title="Active System Prompt & Unicode Directives"
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -1233,10 +1233,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             {/* Prompt Templates Button */}
             <button
               onClick={() => setIsTemplateModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/15 to-blue-500/15 hover:from-cyan-500/25 hover:to-blue-500/25 border border-cyan-500/30 text-xs font-semibold text-cyan-300 transition cursor-pointer shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 hover:from-blue-500/20 hover:to-cyan-500/20 dark:from-cyan-500/15 dark:to-blue-500/15 dark:hover:from-cyan-500/25 dark:hover:to-blue-500/25 border border-blue-500/20 dark:border-cyan-500/30 text-xs font-semibold text-blue-700 dark:text-cyan-300 transition cursor-pointer shadow-sm"
               title="Open 25+ Prompt Templates Gallery"
             >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
               <span className="hidden sm:inline">Templates</span>
             </button>
 
@@ -1244,7 +1244,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             {messages.length > 0 && (
               <button
                 onClick={exportChatAsMarkdown}
-                className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition"
+                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
                 title="Export conversation as Markdown"
               >
                 <Share2 className="w-4 h-4" />
@@ -1277,10 +1277,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               
               {/* Glowing HamroAI Emblem Icon */}
               <div className="relative mb-4">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-indigo-600 to-amber-500 rounded-3xl blur-xl opacity-50 animate-pulse" />
-                <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-slate-900/90 border border-slate-700/80 p-1 flex items-center justify-center shadow-2xl">
-                  <div className="w-full h-full rounded-[14px] md:rounded-[20px] bg-gradient-to-tr from-indigo-950 via-slate-900 to-slate-950 flex items-center justify-center">
-                    <span className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-cyan-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-indigo-600 to-amber-500 rounded-3xl blur-xl opacity-40 animate-pulse" />
+                <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 p-1 flex items-center justify-center shadow-2xl">
+                  <div className="w-full h-full rounded-[14px] md:rounded-[20px] bg-gradient-to-tr from-slate-100 via-white to-slate-200 dark:from-indigo-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+                    <span className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-cyan-500 dark:from-amber-400 dark:via-orange-400 dark:to-cyan-300">
                       ✦
                     </span>
                   </div>
@@ -1288,34 +1288,34 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               </div>
 
               {/* Main Heading */}
-              <h2 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight mb-2">
-                नमस्ते ! म <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300">HamroAI</span> हुँ।
+              <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">
+                नमस्ते ! म <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 dark:from-amber-400 dark:via-orange-400 dark:to-amber-300">HamroAI</span> हुँ।
               </h2>
               
               {/* Subtitle */}
-              <p className="text-base md:text-lg font-medium text-slate-200 mb-1">
+              <p className="text-base md:text-lg font-medium text-slate-700 dark:text-slate-200 mb-1">
                 तपाईंको बहुभाषिक AI workspace
               </p>
               
               {/* Language Capability Explanation */}
-              <p className="text-xs md:text-sm text-slate-400 max-w-xl mx-auto mb-6">
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto mb-6">
                 नेपाली, हिन्दी र अंग्रेजीमा स्मार्ट सहायक, सिर्जनात्मक र उत्पादक कामका लागि।
               </p>
 
               {/* Quick Model & Language Selector Bar */}
-              <div className="flex items-center gap-2 mb-8 bg-slate-900/80 backdrop-blur-md border border-slate-800 p-1.5 rounded-2xl shadow-lg flex-wrap justify-center">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <div className="flex items-center gap-2 mb-8 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-lg flex-wrap justify-center">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                   <span>{selectedModel.toUpperCase()}</span>
                 </div>
                 
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200 text-xs font-medium">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium">
                   <span>{selectedLanguage === 'ne' ? '🇳🇵 नेपाली (Nepali)' : selectedLanguage === 'hi' ? '🇮🇳 हिंदी (Hindi)' : '🌐 English (Global)'}</span>
                 </div>
 
                 <button
                   onClick={() => setShowSystemPromptModal(true)}
-                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
                   title="Settings & System Prompt"
                 >
                   <Settings className="w-4 h-4" />
@@ -1323,7 +1323,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
 
                 <button
                   onClick={() => setIsTemplateModalOpen(true)}
-                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
                   title="Browse Templates"
                 >
                   <BookOpen className="w-4 h-4" />
@@ -1336,84 +1336,84 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 {/* 1. Write */}
                 <button
                   onClick={() => handleSendMessage('कृपया [विषय] मा एक उच्च प्रभावकारी, आकर्षक र एसईओ-अनुकूल नेपाली ब्लग/कन्टेन्ट लेख्नुहोस्।')}
-                  className="p-4 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/90 hover:border-cyan-500/50 shadow-md hover:shadow-cyan-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
+                  className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 hover:border-cyan-500/50 shadow-sm hover:shadow-cyan-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-500/20 transition">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-blue-500/20 transition">
                     <PenTool className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white group-hover:text-cyan-300 transition">Write</div>
-                    <div className="text-xs text-slate-400">Blogs, Emails, Content</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition">Write</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Blogs, Emails, Content</div>
                   </div>
                 </button>
 
                 {/* 2. Analyze */}
                 <button
                   onClick={() => handleSendMessage('तल दिइएको डेटा वा विषयको गहन विश्लेषण, मुख्य निष्कर्ष र व्यावहारिक सिफारिसहरू तयार गर्नुहोस्:\n\n[विषय वा विवरण यहाँ राख्नुहोस्]')}
-                  className="p-4 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/90 hover:border-purple-500/50 shadow-md hover:shadow-purple-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
+                  className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 hover:border-purple-500/50 shadow-sm hover:shadow-purple-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-purple-500/20 transition">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-purple-500/20 transition">
                     <BarChart3 className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white group-hover:text-purple-300 transition">Analyze</div>
-                    <div className="text-xs text-slate-400">Data, Reports, Insights</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition">Analyze</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Data, Reports, Insights</div>
                   </div>
                 </button>
 
                 {/* 3. Create */}
                 <button
                   onClick={() => handleSendMessage('नेपालको सन्दर्भमा [विषय] को लागि ५ वटा भाइरल र रचनात्मक आइडियाहरू, भिडियो अवधारणा र दृश्य योजना बनाउनुहोस्।')}
-                  className="p-4 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/90 hover:border-amber-500/50 shadow-md hover:shadow-amber-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
+                  className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 hover:border-amber-500/50 shadow-sm hover:shadow-amber-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500/20 transition">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-amber-500/20 transition">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white group-hover:text-amber-300 transition">Create</div>
-                    <div className="text-xs text-slate-400">Ideas, Images, Videos</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-300 transition">Create</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Ideas, Images, Videos</div>
                   </div>
                 </button>
 
                 {/* 4. Translate */}
                 <button
                   onClick={() => handleSendMessage('तलको पाठलाई नेपाली, हिन्दी र अङ्ग्रेजी बीच शुद्ध र प्राकृतिक शैलीमा अनुवाद गर्नुहोस्:\n\n"[पाठ यहाँ राख्नुहोस्]"')}
-                  className="p-4 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/90 hover:border-emerald-500/50 shadow-md hover:shadow-emerald-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
+                  className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 hover:border-emerald-500/50 shadow-sm hover:shadow-emerald-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-500/20 transition">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-500/20 transition">
                     <Languages className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition">Translate</div>
-                    <div className="text-xs text-slate-400">Multi-language</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition">Translate</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Multi-language</div>
                   </div>
                 </button>
 
                 {/* 5. Code */}
                 <button
                   onClick={() => handleSendMessage('कृपया निम्न प्रोग्रामिङ समस्या समाधान गर्न सफा र प्रभावकारी कोड लेख्नुहोस्:\n\n[समस्या वा फिचरको विवरण]')}
-                  className="p-4 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/90 hover:border-teal-500/50 shadow-md hover:shadow-teal-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
+                  className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 hover:border-teal-500/50 shadow-sm hover:shadow-teal-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-teal-500/20 transition">
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-teal-500/20 transition">
                     <Code className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white group-hover:text-teal-300 transition">Code</div>
-                    <div className="text-xs text-slate-400">Develop, Debug, Explain</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition">Code</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Develop, Debug, Explain</div>
                   </div>
                 </button>
 
                 {/* 6. Research */}
                 <button
                   onClick={() => handleSendMessage('[विषय] बारे तथ्यपरक अनुसन्धान, ऐतिहासिक पृष्ठभूमि, वर्तमान अवस्था र भविष्यको सम्भाव्यता सम्बन्धी विस्तृत सारांश प्रस्तुत गर्नुहोस्।')}
-                  className="p-4 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/90 hover:border-sky-500/50 shadow-md hover:shadow-sky-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
+                  className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 hover:border-sky-500/50 shadow-sm hover:shadow-sky-500/10 transition duration-150 flex items-center gap-3.5 group cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-sky-500/20 transition">
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-sky-500/20 transition">
                     <Compass className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white group-hover:text-sky-300 transition">Research</div>
-                    <div className="text-xs text-slate-400">Find, Summarize, Learn</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-300 transition">Research</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Find, Summarize, Learn</div>
                   </div>
                 </button>
               </div>
@@ -1421,13 +1421,13 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               {/* Quick Starters Section */}
               <div className="w-full max-w-3xl text-left">
                 <div className="flex items-center justify-between mb-3 px-1">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-300">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     <span>Quick Starters</span>
                   </div>
                   <button
                     onClick={() => setIsTemplateModalOpen(true)}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1 font-semibold cursor-pointer"
+                    className="text-xs text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 transition flex items-center gap-1 font-semibold cursor-pointer"
                   >
                     <span>View All Templates</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1438,69 +1438,69 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   {/* Starter 1: Nepali Blog Post */}
                   <button
                     onClick={() => handleSendMessage(HAMRO_PROMPT_TEMPLATES[0].prompt)}
-                    className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-blue-500/40 transition flex items-center justify-between group text-left cursor-pointer"
+                    className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500/40 transition flex items-center justify-between group text-left cursor-pointer shadow-xs"
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition">
+                      <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 transition">
                         <PenTool className="w-3.5 h-3.5" />
                       </div>
                       <div className="truncate">
-                        <div className="text-xs font-semibold text-white group-hover:text-blue-300 truncate">ब्लग पोष्ट लेख्नुहोस्</div>
-                        <div className="text-[10px] text-slate-400 truncate">SEO friendly नेपाली लेख</div>
+                        <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 truncate">ब्लग पोष्ट लेख्नुहोस्</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">SEO friendly नेपाली लेख</div>
                       </div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 group-hover:text-blue-500 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
                   </button>
 
                   {/* Starter 2: AI Storyboard */}
                   <button
                     onClick={() => setIsStoryboardModalOpen(true)}
-                    className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-purple-500/40 transition flex items-center justify-between group text-left cursor-pointer"
+                    className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500/40 transition flex items-center justify-between group text-left cursor-pointer shadow-xs"
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20 transition">
+                      <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500/20 transition">
                         <Film className="w-3.5 h-3.5" />
                       </div>
                       <div className="truncate">
-                        <div className="text-xs font-semibold text-white group-hover:text-purple-300 truncate">AI स्टोरीबोर्ड</div>
-                        <div className="text-[10px] text-slate-400 truncate">Video script to storyboard</div>
+                        <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 truncate">AI स्टोरीबोर्ड</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Video script to storyboard</div>
                       </div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-purple-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 group-hover:text-purple-500 dark:group-hover:text-purple-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
                   </button>
 
                   {/* Starter 3: Code Generation */}
                   <button
                     onClick={() => handleSendMessage('कृपया निम्न प्रोग्रामिङ समस्या समाधान गर्न सफा र प्रभावकारी कोड लेख्नुहोस्:\n\n[समस्या वा फिचरको विवरण]')}
-                    className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-teal-500/40 transition flex items-center justify-between group text-left cursor-pointer"
+                    className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500/40 transition flex items-center justify-between group text-left cursor-pointer shadow-xs"
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <div className="p-1.5 rounded-lg bg-teal-500/10 text-teal-400 group-hover:bg-teal-500/20 transition">
+                      <div className="p-1.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 group-hover:bg-teal-500/20 transition">
                         <Code className="w-3.5 h-3.5" />
                       </div>
                       <div className="truncate">
-                        <div className="text-xs font-semibold text-white group-hover:text-teal-300 truncate">कोड लेख्नुहोस्</div>
-                        <div className="text-[10px] text-slate-400 truncate">Code generation & help</div>
+                        <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 truncate">कोड लेख्नुहोस्</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Code generation & help</div>
                       </div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 group-hover:text-teal-500 dark:group-hover:text-teal-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
                   </button>
 
                   {/* Starter 4: Translation */}
                   <button
                     onClick={() => handleSendMessage('कृपया तलको पाठलाई शुद्ध र स्वाभाविक नेपालीमा अनुवाद गर्नुहोस्:\n\n"[English text here]"')}
-                    className="p-3 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/40 transition flex items-center justify-between group text-left cursor-pointer"
+                    className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 transition flex items-center justify-between group text-left cursor-pointer shadow-xs"
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/20 transition">
                         <Languages className="w-3.5 h-3.5" />
                       </div>
                       <div className="truncate">
-                        <div className="text-xs font-semibold text-white group-hover:text-emerald-300 truncate">अनुवाद गर्नुहोस्</div>
-                        <div className="text-[10px] text-slate-400 truncate">English ⇄ Nepali</div>
+                        <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-300 truncate">अनुवाद गर्नुहोस्</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">English ⇄ Nepali</div>
                       </div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition flex-shrink-0 ml-1" />
                   </button>
                 </div>
               </div>
@@ -1518,7 +1518,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   >
                     {!isUser && (
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-amber-500 p-0.5 shadow-md flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-amber-400 font-black text-xs">
+                        <div className="w-full h-full bg-slate-900 dark:bg-slate-950 rounded-[10px] flex items-center justify-center text-amber-400 font-black text-xs">
                           ✦
                         </div>
                       </div>
@@ -1526,13 +1526,13 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
 
                     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[88%]`}>
                       {/* Message Meta Info */}
-                      <div className="flex items-center gap-2 mb-1 px-1 text-[11px] text-slate-400">
-                        <span className="font-semibold text-slate-300">
+                      <div className="flex items-center gap-2 mb-1 px-1 text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
                           {isUser ? (user?.name || 'तपाईं (You)') : `HamroAI (${msg.model || selectedModel})`}
                         </span>
                         <span>{msg.timestamp}</span>
                         {msg.tokens && (
-                          <span className="px-1.5 py-0.2 rounded bg-slate-800 text-[10px] text-slate-400 border border-slate-700">
+                          <span className="px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
                             {msg.tokens} tokens
                           </span>
                         )}
@@ -1543,7 +1543,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                         className={`p-4 md:p-5 rounded-2xl text-sm md:text-base leading-relaxed ${
                           isUser
                             ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-br-xs shadow-lg'
-                            : 'bg-slate-900/90 border border-slate-800 text-slate-100 rounded-bl-xs shadow-md'
+                            : 'bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-xs shadow-sm'
                         }`}
                       >
                         {isUser ? (
@@ -1554,8 +1554,8 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
 
                         {/* Generated Image Attachment (GPT-Image-1.5) */}
                         {msg.imageUrl && (
-                          <div className="mt-3 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950/60 shadow-lg">
-                            <div className="relative group max-h-[420px] flex items-center justify-center bg-black/40 overflow-hidden">
+                          <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-950/60 shadow-lg">
+                            <div className="relative group max-h-[420px] flex items-center justify-center bg-black/5 dark:bg-black/40 overflow-hidden">
                               <img
                                 src={msg.imageUrl}
                                 alt="Generated Art"
@@ -1563,13 +1563,13 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                                 referrerPolicy="no-referrer"
                               />
                             </div>
-                            <div className="p-2.5 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between text-xs flex-wrap gap-2">
+                            <div className="p-2.5 bg-white dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs flex-wrap gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 flex items-center gap-1">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-300 font-bold border border-rose-500/30 flex items-center gap-1">
                                   <Sparkles className="w-2.5 h-2.5" />
                                   GPT-IMAGE-1.5
                                 </span>
-                                <span className="text-[11px] text-slate-400 hidden sm:inline">Azure Photorealistic</span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">Azure Photorealistic</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <a
@@ -1577,14 +1577,14 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                                   download="nepalai-art.png"
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-800 transition"
+                                  className="text-xs text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 flex items-center gap-1 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                                 >
                                   <Download className="w-3 h-3" />
                                   <span>Download</span>
                                 </a>
                                 <button
                                   onClick={() => transferToImageStudio(msg.content)}
-                                  className="text-xs text-slate-300 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-800 transition"
+                                  className="text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
                                 >
                                   <ExternalLink className="w-3 h-3" />
                                   <span>Studio</span>
@@ -1597,17 +1597,17 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
 
                       {/* Action Toolbar under Assistant Message */}
                       {!isUser && (
-                        <div className="flex items-center gap-2 mt-2 px-1 text-xs text-slate-400 flex-wrap">
+                        <div className="flex items-center gap-2 mt-2 px-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
                           {/* Copy Response */}
                           <button
                             onClick={() => copyToClipboard(msg.content, msg.id)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition"
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-xs"
                             title="Copy response"
                           >
                             {copiedId === msg.id ? (
                               <>
-                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                <span className="text-emerald-400 text-[11px] font-semibold">Copied</span>
+                                <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                                <span className="text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold">Copied</span>
                               </>
                             ) : (
                               <>
@@ -1620,56 +1620,56 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                           {/* Send to Video Timeline */}
                           <button
                             onClick={() => transferToVideoStudio(msg.content)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 transition"
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 transition"
                             title="Transfer script to Video Studio Timeline"
                           >
-                            <Film className="w-3.5 h-3.5 text-amber-400" />
+                            <Film className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                             <span className="text-[11px] font-medium">Timeline</span>
                           </button>
 
                           {/* Send to Voice Studio */}
                           <button
                             onClick={() => transferToVoiceStudio(msg.content)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 transition"
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-700 dark:text-purple-300 transition"
                             title="Synthesize Voiceover in Voice Studio"
                           >
-                            <Mic className="w-3.5 h-3.5 text-purple-400" />
+                            <Mic className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
                             <span className="text-[11px] font-medium">Voice Studio</span>
                           </button>
 
                           {/* Send to Sora Studio */}
                           <button
                             onClick={() => transferToSoraStudio(msg.content.slice(0, 300))}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 transition"
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-700 dark:text-blue-300 transition"
                             title="Synthesize Video in Sora-2 Studio"
                           >
-                            <Video className="w-3.5 h-3.5 text-blue-400" />
+                            <Video className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
                             <span className="text-[11px] font-medium">Sora-2</span>
                           </button>
 
                           {/* Text to Image with GPT-Image-1.5 */}
                           <button
                             onClick={() => openTextToImageModal(msg.content.slice(0, 300))}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 transition"
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 transition"
                             title="Generate photorealistic artwork with GPT-Image-1.5"
                           >
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                             <span className="text-[11px] font-medium">Text to Image</span>
-                            <span className="text-[9px] font-mono px-1 rounded bg-rose-500/20 text-rose-300 font-bold">1.5</span>
+                            <span className="text-[9px] font-mono px-1 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold">1.5</span>
                           </button>
 
                           {/* Thumbs Up / Down Feedback */}
-                          <div className="flex items-center gap-0.5 ml-1 border-l border-slate-800 pl-1">
+                          <div className="flex items-center gap-0.5 ml-1 border-l border-slate-200 dark:border-slate-800 pl-1">
                             <button
                               onClick={() => handleFeedback(msg.id, 'up')}
-                              className={`p-1 rounded-md transition ${feedbackMap[msg.id] === 'up' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+                              className={`p-1 rounded-md transition ${feedbackMap[msg.id] === 'up' ? 'text-emerald-500 dark:text-emerald-400 bg-emerald-500/10' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                               title="Good response"
                             >
                               <ThumbsUp className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleFeedback(msg.id, 'down')}
-                              className={`p-1 rounded-md transition ${feedbackMap[msg.id] === 'down' ? 'text-red-400 bg-red-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+                              className={`p-1 rounded-md transition ${feedbackMap[msg.id] === 'down' ? 'text-red-500 dark:text-red-400 bg-red-500/10' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                               title="Poor response"
                             >
                               <ThumbsDown className="w-3.5 h-3.5" />
@@ -1680,7 +1680,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                     </div>
 
                     {isUser && (
-                      <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-white flex-shrink-0 mt-0.5 shadow-sm">
+                      <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-800 dark:text-white flex-shrink-0 mt-0.5 shadow-sm">
                         {user?.avatar ? (
                           <img src={user.avatar} alt="Avatar" className="w-8 h-8 rounded-xl object-cover" />
                         ) : (
@@ -1696,15 +1696,15 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               {isLoading && (
                 <div className="flex gap-3.5 justify-start animate-fade-in">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-amber-500 p-0.5 shadow-md flex items-center justify-center flex-shrink-0 animate-pulse">
-                    <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-amber-400 font-black text-xs">
+                    <div className="w-full h-full bg-slate-900 dark:bg-slate-950 rounded-[10px] flex items-center justify-center text-amber-400 font-black text-xs">
                       ✦
                     </div>
                   </div>
-                  <div className="p-4 rounded-2xl rounded-bl-none bg-slate-900 border border-slate-800 text-slate-300 text-sm flex items-center gap-2 shadow-md">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" />
-                    <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
-                    <div className="w-2 h-2 rounded-full bg-amber-400 animate-bounce [animation-delay:0.4s]" />
-                    <span className="text-xs text-slate-400 ml-1.5 font-medium">
+                  <div className="p-4 rounded-2xl rounded-bl-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm flex items-center gap-2 shadow-md">
+                    <div className="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-bounce" />
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 animate-bounce [animation-delay:0.4s]" />
+                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-1.5 font-medium">
                       HamroAI ({selectedModel}) जवाफ तयार गर्दैछ...
                     </span>
                   </div>
@@ -1720,8 +1720,8 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             VIRTUAL DEVANAGARI SYMBOLS BAR (EXPANDABLE)
             ───────────────────────────────────────────────────────────── */}
         {showSymbolPalette && (
-          <div className="px-4 py-2 bg-slate-900/95 border-t border-slate-800 flex items-center gap-1.5 overflow-x-auto text-xs z-10 animate-fade-in shadow-inner">
-            <span className="text-[10px] font-bold text-amber-400 uppercase flex-shrink-0 mr-1.5 flex items-center gap-1">
+          <div className="px-4 py-2 bg-slate-100 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto text-xs z-10 animate-fade-in shadow-inner">
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase flex-shrink-0 mr-1.5 flex items-center gap-1">
               <span>चिह्नहरू (Symbols):</span>
             </span>
             {DEVANAGARI_SYMBOLS.map((s) => (
@@ -1729,14 +1729,14 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 key={s.label}
                 onClick={() => insertSymbol(s.label)}
                 title={s.name}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-200 font-mono text-xs transition flex-shrink-0 cursor-pointer font-bold"
+                className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-800 dark:text-slate-200 font-mono text-xs transition flex-shrink-0 cursor-pointer font-bold border border-slate-200 dark:border-transparent"
               >
                 {s.label}
               </button>
             ))}
             <button
               onClick={() => setShowSymbolPalette(false)}
-              className="p-1 rounded-md text-slate-500 hover:text-slate-300 ml-auto flex-shrink-0"
+              className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 ml-auto flex-shrink-0"
               title="Close symbols bar"
             >
               <X className="w-3.5 h-3.5" />
@@ -1756,26 +1756,26 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 {attachedFiles.map((file, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/90 border border-slate-700/90 rounded-2xl text-xs text-slate-200 shadow-md group shrink-0"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/90 rounded-2xl text-xs text-slate-800 dark:text-slate-200 shadow-md group shrink-0"
                   >
                     {file.type === 'image' && file.dataUrl ? (
-                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 flex-shrink-0">
                         <img src={file.dataUrl} alt={file.name} className="w-full h-full object-cover" />
                       </div>
                     ) : (
-                      <div className={`p-1.5 rounded-lg ${file.type === 'pdf' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'}`}>
+                      <div className={`p-1.5 rounded-lg ${file.type === 'pdf' ? 'bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20' : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20'}`}>
                         <FileText className="w-4 h-4" />
                       </div>
                     )}
                     <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-xs text-white truncate max-w-[150px]">{file.name}</span>
-                      <span className="text-[10px] text-slate-400 uppercase font-mono">
+                      <span className="font-semibold text-xs text-slate-900 dark:text-white truncate max-w-[150px]">{file.name}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-mono">
                         {file.type} • {(file.size / 1024).toFixed(1)} KB
                       </span>
                     </div>
                     <button
                       onClick={() => removeAttachment(idx)}
-                      className="text-slate-500 hover:text-red-400 p-1 rounded-md hover:bg-slate-800 transition ml-1 cursor-pointer"
+                      className="text-slate-400 hover:text-red-500 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition ml-1 cursor-pointer"
                       title="Remove attachment"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -1796,7 +1796,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
             />
 
             {/* FLOATING SIGNATURE COMPOSER CAPSULE (Matching hamroAI UI.png) */}
-            <div className="relative rounded-2xl md:rounded-3xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/80 focus-within:border-cyan-500/80 shadow-[0_8px_30px_rgba(0,0,0,0.6)] focus-within:shadow-[0_0_25px_rgba(6,182,212,0.25)] transition duration-200 p-2 md:p-3">
+            <div className="relative rounded-2xl md:rounded-3xl bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/80 focus-within:border-cyan-500/80 shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] focus-within:shadow-[0_0_25px_rgba(6,182,212,0.25)] transition duration-200 p-2 md:p-3">
               
               {/* Top Row: Action Button + Auto-expanding Textarea */}
               <div className="flex items-start gap-2">
@@ -1805,78 +1805,78 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                 <div className="relative mt-1">
                   <button
                     onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
-                    className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer shadow-sm"
+                    className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition cursor-pointer shadow-xs"
                     title="Quick Actions & Attachments"
                   >
-                    <Plus className={`w-4 h-4 transition-transform ${isPlusMenuOpen ? 'rotate-45 text-cyan-400' : ''}`} />
+                    <Plus className={`w-4 h-4 transition-transform ${isPlusMenuOpen ? 'rotate-45 text-cyan-600 dark:text-cyan-400' : ''}`} />
                   </button>
 
                   {/* Popover Menu */}
                   {isPlusMenuOpen && (
-                    <div className="absolute left-0 bottom-11 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-700 rounded-2xl shadow-2xl p-1.5 space-y-1 z-30 animate-fade-in">
+                    <div className="absolute left-0 bottom-11 w-64 bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-1.5 space-y-1 z-30 animate-fade-in">
                       <button
                         onClick={() => { setIsTemplateModalOpen(true); setIsPlusMenuOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-slate-800 transition text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left"
                       >
-                        <BookOpen className="w-4 h-4 text-cyan-400" />
+                        <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                         <div>
                           <div className="font-semibold">Browse Templates</div>
-                          <div className="text-[10px] text-slate-400">25+ curated prompts</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">25+ curated prompts</div>
                         </div>
                       </button>
 
                       <button
                         onClick={() => { openTextToImageModal(inputPrompt); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-slate-800 transition text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left"
                       >
-                        <Sparkles className="w-4 h-4 text-rose-400" />
+                        <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-400" />
                         <div>
                           <div className="font-semibold flex items-center gap-1.5">
                             <span>Text to Image</span>
-                            <span className="text-[9px] font-mono px-1 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">1.5</span>
+                            <span className="text-[9px] font-mono px-1 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 font-bold border border-rose-500/30">1.5</span>
                           </div>
-                          <div className="text-[10px] text-slate-400">GPT-Image 1.5 Photorealistic</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">GPT-Image 1.5 Photorealistic</div>
                         </div>
                       </button>
 
                       <button
                         onClick={() => { setIsStoryboardModalOpen(true); setIsPlusMenuOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-slate-800 transition text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left"
                       >
-                        <Film className="w-4 h-4 text-purple-400" />
+                        <Film className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                         <div>
                           <div className="font-semibold">AI Storyboard Generator</div>
-                          <div className="text-[10px] text-slate-400">Convert scripts to scenes</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">Convert scripts to scenes</div>
                         </div>
                       </button>
 
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-slate-800 transition text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left"
                       >
-                        <Paperclip className="w-4 h-4 text-emerald-400" />
+                        <Paperclip className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         <div>
                           <div className="font-semibold">Attach Text / Code Document</div>
-                          <div className="text-[10px] text-slate-400">.txt, .md, .json, .csv, code</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">.txt, .md, .json, .csv, code</div>
                         </div>
                       </button>
 
                       <button
                         onClick={() => { setShowSystemPromptModal(true); setIsPlusMenuOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-slate-800 transition text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left"
                       >
-                        <Settings className="w-4 h-4 text-amber-400" />
+                        <Settings className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                         <div>
                           <div className="font-semibold">System Prompt & Directives</div>
-                          <div className="text-[10px] text-slate-400">Unicode & Custom Persona</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">Unicode & Custom Persona</div>
                         </div>
                       </button>
 
-                      <div className="border-t border-slate-800 my-1" />
+                      <div className="border-t border-slate-200 dark:border-slate-800 my-1" />
 
                       <button
                         onClick={createNewThread}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-red-400 hover:bg-red-500/10 transition text-left"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition text-left"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>Start Fresh Conversation</span>
@@ -1899,13 +1899,13 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                       ? 'HamroAI से पूछें... (रोमन या देवनागरी हिंदी में लिखें)'
                       : 'Ask HamroAI anything in English, or choose a prompt template...'
                   }
-                  className="w-full py-2.5 px-2 bg-transparent text-slate-100 placeholder:text-slate-400 text-sm md:text-base resize-none outline-none max-h-36 overflow-y-auto leading-relaxed"
+                  className="w-full py-2.5 px-2 bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 text-sm md:text-base resize-none outline-none max-h-36 overflow-y-auto leading-relaxed"
                   style={{ minHeight: '48px' }}
                 />
               </div>
 
               {/* Bottom Controls Row inside Composer */}
-              <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 mt-1">
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800/60 mt-1">
                 
                 {/* Left Controls: Unicode Toggle, Attach, Tools */}
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -1921,12 +1921,12 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-xl transition text-xs font-semibold cursor-pointer ${
                       isUnicodeMode
-                        ? 'bg-purple-600/20 text-purple-300 border border-purple-500/40 shadow-xs'
-                        : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
+                        ? 'bg-purple-100 dark:bg-purple-600/20 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/40 shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                     title="Phonetic Roman-to-Devanagari Unicode transliteration (Translates on space & submit)"
                   >
-                    <div className={`w-2 h-2 rounded-full ${isUnicodeMode ? 'bg-purple-400 animate-pulse' : 'bg-slate-500'}`} />
+                    <div className={`w-2 h-2 rounded-full ${isUnicodeMode ? 'bg-purple-500 dark:bg-purple-400 animate-pulse' : 'bg-slate-400 dark:bg-slate-500'}`} />
                     <span>Unicode: {isUnicodeMode ? 'ON' : 'OFF'}</span>
                   </button>
 
@@ -1934,10 +1934,10 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   {inputPrompt.trim().length > 0 && (
                     <button
                       onClick={transliterateCurrentPrompt}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer"
                       title="Convert Romanized text to Devanagari Unicode right now"
                     >
-                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <Sparkles className="w-3 h-3 text-amber-500 dark:text-amber-400" />
                       <span>क Convert</span>
                     </button>
                   )}
@@ -1945,7 +1945,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   {/* Attach Button */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                     title="Attach file"
                   >
                     <Paperclip className="w-3.5 h-3.5" />
@@ -1956,7 +1956,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                   <button
                     onClick={() => setShowSymbolPalette(!showSymbolPalette)}
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition cursor-pointer ${
-                      showSymbolPalette ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      showSymbolPalette ? 'bg-blue-100 dark:bg-cyan-500/20 text-blue-700 dark:text-cyan-300 border border-blue-300 dark:border-cyan-500/30' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                     title="Toggle Nepali Devanagari Symbols"
                   >
@@ -1974,7 +1974,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                     className={`p-2 rounded-xl transition cursor-pointer ${
                       isVoiceRecording
                         ? 'bg-red-500 text-white animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.5)]'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                     title={isVoiceRecording ? 'Listening... click to stop' : 'Speak to type (Voice Input)'}
                   >
@@ -1987,7 +1987,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                     disabled={(!inputPrompt.trim() && attachedFiles.length === 0) || isLoading}
                     className={`w-9 h-9 rounded-xl font-medium transition flex items-center justify-center cursor-pointer shadow-md ${
                       (!inputPrompt.trim() && attachedFiles.length === 0) || isLoading
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                         : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] active:scale-95'
                     }`}
                     title="Send message (Enter)"
@@ -2006,9 +2006,9 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               </div>
               <div>
                 {user ? (
-                  <span>Credits: <strong className="text-amber-400 font-semibold">{user.credits}</strong></span>
+                  <span>Credits: <strong className="text-amber-600 dark:text-amber-400 font-semibold">{user.credits}</strong></span>
                 ) : (
-                  <button onClick={onOpenAuth} className="text-cyan-400 hover:underline">
+                  <button onClick={onOpenAuth} className="text-blue-600 dark:text-cyan-400 hover:underline">
                     Sign in to chat
                   </button>
                 )}

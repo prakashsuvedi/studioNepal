@@ -47,16 +47,27 @@ export async function loginWithGoogle(params: {
   avatar?: string;
   googleId?: string;
 }): Promise<{ user: UserSession; trialUsage: UserTrialQuota; token: string }> {
-  const res = await fetch('/api/auth/google', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Login failed' }));
-    throw new Error(extractErrorText(err, 'Google Login verification failed'));
+  try {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      throw new Error(`Server returned non-JSON response (${res.status} ${res.statusText}): ${text.slice(0, 100)}`);
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(extractErrorText(data, 'Google Login verification failed'));
+    }
+    return data;
+  } catch (err: any) {
+    throw new Error(extractErrorText(err, 'Google authentication service unreachable or failed'));
   }
-  return res.json();
 }
 
 export async function apiGetHfStatus(): Promise<{
@@ -145,28 +156,43 @@ export async function loginAdmin(
   password?: string,
   adminKey?: string
 ): Promise<{ user: UserSession; trialUsage: UserTrialQuota; token: string }> {
-  const res = await fetch('/api/auth/admin-login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, adminKey }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Admin authentication failed' }));
-    throw new Error(extractErrorText(err, 'Admin login failed'));
+  try {
+    const res = await fetch('/api/auth/admin-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, adminKey }),
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      throw new Error(`Server returned non-JSON response (${res.status} ${res.statusText}): ${text.slice(0, 100)}`);
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(extractErrorText(data, 'Admin login failed'));
+    }
+    return data;
+  } catch (err: any) {
+    throw new Error(extractErrorText(err, 'Admin authentication failed'));
   }
-  return res.json();
 }
 
 export async function fetchCurrentUser(
   userId: string
 ): Promise<{ user: UserSession; trialUsage: UserTrialQuota }> {
-  const res = await fetch(`/api/auth/me?userId=${encodeURIComponent(userId)}`, {
-    headers: { 'x-user-id': userId },
-  });
-  if (!res.ok) {
-    throw new Error('Failed to fetch user profile');
+  try {
+    const res = await fetch(`/api/auth/me?userId=${encodeURIComponent(userId)}`, {
+      headers: { 'x-user-id': userId },
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+    return await res.json();
+  } catch (err: any) {
+    throw new Error(extractErrorText(err, 'Failed to fetch user profile'));
   }
-  return res.json();
 }
 
 export const apiGetMe = fetchCurrentUser;

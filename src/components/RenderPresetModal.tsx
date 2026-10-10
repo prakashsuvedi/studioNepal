@@ -292,11 +292,18 @@ export const RenderPresetModal: React.FC<RenderPresetModalProps> = ({
 
               {/* Bitrate Output Control */}
               <div className="space-y-1.5">
-                <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                <label htmlFor="render-preset-bitrate-slider" className="text-slate-300 font-semibold flex items-center gap-1.5 cursor-pointer">
                   <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Video Bitrate ({customBitrate} Mbps)</span>
                 </label>
+                <label htmlFor="render-preset-bitrate-slider" className="visually-hidden">Video render bitrate in megabits per second</label>
                 <input
+                  id="render-preset-bitrate-slider"
+                  name="customBitrate"
+                  aria-label="Video Bitrate in Mbps"
+                  aria-valuemin={4}
+                  aria-valuemax={50}
+                  aria-valuenow={customBitrate}
                   type="range"
                   min={4}
                   max={50}
@@ -314,13 +321,16 @@ export const RenderPresetModal: React.FC<RenderPresetModalProps> = ({
 
               {/* Color Profile */}
               <div className="space-y-1.5">
-                <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                <label htmlFor="render-preset-color-lut" className="text-slate-300 font-semibold flex items-center gap-1.5 cursor-pointer">
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Color LUT / Profile</span>
                 </label>
+                <label htmlFor="render-preset-color-lut" className="visually-hidden">Color lookup table and profile</label>
                 <input
+                  id="render-preset-color-lut"
                   type="text"
                   disabled
+                  aria-label="Color LUT / Profile"
                   value={selectedPreset.colorGrade}
                   className="w-full bg-slate-900/60 border border-slate-800 rounded-lg p-2 text-xs text-indigo-200 font-mono"
                 />

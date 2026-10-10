@@ -360,10 +360,18 @@ export const RenderPreviewModal: React.FC<RenderPreviewModalProps> = ({
               {/* Scrub Slider */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                  <span>{formatTime(playbackTime)}</span>
+                  <label htmlFor="render-preview-scrub-slider" className="cursor-pointer font-mono">{formatTime(playbackTime)}</label>
                   <span className="text-cyan-400 font-bold">{formatTime(totalDuration)}</span>
                 </div>
+                <label htmlFor="render-preview-scrub-slider" className="visually-hidden">Playback time scrubber slider</label>
                 <input
+                  id="render-preview-scrub-slider"
+                  name="playbackScrubber"
+                  aria-label="Playback Time Scrubber"
+                  aria-valuemin={0}
+                  aria-valuemax={totalDuration || 1}
+                  aria-valuenow={playbackTime}
+                  aria-valuetext={`${formatTime(playbackTime)} of ${formatTime(totalDuration)}`}
                   type="range"
                   min="0"
                   max={totalDuration || 1}

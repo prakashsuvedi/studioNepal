@@ -961,6 +961,99 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </section>
 
+      {/* 8.5 POPULAR AI WORKFLOWS & KEYWORD HUB (SEO OPTIMIZED FOR NEPAL, INDIA & SOUTH ASIA) */}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-12 border-t border-slate-200 dark:border-white/[0.08]">
+        <div className="text-center max-w-3xl mx-auto mb-8">
+          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40">
+            {lang === 'ne' 
+              ? 'नेपाल र भारतमा ट्रेन्डिङ एआई टूल्स' 
+              : lang === 'hi' 
+              ? 'भारत और नेपाल में ट्रेंडिंग एआई टूल्स' 
+              : 'Trending AI Creation in Nepal & India'}
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-3">
+            {lang === 'ne' 
+              ? 'सबैभन्दा लोकप्रिय एआई भिडियो, आवाज र कन्टेन्ट वर्कफ्लोहरू' 
+              : lang === 'hi' 
+              ? 'सर्वश्रेष्ठ एआई वीडियो, वॉइस और कंटेंट निर्माण प्लेटफॉर्म'
+              : 'Popular AI Video, Voice & Content Generation Workflows'}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1.5">
+            Discover why YouTube creators, news channels, podcasters, and digital marketing agencies across Nepal and India choose NepalAI Studio.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="p-1 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-600 text-xs">🎙️</span>
+              <span>Nepali & Hindi TTS (Neural Voice)</span>
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Crystal-clear 24kHz neural speech synthesis in native Nepali Devanagari, Hindi, and Indian English accents. Perfect for audiobooks, documentary narrations, and podcasts.
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {['नेपाली आवाज AI', 'हिंदी TTS', 'Voice Cloning', 'SpeechT5'].map(tag => (
+                <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="p-1 rounded bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 text-xs">🎬</span>
+              <span>Azure Sora-2 AI Video Generator</span>
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Transform English, Hindi, or Nepali prompts into 1080p photorealistic cinematic clips. Build continuous multi-scene stories with subject DNA locking and prompt context continuity.
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {['Sora 2 Video', 'AI Video Maker India', 'Cinematic 4K', 'Text to Video'].map(tag => (
+                <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="p-1 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 text-xs">👤</span>
+              <span>AI News Anchors & Avatars</span>
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Create realistic digital news presenters with accurate lip-synchronization for breaking news, Loksewa preparation, daily weather bulletins, and YouTube Shorts.
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {['AI News Anchor', 'Virtual Presenter', 'Lip Sync Hindi', 'Reels Maker'].map(tag => (
+                <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="p-1 rounded bg-purple-100 dark:bg-purple-950/60 text-purple-600 text-xs">🤖</span>
+              <span>HamroAI Multilingual Assistant</span>
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Intelligent cultural LLM powered by GPT-4o and GPT-5-mini. Generate video scripts, ad copy, translations, and Loksewa exam notes with deep cultural grounding.
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {['HamroAI', 'हाम्रो एआई', 'Nepali LLM', 'Script Generator'].map(tag => (
+                <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 9. BOTTOM CTA */}
       <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-16">
         <motion.div 
@@ -1011,48 +1104,84 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
       {/* 10. CLEAN MODERN FOOTER */}
       <footer className="border-t border-slate-300 dark:border-white/[0.08] py-10 px-4 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-[#07080D]">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <NepalAiLogo size="sm" />
-            <span className="text-slate-400 dark:text-slate-600">•</span>
-            <span className="text-slate-800 dark:text-slate-200 font-semibold">NepalAI Studio // Cinematic Creative Suite</span>
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <NepalAiLogo size="sm" />
+              <span className="text-slate-400 dark:text-slate-600">•</span>
+              <span className="text-slate-800 dark:text-slate-200 font-semibold">NepalAI Studio // Cinematic Creative Suite</span>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-5 text-slate-700 dark:text-slate-300 font-medium">
+              <button onClick={onLaunchStudio} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer">
+                Studio
+              </button>
+              {onLaunchHamroAi && (
+                <button onClick={onLaunchHamroAi} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1">
+                  <MessageSquare className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                  <span>HamroAI</span>
+                </button>
+              )}
+              <a href="#pricing" className="hover:text-slate-950 dark:hover:text-white transition">
+                Pricing
+              </a>
+              <a 
+                href="/sitemap.xml" 
+                target="_blank" 
+                rel="noreferrer"
+                className="hover:text-slate-950 dark:hover:text-white transition"
+              >
+                Sitemap
+              </a>
+              <button onClick={() => onOpenAuth('admin')} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer">
+                Admin Portal
+              </button>
+              
+              {/* Theme Toggle in Footer */}
+              <button 
+                onClick={toggleTheme} 
+                className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-white/[0.1] bg-slate-50 dark:bg-slate-900"
+                title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
+              >
+                {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
+                <span className="capitalize">{theme}</span>
+              </button>
+
+              {/* Language Switcher */}
+              <button
+                onClick={() => setLanguage(lang === 'en' ? 'ne' : lang === 'ne' ? 'hi' : 'en')}
+                className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1 text-slate-800 dark:text-slate-200"
+              >
+                <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                <span>{lang === 'en' ? 'नेपाली' : lang === 'ne' ? 'हिन्दी' : 'English'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-5 text-slate-700 dark:text-slate-300 font-medium">
-            <button onClick={onLaunchStudio} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer">
-              Studio
-            </button>
-            {onLaunchHamroAi && (
-              <button onClick={onLaunchHamroAi} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1">
-                <MessageSquare className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                <span>HamroAI</span>
-              </button>
-            )}
-            <a href="#pricing" className="hover:text-slate-950 dark:hover:text-white transition">
-              Pricing
-            </a>
-            <button onClick={() => onOpenAuth('admin')} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer">
-              Admin Portal
-            </button>
-            
-            {/* Theme Toggle in Footer */}
-            <button 
-              onClick={toggleTheme} 
-              className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-white/[0.1] bg-slate-50 dark:bg-slate-900"
-              title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
-            >
-              {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
-              <span className="capitalize">{theme}</span>
-            </button>
-
-            {/* Language Switcher */}
-            <button
-              onClick={() => setLanguage(lang === 'en' ? 'ne' : lang === 'ne' ? 'hi' : 'en')}
-              className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1 text-slate-800 dark:text-slate-200"
-            >
-              <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-              <span>{lang === 'en' ? 'नेपाली' : lang === 'ne' ? 'हिन्दी' : 'English'}</span>
-            </button>
+          {/* Platform Engineering & Founder Credits */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+            <div>
+              Platform designed and created by{' '}
+              <a
+                href="https://scamspike.com"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
+              >
+                ScamSpike Solutions Pvt. Ltd. (scamspike.com)
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Founder:</span>
+              <a
+                href="https://prakashsuvedi.com.np"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Prakash Suvedi (prakashsuvedi.com.np)
+              </a>
+            </div>
           </div>
         </div>
       </footer>

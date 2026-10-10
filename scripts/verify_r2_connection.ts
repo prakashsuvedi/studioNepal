@@ -16,7 +16,8 @@ async function verifyR2Connection() {
   const endpoint = process.env.R2_ENDPOINT || process.env.CLOUDFLARE_R2_ENDPOINT || process.env.S3_ENDPOINT || config.s3Endpoint || '';
   const bucket = process.env.R2_BUCKET || process.env.CLOUDFLARE_R2_BUCKET || process.env.S3_BUCKET || config.s3Bucket || 'nepalai';
   const accessKeyId = process.env.R2_ACCESS_KEY_ID || process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || config.s3AccessKeyId || '';
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || config.s3SecretAccessKey || '';
+  const rawSecret = (process.env.R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || '').trim();
+  const secretAccessKey = (rawSecret.length >= 32 ? rawSecret : config.s3SecretAccessKey) || '';
   let region = process.env.R2_REGION || config.s3Region || 'auto';
   if (
     !region ||

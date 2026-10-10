@@ -602,26 +602,62 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white text-slate-500 py-6 text-xs text-center">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>
-            <span className="font-semibold text-slate-700">NepalAI Studio Pro</span> • studio.nepalai.tech • Full-Stack AI Media Platform
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 py-6 text-xs text-center transition-colors">
+        <div className="max-w-7xl mx-auto px-4 space-y-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">NepalAI Studio Pro</span> • studio.nepalai.tech • Full-Stack AI Media Platform
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
+              <button onClick={() => setActiveTab('faq')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">FAQ</button>
+              <span>•</span>
+              <button onClick={() => setActiveTab('about')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">About</button>
+              <span>•</span>
+              <button onClick={() => setActiveTab('privacy')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">Privacy</button>
+              <span>•</span>
+              <button onClick={() => setActiveTab('contact')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">Contact</button>
+              <span>•</span>
+              <a 
+                href="/sitemap.xml" 
+                target="_blank" 
+                rel="noreferrer"
+                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+              >
+                Sitemap
+              </a>
+              <span>•</span>
+              <button 
+                onClick={() => handleOpenAuth('admin')} 
+                className="text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-medium cursor-pointer"
+              >
+                Admin Portal
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-slate-500">
-            <button onClick={() => setActiveTab('faq')} className="hover:text-slate-900 transition cursor-pointer">FAQ</button>
-            <span>•</span>
-            <button onClick={() => setActiveTab('about')} className="hover:text-slate-900 transition cursor-pointer">About</button>
-            <span>•</span>
-            <button onClick={() => setActiveTab('privacy')} className="hover:text-slate-900 transition cursor-pointer">Privacy</button>
-            <span>•</span>
-            <button onClick={() => setActiveTab('contact')} className="hover:text-slate-900 transition cursor-pointer">Contact</button>
-            <span>•</span>
-            <button 
-              onClick={() => handleOpenAuth('admin')} 
-              className="text-slate-600 hover:text-slate-900 font-medium cursor-pointer"
-            >
-              Admin Portal
-            </button>
+
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px]">
+            <div>
+              Platform designed and created by{' '}
+              <a
+                href="https://scamspike.com"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-rose-600 dark:text-rose-400 hover:underline"
+              >
+                ScamSpike Solutions Pvt. Ltd. (scamspike.com)
+              </a>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span>Founder:</span>
+              <a
+                href="https://prakashsuvedi.com.np"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Prakash Suvedi (prakashsuvedi.com.np)
+              </a>
+            </div>
           </div>
         </div>
       </footer>

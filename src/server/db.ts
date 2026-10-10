@@ -184,6 +184,7 @@ export const DEFAULT_STOCK_AVATARS: Avatar[] = [
 
 const DB_DIR = path.join(process.cwd(), 'data');
 const DB_PATH = path.join(DB_DIR, 'nepalai_db.json');
+const BACKUP_DIR = path.join(DB_DIR, 'backups');
 
 // Default initial state
 const INITIAL_STORE: DatabaseStore = {
@@ -343,9 +344,78 @@ const INITIAL_STORE: DatabaseStore = {
 
 class Database {
   private store: DatabaseStore;
+  private backupIntervalId: NodeJS.Timeout | null = null;
 
   constructor() {
     this.store = this.load();
+    // Create initial backup snapshot on boot to protect existing data
+    this.createBackupSnapshot();
+    // Schedule periodic hourly backup snapshots
+    this.backupIntervalId = setInterval(() => {
+      this.createBackupSnapshot();
+    }, 60 * 60 * 1000);
+    if (this.backupIntervalId?.unref) {
+      this.backupIntervalId.unref();
+    }
+  }
+
+  /**
+   * Creates a timestamped snapshot of nepalai_db.json in data/backups/
+   * and retains the 10 most recent snapshots.
+   */
+  public createBackupSnapshot(): string | null {
+    try {
+      if (!fs.existsSync(DB_PATH)) return null;
+      if (!fs.existsSync(BACKUP_DIR)) {
+        fs.mkdirSync(BACKUP_DIR, { recursive: true });
+      }
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupPath = path.join(BACKUP_DIR, `nepalai_db_${timestamp}.json`);
+      fs.copyFileSync(DB_PATH, backupPath);
+
+      // Rotate snapshots: maintain last 10 snapshots
+      const files = fs
+        .readdirSync(BACKUP_DIR)
+        .filter(f => f.startsWith('nepalai_db_') && f.endsWith('.json'))
+        .sort();
+      if (files.length > 10) {
+        const toDelete = files.slice(0, files.length - 10);
+        for (const file of toDelete) {
+          try {
+            fs.unlinkSync(path.join(BACKUP_DIR, file));
+          } catch {}
+        }
+      }
+      return backupPath;
+    } catch (err) {
+      console.warn('[Database] Backup snapshot creation notice:', err);
+      return null;
+    }
+  }
+
+  public listBackups(): Array<{ name: string; size: number; createdAt: string }> {
+    try {
+      if (!fs.existsSync(BACKUP_DIR)) return [];
+      const files = fs
+        .readdirSync(BACKUP_DIR)
+        .filter(f => f.startsWith('nepalai_db_') && f.endsWith('.json'))
+        .sort()
+        .reverse();
+      return files.map(file => {
+        const stats = fs.statSync(path.join(BACKUP_DIR, file));
+        return {
+          name: file,
+          size: stats.size,
+          createdAt: stats.mtime.toISOString(),
+        };
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  public exportDatabase(): DatabaseStore {
+    return JSON.parse(JSON.stringify(this.store));
   }
 
   private load(): DatabaseStore {
@@ -365,6 +435,21 @@ class Database {
         if (!parsed.customVoices) {
           parsed.customVoices = [];
         }
+        // Guarantee strict ID uniqueness across all users
+        if (parsed.users && Array.isArray(parsed.users)) {
+          const seenIds = new Set<string>();
+          for (const u of parsed.users) {
+            if (seenIds.has(u.id)) {
+              const prefix = u.role === 'admin' ? 'usr_admin' : 'usr';
+              const cleanEmail = (u.email || '').split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
+              u.id = `${prefix}_${cleanEmail || Math.random().toString(36).substring(2, 7)}`;
+              if (seenIds.has(u.id)) {
+                u.id = `${u.id}_${Math.random().toString(36).substring(2, 6)}`;
+              }
+            }
+            seenIds.add(u.id);
+          }
+        }
         return parsed;
       }
     } catch (err) {
@@ -379,9 +464,12 @@ class Database {
       if (!fs.existsSync(DB_DIR)) {
         fs.mkdirSync(DB_DIR, { recursive: true });
       }
-      fs.writeFileSync(DB_PATH, JSON.stringify(store, null, 2), 'utf-8');
+      // Atomic POSIX write: write to temp file then rename to avoid corruption on crash
+      const tmpPath = path.join(DB_DIR, `nepalai_db.json.tmp.${process.pid}.${Date.now()}`);
+      fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf-8');
+      fs.renameSync(tmpPath, DB_PATH);
     } catch (err) {
-      console.error('Failed to write db.json:', err);
+      console.error('Failed to write db.json atomically:', err);
     }
   }
 
@@ -432,13 +520,20 @@ class Database {
       return existing;
     }
 
-    const isPrakash = lower.includes('prakashsuvedi');
+    const isPrimaryPrakash = lower === 'prakashsuvedi.backup@gmail.com';
+    let newUserId = isAdmin
+      ? (isPrimaryPrakash ? 'usr_admin_01' : `usr_admin_${lower.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_')}`)
+      : `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    // Ensure globally unique user ID across existing users
+    if (this.store.users.some(u => u.id === newUserId)) {
+      newUserId = `${newUserId}_${Math.random().toString(36).substring(2, 6)}`;
+    }
+
     const newUser: User = {
-      id: isAdmin
-        ? (isPrakash ? 'usr_admin_01' : `usr_admin_${lower.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_')}`)
-        : `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: newUserId,
       email,
-      name: name || (isAdmin ? (isPrakash ? 'Prakash Suvedi (Platform Owner)' : `${email.split('@')[0]} (Admin)`) : email.split('@')[0]),
+      name: name || (isAdmin ? (lower.includes('prakashsuvedi') ? 'Prakash Suvedi (Platform Owner)' : `${email.split('@')[0]} (Admin)`) : email.split('@')[0]),
       avatar: avatar || (isAdmin 
         ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
         : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
@@ -603,12 +698,11 @@ class Database {
 
     const usage = this.getTrialUsage(userId); // Triggers daily reset if new day
 
-    // Auto-update legacy trial limits to generous defaults
+    // Auto-update legacy trial limits to standard tier defaults if lower
     if (usage.maxImages < 50) usage.maxImages = 50;
     if (usage.maxVideo < 20) usage.maxVideo = 20;
     if (usage.maxAudio < 30) usage.maxAudio = 30;
     if (usage.maxRenders < 20) usage.maxRenders = 20;
-    if (user.credits < 100) user.credits = 500;
 
     // Special Policy: 1 Video Render Free for Avatar Presenter Studio for Google Login / Free Users (with NepalAI Studio logo)
     if (type === 'avatar') {

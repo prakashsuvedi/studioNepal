@@ -146,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/80 sticky top-0 z-40 text-slate-100 shadow-md select-none transition-all">
+    <header className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 sticky top-0 z-40 text-slate-800 dark:text-slate-100 shadow-sm dark:shadow-md select-none transition-colors">
       <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6">
         <div className="flex items-center justify-between h-13 gap-2">
           
@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="NepalAI Studio - Home"
             >
               <NepalAiLogo size="md" />
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 hidden lg:inline">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-800/60 hidden lg:inline">
                 2.0
               </span>
             </div>
@@ -171,8 +171,8 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setActiveTab('landing')}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                   activeTab === 'landing'
-                    ? 'bg-slate-900 text-cyan-300 border border-cyan-500/40 font-semibold shadow-xs'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                    ? 'bg-slate-100 dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border border-cyan-400/60 dark:border-cyan-500/40 font-semibold shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900/60'
                 }`}
               >
                 <Home className="w-3.5 h-3.5" />
@@ -184,17 +184,17 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => handleTabClick('hamro_ai')}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
                   activeTab === 'hamro_ai'
-                    ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/50 font-bold shadow-xs'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                    ? 'bg-amber-100 dark:bg-gradient-to-r dark:from-amber-500/20 dark:to-orange-500/20 text-amber-900 dark:text-amber-300 border border-amber-400 dark:border-amber-500/50 font-bold shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900/60'
                 }`}
                 title="HamroAI - Culturally Aware Multi-lingual Assistant (Nepali, Hindi, English)"
               >
-                <Bot className="w-3.5 h-3.5 text-amber-400" />
+                <Bot className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                 <span className="font-semibold">{t('nav.hamro_ai', 'HamroAI')}</span>
-                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800/60 hidden lg:inline font-bold">
+                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 hidden lg:inline font-bold">
                   NP/HI
                 </span>
-                {!user && <Lock className="w-3 h-3 text-slate-500" />}
+                {!user && <Lock className="w-3 h-3 text-slate-400 dark:text-slate-500" />}
               </button>
 
               {/* Creation Studio Dropdown Submenu */}
@@ -204,12 +204,12 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => setIsStudioMenuOpen(!isStudioMenuOpen)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
                     isStudioTabActive
-                      ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/50 font-semibold shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                      ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-400 dark:border-cyan-500/50 font-semibold shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900/60'
                   }`}
                   title="Studio Creation Tools (Video, Sora-2, Image, Characters, Ad Builder, Voiceover)"
                 >
-                  <Wand2 className={`w-3.5 h-3.5 ${isStudioTabActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  <Wand2 className={`w-3.5 h-3.5 ${isStudioTabActive ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`} />
                   <span className="font-semibold">
                     {isStudioTabActive ? getStudioTabLabel() : 'Studio Tools'}
                   </span>
@@ -218,10 +218,10 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Submenu Dropdown Panel */}
                 {isStudioMenuOpen && (
-                  <div className="absolute left-0 mt-1.5 w-64 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800/80 mb-1 flex items-center justify-between">
+                  <div className="absolute left-0 mt-1.5 w-64 rounded-xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-slate-200">
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/80 mb-1 flex items-center justify-between">
                       <span>AI Creation Tools</span>
-                      <span className="text-[9px] text-cyan-400 font-mono">6 Engines</span>
+                      <span className="text-[9px] text-cyan-600 dark:text-cyan-400 font-mono">6 Engines</span>
                     </div>
 
                     <div className="space-y-0.5">
@@ -230,18 +230,18 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleTabClick('video_studio')}
                         className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
                           activeTab === 'video_studio'
-                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <Film className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <Film className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
                           <div>
                             <div className="text-xs font-semibold leading-tight">Video Studio</div>
-                            <div className="text-[10px] text-slate-400">Multi-track timeline & scenes</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Multi-track timeline & scenes</div>
                           </div>
                         </div>
-                        {activeTab === 'video_studio' && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                        {activeTab === 'video_studio' && <Check className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />}
                       </button>
 
                       {/* Sora-2 Video */}
@@ -249,21 +249,21 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleTabClick('sora_studio')}
                         className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
                           activeTab === 'sora_studio'
-                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <Video className="w-4 h-4 text-indigo-400 shrink-0" />
+                          <Video className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                           <div>
                             <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
                               <span>Sora-2 Video</span>
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">Azure</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">Azure</span>
                             </div>
-                            <div className="text-[10px] text-slate-400">Cinematic text-to-video AI</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Cinematic text-to-video AI</div>
                           </div>
                         </div>
-                        {activeTab === 'sora_studio' && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                        {activeTab === 'sora_studio' && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
                       </button>
 
                       {/* Avatar Presenter */}
@@ -271,21 +271,21 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleTabClick('avatar_studio')}
                         className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
                           activeTab === 'avatar_studio'
-                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <Sparkles className="w-4 h-4 text-teal-400 shrink-0" />
+                          <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
                           <div>
                             <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
                               <span>Avatar Presenter</span>
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-teal-950 text-teal-300 border border-teal-800">LipSync</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">LipSync</span>
                             </div>
-                            <div className="text-[10px] text-slate-400">Digital AI news anchor & speaker</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Digital AI news anchor & speaker</div>
                           </div>
                         </div>
-                        {activeTab === 'avatar_studio' && <Check className="w-3.5 h-3.5 text-teal-400" />}
+                        {activeTab === 'avatar_studio' && <Check className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
                       </button>
 
                       {/* Image Engine */}
@@ -293,18 +293,18 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleTabClick('image_studio')}
                         className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
                           activeTab === 'image_studio'
-                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <ImageIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <ImageIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <div>
                             <div className="text-xs font-semibold leading-tight">Image Engine</div>
-                            <div className="text-[10px] text-slate-400">Azure gpt-image-1.5 & FLUX</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Azure gpt-image-1.5 & FLUX</div>
                           </div>
                         </div>
-                        {activeTab === 'image_studio' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                        {activeTab === 'image_studio' && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
                       </button>
 
                       {/* Character Studio */}
@@ -312,21 +312,21 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleTabClick('character_studio')}
                         className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
                           activeTab === 'character_studio'
-                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <UserCheck className="w-4 h-4 text-purple-400 shrink-0" />
+                          <UserCheck className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
                           <div>
                             <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
                               <span>Character Studio</span>
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-800">FaceID</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800">FaceID</span>
                             </div>
-                            <div className="text-[10px] text-slate-400">Consistent characters & avatars</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Consistent characters & avatars</div>
                           </div>
                         </div>
-                        {activeTab === 'character_studio' && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                        {activeTab === 'character_studio' && <Check className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />}
                       </button>
 
                       {/* Ad Builder */}
@@ -334,21 +334,21 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleTabClick('ad_builder')}
                         className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
                           activeTab === 'ad_builder'
-                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <Megaphone className="w-4 h-4 text-amber-400 shrink-0" />
+                          <Megaphone className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                           <div>
                             <div className="text-xs font-semibold leading-tight flex items-center gap-1.5">
                               <span>Ad Builder</span>
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800">Templates</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">Templates</span>
                             </div>
-                            <div className="text-[10px] text-slate-400">High-converting viral ads</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">High-converting viral ads</div>
                           </div>
                         </div>
-                        {activeTab === 'ad_builder' && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                        {activeTab === 'ad_builder' && <Check className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
                       </button>
 
                       {/* Nepali Voiceover */}
@@ -356,18 +356,18 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleTabClick('tts_studio')}
                         className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
                           activeTab === 'tts_studio'
-                            ? 'bg-cyan-500/15 text-cyan-300 font-bold'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <Mic className="w-4 h-4 text-rose-400 shrink-0" />
+                          <Mic className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                           <div>
                             <div className="text-xs font-semibold leading-tight">Nepali Voiceover</div>
-                            <div className="text-[10px] text-slate-400">SpeechT5 & Azure neural TTS</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">SpeechT5 & Azure neural TTS</div>
                           </div>
                         </div>
-                        {activeTab === 'tts_studio' && <Check className="w-3.5 h-3.5 text-rose-400" />}
+                        {activeTab === 'tts_studio' && <Check className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />}
                       </button>
                     </div>
                   </div>
@@ -380,15 +380,15 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => handleTabClick('dashboard')}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
                     activeTab === 'dashboard'
-                      ? 'bg-slate-900 text-cyan-300 border border-cyan-500/40 font-semibold shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+                      ? 'bg-slate-100 dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border border-cyan-400/60 dark:border-cyan-500/40 font-semibold shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900/60'
                   }`}
                   title="Dashboard & Refer & Earn"
                 >
-                  <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
+                  <LayoutDashboard className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                   <span className="hidden md:inline font-semibold">{t('nav.dashboard', 'Dashboard')}</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700/60 hidden xl:flex items-center gap-0.5 font-bold">
-                    <Gift className="w-2.5 h-2.5 text-amber-400" />
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 hidden xl:flex items-center gap-0.5 font-bold">
+                    <Gift className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
                     <span>Earn</span>
                   </span>
                 </button>
@@ -402,56 +402,56 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
                     className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition cursor-pointer ${
                       isAdminTabActive
-                        ? 'bg-amber-950/60 text-amber-300 border border-amber-500/60 font-semibold'
-                        : 'text-amber-400/90 hover:text-amber-200 hover:bg-amber-950/40'
+                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-400 dark:border-amber-500/60 font-semibold'
+                        : 'text-amber-700 dark:text-amber-400/90 hover:text-amber-900 dark:hover:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/40'
                     }`}
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                     <span className="font-semibold hidden lg:inline">Admin Hub</span>
-                    <ChevronDown className={`w-3 h-3 text-amber-400/80 transition-transform duration-150 ${isAdminMenuOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3 h-3 text-amber-600 dark:text-amber-400/80 transition-transform duration-150 ${isAdminMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {isAdminMenuOpen && (
-                    <div className="absolute left-0 mt-1.5 w-56 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400/80 border-b border-slate-800/80 mb-1">
+                    <div className="absolute left-0 mt-1.5 w-56 rounded-xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-slate-200">
+                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400/80 border-b border-slate-100 dark:border-slate-800/80 mb-1">
                         Superadmin Controls
                       </div>
                       <div className="space-y-0.5">
                         <button
                           onClick={() => handleTabClick('admin')}
                           className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
-                            activeTab === 'admin' ? 'bg-amber-500/15 text-amber-300 font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            activeTab === 'admin' ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-900 dark:text-amber-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                             <span>Admin Center</span>
                           </div>
-                          {activeTab === 'admin' && <Check className="w-3 h-3 text-amber-400" />}
+                          {activeTab === 'admin' && <Check className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
                         </button>
                         <button
                           onClick={() => handleTabClick('audit')}
                           className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
-                            activeTab === 'audit' ? 'bg-amber-500/15 text-amber-300 font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            activeTab === 'audit' ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-900 dark:text-amber-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                            <FileText className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                             <span>Audit & Diagnostics</span>
                           </div>
-                          {activeTab === 'audit' && <Check className="w-3 h-3 text-cyan-400" />}
+                          {activeTab === 'audit' && <Check className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />}
                         </button>
                         <button
                           onClick={() => handleTabClick('hf_deployment_kit')}
                           className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition cursor-pointer ${
-                            activeTab === 'hf_deployment_kit' ? 'bg-amber-500/15 text-amber-300 font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            activeTab === 'hf_deployment_kit' ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-900 dark:text-amber-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <Code2 className="w-3.5 h-3.5 text-indigo-400" />
+                            <Code2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                             <span>HF Deployment Kit</span>
                           </div>
-                          {activeTab === 'hf_deployment_kit' && <Check className="w-3 h-3 text-indigo-400" />}
+                          {activeTab === 'hf_deployment_kit' && <Check className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />}
                         </button>
                       </div>
                     </div>
@@ -461,21 +461,36 @@ export const Header: React.FC<HeaderProps> = ({
             </nav>
           </div>
 
-          {/* Right Controls: Engine Health, Language Dropdown, Utilities, & Profile */}
+          {/* Right Controls: Engine Health, Language Dropdown, Theme Toggle, Utilities, & Profile */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             
             {/* Live HF Connection Indicator (Compact) */}
             <div 
               title={hfStatus?.connected ? `Hugging Face API connected for @${hfStatus.username || 'prakashsuvedi'}` : 'Hugging Face API initializing'}
-              className="hidden 2xl:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px] text-slate-300 font-medium shrink-0"
+              className="hidden 2xl:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 font-medium shrink-0"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <Cpu className="w-3 h-3 text-cyan-400" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
+              <Cpu className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
               <span>HF: {hfStatus?.connected ? `@${hfStatus.username || 'prakash'}` : 'Live'}</span>
             </div>
 
             {/* Compact Language Selector Dropdown */}
             <LanguageSwitcher variant="dropdown" />
+
+            {/* Direct 1-Click Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+              title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer flex items-center justify-center shrink-0"
+            >
+              {isDark ? (
+                <Sun className="w-3.5 h-3.5 text-amber-400 animate-in spin-in-90 duration-200" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-indigo-600 animate-in spin-in-90 duration-200" />
+              )}
+            </button>
 
             {/* Utilities Submenu (Tour, Workspace, Shortcuts, Theme) */}
             <div className="relative" ref={utilitiesMenuRef}>
@@ -483,15 +498,15 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 aria-label="Studio Preferences & Tools"
                 onClick={() => setIsUtilitiesMenuOpen(!isUtilitiesMenuOpen)}
-                className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
                 title="Studio Preferences & Tools"
               >
                 <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
 
               {isUtilitiesMenuOpen && (
-                <div className="absolute right-0 mt-1.5 w-48 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800/80 mb-0.5">
+                <div className="absolute right-0 mt-1.5 w-48 rounded-xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs text-slate-800 dark:text-slate-200">
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/80 mb-0.5">
                     Studio Utilities
                   </div>
                   {onOpenTour && (
@@ -500,9 +515,9 @@ export const Header: React.FC<HeaderProps> = ({
                         onOpenTour();
                         setIsUtilitiesMenuOpen(false);
                       }}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                       <span>Studio Tour & Guide</span>
                     </button>
                   )}
@@ -512,9 +527,9 @@ export const Header: React.FC<HeaderProps> = ({
                         onOpenWorkspaces();
                         setIsUtilitiesMenuOpen(false);
                       }}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                     >
-                      <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
+                      <Briefcase className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                       <span className="truncate">Workspace: {activeWorkspaceName}</span>
                     </button>
                   )}
@@ -524,13 +539,13 @@ export const Header: React.FC<HeaderProps> = ({
                         onOpenShortcuts();
                         setIsUtilitiesMenuOpen(false);
                       }}
-                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
-                        <Command className="w-3.5 h-3.5 text-slate-400" />
+                        <Command className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                         <span>Shortcuts</span>
                       </div>
-                      <span className="text-[10px] font-mono text-slate-500">?</span>
+                      <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">?</span>
                     </button>
                   )}
                   <button
@@ -538,10 +553,10 @@ export const Header: React.FC<HeaderProps> = ({
                       toggleTheme();
                       setIsUtilitiesMenuOpen(false);
                     }}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer border-t border-slate-800/60 mt-0.5 pt-1.5"
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer border-t border-slate-100 dark:border-slate-800/60 mt-0.5 pt-1.5"
                   >
                     <div className="flex items-center gap-2">
-                      {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
+                      {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-600" />}
                       <span>{isDark ? 'Light Theme' : 'Dark Theme'}</span>
                     </div>
                   </button>
@@ -554,19 +569,19 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Admin Mode Badge or User Credits Pill */}
                 {isAdmin ? (
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-600/60 text-[11px] font-bold text-amber-300 shrink-0 shadow-inner">
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-600/60 text-[11px] font-bold text-amber-900 dark:text-amber-300 shrink-0 shadow-inner">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                     <span className="hidden sm:inline">Admin Mode (∞)</span>
                     <span className="sm:hidden font-mono">∞</span>
                   </div>
                 ) : (
                   <div 
                     onClick={onOpenPaywall}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 transition cursor-pointer shrink-0"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 transition cursor-pointer shrink-0"
                     title="Click to view quota or top up credits"
                   >
-                    <Zap className="w-3 h-3 text-amber-400" />
-                    <span className="font-mono text-xs font-bold text-cyan-300">{user.credits} CR</span>
+                    <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400" />
+                    <span className="font-mono text-xs font-bold text-cyan-700 dark:text-cyan-300">{user.credits} CR</span>
                   </div>
                 )}
 
@@ -592,10 +607,10 @@ export const Header: React.FC<HeaderProps> = ({
                       <img
                         src={user.avatar}
                         alt={user.name}
-                        className="w-7 h-7 rounded-full object-cover border border-slate-700"
+                        className="w-7 h-7 rounded-full object-cover border border-slate-300 dark:border-slate-700"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-[11px] font-bold border border-slate-700">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-[11px] font-bold border border-slate-300 dark:border-slate-700">
                         {user.name?.charAt(0) || 'U'}
                       </div>
                     )}
@@ -603,11 +618,11 @@ export const Header: React.FC<HeaderProps> = ({
 
                   {/* Profile Dropdown */}
                   {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-1.5 w-56 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                      <div className="px-2.5 py-2 border-b border-slate-800/80 mb-1">
-                        <div className="font-bold text-white text-xs truncate">{user.name}</div>
-                        <div className="text-[10px] text-slate-400 truncate">{user.email}</div>
-                        <div className="mt-1 flex items-center gap-1 text-[10px] font-mono text-cyan-400">
+                    <div className="absolute right-0 mt-1.5 w-56 rounded-xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs text-slate-800 dark:text-slate-200">
+                      <div className="px-2.5 py-2 border-b border-slate-100 dark:border-slate-800/80 mb-1">
+                        <div className="font-bold text-slate-900 dark:text-white text-xs truncate">{user.name}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user.email}</div>
+                        <div className="mt-1 flex items-center gap-1 text-[10px] font-mono text-cyan-600 dark:text-cyan-400">
                           <span className="capitalize">{user.tier.replace('_', ' ')}</span>
                           <span>•</span>
                           <span>{user.credits} credits</span>
@@ -620,9 +635,9 @@ export const Header: React.FC<HeaderProps> = ({
                             setActiveTab('dashboard');
                             setIsUserMenuOpen(false);
                           }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                         >
-                          <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
+                          <LayoutDashboard className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                           <span>Dashboard & Analytics</span>
                         </button>
 
@@ -632,9 +647,9 @@ export const Header: React.FC<HeaderProps> = ({
                               onOpenUsageHistory();
                               setIsUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                           >
-                            <History className="w-3.5 h-3.5 text-cyan-400" />
+                            <History className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                             <span>Usage History & Audit</span>
                           </button>
                         )}
@@ -644,20 +659,20 @@ export const Header: React.FC<HeaderProps> = ({
                             onOpenPaywall();
                             setIsUserMenuOpen(false);
                           }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                         >
-                          <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                          <CreditCard className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           <span>Pricing & Credit Top-up</span>
                         </button>
 
-                        <div className="border-t border-slate-800/80 my-1"></div>
+                        <div className="border-t border-slate-100 dark:border-slate-800/80 my-1"></div>
 
                         <button
                           onClick={() => {
                             setIsUserMenuOpen(false);
                             onLogout();
                           }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition cursor-pointer font-medium"
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer font-medium"
                         >
                           <LogOut className="w-3.5 h-3.5" />
                           <span>Sign Out</span>
@@ -677,7 +692,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   onClick={() => onOpenAuth('admin')}
-                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition cursor-pointer"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 transition cursor-pointer"
                   title="Admin Gateway"
                 >
                   <Lock className="w-3.5 h-3.5" />

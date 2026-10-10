@@ -100,7 +100,7 @@
       "updatedAt": "2026-09-08T10:51:49.197Z"
     },
     {
-      "id": "usr_admin_01",
+      "id": "usr_admin_creator_prakash",
       "email": "creator_usr_prakash_admin@nepalai.tech",
       "name": "Creator User",
       "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
@@ -111,7 +111,7 @@
       "updatedAt": "2026-09-08T11:19:49.858Z"
     },
     {
-      "id": "usr_admin_01",
+      "id": "usr_admin_creator_default",
       "email": "creator_usr_default_admin@nepalai.tech",
       "name": "Creator User",
       "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
@@ -342,7 +342,7 @@
       "updatedAt": "2026-09-19T04:22:10.276Z"
     },
     {
-      "id": "usr_admin_01",
+      "id": "usr_admin_prakash_gmail",
       "email": "prakashsuvedi@gmail.com",
       "name": "Prakash Suvedi (Platform Owner)",
       "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
@@ -377,12 +377,12 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 99999,
-      "totalTokensUsed": 9000,
-      "lastUsedAt": "2026-09-19T15:46:27.517Z",
+      "totalTokensUsed": 19800,
+      "lastUsedAt": "2026-10-10T03:31:13.353Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T04:20:34.489Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:20:17.003Z"
     },
     "usr_client_02": {
       "userId": "usr_client_02",
@@ -398,8 +398,8 @@
       "maxRenders": 50,
       "totalTokensUsed": 52400,
       "lastUsedAt": "2026-09-02T14:15:00.000Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.492Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.498Z",
       "maxChat": 50,
       "chatCount": 0
     },
@@ -417,8 +417,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 82150,
       "lastUsedAt": "2026-09-18T02:09:53.551Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.494Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.500Z",
       "maxChat": 50,
       "chatCount": 0,
       "avatarCount": 1,
@@ -438,8 +438,8 @@
       "maxRenders": 10,
       "totalTokensUsed": 21800,
       "lastUsedAt": "2026-09-03T08:10:00.000Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.495Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.502Z",
       "maxChat": 50,
       "chatCount": 0
     },
@@ -472,8 +472,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-04T07:43:50.345Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.497Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.504Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -491,8 +491,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 700,
       "lastUsedAt": "2026-09-04T07:48:58.626Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.498Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.505Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -510,8 +510,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-06T03:22:54.375Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.500Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.507Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -546,8 +546,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-07T05:17:07.003Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.501Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.508Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -582,8 +582,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-08T10:51:49.197Z",
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.503Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.509Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -654,8 +654,8 @@
       "lastUsedAt": "2026-09-12T14:46:01.824Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.504Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.511Z"
     },
     "usr_test_manual_123": {
       "userId": "usr_test_manual_123",
@@ -690,8 +690,8 @@
       "lastUsedAt": "2026-09-14T10:04:54.432Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.506Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.512Z"
     },
     "usr_1789380378333_7njle": {
       "userId": "usr_1789380378333_7njle",
@@ -709,8 +709,8 @@
       "lastUsedAt": "2026-09-14T10:06:18.333Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.507Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.513Z"
     },
     "usr_1789380418429_oxy2d": {
       "userId": "usr_1789380418429_oxy2d",
@@ -728,8 +728,8 @@
       "lastUsedAt": "2026-09-14T10:06:58.429Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.509Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.515Z"
     },
     "usr_1789380468732_5pboy": {
       "userId": "usr_1789380468732_5pboy",
@@ -747,8 +747,8 @@
       "lastUsedAt": "2026-09-14T10:07:48.732Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.510Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.516Z"
     },
     "usr_1789380506595_vnkvq": {
       "userId": "usr_1789380506595_vnkvq",
@@ -766,8 +766,8 @@
       "lastUsedAt": "2026-09-14T10:08:26.595Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.512Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.518Z"
     },
     "usr_1789380536032_i4ean": {
       "userId": "usr_1789380536032_i4ean",
@@ -785,8 +785,8 @@
       "lastUsedAt": "2026-09-14T10:08:56.032Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.513Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.519Z"
     },
     "usr_1789380577135_smbag": {
       "userId": "usr_1789380577135_smbag",
@@ -804,8 +804,8 @@
       "lastUsedAt": "2026-09-14T10:09:37.135Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.515Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.520Z"
     },
     "usr_1789381056714_6avw3": {
       "userId": "usr_1789381056714_6avw3",
@@ -823,8 +823,8 @@
       "lastUsedAt": "2026-09-14T10:17:36.714Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.516Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.522Z"
     },
     "usr_1789381108234_8rb64": {
       "userId": "usr_1789381108234_8rb64",
@@ -842,8 +842,8 @@
       "lastUsedAt": "2026-09-14T10:18:28.234Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.518Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.523Z"
     },
     "usr_1789382315114_n19uh": {
       "userId": "usr_1789382315114_n19uh",
@@ -861,8 +861,8 @@
       "lastUsedAt": "2026-09-14T10:38:35.114Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.519Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.524Z"
     },
     "usr_1789382396226_a1mlx": {
       "userId": "usr_1789382396226_a1mlx",
@@ -880,8 +880,8 @@
       "lastUsedAt": "2026-09-14T10:39:56.226Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.520Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.526Z"
     },
     "usr_1789382802907_mihrq": {
       "userId": "usr_1789382802907_mihrq",
@@ -899,8 +899,8 @@
       "lastUsedAt": "2026-09-14T10:46:42.907Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.522Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.527Z"
     },
     "usr_1789385212135_4nzyr": {
       "userId": "usr_1789385212135_4nzyr",
@@ -918,8 +918,8 @@
       "lastUsedAt": "2026-09-14T11:26:52.135Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.524Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.528Z"
     },
     "usr_1789385552715_ijd7h": {
       "userId": "usr_1789385552715_ijd7h",
@@ -937,8 +937,8 @@
       "lastUsedAt": "2026-09-14T11:32:32.715Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.525Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.529Z"
     },
     "usr_1789649037554_g85bl": {
       "userId": "usr_1789649037554_g85bl",
@@ -956,8 +956,8 @@
       "lastUsedAt": "2026-09-17T12:43:57.554Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.526Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.531Z"
     },
     "usr_qa_staging_test": {
       "userId": "usr_qa_staging_test",
@@ -994,8 +994,8 @@
       "lastUsedAt": "2026-09-17T12:46:52.849Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.528Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.532Z"
     },
     "usr_qa_staging_1789649212829": {
       "userId": "usr_qa_staging_1789649212829",
@@ -1032,8 +1032,8 @@
       "lastUsedAt": "2026-09-17T12:49:14.812Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.529Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.533Z"
     },
     "usr_qa_staging_1789649354792": {
       "userId": "usr_qa_staging_1789649354792",
@@ -1070,8 +1070,8 @@
       "lastUsedAt": "2026-09-18T02:52:34.499Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.531Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.535Z"
     },
     "usr_admin_master": {
       "userId": "usr_admin_master",
@@ -1108,8 +1108,8 @@
       "lastUsedAt": "2026-09-19T03:49:38.418Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T03:51:06.532Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.536Z"
     },
     "usr_1789831067926_t38vo": {
       "userId": "usr_1789831067926_t38vo",
@@ -1127,8 +1127,8 @@
       "lastUsedAt": "2026-09-19T15:17:47.926Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-09-19",
-      "lastResetAt": "2026-09-19T15:26:46.415Z"
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T02:39:40.537Z"
     },
     "user-creator-nepal-001": {
       "userId": "user-creator-nepal-001",
@@ -1148,6 +1148,63 @@
       "lastUsedAt": "2026-09-19T15:17:47.928Z",
       "lastResetDate": "2026-09-19",
       "lastResetAt": "2026-09-19T15:17:47.928Z"
+    },
+    "usr_admin_creator_prakash": {
+      "userId": "usr_admin_creator_prakash",
+      "imagesCount": 0,
+      "maxImages": 99999,
+      "videoCount": 0,
+      "maxVideo": 99999,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 99999,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 99999,
+      "chatCount": 0,
+      "maxChat": 999999,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-10-10T03:07:51.965Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T03:07:51.965Z"
+    },
+    "usr_admin_creator_default": {
+      "userId": "usr_admin_creator_default",
+      "imagesCount": 0,
+      "maxImages": 99999,
+      "videoCount": 0,
+      "maxVideo": 99999,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 99999,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 99999,
+      "chatCount": 0,
+      "maxChat": 999999,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-10-10T03:07:51.967Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T03:07:51.967Z"
+    },
+    "usr_admin_prakash_gmail": {
+      "userId": "usr_admin_prakash_gmail",
+      "imagesCount": 0,
+      "maxImages": 99999,
+      "videoCount": 0,
+      "maxVideo": 99999,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 99999,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 99999,
+      "chatCount": 0,
+      "maxChat": 999999,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-10-10T03:07:51.968Z",
+      "lastResetDate": "2026-10-10",
+      "lastResetAt": "2026-10-10T03:07:51.968Z"
     }
   },
   "transactions": [
@@ -1504,6 +1561,54 @@
     }
   ],
   "generationLogs": [
+    {
+      "id": "gen_1791603073354_ypub",
+      "userId": "usr_admin_01",
+      "type": "render",
+      "model": "NepalAI Video Assembler Pro",
+      "prompt": "Render Project: NepalAI Pro Ad Campaign 2026",
+      "resultUrl": "/renders/rnd_mv1u7c20_9fflw.mp4",
+      "tokensCost": 4500,
+      "creditsCost": 30,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-10T03:31:13.354Z"
+    },
+    {
+      "id": "gen_1791603021991_bd6p",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते! नेपाल एआई भिडियो स्टुडियोमा स्वागत छ। आधुनिक क्रिएटरहरूका लागि तयार गरिएको शक्तिशाली प्लेटफर्म।",
+      "resultUrl": "/api/storage/file/azure_speech_1791603021972_bb9r.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-10T03:30:21.991Z"
+    },
+    {
+      "id": "gen_1791601993850_fmzu",
+      "userId": "usr_admin_01",
+      "type": "render",
+      "model": "NepalAI Video Assembler Pro",
+      "prompt": "Render Project: NepalAI Pro Ad Campaign 2026",
+      "resultUrl": "/samples/everest_sunrise.mp4",
+      "tokensCost": 4500,
+      "creditsCost": 30,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-10T03:13:13.850Z"
+    },
+    {
+      "id": "gen_1791601957549_l8uf",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते! नेपाल एआई भिडियो स्टुडियोमा स्वागत छ। आधुनिक क्रिएटरहरूका लागि तयार गरिएको शक्तिशाली प्लेटफर्म।",
+      "resultUrl": "/api/storage/file/azure_speech_1791601957529_ccpe.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-10T03:12:37.549Z"
+    },
     {
       "id": "gen_1789832787517_67va",
       "userId": "usr_admin_01",
@@ -3249,50 +3354,6 @@
       "tokensCost": 350,
       "creditsCost": 5,
       "createdAt": "2026-09-04T12:55:27.875Z"
-    },
-    {
-      "id": "gen_1788526524932_9512",
-      "userId": "usr_admin_01",
-      "type": "video",
-      "model": "sora-2",
-      "prompt": "Cinematic drone shot of Mount Everest at golden hour",
-      "resultUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-      "tokensCost": 2800,
-      "creditsCost": 25,
-      "createdAt": "2026-09-04T12:55:24.932Z"
-    },
-    {
-      "id": "gen_1788526462470_42pa",
-      "userId": "usr_admin_01",
-      "type": "image",
-      "model": "gpt-image-1.5 (Azure AI Foundry)",
-      "prompt": "make a picture of beautiful sexy hot nepali girl with cleavage.",
-      "resultUrl": "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=85",
-      "tokensCost": 350,
-      "creditsCost": 5,
-      "createdAt": "2026-09-04T12:54:22.470Z"
-    },
-    {
-      "id": "gen_1788526391347_6pke",
-      "userId": "usr_admin_01",
-      "type": "video",
-      "model": "sora-2",
-      "prompt": "cinematic view of kathmandu pashupati nath temple.",
-      "resultUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-      "tokensCost": 2800,
-      "creditsCost": 25,
-      "createdAt": "2026-09-04T12:53:11.347Z"
-    },
-    {
-      "id": "gen_1788525890970_f7b7",
-      "userId": "usr_admin_01",
-      "type": "audio",
-      "model": "Nepalese-Warm",
-      "prompt": "Welcome to NepalAI Studio",
-      "resultUrl": "https://actions.google.com/sounds/v1/weather/light_rain.ogg",
-      "tokensCost": 900,
-      "creditsCost": 10,
-      "createdAt": "2026-09-04T12:44:50.970Z"
     }
   ],
   "pricingConfig": {

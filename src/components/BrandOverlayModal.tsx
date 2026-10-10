@@ -422,26 +422,34 @@ export const BrandOverlayModal: React.FC<BrandOverlayModalProps> = ({
                 {/* Brand Text Caption */}
                 <div className="space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <label htmlFor="brand-show-text-checkbox" className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 cursor-pointer">
                       <Type className="w-3.5 h-3.5 text-amber-400" />
                       <span>Brand Text Sub-caption</span>
                     </label>
+                    <label htmlFor="brand-show-text-checkbox" className="visually-hidden">Toggle display of brand text sub-caption</label>
                     <input
+                      id="brand-show-text-checkbox"
                       type="checkbox"
                       checked={config.showBrandText}
+                      aria-label="Toggle brand text sub-caption"
                       onChange={(e) => setConfig(prev => ({ ...prev, showBrandText: e.target.checked }))}
                       className="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer"
                     />
                   </div>
 
                   {config.showBrandText && (
-                    <input
-                      type="text"
-                      value={config.brandText}
-                      onChange={(e) => setConfig(prev => ({ ...prev, brandText: e.target.value }))}
-                      placeholder="e.g. NepalAI Studio"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                    />
+                    <div className="space-y-1">
+                      <label htmlFor="brand-custom-text-input" className="visually-hidden">Custom brand watermark sub-caption text</label>
+                      <input
+                        id="brand-custom-text-input"
+                        type="text"
+                        value={config.brandText}
+                        aria-label="Custom brand watermark text"
+                        onChange={(e) => setConfig(prev => ({ ...prev, brandText: e.target.value }))}
+                        placeholder="e.g. NepalAI Studio"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
                   )}
                 </div>
               </div>

@@ -296,14 +296,20 @@ export const AiMediaProcessingModal: React.FC<AiMediaProcessingModalProps> = ({
                 <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
                   <div>
                     <div className="flex justify-between text-xs text-slate-300 mb-1">
-                      <span>Feather Radius (Edge Softness)</span>
+                      <label htmlFor="feather-radius-slider" className="cursor-pointer">Feather Radius (Edge Softness)</label>
                       <span className="font-mono text-emerald-400">{featherRadius}px</span>
                     </div>
+                    <label htmlFor="feather-radius-slider" className="visually-hidden">Feather radius edge softness in pixels</label>
                     <input
+                      id="feather-radius-slider"
                       type="range"
                       min="0"
                       max="10"
                       value={featherRadius}
+                      aria-label="Feather Radius (Edge Softness)"
+                      aria-valuemin={0}
+                      aria-valuemax={10}
+                      aria-valuenow={featherRadius}
                       onChange={(e) => setFeatherRadius(parseInt(e.target.value))}
                       className="w-full accent-emerald-400 cursor-pointer"
                     />
@@ -311,14 +317,20 @@ export const AiMediaProcessingModal: React.FC<AiMediaProcessingModalProps> = ({
 
                   <div>
                     <div className="flex justify-between text-xs text-slate-300 mb-1">
-                      <span>Hair & Edge Boundary Smoothing</span>
+                      <label htmlFor="edge-smoothness-slider" className="cursor-pointer">Hair & Edge Boundary Smoothing</label>
                       <span className="font-mono text-emerald-400">{edgeSmoothness}/10</span>
                     </div>
+                    <label htmlFor="edge-smoothness-slider" className="visually-hidden">Hair and edge boundary smoothing scale</label>
                     <input
+                      id="edge-smoothness-slider"
                       type="range"
                       min="1"
                       max="10"
                       value={edgeSmoothness}
+                      aria-label="Hair & Edge Boundary Smoothing"
+                      aria-valuemin={1}
+                      aria-valuemax={10}
+                      aria-valuenow={edgeSmoothness}
                       onChange={(e) => setEdgeSmoothness(parseInt(e.target.value))}
                       className="w-full accent-emerald-400 cursor-pointer"
                     />
@@ -467,24 +479,32 @@ export const AiMediaProcessingModal: React.FC<AiMediaProcessingModalProps> = ({
                 <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
                   <div>
                     <div className="flex justify-between text-xs text-slate-300 mb-1">
-                      <span>Neural Edge Sharpening</span>
+                      <label htmlFor="neural-edge-sharpening-slider" className="cursor-pointer">Neural Edge Sharpening</label>
                       <span className="font-mono text-purple-400">{sharpening}%</span>
                     </div>
+                    <label htmlFor="neural-edge-sharpening-slider" className="visually-hidden">Neural edge sharpening intensity percentage</label>
                     <input
+                      id="neural-edge-sharpening-slider"
                       type="range"
                       min="0"
                       max="100"
                       value={sharpening}
+                      aria-label="Neural Edge Sharpening"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={sharpening}
                       onChange={(e) => setSharpening(parseInt(e.target.value))}
                       className="w-full accent-purple-400 cursor-pointer"
                     />
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-slate-300">HDR Color & Vibrance Boost</span>
+                    <label htmlFor="vibrance-boost-checkbox" className="text-xs text-slate-300 cursor-pointer">HDR Color & Vibrance Boost</label>
                     <input
+                      id="vibrance-boost-checkbox"
                       type="checkbox"
                       checked={vibranceBoost}
+                      aria-label="HDR Color & Vibrance Boost"
                       onChange={(e) => setVibranceBoost(e.target.checked)}
                       className="accent-purple-400 w-4 h-4 cursor-pointer"
                     />

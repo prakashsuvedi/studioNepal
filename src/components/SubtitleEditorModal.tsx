@@ -274,19 +274,25 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
 
                       {/* Timestamp inputs */}
                       <div className="flex items-center gap-1 font-mono text-xs">
+                        <label htmlFor={`sub-start-time-${item.id}`} className="visually-hidden">Subtitle #{item.index} start time in seconds</label>
                         <input
+                          id={`sub-start-time-${item.id}`}
                           type="number"
                           step={0.1}
                           min={0}
+                          aria-label={`Subtitle #${item.index} start time in seconds`}
                           value={item.startTimeSec}
                           onChange={(e) => handleUpdateItem(item.id, { startTimeSec: Number(e.target.value) })}
                           className="w-16 bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-center text-emerald-300 font-bold focus:outline-none focus:border-emerald-500"
                         />
                         <span className="text-slate-500">➜</span>
+                        <label htmlFor={`sub-end-time-${item.id}`} className="visually-hidden">Subtitle #{item.index} end time in seconds</label>
                         <input
+                          id={`sub-end-time-${item.id}`}
                           type="number"
                           step={0.1}
                           min={0}
+                          aria-label={`Subtitle #${item.index} end time in seconds`}
                           value={item.endTimeSec}
                           onChange={(e) => handleUpdateItem(item.id, { endTimeSec: Number(e.target.value) })}
                           className="w-16 bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-center text-emerald-300 font-bold focus:outline-none focus:border-emerald-500"
@@ -309,18 +315,22 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
                   {/* Subtitle text input row */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     <div>
-                      <label className="text-[10px] text-slate-500 font-semibold mb-0.5 block">English Caption</label>
+                      <label htmlFor={`sub-english-text-${item.id}`} className="text-[10px] text-slate-500 font-semibold mb-0.5 block cursor-pointer">English Caption</label>
                       <input
+                        id={`sub-english-text-${item.id}`}
                         type="text"
+                        aria-label={`Subtitle #${item.index} English Caption`}
                         value={item.text}
                         onChange={(e) => handleUpdateItem(item.id, { text: e.target.value })}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 font-sans"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-emerald-400 font-semibold mb-0.5 block">Devanagari Subtitle (नेपाली)</label>
+                      <label htmlFor={`sub-devanagari-text-${item.id}`} className="text-[10px] text-emerald-400 font-semibold mb-0.5 block cursor-pointer">Devanagari Subtitle (नेपाली)</label>
                       <input
+                        id={`sub-devanagari-text-${item.id}`}
                         type="text"
+                        aria-label={`Subtitle #${item.index} Devanagari Caption`}
                         value={item.devanagariText}
                         onChange={(e) => handleUpdateItem(item.id, { devanagariText: e.target.value })}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-emerald-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 font-sans"
@@ -341,13 +351,15 @@ export const SubtitleEditorModal: React.FC<SubtitleEditorModalProps> = ({
           {/* Burn-in Overlay Style Customization */}
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-2">
+              <label htmlFor="sub-burn-in-checkbox" className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-2 cursor-pointer">
                 <Type className="w-4 h-4 text-emerald-400" />
                 <span>Burn-in Subtitles On Final Video Output</span>
               </label>
 
               <input
+                id="sub-burn-in-checkbox"
                 type="checkbox"
+                aria-label="Burn-in Subtitles On Final Video Output"
                 checked={burnOptions.burnIn}
                 onChange={(e) => setBurnOptions(prev => ({ ...prev, burnIn: e.target.checked }))}
                 className="w-4 h-4 accent-emerald-600 rounded cursor-pointer"

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Scene, BrandOverlayConfig, TickerConfig, VfxConfig, ColorAdjustments } from '../types';
+import { Scene, BrandOverlayConfig, TickerConfig, VfxConfig } from '../types';
 import { SubtitleItem, SubtitleBurnOptions } from './SubtitleEditorModal';
 import { Play, Activity, Eye, Film, Volume2, VolumeX, AlertCircle, Zap } from 'lucide-react';
 import { getCompositionAtTime } from '../lib/timelineComposition';
@@ -206,83 +206,6 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     } else {
       opacityB = 1;
       opacityA = 0;
-    }
-  }
-
-  // Visual Transition Transforms (Wipes, Slides, Zooms, Defocus)
-  const currentTransitionType = compositionState.transitionType || activeScene?.transition || 'dissolve';
-  const deckATransforms: React.CSSProperties = {};
-  const deckBTransforms: React.CSSProperties = {};
-
-  if (isTransitioning && nextScene && currentTransitionType !== 'cut') {
-    const isOutgoingA = isEvenScene;
-    const progress = transitionProgress;
-
-    if (currentTransitionType === 'wipe_left') {
-      if (isOutgoingA) {
-        deckBTransforms.clipPath = `inset(0 0 0 ${(1 - progress) * 100}%)`;
-      } else {
-        deckATransforms.clipPath = `inset(0 0 0 ${(1 - progress) * 100}%)`;
-      }
-    } else if (currentTransitionType === 'wipe_right') {
-      if (isOutgoingA) {
-        deckBTransforms.clipPath = `inset(0 ${(1 - progress) * 100}% 0 0)`;
-      } else {
-        deckATransforms.clipPath = `inset(0 ${(1 - progress) * 100}% 0 0)`;
-      }
-    } else if (currentTransitionType === 'slide_left') {
-      if (isOutgoingA) {
-        deckATransforms.transform = `translateX(-${progress * 100}%)`;
-        deckBTransforms.transform = `translateX(${(1 - progress) * 100}%)`;
-      } else {
-        deckBTransforms.transform = `translateX(-${progress * 100}%)`;
-        deckATransforms.transform = `translateX(${(1 - progress) * 100}%)`;
-      }
-    } else if (currentTransitionType === 'slide_right') {
-      if (isOutgoingA) {
-        deckATransforms.transform = `translateX(${progress * 100}%)`;
-        deckBTransforms.transform = `translateX(-${(1 - progress) * 100}%)`;
-      } else {
-        deckBTransforms.transform = `translateX(${progress * 100}%)`;
-        deckATransforms.transform = `translateX(-${(1 - progress) * 100}%)`;
-      }
-    } else if (currentTransitionType === 'slide_up') {
-      if (isOutgoingA) {
-        deckATransforms.transform = `translateY(-${progress * 100}%)`;
-        deckBTransforms.transform = `translateY(${(1 - progress) * 100}%)`;
-      } else {
-        deckBTransforms.transform = `translateY(-${progress * 100}%)`;
-        deckATransforms.transform = `translateY(${(1 - progress) * 100}%)`;
-      }
-    } else if (currentTransitionType === 'slide_down') {
-      if (isOutgoingA) {
-        deckATransforms.transform = `translateY(${progress * 100}%)`;
-        deckBTransforms.transform = `translateY(-${(1 - progress) * 100}%)`;
-      } else {
-        deckBTransforms.transform = `translateY(${progress * 100}%)`;
-        deckATransforms.transform = `translateY(-${(1 - progress) * 100}%)`;
-      }
-    } else if (currentTransitionType === 'zoom_in') {
-      if (isOutgoingA) {
-        deckBTransforms.transform = `scale(${0.85 + progress * 0.15})`;
-      } else {
-        deckATransforms.transform = `scale(${0.85 + progress * 0.15})`;
-      }
-    } else if (currentTransitionType === 'zoom_out') {
-      if (isOutgoingA) {
-        deckATransforms.transform = `scale(${1 - progress * 0.15})`;
-      } else {
-        deckBTransforms.transform = `scale(${1 - progress * 0.15})`;
-      }
-    } else if (currentTransitionType === 'blur_dissolve') {
-      const blurPx = Math.sin(progress * Math.PI) * 10;
-      if (isOutgoingA) {
-        deckATransforms.filter = `${activeVideoFilter} blur(${blurPx}px)`;
-        deckBTransforms.filter = `${activeVideoFilter} blur(${blurPx}px)`;
-      } else {
-        deckBTransforms.filter = `${activeVideoFilter} blur(${blurPx}px)`;
-        deckATransforms.filter = `${activeVideoFilter} blur(${blurPx}px)`;
-      }
     }
   }
 
@@ -557,10 +480,11 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         ctx.save();
         
         // CSS Filter
-        const sceneFilter = buildFilterString(activeScene.filter, activeScene.colorAdjustments);
-        if (sceneFilter !== 'none') {
-          ctx.filter = sceneFilter;
-        }
+        if (activeScene.filter === 'cinematic') ctx.filter = 'contrast(1.25) saturate(1.2)';
+        else if (activeScene.filter === 'warm') ctx.filter = 'sepia(0.35) saturate(1.3)';
+        else if (activeScene.filter === 'cool') ctx.filter = 'hue-rotate(185deg) saturate(1.15)';
+        else if (activeScene.filter === 'vintage') ctx.filter = 'sepia(0.6) contrast(0.9)';
+        else if (activeScene.filter === 'vibrant') ctx.filter = 'saturate(1.6) contrast(1.15)';
 
         // Camera Motion
         const progress = compositionState.sceneProgress;
@@ -644,43 +568,13 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
       );
     }
 
-    if (brandOverlayConfig?.enabled) {
-      if (brandOverlayConfig.logoUrl) {
-        drawWatermark(
-          brandOverlayConfig.logoUrl,
-          brandOverlayConfig.position || 'top-right',
-          (brandOverlayConfig.opacityPercent || 85) / 100,
-          (brandOverlayConfig.scalePercent || 20) / 100
-        );
-      }
-      if (brandOverlayConfig.brandText && (brandOverlayConfig.showBrandText || !brandOverlayConfig.logoUrl)) {
-        ctx.save();
-        ctx.globalAlpha = (brandOverlayConfig.opacityPercent || 85) / 100;
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(0,0,0,0.85)';
-        ctx.shadowBlur = 4;
-        const pad = 16;
-        const textMetrics = ctx.measureText(brandOverlayConfig.brandText);
-        let tX = pad;
-        let tY = pad + 14;
-        const pos = brandOverlayConfig.position || 'top-right';
-        if (pos === 'top-right') {
-          tX = width - textMetrics.width - pad;
-          tY = pad + 14;
-        } else if (pos === 'bottom-left') {
-          tX = pad;
-          tY = height - pad;
-        } else if (pos === 'bottom-right') {
-          tX = width - textMetrics.width - pad;
-          tY = height - pad;
-        } else if (pos === 'center') {
-          tX = (width - textMetrics.width) / 2;
-          tY = height / 2;
-        }
-        ctx.fillText(brandOverlayConfig.brandText, tX, tY);
-        ctx.restore();
-      }
+    if (brandOverlayConfig?.enabled && brandOverlayConfig.logoUrl) {
+      drawWatermark(
+        brandOverlayConfig.logoUrl,
+        brandOverlayConfig.position || 'top-right',
+        (brandOverlayConfig.opacityPercent || 85) / 100,
+        (brandOverlayConfig.scalePercent || 20) / 100
+      );
     }
 
     // 3. Draw Scrolling Breaking News Ticker
@@ -1024,78 +918,23 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
   };
 
-// Helper to generate full CSS filter string from filter presets and manual color adjustments
-export function buildFilterString(filter?: string, adj?: ColorAdjustments): string {
-  const parts: string[] = [];
-
-  // 1. Preset LUTs
-  switch (filter) {
-    case 'cinematic':
-      parts.push('contrast(1.25) saturate(1.2) brightness(0.96)');
-      break;
-    case 'warm':
-      parts.push('sepia(0.35) saturate(1.3) hue-rotate(-15deg)');
-      break;
-    case 'warm_gold':
-      parts.push('sepia(0.4) saturate(1.4) hue-rotate(-10deg) brightness(1.05)');
-      break;
-    case 'cool':
-      parts.push('hue-rotate(185deg) saturate(1.15) contrast(1.1)');
-      break;
-    case 'mist':
-      parts.push('brightness(1.08) contrast(0.85) saturate(0.8) hue-rotate(190deg)');
-      break;
-    case 'cyberpunk':
-      parts.push('contrast(1.3) saturate(1.8) hue-rotate(320deg)');
-      break;
-    case 'vintage':
-      parts.push('sepia(0.6) contrast(0.9) brightness(0.95)');
-      break;
-    case 'vibrant':
-      parts.push('saturate(1.6) contrast(1.15)');
-      break;
-    case 'bw':
-      parts.push('grayscale(1) contrast(1.3)');
-      break;
-    default:
-      break;
-  }
-
-  // 2. Manual Color Adjustments (-50 to +50 scale)
-  if (adj) {
-    if (adj.brightness || adj.exposure) {
-      const bFactor = 1 + ((adj.brightness || 0) + (adj.exposure || 0)) / 100;
-      parts.push(`brightness(${Math.max(0.1, Number(bFactor.toFixed(2)))})`);
-    }
-    if (adj.contrast) {
-      const cFactor = 1 + adj.contrast / 100;
-      parts.push(`contrast(${Math.max(0.1, Number(cFactor.toFixed(2)))})`);
-    }
-    if (adj.saturation) {
-      const sFactor = 1 + adj.saturation / 100;
-      parts.push(`saturate(${Math.max(0, Number(sFactor.toFixed(2)))})`);
-    }
-    if (adj.colorTemp) {
-      if (adj.colorTemp > 0) {
-        parts.push(`sepia(${Math.min(1, Number((adj.colorTemp / 100).toFixed(2)))})`);
-      } else if (adj.colorTemp < 0) {
-        const hue = Math.round((adj.colorTemp / 50) * 25);
-        parts.push(`hue-rotate(${hue}deg)`);
-      }
-    }
-    if (adj.tint) {
-      const hue = Math.round((adj.tint / 50) * 15);
-      parts.push(`hue-rotate(${hue}deg)`);
-    }
-  }
-
-  return parts.length > 0 ? parts.join(' ') : 'none';
-}
-
   // Compute CSS filter style for active video
   const activeVideoFilter = useMemo(() => {
-    return buildFilterString(activeScene?.filter, activeScene?.colorAdjustments);
-  }, [activeScene?.filter, activeScene?.colorAdjustments]);
+    switch (activeScene?.filter) {
+      case 'cinematic':
+        return 'contrast(1.25) saturate(1.2) brightness(0.96)';
+      case 'warm':
+        return 'sepia(0.35) saturate(1.3) hue-rotate(-15deg)';
+      case 'cool':
+        return 'hue-rotate(185deg) saturate(1.15) contrast(1.1)';
+      case 'vintage':
+        return 'sepia(0.6) contrast(0.9) brightness(0.95)';
+      case 'vibrant':
+        return 'saturate(1.6) contrast(1.15)';
+      default:
+        return 'none';
+    }
+  }, [activeScene?.filter]);
 
   return (
     <div className={`relative flex flex-col items-center justify-center w-full h-full overflow-hidden select-none ${className}`}>
@@ -1150,129 +989,93 @@ export function buildFilterString(filter?: string, adj?: ColorAdjustments): stri
             </div>
           )}
 
-          {/* 1. Double-Buffered Hardware Video or Image Element Deck A */}
-          {deckASrc && (
-            isDeckAVideo ? (
-              <video
-                ref={deckAVideoRef}
-                src={deckASrc}
-                playsInline
-                muted={!isEvenScene || isMuted || !!deckAScene?.isMuted || deckAScene?.volume === 0}
-                preload="auto"
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
-                style={{
-                  filter: activeVideoFilter,
-                  opacity: opacityA,
-                  pointerEvents: isEvenScene ? 'auto' : 'none',
-                  ...deckATransforms
-                }}
-                onWaiting={() => {
-                  if (isEvenScene) setIsBuffering(true);
-                }}
-                onPlaying={() => {
-                  if (isEvenScene) {
-                    setIsBuffering(false);
-                    setVideoLoadError(null);
-                  }
-                }}
-                onLoadedData={() => {
-                  if (isEvenScene) {
-                    setIsBuffering(false);
-                    setVideoLoadError(null);
-                    if (activeScene?.id) {
-                      renderPerformanceMonitor.recordFirstFrameDecoded(activeScene.id);
-                    }
-                  }
-                }}
-                onCanPlay={() => {
-                  if (isEvenScene && activeScene?.id) {
+          {/* 1. Double-Buffered Hardware Video Element Deck A */}
+          {deckASrc && isDeckAVideo && (
+            <video
+              ref={deckAVideoRef}
+              src={deckASrc}
+              playsInline
+              muted={!isEvenScene || isMuted || !!deckAScene?.isMuted || deckAScene?.volume === 0}
+              preload="auto"
+              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
+              style={{
+                filter: activeVideoFilter,
+                opacity: opacityA,
+                pointerEvents: isEvenScene ? 'auto' : 'none',
+              }}
+              onWaiting={() => {
+                if (isEvenScene) setIsBuffering(true);
+              }}
+              onPlaying={() => {
+                if (isEvenScene) {
+                  setIsBuffering(false);
+                  setVideoLoadError(null);
+                }
+              }}
+              onLoadedData={() => {
+                if (isEvenScene) {
+                  setIsBuffering(false);
+                  setVideoLoadError(null);
+                  if (activeScene?.id) {
                     renderPerformanceMonitor.recordFirstFrameDecoded(activeScene.id);
                   }
-                }}
-                onError={(e: any) => {
-                  const target = e.target as HTMLVideoElement;
-                  const rawUrl = deckAScene?.mediaUrl || '';
-                  handleSilentVideoError(target, rawUrl, 'A');
-                }}
-              />
-            ) : (
-              <img
-                src={deckASrc}
-                alt=""
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2] pointer-events-none"
-                style={{
-                  filter: activeVideoFilter,
-                  opacity: opacityA,
-                  ...deckATransforms
-                }}
-              />
-            )
+                }
+              }}
+              onCanPlay={() => {
+                if (isEvenScene && activeScene?.id) {
+                  renderPerformanceMonitor.recordFirstFrameDecoded(activeScene.id);
+                }
+              }}
+              onError={(e: any) => {
+                const target = e.target as HTMLVideoElement;
+                const rawUrl = deckAScene?.mediaUrl || '';
+                handleSilentVideoError(target, rawUrl, 'A');
+              }}
+            />
           )}
 
-          {/* 2. Double-Buffered Hardware Video or Image Element Deck B */}
-          {deckBSrc && (
-            isDeckBVideo ? (
-              <video
-                ref={deckBVideoRef}
-                src={deckBSrc}
-                playsInline
-                muted={isEvenScene || isMuted || !!deckBScene?.isMuted || deckBScene?.volume === 0}
-                preload="auto"
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
-                style={{
-                  filter: activeVideoFilter,
-                  opacity: opacityB,
-                  pointerEvents: !isEvenScene ? 'auto' : 'none',
-                  ...deckBTransforms
-                }}
-                onWaiting={() => {
-                  if (!isEvenScene) setIsBuffering(true);
-                }}
-                onPlaying={() => {
-                  if (!isEvenScene) {
-                    setIsBuffering(false);
-                    setVideoLoadError(null);
-                  }
-                }}
-                onLoadedData={() => {
-                  if (!isEvenScene) {
-                    setIsBuffering(false);
-                    setVideoLoadError(null);
-                    if (activeScene?.id) {
-                      renderPerformanceMonitor.recordFirstFrameDecoded(activeScene.id);
-                    }
-                  }
-                }}
-                onCanPlay={() => {
-                  if (!isEvenScene && activeScene?.id) {
+          {/* 2. Double-Buffered Hardware Video Element Deck B */}
+          {deckBSrc && isDeckBVideo && (
+            <video
+              ref={deckBVideoRef}
+              src={deckBSrc}
+              playsInline
+              muted={isEvenScene || isMuted || !!deckBScene?.isMuted || deckBScene?.volume === 0}
+              preload="auto"
+              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
+              style={{
+                filter: activeVideoFilter,
+                opacity: opacityB,
+                pointerEvents: !isEvenScene ? 'auto' : 'none',
+              }}
+              onWaiting={() => {
+                if (!isEvenScene) setIsBuffering(true);
+              }}
+              onPlaying={() => {
+                if (!isEvenScene) {
+                  setIsBuffering(false);
+                  setVideoLoadError(null);
+                }
+              }}
+              onLoadedData={() => {
+                if (!isEvenScene) {
+                  setIsBuffering(false);
+                  setVideoLoadError(null);
+                  if (activeScene?.id) {
                     renderPerformanceMonitor.recordFirstFrameDecoded(activeScene.id);
                   }
-                }}
-                onError={(e: any) => {
-                  const target = e.target as HTMLVideoElement;
-                  const rawUrl = deckBScene?.mediaUrl || '';
-                  handleSilentVideoError(target, rawUrl, 'B');
-                }}
-              />
-            ) : (
-              <img
-                src={deckBSrc}
-                alt=""
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2] pointer-events-none"
-                style={{
-                  filter: activeVideoFilter,
-                  opacity: opacityB,
-                  ...deckBTransforms
-                }}
-              />
-            )
-          )}
-
-          {/* High-Energy White Strobe Transition Overlay */}
-          {isTransitioning && currentTransitionType === 'flash_white' && (
-            <div
-              className="absolute inset-0 bg-white pointer-events-none z-[4]"
-              style={{ opacity: Math.sin(transitionProgress * Math.PI) * 0.88 }}
+                }
+              }}
+              onCanPlay={() => {
+                if (!isEvenScene && activeScene?.id) {
+                  renderPerformanceMonitor.recordFirstFrameDecoded(activeScene.id);
+                }
+              }}
+              onError={(e: any) => {
+                const target = e.target as HTMLVideoElement;
+                const rawUrl = deckBScene?.mediaUrl || '';
+                handleSilentVideoError(target, rawUrl, 'B');
+              }}
             />
           )}
 

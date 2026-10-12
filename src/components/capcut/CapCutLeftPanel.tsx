@@ -69,7 +69,7 @@ interface CapCutLeftPanelProps {
   setSubtitleBurnOptions?: React.Dispatch<React.SetStateAction<SubtitleBurnOptions>>;
 }
 
-type TabType = 'media' | 'audio' | 'text' | 'titles' | 'watermark' | 'effects' | 'transitions' | 'captions' | 'filters' | 'templates' | 'ai';
+type TabType = 'media' | 'audio' | 'titles' | 'watermark' | 'effects' | 'transitions' | 'captions' | 'filters' | 'templates' | 'ai';
 type SubTabType = 'all' | 'imported' | 'generated' | 'stock';
 type TypeFilter = 'all' | 'video' | 'image';
 
@@ -690,21 +690,14 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
     { id: 'vignette', name: 'Dark Cinematic Edge', icon: Layers, desc: 'Focused vignette contrast', filter: 'bw' },
   ];
 
-  // Transition Presets (strictly aligned with TransitionType and LivePreviewCanvas)
-  const transitionPresets: { id: TransitionType; name: string; desc: string; duration: number }[] = [
-    { id: 'dissolve', name: 'Cross Dissolve', desc: 'Smooth cinematic opacity blending', duration: 0.8 },
-    { id: 'cut', name: 'Hard Cut', desc: 'Instant frame switch with zero delay', duration: 0.0 },
-    { id: 'fade', name: 'Cross Fade', desc: 'Soft filmic fade between clips', duration: 0.8 },
-    { id: 'wipe_right', name: 'Wipe Right', desc: 'Horizontal slide reveal across frame', duration: 0.7 },
-    { id: 'wipe_left', name: 'Wipe Left', desc: 'Horizontal wipe from right to left', duration: 0.7 },
-    { id: 'slide_left', name: 'Slide Left', desc: 'Kinetic push transition to left', duration: 0.6 },
-    { id: 'slide_right', name: 'Slide Right', desc: 'Push slide transition to right', duration: 0.6 },
-    { id: 'slide_up', name: 'Slide Up', desc: 'Vertical upward page transition', duration: 0.6 },
-    { id: 'slide_down', name: 'Slide Down', desc: 'Vertical downward page transition', duration: 0.6 },
-    { id: 'zoom_in', name: 'Zoom In', desc: 'Punchy camera push into next clip', duration: 0.5 },
-    { id: 'zoom_out', name: 'Zoom Out', desc: 'Pull-back reveal of next scene', duration: 0.6 },
-    { id: 'flash_white', name: 'Flash White', desc: 'High-energy white strobe flash', duration: 0.4 },
-    { id: 'blur_dissolve', name: 'Blur Defocus', desc: 'Dreamy optical defocus dissolve', duration: 0.8 },
+  // Transition Presets
+  const transitionPresets = [
+    { id: 'dissolve', name: 'Cross Dissolve', desc: 'Smooth opacity blending', duration: 0.8 },
+    { id: 'hard_cut', name: 'Hard Cut', desc: 'Instant frame switch', duration: 0.0 },
+    { id: 'fade_black', name: 'Fade to Black', desc: 'Cinematic scene fade', duration: 0.9 },
+    { id: 'wipe_right', name: 'Wipe Right', desc: 'Horizontal slide reveal', duration: 0.7 },
+    { id: 'slide_left', name: 'Slide Left', desc: 'Kinetic push transition', duration: 0.6 },
+    { id: 'zoom_in', name: 'Zoom In Flash', desc: 'Punchy camera push', duration: 0.5 },
   ];
 
   // Filter & Color Grades
@@ -815,110 +808,97 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         </div>
 
         {/* 2. Search & Filter Header (when applicable) */}
-        {(activeTab === 'media' || activeTab === 'audio') && (
+        {activeTab === 'media' && (
           <div className="p-2 border-b border-slate-800/70 space-y-1.5 bg-[#0e111b]">
             <div className="flex items-center gap-1.5">
               <div className="relative flex-1">
                 <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
-                  placeholder={activeTab === 'audio' ? "Search soundtracks, BGM, SFX, voiceovers..." : "Search media..."}
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/60 rounded-md pl-6 pr-6 py-1 text-[11px] text-slate-200 placeholder-slate-500 outline-none transition"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/60 rounded-md pl-6 pr-2 py-1 text-[11px] text-slate-200 placeholder-slate-500 outline-none transition"
                 />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs p-0.5 cursor-pointer"
-                    title="Clear search"
-                  >
-                    ✕
-                  </button>
-                )}
               </div>
             </div>
 
-          {activeTab === 'media' && (
-            <>
-              {/* Subtabs for Media Source */}
-              <div className="flex items-center justify-between pt-0.5">
-                <div className="flex items-center gap-0.5">
-                  {(['all', 'imported', 'generated', 'stock'] as SubTabType[]).map(sub => (
-                    <button
-                      key={sub}
-                      onClick={() => setActiveSubTab(sub)}
-                      className={`px-1.5 py-0.5 rounded text-[9px] capitalize transition cursor-pointer ${
-                        activeSubTab === sub 
-                          ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30' 
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-0.5 text-slate-500">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-0.5 rounded cursor-pointer ${viewMode === 'grid' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
-                    title="Grid view"
-                  >
-                    <Grid className="w-2.5 h-2.5" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-0.5 rounded cursor-pointer ${viewMode === 'list' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
-                    title="List view"
-                  >
-                    <List className="w-2.5 h-2.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Type Filter Pills: All / Videos / Images */}
-              <div className="flex items-center gap-1 pt-0.5">
+          {/* Subtabs for Media Source */}
+          <div className="flex items-center justify-between pt-0.5">
+            <div className="flex items-center gap-0.5">
+              {(['all', 'imported', 'generated', 'stock'] as SubTabType[]).map(sub => (
                 <button
-                  onClick={() => setTypeFilter('all')}
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
-                    typeFilter === 'all'
-                      ? 'bg-slate-700 text-white font-bold'
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                  key={sub}
+                  onClick={() => setActiveSubTab(sub)}
+                  className={`px-1.5 py-0.5 rounded text-[9px] capitalize transition cursor-pointer ${
+                    activeSubTab === sub 
+                      ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30' 
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <span>All</span>
-                  <span className="opacity-70 text-[8px]">({allMedia.length})</span>
+                  {sub}
                 </button>
+              ))}
+            </div>
 
-                <button
-                  onClick={() => setTypeFilter('video')}
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
-                    typeFilter === 'video'
-                      ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-500/50 font-bold'
-                      : 'bg-slate-900 text-slate-400 hover:text-cyan-300'
-                  }`}
-                >
-                  <VideoIcon className="w-2.5 h-2.5" />
-                  <span>Videos</span>
-                  <span className="opacity-70 text-[8px]">({totalVideos})</span>
-                </button>
+            <div className="flex items-center gap-0.5 text-slate-500">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-0.5 rounded cursor-pointer ${viewMode === 'grid' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
+                title="Grid view"
+              >
+                <Grid className="w-2.5 h-2.5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-0.5 rounded cursor-pointer ${viewMode === 'list' ? 'text-cyan-400 bg-slate-800' : 'hover:text-slate-300'}`}
+                title="List view"
+              >
+                <List className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          </div>
 
-                <button
-                  onClick={() => setTypeFilter('image')}
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
-                    typeFilter === 'image'
-                      ? 'bg-purple-500/30 text-purple-200 border border-purple-500/50 font-bold'
-                      : 'bg-slate-900 text-slate-400 hover:text-purple-300'
-                  }`}
-                >
-                  <ImageIcon className="w-2.5 h-2.5" />
-                  <span>Images</span>
-                  <span className="opacity-70 text-[8px]">({totalImages})</span>
-                </button>
-              </div>
-            </>
-          )}
+          {/* Type Filter Pills: All / Videos / Images */}
+          <div className="flex items-center gap-1 pt-0.5">
+            <button
+              onClick={() => setTypeFilter('all')}
+              className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
+                typeFilter === 'all'
+                  ? 'bg-slate-700 text-white font-bold'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>All</span>
+              <span className="opacity-70 text-[8px]">({allMedia.length})</span>
+            </button>
+
+            <button
+              onClick={() => setTypeFilter('video')}
+              className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
+                typeFilter === 'video'
+                  ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-500/50 font-bold'
+                  : 'bg-slate-900 text-slate-400 hover:text-cyan-300'
+              }`}
+            >
+              <VideoIcon className="w-2 h-2" />
+              <span>Videos</span>
+              <span className="opacity-70 text-[8px]">({totalVideos})</span>
+            </button>
+
+            <button
+              onClick={() => setTypeFilter('image')}
+              className={`px-1.5 py-0.2 rounded-full text-[9px] font-medium transition cursor-pointer flex items-center gap-1 ${
+                typeFilter === 'image'
+                  ? 'bg-purple-500/30 text-purple-200 border border-purple-500/50 font-bold'
+                  : 'bg-slate-900 text-slate-400 hover:text-purple-300'
+              }`}
+            >
+              <ImageIcon className="w-2 h-2" />
+              <span>Images</span>
+              <span className="opacity-70 text-[8px]">({totalImages})</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1607,7 +1587,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         )}
 
         {/* ==================== TEXT TAB ==================== */}
-        {(activeTab === 'text' || activeTab === 'titles') && (
+        {activeTab === 'text' && (
           <div className="space-y-2.5">
             <div className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-lg text-xs text-slate-400">
               Click any style to apply to the active scene ({selectedScene ? selectedScene.title : 'Clip #1'}) or create a title card.
@@ -1719,78 +1699,37 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         )}
 
         {/* ==================== TRANSITIONS TAB ==================== */}
-        {activeTab === 'transitions' && (() => {
-          const targetScene = selectedScene || scenes[0];
-          const targetIndex = targetScene ? scenes.findIndex(s => s.id === targetScene.id) : 0;
-
-          return (
+        {activeTab === 'transitions' && (
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <p className="text-slate-400 text-[11px]">Cinematic scene transitions</p>
-              {targetScene && (
-                <span className="px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-mono text-[9px] truncate max-w-[140px]" title={targetScene.title}>
-                  Clip #{targetIndex + 1}: {targetScene.title}
-                </span>
-              )}
-            </div>
-
-            {/* Quick Action: Apply to All Clips */}
-            <button
-              onClick={() => {
-                if (!onUpdateScene) return;
-                const currentType = (targetScene?.transition && targetScene.transition !== 'cut') ? targetScene.transition : 'dissolve';
-                const currentDur = targetScene?.transitionDuration || 0.8;
-                scenes.forEach(s => {
-                  onUpdateScene(s.id, {
-                    transition: currentType as any,
-                    transitionDuration: currentDur
-                  });
-                });
-              }}
-              className="w-full py-1.5 px-3 rounded-lg bg-indigo-950/50 hover:bg-indigo-900/60 border border-indigo-700/50 text-indigo-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
-              title="Apply current transition across all storyboard scenes"
-            >
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Apply {targetScene?.transition && targetScene.transition !== 'cut' ? `"${targetScene.transition}"` : 'Dissolve'} to All Clips</span>
-            </button>
-
+            <p className="text-xs text-slate-400">Select smooth cinematic transitions between storyboard scenes.</p>
             <div className="space-y-1.5">
               {transitionPresets.map(trans => {
-                const isSelected = targetScene?.transition === trans.id;
+                const isSelected = selectedScene?.transition === trans.id;
                 return (
                   <div
                     key={trans.id}
                     onClick={() => {
-                      if (targetScene && onUpdateScene) {
-                        onUpdateScene(targetScene.id, {
+                      if (selectedScene && onUpdateScene) {
+                        onUpdateScene(selectedScene.id, {
                           transition: trans.id as any,
                           transitionDuration: trans.duration
                         });
-                        if (scenes[targetIndex + 1]) {
-                          onUpdateScene(scenes[targetIndex + 1].id, {
-                            transition: trans.id as any,
-                            transitionDuration: trans.duration
-                          });
-                        }
                       }
                     }}
                     className={`p-2.5 rounded-xl border flex items-center justify-between transition cursor-pointer ${
                       isSelected 
-                        ? 'bg-cyan-950/40 border-cyan-400 text-white ring-1 ring-cyan-400/50' 
+                        ? 'bg-cyan-950/40 border-cyan-400 text-white' 
                         : 'bg-slate-950 border-slate-800 hover:border-cyan-500/50 text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
-                        isSelected ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'bg-slate-900 text-cyan-400'
+                        isSelected ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-cyan-400'
                       }`}>
                         <Scissors className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-bold">{trans.name}</p>
-                          {isSelected && <span className="text-[8px] font-bold px-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded">ACTIVE</span>}
-                        </div>
+                        <p className="text-xs font-bold">{trans.name}</p>
                         <p className="text-[10px] text-slate-500">{trans.desc}</p>
                       </div>
                     </div>
@@ -1800,8 +1739,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
               })}
             </div>
           </div>
-          );
-        })()}
+        )}
 
         {/* ==================== FILTERS TAB ==================== */}
         {activeTab === 'filters' && (

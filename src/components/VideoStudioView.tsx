@@ -2189,8 +2189,6 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           setBgmVolume={setBgmVolume}
           voVolume={voVolume}
           setVoVolume={setVoVolume}
-          brandOverlayConfig={brandOverlayConfig}
-          setBrandOverlayConfig={setBrandOverlayConfig}
         />
       </div>
 
@@ -2905,26 +2903,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
       {/* Production Asset & Sound Library Modal */}
       <AssetAndSoundLibraryModal
-        isOpen={showAssetAndSoundLibraryModal || showAudioAddModal}
-        initialTab="sounds"
-        onClose={() => {
-          setShowAssetAndSoundLibraryModal(false);
-          setShowAudioAddModal(false);
-        }}
+        isOpen={showAssetAndSoundLibraryModal}
+        onClose={() => setShowAssetAndSoundLibraryModal(false)}
         onAddAudioTrack={(track) => {
-          pushToHistory(scenes);
-          const trackId = track.id || `bgm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-          const preparedTrack = { ...track, id: trackId };
-          if (track.type === 'voiceover') {
-            setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), preparedTrack]);
-            setProjectNotice(`Assigned "${track.title}" to Voiceover track!`);
-          } else {
-            setAudioTracks(prev => [...prev.filter(t => t.id !== trackId), preparedTrack]);
-            setSelectedAudioId(trackId);
-            setProjectNotice(`Added audio track "${track.title}" to timeline!`);
-          }
-          setShowAudioAddModal(false);
-          setShowAssetAndSoundLibraryModal(false);
+          setAudioTracks(prev => [...prev, track]);
+          setSelectedAudioId(track.id);
+          setProjectNotice(`Added audio track "${track.title}" to timeline!`);
           setTimeout(() => setProjectNotice(null), 3000);
         }}
         onAddSceneToTimeline={(newSceneData) => {

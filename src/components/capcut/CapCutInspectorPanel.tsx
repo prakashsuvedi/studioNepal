@@ -28,10 +28,12 @@ import {
   Link2,
   Plus,
   MessageSquare,
-  Check
+  Check,
+  Shield
 } from 'lucide-react';
-import { Scene, AudioTrack, CameraMotion, TransitionType, ColorFilter, ColorAdjustments, TickerConfig, SceneComment, UserSession } from '../../types';
+import { Scene, AudioTrack, CameraMotion, TransitionType, ColorFilter, ColorAdjustments, TickerConfig, SceneComment, UserSession, BrandOverlayConfig } from '../../types';
 import { extractVideoThumbnailAndDuration } from '../../lib/mediaLibrary';
+import { WATERMARK_PRESETS } from '../BrandOverlayModal';
 
 interface CapCutInspectorPanelProps {
   selectedScene: Scene | null;
@@ -50,9 +52,11 @@ interface CapCutInspectorPanelProps {
   currentTime?: number;
   onSeek?: (time: number) => void;
   currentUser?: UserSession | null;
+  brandOverlayConfig?: BrandOverlayConfig;
+  setBrandOverlayConfig?: React.Dispatch<React.SetStateAction<BrandOverlayConfig>>;
 }
 
-type InspectorTab = 'basic' | 'ticker' | 'speed' | 'animation' | 'color' | 'audio' | 'comments';
+type InspectorTab = 'basic' | 'color' | 'brand' | 'ticker' | 'speed' | 'animation' | 'audio' | 'comments';
 
 export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
   selectedScene,
@@ -71,6 +75,8 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
   currentTime = 0,
   onSeek,
   currentUser,
+  brandOverlayConfig,
+  setBrandOverlayConfig,
 }) => {
   const [activeTab, setActiveTab] = useState<InspectorTab>('basic');
   const [commentDraft, setCommentDraft] = useState('');
@@ -192,10 +198,11 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
         <div className="flex items-center px-1.5 overflow-x-auto no-scrollbar gap-0.5 text-[10px] font-medium">
           {[
             { id: 'basic', label: 'Basic' },
+            { id: 'color', label: 'Color' },
+            { id: 'brand', label: 'Brand' },
             { id: 'ticker', label: 'Ticker' },
             { id: 'speed', label: 'Speed' },
             { id: 'animation', label: 'Motion' },
-            { id: 'color', label: 'Color' },
             { id: 'audio', label: 'Audio' },
             { id: 'comments', label: `Notes${(selectedScene.comments?.length || 0) > 0 ? ` (${selectedScene.comments?.length})` : ''}` },
           ].map(tab => (
@@ -211,6 +218,9 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
               {tab.label}
               {tab.id === 'ticker' && isTickerEnabled && (
                 <span className="ml-1 w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
+              )}
+              {tab.id === 'brand' && brandOverlayConfig?.enabled && (
+                <span className="ml-1 w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block" />
               )}
             </button>
           ))}
@@ -1075,20 +1085,52 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
             </div>
 
             {/* Next Transition */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-800">
-              <label className="font-semibold text-slate-300 block">Transition to Next Scene</label>
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-300 block flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-cyan-400" />
+                  <span>Transition to Next Scene</span>
+                </label>
+                <span className="font-mono text-[10px] text-cyan-400 font-bold">
+                  {selectedScene.transitionDuration || 0.8}s
+                </span>
+              </div>
               <select
                 value={selectedScene.transition || 'dissolve'}
                 onChange={e => onUpdateScene({ transition: e.target.value as TransitionType })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500/60 cursor-pointer"
               >
-                <option value="cut">Hard Cut</option>
-                <option value="dissolve">Cross Dissolve</option>
-                <option value="fade_to_black">Fade to Black</option>
-                <option value="wipe_right">Wipe Right</option>
-                <option value="zoom_in">Zoom In</option>
-                <option value="slide_left">Slide Left</option>
+                <option value="cut">✂️ Hard Cut</option>
+                <option value="dissolve">✨ Cross Dissolve</option>
+                <option value="fade">🌫️ Cross Fade</option>
+                <option value="wipe_left">⬅️ Wipe Left</option>
+                <option value="wipe_right">➡️ Wipe Right</option>
+                <option value="slide_left">◀️ Slide Left</option>
+                <option value="slide_right">▶️ Slide Right</option>
+                <option value="slide_up">▲ Slide Up</option>
+                <option value="slide_down">▼ Slide Down</option>
+                <option value="zoom_in">🔍 Zoom In</option>
+                <option value="zoom_out">🔎 Zoom Out</option>
+                <option value="flash_white">⚡ Flash White</option>
+                <option value="blur_dissolve">💫 Blur Defocus</option>
               </select>
+
+              {/* Transition Duration Slider */}
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Duration</span>
+                  <span className="font-mono text-cyan-400">{selectedScene.transitionDuration || 0.8}s</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="2.5"
+                  step="0.1"
+                  value={selectedScene.transitionDuration || 0.8}
+                  onChange={e => onUpdateScene({ transitionDuration: parseFloat(e.target.value) })}
+                  className="w-full accent-cyan-400 h-1 bg-slate-900 rounded-lg cursor-pointer"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -1327,6 +1369,241 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                   <span>Smart Ducking Engine</span>
                 </div>
                 <p className="text-slate-400">Background music automatically lowers when speech or voiceover dialogue is playing.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BRAND & WATERMARK TAB */}
+        {activeTab === 'brand' && (
+          <div className="space-y-3.5">
+            {/* Master Toggle Card */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${brandOverlayConfig?.enabled ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-900 text-slate-500'}`}>
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Brand Watermark</h4>
+                    <p className="text-[10px] text-slate-400">Live overlay & export burn</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({
+                        ...prev,
+                        enabled: !prev.enabled
+                      }));
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    brandOverlayConfig?.enabled
+                      ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                  }`}
+                >
+                  {brandOverlayConfig?.enabled ? 'ACTIVE' : 'OFF'}
+                </button>
+              </div>
+
+              {brandOverlayConfig?.enabled && (
+                <div className="text-[10px] text-cyan-300/90 bg-cyan-950/30 border border-cyan-800/40 px-2 py-1 rounded">
+                  Watermark appears on timeline preview and burns into downloaded MP4 video.
+                </div>
+              )}
+            </div>
+
+            {/* Custom Logo Upload */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Logo Graphic</span>
+                </span>
+                <span className="text-[10px] text-cyan-400 font-mono">PNG / WEBP / SVG</span>
+              </div>
+
+              {brandOverlayConfig?.logoUrl && (
+                <div className="flex items-center gap-2.5 p-2 bg-slate-900 border border-slate-800 rounded-lg">
+                  <div className="w-9 h-9 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                    <img
+                      src={brandOverlayConfig.logoUrl}
+                      alt="Brand Logo"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">
+                      {brandOverlayConfig.brandText || 'Active Logo'}
+                    </p>
+                    <p className="text-[10px] text-emerald-400 font-medium">Ready for rendering</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Brand Text Input */}
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-slate-300">
+                  <label htmlFor="inspector-brand-text">Brand Title / Tagline</label>
+                  <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={brandOverlayConfig?.showBrandText ?? true}
+                      onChange={e => {
+                        if (setBrandOverlayConfig) {
+                          setBrandOverlayConfig(prev => ({
+                            ...prev,
+                            showBrandText: e.target.checked
+                          }));
+                        }
+                      }}
+                      className="accent-cyan-400 rounded"
+                    />
+                    <span>Show Text</span>
+                  </label>
+                </div>
+                <input
+                  id="inspector-brand-text"
+                  type="text"
+                  value={brandOverlayConfig?.brandText || ''}
+                  onChange={e => {
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({
+                        ...prev,
+                        brandText: e.target.value
+                      }));
+                    }
+                  }}
+                  placeholder="e.g. NepalAI Studio • Pro"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+            </div>
+
+            {/* Studio Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Studio Presets</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {WATERMARK_PRESETS.map(preset => {
+                  const isSelected = brandOverlayConfig?.logoUrl === preset.url;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        if (setBrandOverlayConfig) {
+                          setBrandOverlayConfig(prev => ({
+                            ...prev,
+                            enabled: true,
+                            logoUrl: preset.url,
+                            brandText: preset.text,
+                            showBrandText: true
+                          }));
+                        }
+                      }}
+                      className={`p-2 rounded-lg border text-left flex items-center gap-2 transition cursor-pointer ${
+                        isSelected
+                          ? 'bg-cyan-950/40 border-cyan-400 text-white ring-1 ring-cyan-400'
+                          : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      <img
+                        src={preset.url}
+                        alt={preset.name}
+                        className="w-5 h-5 rounded object-cover shrink-0 border border-slate-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold truncate">{preset.name.split(' ')[0]}</p>
+                        <p className="text-[8px] text-slate-500 truncate">{preset.text}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Placement & Sliders */}
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+              {/* Position */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-semibold text-slate-300 block">Screen Position</span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: 'top-left', label: 'Top Left' },
+                    { id: 'center', label: 'Center' },
+                    { id: 'top-right', label: 'Top Right' },
+                    { id: 'bottom-left', label: 'Bottom Left' },
+                    { id: 'bottom-right', label: 'Bottom Right' }
+                  ].map(pos => (
+                    <button
+                      key={pos.id}
+                      onClick={() => {
+                        if (setBrandOverlayConfig) {
+                          setBrandOverlayConfig(prev => ({
+                            ...prev,
+                            position: pos.id as any
+                          }));
+                        }
+                      }}
+                      className={`py-1.5 px-1.5 rounded text-[10px] font-bold border transition cursor-pointer text-center ${
+                        (brandOverlayConfig?.position || 'top-right') === pos.id
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Opacity Slider */}
+              <div className="space-y-1 pt-1 border-t border-slate-800">
+                <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                  <span>Watermark Opacity</span>
+                  <span className="font-mono text-cyan-400">{brandOverlayConfig?.opacityPercent || 85}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  value={brandOverlayConfig?.opacityPercent || 85}
+                  onChange={e => {
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({
+                        ...prev,
+                        opacityPercent: Number(e.target.value)
+                      }));
+                    }
+                  }}
+                  className="w-full accent-cyan-400 h-1 bg-slate-900 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              {/* Scale Slider */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                  <span>Logo Scale</span>
+                  <span className="font-mono text-cyan-400">{brandOverlayConfig?.scalePercent || 20}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="45"
+                  value={brandOverlayConfig?.scalePercent || 20}
+                  onChange={e => {
+                    if (setBrandOverlayConfig) {
+                      setBrandOverlayConfig(prev => ({
+                        ...prev,
+                        scalePercent: Number(e.target.value)
+                      }));
+                    }
+                  }}
+                  className="w-full accent-cyan-400 h-1 bg-slate-900 rounded-lg cursor-pointer"
+                />
               </div>
             </div>
           </div>

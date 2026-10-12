@@ -13,6 +13,7 @@ import {
   FrameOverlayType
 } from '../types';
 import { STARTER_TEMPLATES, INITIAL_AUDIO_TRACKS } from '../data';
+import { ExportAndPublishModal } from './ExportAndPublishModal';
 import { SocialPublisherModal } from './SocialPublisherModal';
 import { YouTubePublisherModal } from './YouTubePublisherModal';
 import { RenderPresetModal, RENDER_PRESETS, RenderPreset } from './RenderPresetModal';
@@ -477,6 +478,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [validationReport, setValidationReport] = useState<TimelineValidationReport | null>(null);
   const [showSocialPublisherModal, setShowSocialPublisherModal] = useState(false);
   const [showYouTubePublisherModal, setShowYouTubePublisherModal] = useState(false);
+  const [showExportHubModal, setShowExportHubModal] = useState(false);
+  const [exportHubTab, setExportHubTab] = useState<'render' | 'youtube' | 'social'>('render');
   const [isYouTubeConnected, setIsYouTubeConnected] = useState<boolean>(() => {
     try {
       return !!localStorage.getItem('nepalai_youtube_token');
@@ -1980,7 +1983,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onRedo={handleRedo}
         canUndo={historyIndexRef.current > 0}
         canRedo={historyIndexRef.current < historyRef.current.length - 1}
-        onExport={() => setShowProjectExportModal(true)}
+        onExport={() => {
+          setExportHubTab('render');
+          setShowExportHubModal(true);
+        }}
         onNewProject={() => {
           setNewProjectName('Untitled Project');
           setNewProjectRatio(aspectRatio);
@@ -2020,7 +2026,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         }}
         onOpenStoryboards={() => setShowAiStoryboardModal(true)}
         onOpenDebugger={() => setShowRenderingDebugger(true)}
-        onOpenSocialPublisher={() => setShowSocialPublisherModal(true)}
+        onOpenSocialPublisher={() => {
+          setExportHubTab('social');
+          setShowExportHubModal(true);
+        }}
         onOpenRenderPreview={() => setShowRenderPreviewModal(true)}
         onOpenComments={() => setShowCommentsDrawer(true)}
         commentsCount={scenes.reduce((acc, s) => acc + (s.comments?.filter(c => !c.resolved).length || 0), 0)}
@@ -2180,6 +2189,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           setBgmVolume={setBgmVolume}
           voVolume={voVolume}
           setVoVolume={setVoVolume}
+          brandOverlayConfig={brandOverlayConfig}
+          setBrandOverlayConfig={setBrandOverlayConfig}
         />
       </div>
 
@@ -2249,8 +2260,12 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       />
 
       {/* 4. Bottom Deck: CapCut Multi-Track Timeline */}
-      <div className="h-44 sm:h-48 shrink-0 flex flex-col bg-slate-200 dark:bg-[#090b12] border-t border-slate-300 dark:border-slate-800/80 relative">
+      <div 
+        onWheel={handleTimelineWheel}
+        className="h-44 sm:h-48 shrink-0 flex flex-col bg-slate-200 dark:bg-[#090b12] border-t border-slate-300 dark:border-slate-800/80 relative"
+      >
         <CapCutTimelineDeck
+          ref={timelineScrollRef}
           scenes={scenes}
           selectedSceneId={selectedSceneId}
           onSelectScene={(id) => {
@@ -2378,7 +2393,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
                 <button
                   onClick={() => {
                     setShowRenderPreviewModal(false);
-                    setShowProjectExportModal(true);
+                    setExportHubTab('render');
+                    setShowExportHubModal(true);
                   }}
                   className="px-3 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
                 >
@@ -2684,6 +2700,23 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         />
       )}
 
+      {/* Unified Export & Publishing Hub Modal */}
+      <ExportAndPublishModal
+        isOpen={showExportHubModal}
+        onClose={() => setShowExportHubModal(false)}
+        initialTab={exportHubTab}
+        projectTitle={projectTitle}
+        scenes={scenes}
+        aspectRatio={aspectRatio}
+        totalDuration={totalDuration}
+        audioTracks={audioTracks}
+        brandOverlayConfig={brandOverlayConfig}
+        subtitles={subtitles}
+        subtitleBurnOptions={subtitleBurnOptions}
+        vfxConfig={vfxConfig}
+        initialVideoUrl={selectedScene?.mediaUrl}
+      />
+
       {/* Dedicated YouTube Video & Shorts Publisher Modal */}
       <YouTubePublisherModal
         isOpen={showYouTubePublisherModal}
@@ -2872,12 +2905,26 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
       {/* Production Asset & Sound Library Modal */}
       <AssetAndSoundLibraryModal
-        isOpen={showAssetAndSoundLibraryModal}
-        onClose={() => setShowAssetAndSoundLibraryModal(false)}
+        isOpen={showAssetAndSoundLibraryModal || showAudioAddModal}
+        initialTab="sounds"
+        onClose={() => {
+          setShowAssetAndSoundLibraryModal(false);
+          setShowAudioAddModal(false);
+        }}
         onAddAudioTrack={(track) => {
-          setAudioTracks(prev => [...prev, track]);
-          setSelectedAudioId(track.id);
-          setProjectNotice(`Added audio track "${track.title}" to timeline!`);
+          pushToHistory(scenes);
+          const trackId = track.id || `bgm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          const preparedTrack = { ...track, id: trackId };
+          if (track.type === 'voiceover') {
+            setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), preparedTrack]);
+            setProjectNotice(`Assigned "${track.title}" to Voiceover track!`);
+          } else {
+            setAudioTracks(prev => [...prev.filter(t => t.id !== trackId), preparedTrack]);
+            setSelectedAudioId(trackId);
+            setProjectNotice(`Added audio track "${track.title}" to timeline!`);
+          }
+          setShowAudioAddModal(false);
+          setShowAssetAndSoundLibraryModal(false);
           setTimeout(() => setProjectNotice(null), 3000);
         }}
         onAddSceneToTimeline={(newSceneData) => {
@@ -3036,8 +3083,14 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         isOpen={showRenderSummaryOverlay}
         onClose={() => setShowRenderSummaryOverlay(false)}
         auditEntry={latestAuditEntry}
-        onPostToYouTube={() => setShowYouTubePublisherModal(true)}
-        onPostToSocial={() => setShowSocialPublisherModal(true)}
+        onPostToYouTube={() => {
+          setExportHubTab('youtube');
+          setShowExportHubModal(true);
+        }}
+        onPostToSocial={() => {
+          setExportHubTab('social');
+          setShowExportHubModal(true);
+        }}
       />
 
       {/* Real-time Render Preview Modal */}
@@ -3046,7 +3099,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onClose={() => setShowRenderPreviewModal(false)}
         onCommitExport={() => {
           setShowRenderPreviewModal(false);
-          setShowProjectExportModal(true);
+          setExportHubTab('render');
+          setShowExportHubModal(true);
         }}
         scenes={scenes}
         projectTitle={projectTitle}

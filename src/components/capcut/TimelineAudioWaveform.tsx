@@ -10,6 +10,7 @@ interface TimelineAudioWaveformProps {
   isPlaying?: boolean;
   currentTime?: number;
   height?: number;
+  visibleRange?: { startPx: number; endPx: number };
 }
 
 export const TimelineAudioWaveform: React.FC<TimelineAudioWaveformProps> = ({
@@ -22,6 +23,7 @@ export const TimelineAudioWaveform: React.FC<TimelineAudioWaveformProps> = ({
   isPlaying = false,
   currentTime = 0,
   height = 18,
+  visibleRange,
 }) => {
   const totalWidth = Math.max(120, duration * pixelsPerSecond);
 
@@ -103,6 +105,10 @@ export const TimelineAudioWaveform: React.FC<TimelineAudioWaveformProps> = ({
       >
         {bars.map((bar, idx) => {
           const x = idx * 3;
+          // Virtualize: skip rendering SVG rects outside visible viewport
+          if (visibleRange && (x < visibleRange.startPx - 15 || x > visibleRange.endPx + 15)) {
+            return null;
+          }
           const barH = Math.max(2, bar.amplitude * (height - 2));
           const y = (height - barH) / 2;
           const isPassed = currentTime * pixelsPerSecond > x;

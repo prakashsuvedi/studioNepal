@@ -31,6 +31,7 @@ interface AssetAndSoundLibraryModalProps {
   onApplyTickerToSelectedScene: (ticker: TickerConfig) => void;
   onApplyTextStyleToSelectedScene: (style: TextStylePreset, animation: TextAnimationOption) => void;
   selectedScene?: Scene;
+  initialTab?: 'sounds' | 'stock' | 'logos' | 'tickers' | 'text_styles';
 }
 
 export const PREDEFINED_AUDIO_LIBRARY: (AudioTrack & { category: 'bgm' | 'vo' | 'sfx'; description: string })[] = [
@@ -305,12 +306,19 @@ export const AssetAndSoundLibraryModal: React.FC<AssetAndSoundLibraryModalProps>
   onApplyTickerToSelectedScene,
   onApplyTextStyleToSelectedScene,
   selectedScene,
+  initialTab = 'sounds',
 }) => {
-  const [activeTab, setActiveTab] = useState<'sounds' | 'stock' | 'logos' | 'tickers' | 'text_styles'>('sounds');
+  const [activeTab, setActiveTab] = useState<'sounds' | 'stock' | 'logos' | 'tickers' | 'text_styles'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [audioFilter, setAudioFilter] = useState<'all' | 'bgm' | 'sfx' | 'vo'>('all');
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  React.useEffect(() => {
+    if (initialTab && isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
 
   if (!isOpen) return null;
 
@@ -346,14 +354,24 @@ export const AssetAndSoundLibraryModal: React.FC<AssetAndSoundLibraryModalProps>
 
   const allAudioItems = [...userVoiceovers, ...PREDEFINED_AUDIO_LIBRARY];
 
+  const q = searchQuery.trim().toLowerCase();
+  const isGenericAudioQuery = ['soundtrack', 'sound track', 'soundtracks', 'bgm', 'music', 'audio', 'song', 'songs'].includes(q);
+
   const filteredAudio = allAudioItems.filter(a => {
     const matchesCategory = audioFilter === 'all' || a.category === audioFilter;
-    const matchesQuery = !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || a.genre.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesQuery = !q ||
+      isGenericAudioQuery ||
+      a.title.toLowerCase().includes(q) ||
+      a.genre.toLowerCase().includes(q) ||
+      a.artist.toLowerCase().includes(q) ||
+      (a.description && a.description.toLowerCase().includes(q));
     return matchesCategory && matchesQuery;
   });
 
   const filteredStock = PREDEFINED_STOCK_ASSETS.filter(s => {
-    return !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return !q ||
+      s.title.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q);
   });
 
   return (

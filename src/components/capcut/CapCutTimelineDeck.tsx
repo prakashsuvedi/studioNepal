@@ -92,7 +92,7 @@ interface CapCutTimelineDeckProps {
   onUpdateVoiceoverDuration?: (duration: number) => void;
 }
 
-export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
+export const CapCutTimelineDeck = React.forwardRef<HTMLDivElement, CapCutTimelineDeckProps>(({
   scenes,
   selectedSceneId,
   onSelectScene,
@@ -131,9 +131,74 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
   audioLoadingStatus = {},
   onUpdateAudioTrack,
   onUpdateVoiceoverDuration,
-}) => {
+}, forwardedRef) => {
   const rulerRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Synchronize forwardedRef from parent VideoStudioView
+  useEffect(() => {
+    if (!forwardedRef) return;
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(scrollContainerRef.current);
+    } else {
+      (forwardedRef as React.MutableRefObject<HTMLDivElement | null>).current = scrollContainerRef.current;
+    }
+  }, [forwardedRef]);
+
+  // Virtualized Scroll Viewport State (tracks horizontal scroll and container width)
+  const [viewportBounds, setViewportBounds] = useState<{ scrollLeft: number; clientWidth: number }>({
+    scrollLeft: 0,
+    clientWidth: 1200,
+  });
+
+  // Passive high-performance scroll & resize tracking
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    setViewportBounds({
+      scrollLeft: container.scrollLeft,
+      clientWidth: container.clientWidth || 1200,
+    });
+
+    let rafId: number | null = null;
+    const handleScroll = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (!scrollContainerRef.current) return;
+        const currentLeft = scrollContainerRef.current.scrollLeft;
+        const currentWidth = scrollContainerRef.current.clientWidth || 1200;
+        setViewportBounds(prev => {
+          if (Math.abs(prev.scrollLeft - currentLeft) > 15 || prev.clientWidth !== currentWidth) {
+            return { scrollLeft: currentLeft, clientWidth: currentWidth };
+          }
+          return prev;
+        });
+      });
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const w = entry.contentRect.width;
+          if (w > 0) {
+            setViewportBounds(prev => (prev.clientWidth !== w ? { ...prev, clientWidth: w } : prev));
+          }
+        }
+      });
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, []);
+
   const [draggedSceneIdx, setDraggedSceneIdx] = useState<number | null>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   
@@ -163,6 +228,29 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
 
   // Deterministic scene timings based on exact half-open intervals
   const sceneTimings = React.useMemo(() => computeSceneTimings(scenes), [scenes]);
+
+  // Virtualization window with generous overscan buffer (400px = ~10-25s) for smooth 60fps scrolling
+  const overscanPx = 400;
+  const viewportStartPx = Math.max(0, viewportBounds.scrollLeft - overscanPx);
+  const viewportEndPx = viewportBounds.scrollLeft + viewportBounds.clientWidth + overscanPx;
+
+  // Auto-scroll timeline to selected scene if it moves outside visible viewport
+  useEffect(() => {
+    if (!selectedSceneId || !scrollContainerRef.current) return;
+    const idx = scenes.findIndex(s => s.id === selectedSceneId);
+    if (idx < 0) return;
+    const timing = sceneTimings[idx];
+    if (!timing) return;
+    const clipLeft = timing.startTime * pixelsPerSecond;
+    const clipRight = timing.endTime * pixelsPerSecond;
+    const container = scrollContainerRef.current;
+    if (clipRight < container.scrollLeft || clipLeft > container.scrollLeft + container.clientWidth) {
+      container.scrollTo({
+        left: Math.max(0, clipLeft - 80),
+        behavior: 'smooth',
+      });
+    }
+  }, [selectedSceneId, sceneTimings, pixelsPerSecond]);
 
   // Ruler markings
   const rulerIntervalSeconds = pixelsPerSecond > 35 ? 1 : pixelsPerSecond > 20 ? 2 : 5;
@@ -239,17 +327,25 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
 
   const handleApplyTransition = (type: TransitionType) => {
     if (activeTransitionIdx === null || !onUpdateScene) return;
-    const targetScene = scenes[activeTransitionIdx + 1];
-    if (!targetScene) return;
-    onUpdateScene(targetScene.id, {
-      transition: type,
-      transitionDuration: transDuration
-    });
+    const sceneA = scenes[activeTransitionIdx];
+    const sceneB = scenes[activeTransitionIdx + 1];
+    if (sceneA) {
+      onUpdateScene(sceneA.id, {
+        transition: type,
+        transitionDuration: transDuration
+      });
+    }
+    if (sceneB) {
+      onUpdateScene(sceneB.id, {
+        transition: type,
+        transitionDuration: transDuration
+      });
+    }
   };
 
   const handleApplyToAllClips = (type: TransitionType) => {
     if (!onUpdateScene) return;
-    scenes.slice(1).forEach(s => {
+    scenes.forEach(s => {
       onUpdateScene(s.id, {
         transition: type,
         transitionDuration: transDuration
@@ -268,7 +364,17 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
         {/* Ruler Corner Spacer */}
         <div className="h-6 border-b border-slate-800/80 px-2 flex items-center justify-between text-[9px] font-bold text-slate-400 bg-[#090c14]">
           <span>TRACKS</span>
-          <span className="font-mono text-cyan-400">{scenes.length} {scenes.length === 1 ? 'Clip' : 'Clips'}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-cyan-400">{scenes.length} {scenes.length === 1 ? 'Clip' : 'Clips'}</span>
+            {scenes.length >= 15 && (
+              <span 
+                className="px-1 py-0.2 rounded bg-cyan-950/80 border border-cyan-500/40 text-[7px] text-cyan-300 font-mono font-bold uppercase tracking-wider" 
+                title="Hardware virtualized scroll active for smooth 60FPS timeline response"
+              >
+                ⚡ 60FPS
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Track 1: Video Track Header */}
@@ -414,6 +520,10 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
             {Array.from({ length: numRulerTicks }).map((_, i) => {
               const sec = i * rulerIntervalSeconds;
               const leftPx = sec * pixelsPerSecond;
+              // Virtualize: skip rendering ruler ticks outside active viewport window
+              if (leftPx < viewportStartPx - 40 || leftPx > viewportEndPx + 40) {
+                return null;
+              }
               return (
                 <div
                   key={i}
@@ -489,31 +599,51 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                   };
                   const leftPx = timing.startTime * pixelsPerSecond;
                   const widthPx = timing.duration * pixelsPerSecond;
+                  const rightPx = timing.endTime * pixelsPerSecond;
                   const isSelected = scene.id === selectedSceneId;
                   const isVideo = scene.mediaType === 'video' || (scene.mediaUrl && scene.mediaUrl.match(/\.(mp4|webm|mov|ogg)($|\?)/i));
 
+                  // Virtualization: determine if clip and/or next transition falls within viewport buffer
+                  const isClipVisible = (
+                    idx === draggedSceneIdx ||
+                    scene.id === resizingClipId ||
+                    isSelected ||
+                    (rightPx >= viewportStartPx && leftPx <= viewportEndPx)
+                  );
+
+                  const isNextTransVisible = idx < scenes.length - 1 && (
+                    activeTransitionIdx === idx ||
+                    (rightPx >= viewportStartPx - 40 && rightPx <= viewportEndPx + 40)
+                  );
+
+                  // If neither clip nor transition seam is visible in viewport, completely omit from DOM
+                  if (!isClipVisible && !isNextTransVisible) {
+                    return null;
+                  }
+
                   return (
                     <React.Fragment key={scene.id}>
-                      {/* Clip Card */}
-                      <div
-                        draggable={!isVideoTrackLocked}
-                        onDragStart={() => handleDragStart(idx)}
-                        onDragOver={(e) => handleDragOver(e, idx)}
-                        onDragEnd={handleDragEnd}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectScene(scene.id);
-                          onSeek(timing.startTime);
-                        }}
-                        style={{ left: `${leftPx}px`, width: `${widthPx}px` }}
-                        className={`absolute top-1.5 bottom-1.5 rounded-md overflow-hidden border transition-none cursor-pointer select-none flex flex-col justify-between p-1 shadow-sm group ${
-                          !isVideoTrackVisible ? 'opacity-30' : ''
-                        } ${
-                          isSelected 
-                            ? 'border-cyan-400 ring-1.5 ring-cyan-500/50 bg-slate-900 z-10' 
-                            : 'border-slate-700/80 bg-slate-950 hover:border-slate-500'
-                        }`}
-                      >
+                      {/* Clip Card (omitted when off-screen for 60FPS virtualization) */}
+                      {isClipVisible && (
+                        <div
+                          draggable={!isVideoTrackLocked}
+                          onDragStart={() => handleDragStart(idx)}
+                          onDragOver={(e) => handleDragOver(e, idx)}
+                          onDragEnd={handleDragEnd}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectScene(scene.id);
+                            onSeek(timing.startTime);
+                          }}
+                          style={{ left: `${leftPx}px`, width: `${widthPx}px` }}
+                          className={`absolute top-1.5 bottom-1.5 rounded-md overflow-hidden border transition-none cursor-pointer select-none flex flex-col justify-between p-1 shadow-sm group ${
+                            !isVideoTrackVisible ? 'opacity-30' : ''
+                          } ${
+                            isSelected 
+                              ? 'border-cyan-400 ring-1.5 ring-cyan-500/50 bg-slate-900 z-10' 
+                              : 'border-slate-700/80 bg-slate-950 hover:border-slate-500'
+                          }`}
+                        >
                         {/* Filmstrip Sprocket Perforations */}
                         <div className="absolute top-0 left-0 right-0 h-1.5 flex justify-between px-1 pointer-events-none z-10 opacity-50">
                           {Array.from({ length: Math.max(2, Math.floor(widthPx / 18)) }).map((_, si) => (
@@ -700,39 +830,49 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                           </div>
                         )}
                       </div>
-
-                      {/* Inline Transition Node Centered at the Seam */}
-                      {idx < scenes.length - 1 && (
-                        <div
-                          key={`trans-${scene.id}-${scenes[idx + 1].id}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const nextState = activeTransitionIdx === idx ? null : idx;
-                            setActiveTransitionIdx(nextState);
-                            if (nextState !== null) {
-                              setTransDuration(scenes[idx + 1].transitionDuration || 0.8);
-                            }
-                          }}
-                          style={{ left: `${timing.endTime * pixelsPerSecond}px` }}
-                          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 flex items-center justify-center cursor-pointer group/trans"
-                          title={`Transition to ${scenes[idx + 1].title}: ${scenes[idx + 1].transition || 'cut'} (${scenes[idx + 1].transitionDuration || 0.8}s)`}
-                        >
-                          <div className={`w-5 h-8 rounded border flex flex-col items-center justify-center shadow-md transition-all ${
-                            activeTransitionIdx === idx 
-                              ? 'bg-cyan-500 border-white text-black scale-110 shadow-cyan-500/50' 
-                              : scenes[idx + 1].transition && scenes[idx + 1].transition !== 'cut'
-                                ? 'bg-indigo-950/90 border-indigo-500/80 text-indigo-300 hover:border-cyan-400 hover:text-cyan-300'
-                                : 'bg-slate-900 border-slate-700/80 text-slate-500 hover:border-slate-500 hover:text-slate-300'
-                          }`}>
-                            <Zap className="w-2.5 h-2.5 fill-current" />
-                            <span className="text-[7px] font-mono font-bold leading-none mt-0.5 uppercase">
-                              {scenes[idx + 1].transition === 'cut' || !scenes[idx + 1].transition
-                                ? '|'
-                                : scenes[idx + 1].transition.slice(0, 3)}
-                            </span>
-                          </div>
-                        </div>
                       )}
+
+                      {/* Inline Transition Node Centered at the Seam (virtualized) */}
+                      {isNextTransVisible && scenes[idx + 1] && (() => {
+                        const sceneA = scene;
+                        const sceneB = scenes[idx + 1];
+                        const seamTrans = sceneA.transition || sceneB.transition || 'cut';
+                        const seamDur = sceneA.transitionDuration || sceneB.transitionDuration || 0.8;
+                        const isNodeActive = activeTransitionIdx === idx;
+                        const hasCustomTrans = seamTrans && seamTrans !== 'cut';
+
+                        return (
+                          <div
+                            key={`trans-${scene.id}-${scenes[idx + 1].id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const nextState = isNodeActive ? null : idx;
+                              setActiveTransitionIdx(nextState);
+                              if (nextState !== null) {
+                                setTransDuration(seamDur);
+                              }
+                            }}
+                            style={{ left: `${timing.endTime * pixelsPerSecond}px` }}
+                            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-40 w-7 h-11 flex items-center justify-center cursor-pointer group/trans select-none"
+                            title={`Transition between "${sceneA.title}" & "${sceneB.title}": ${seamTrans} (${seamDur}s) - Click to edit`}
+                          >
+                            <div className={`w-5 h-8 rounded-md border flex flex-col items-center justify-center shadow-lg transition-all ${
+                              isNodeActive 
+                                ? 'bg-cyan-500 border-white text-slate-950 scale-110 shadow-cyan-500/60 ring-2 ring-cyan-300' 
+                                : hasCustomTrans
+                                  ? 'bg-indigo-950/95 border-indigo-400 text-indigo-300 hover:border-cyan-400 hover:text-cyan-300 ring-1 ring-indigo-400/50 hover:scale-105'
+                                  : 'bg-slate-900/95 border-slate-700 text-slate-400 hover:border-cyan-400 hover:text-cyan-300 group-hover/trans:border-slate-500 hover:scale-105'
+                            }`}>
+                              <Zap className="w-2.5 h-2.5 fill-current" />
+                              <span className="text-[7px] font-mono font-bold leading-none mt-0.5 uppercase">
+                                {seamTrans === 'cut' || !seamTrans
+                                  ? '|'
+                                  : seamTrans.slice(0, 3)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </React.Fragment>
                   );
                 })}
@@ -767,6 +907,17 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                 };
                 const leftPx = timing.startTime * pixelsPerSecond;
                 const widthPx = timing.duration * pixelsPerSecond;
+                const rightPx = timing.endTime * pixelsPerSecond;
+
+                // Virtualization: omit subtitle pill if completely outside active viewport window
+                if (
+                  scene.id !== editingSubtitleSceneId &&
+                  scene.id !== selectedSceneId &&
+                  (rightPx < viewportStartPx || leftPx > viewportEndPx)
+                ) {
+                  return null;
+                }
+
                 const hasText = !!(scene.textOverlay || scene.textNepali);
 
                 return (
@@ -857,6 +1008,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                       isPlaying={isPlaying}
                       currentTime={currentTime}
                       height={14}
+                      visibleRange={{ startPx: viewportStartPx, endPx: viewportEndPx }}
                     />
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
@@ -1008,6 +1160,7 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
                       isPlaying={isPlaying}
                       currentTime={currentTime}
                       height={14}
+                      visibleRange={{ startPx: viewportStartPx, endPx: viewportEndPx }}
                     />
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
@@ -1110,138 +1263,154 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
       </div>
 
       {/* Floating Inline Transition Picker Popover */}
-      {activeTransitionIdx !== null && scenes[activeTransitionIdx + 1] && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#0e121e] border border-slate-700/90 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
-                  <Zap className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Clip Transition Selector</h4>
-                  <p className="text-[11px] text-slate-400">
-                    Between #{activeTransitionIdx + 1} & #{activeTransitionIdx + 2} ({scenes[activeTransitionIdx + 1].title})
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveTransitionIdx(null)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {activeTransitionIdx !== null && scenes[activeTransitionIdx] && scenes[activeTransitionIdx + 1] && (() => {
+        const sceneA = scenes[activeTransitionIdx];
+        const sceneB = scenes[activeTransitionIdx + 1];
+        const activeTransitionType = sceneA.transition || sceneB.transition || 'cut';
 
-            {/* Duration Slider */}
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <label htmlFor="deck-trans-duration-slider" className="text-slate-300 font-semibold flex items-center gap-1 cursor-pointer">
-                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                  Transition Duration
-                </label>
-                <span className="font-mono text-cyan-400 font-bold">{transDuration}s</span>
-              </div>
-              <label htmlFor="deck-trans-duration-slider" className="visually-hidden">Transition duration in seconds</label>
-              <input
-                id="deck-trans-duration-slider"
-                name="transitionDuration"
-                aria-label="Transition duration slider in seconds"
-                aria-valuemin={0.2}
-                aria-valuemax={2.5}
-                aria-valuenow={transDuration}
-                type="range"
-                min="0.2"
-                max="2.5"
-                step="0.1"
-                value={transDuration}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setTransDuration(val);
-                  if (onUpdateScene) {
-                    onUpdateScene(scenes[activeTransitionIdx + 1].id, { transitionDuration: val });
-                  }
-                }}
-                className="w-full accent-cyan-400"
-              />
-              <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                <button 
-                  onClick={() => {
-                    setTransDuration(0.4);
-                    if (onUpdateScene) onUpdateScene(scenes[activeTransitionIdx + 1].id, { transitionDuration: 0.4 });
-                  }}
-                  className="hover:text-cyan-400"
+        return (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[#0e121e] border border-slate-700/90 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Clip Transition Selector</h4>
+                    <p className="text-[11px] text-slate-400">
+                      Between #{activeTransitionIdx + 1} ("{sceneA.title}") & #{activeTransitionIdx + 2} ("{sceneB.title}")
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTransitionIdx(null)}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
                 >
-                  0.4s (Snappy)
-                </button>
-                <button 
-                  onClick={() => {
-                    setTransDuration(0.8);
-                    if (onUpdateScene) onUpdateScene(scenes[activeTransitionIdx + 1].id, { transitionDuration: 0.8 });
-                  }}
-                  className="hover:text-cyan-400"
-                >
-                  0.8s (Balanced)
-                </button>
-                <button 
-                  onClick={() => {
-                    setTransDuration(1.5);
-                    if (onUpdateScene) onUpdateScene(scenes[activeTransitionIdx + 1].id, { transitionDuration: 1.5 });
-                  }}
-                  className="hover:text-cyan-400"
-                >
-                  1.5s (Cinematic)
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </div>
 
-            {/* Transition Grid */}
-            <div className="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto no-scrollbar">
-              {TIMELINE_TRANSITIONS.map((trans) => {
-                const isCurrent = (scenes[activeTransitionIdx + 1].transition || 'cut') === trans.id;
-                return (
-                  <button
-                    key={trans.id}
-                    onClick={() => handleApplyTransition(trans.id)}
-                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition cursor-pointer ${
-                      isCurrent
-                        ? 'bg-cyan-500/20 border-cyan-400 text-white ring-1 ring-cyan-400/50'
-                        : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }`}
+              {/* Duration Slider */}
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <label htmlFor="deck-trans-duration-slider" className="text-slate-300 font-semibold flex items-center gap-1 cursor-pointer">
+                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                    Transition Duration
+                  </label>
+                  <span className="font-mono text-cyan-400 font-bold">{transDuration}s</span>
+                </div>
+                <label htmlFor="deck-trans-duration-slider" className="visually-hidden">Transition duration in seconds</label>
+                <input
+                  id="deck-trans-duration-slider"
+                  name="transitionDuration"
+                  aria-label="Transition duration slider in seconds"
+                  aria-valuemin={0.2}
+                  aria-valuemax={2.5}
+                  aria-valuenow={transDuration}
+                  type="range"
+                  min="0.2"
+                  max="2.5"
+                  step="0.1"
+                  value={transDuration}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setTransDuration(val);
+                    if (onUpdateScene) {
+                      onUpdateScene(sceneA.id, { transitionDuration: val });
+                      onUpdateScene(sceneB.id, { transitionDuration: val });
+                    }
+                  }}
+                  className="w-full accent-cyan-400 cursor-pointer"
+                />
+                <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                  <button 
+                    onClick={() => {
+                      setTransDuration(0.4);
+                      if (onUpdateScene) {
+                        onUpdateScene(sceneA.id, { transitionDuration: 0.4 });
+                        onUpdateScene(sceneB.id, { transitionDuration: 0.4 });
+                      }
+                    }}
+                    className="hover:text-cyan-400 cursor-pointer"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-base">{trans.icon}</span>
-                      {isCurrent && <Check className="w-3.5 h-3.5 text-cyan-400" />}
-                    </div>
-                    <div>
-                      <span className="text-[11px] font-bold block truncate">{trans.label}</span>
-                      <span className="text-[9px] text-slate-400 line-clamp-1">{trans.desc}</span>
-                    </div>
+                    0.4s (Snappy)
                   </button>
-                );
-              })}
-            </div>
+                  <button 
+                    onClick={() => {
+                      setTransDuration(0.8);
+                      if (onUpdateScene) {
+                        onUpdateScene(sceneA.id, { transitionDuration: 0.8 });
+                        onUpdateScene(sceneB.id, { transitionDuration: 0.8 });
+                      }
+                    }}
+                    className="hover:text-cyan-400 cursor-pointer"
+                  >
+                    0.8s (Balanced)
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setTransDuration(1.5);
+                      if (onUpdateScene) {
+                        onUpdateScene(sceneA.id, { transitionDuration: 1.5 });
+                        onUpdateScene(sceneB.id, { transitionDuration: 1.5 });
+                      }
+                    }}
+                    className="hover:text-cyan-400 cursor-pointer"
+                  >
+                    1.5s (Cinematic)
+                  </button>
+                </div>
+              </div>
 
-            {/* Footer Action Buttons */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-              <button
-                onClick={() => handleApplyToAllClips(scenes[activeTransitionIdx + 1].transition || 'dissolve')}
-                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-                title="Apply this transition to all scenes across timeline"
-              >
-                <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Apply to All Clips</span>
-              </button>
-              <button
-                onClick={() => setActiveTransitionIdx(null)}
-                className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition cursor-pointer"
-              >
-                Done
-              </button>
+              {/* Transition Grid */}
+              <div className="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto no-scrollbar">
+                {TIMELINE_TRANSITIONS.map((trans) => {
+                  const isCurrent = activeTransitionType === trans.id;
+                  return (
+                    <button
+                      key={trans.id}
+                      onClick={() => handleApplyTransition(trans.id)}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition cursor-pointer ${
+                        isCurrent
+                          ? 'bg-cyan-500/20 border-cyan-400 text-white ring-1 ring-cyan-400/50'
+                          : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-base">{trans.icon}</span>
+                        {isCurrent && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold block truncate">{trans.label}</span>
+                        <span className="text-[9px] text-slate-400 line-clamp-1">{trans.desc}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Footer Action Buttons */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button
+                  onClick={() => handleApplyToAllClips(activeTransitionType !== 'cut' ? activeTransitionType : 'dissolve')}
+                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                  title="Apply this transition to all scenes across timeline"
+                >
+                  <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Apply to All Clips</span>
+                </button>
+                <button
+                  onClick={() => setActiveTransitionIdx(null)}
+                  className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Floating Inline Subtitle Quick Editor Popover */}
       {editingSubtitleSceneId && (
@@ -1376,4 +1545,6 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
       )}
     </div>
   );
-};
+});
+
+CapCutTimelineDeck.displayName = 'CapCutTimelineDeck';

@@ -325,7 +325,7 @@ export async function apiGenerateAudio(
   userId: string,
   text: string,
   voiceId = 'aakash_ne',
-  language: 'ne-NP' | 'en-US' = 'ne-NP',
+  language: 'ne-NP' | 'en-US' | 'hi-IN' | string = 'ne-NP',
   emotion = 'neutral',
   deliveryStyle = 'general',
   speed?: string,
@@ -532,7 +532,20 @@ export async function apiGetAdminUsers(): Promise<AdminUsersResponse> {
 
 export async function apiAdminUpdateUser(
   userId: string,
-  updates: { credits?: number; tier?: string; resetTrial?: boolean; role?: 'admin' | 'user' }
+  updates: {
+    credits?: number;
+    additionalCredits?: number;
+    tier?: string;
+    resetTrial?: boolean;
+    role?: 'admin' | 'user';
+    limits?: {
+      maxImages?: number;
+      maxVideo?: number;
+      maxAudio?: number;
+      maxRenders?: number;
+      maxChat?: number;
+    };
+  }
 ): Promise<{ success: boolean; user: UserSession; trialUsage: UserTrialQuota }> {
   const adminId = localStorage.getItem('nepalai_user_id') || '';
   const token = localStorage.getItem('nepalai_auth_token') || '';
@@ -879,5 +892,104 @@ export async function apiDeleteAvatar(avatarId: string, userId: string): Promise
     throw new Error(extractErrorText(err, 'Failed to delete avatar'));
   }
   return res.json();
+}
+
+// User Feedback, Feature Requests & Bug Reporting API Helpers
+export async function apiSubmitFeedback(params: {
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  type: 'feature_request' | 'error_report' | 'system_comment';
+  category?: string;
+  title: string;
+  description: string;
+  errorCodeOrLogs?: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+}): Promise<{ success: boolean; submission: any; message: string }> {
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const savedUserId = params.userId || localStorage.getItem('nepalai_user_id') || 'usr_guest';
+  const res = await fetch('/api/feedback/submit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': savedUserId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ ...params, userId: savedUserId }),
+  });
+  const data = await res.json().catch(() => ({ error: 'Feedback submission failed' }));
+  if (!res.ok) {
+    throw new Error(extractErrorText(data, 'Failed to submit feedback'));
+  }
+  return data;
+}
+
+export async function apiGetAdminFeedback(): Promise<{
+  success: boolean;
+  submissions: any[];
+  counts: {
+    total: number;
+    featureRequests: number;
+    errorReports: number;
+    comments: number;
+    open: number;
+    resolved: number;
+  };
+}> {
+  const adminId = localStorage.getItem('nepalai_user_id') || '';
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch('/api/admin/feedback', {
+    headers: {
+      'x-user-id': adminId,
+      'x-admin-key': 'nepalai-admin-key',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  const data = await res.json().catch(() => ({ error: 'Failed to fetch admin feedback' }));
+  if (!res.ok) {
+    throw new Error(extractErrorText(data, 'Failed to fetch feedback submissions'));
+  }
+  return data;
+}
+
+export async function apiUpdateAdminFeedback(
+  id: string,
+  updates: { status?: string; adminNotes?: string; rewardCredits?: number; userId?: string }
+): Promise<{ success: boolean; submission: any }> {
+  const adminId = localStorage.getItem('nepalai_user_id') || '';
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch(`/api/admin/feedback/${encodeURIComponent(id)}/update`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': adminId,
+      'x-admin-key': 'nepalai-admin-key',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(updates),
+  });
+  const data = await res.json().catch(() => ({ error: 'Failed to update feedback' }));
+  if (!res.ok) {
+    throw new Error(extractErrorText(data, 'Failed to update feedback'));
+  }
+  return data;
+}
+
+export async function apiDeleteAdminFeedback(id: string): Promise<{ success: boolean }> {
+  const adminId = localStorage.getItem('nepalai_user_id') || '';
+  const token = localStorage.getItem('nepalai_auth_token') || '';
+  const res = await fetch(`/api/admin/feedback/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: {
+      'x-user-id': adminId,
+      'x-admin-key': 'nepalai-admin-key',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  const data = await res.json().catch(() => ({ error: 'Failed to delete feedback' }));
+  if (!res.ok) {
+    throw new Error(extractErrorText(data, 'Failed to delete feedback'));
+  }
+  return data;
 }
 

@@ -20,7 +20,9 @@ import {
   Sliders,
   ChevronDown,
   FileText,
-  Check
+  Check,
+  MessageSquare,
+  FolderDown
 } from 'lucide-react';
 import { ProjectWorkflowPresetId, ProjectWorkflowPreset, Scene } from '../../types';
 import { WORKFLOW_PRESETS } from '../../data/workflowPresets';
@@ -36,6 +38,9 @@ interface CapCutTimelineToolbarProps {
   onOpenBatchProcessor?: () => void;
   onAutoCrossfadeAll?: () => void;
   onAutoSyncAudio?: () => void;
+  onOpenComments?: () => void;
+  commentsCount?: number;
+  onExportAssetsZip?: () => void;
   selectedWorkflowPresetId?: ProjectWorkflowPresetId;
   onSelectWorkflowPreset?: (preset: ProjectWorkflowPreset) => void;
   zoomLevel: number;
@@ -58,6 +63,9 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   onOpenBatchProcessor,
   onAutoCrossfadeAll,
   onAutoSyncAudio,
+  onOpenComments,
+  commentsCount = 0,
+  onExportAssetsZip,
   selectedWorkflowPresetId = 'documentary',
   onSelectWorkflowPreset,
   zoomLevel,
@@ -244,6 +252,41 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
           >
             <Eye className="w-3 h-3 text-cyan-400" />
             <span>Render Preview</span>
+          </button>
+        )}
+
+        {/* Team Comments Button */}
+        {onOpenComments && (
+          <button
+            type="button"
+            onClick={onOpenComments}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border ${
+              commentsCount > 0
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-800'
+            }`}
+            title="Team Feedback & Scene Comments Drawer"
+          >
+            <MessageSquare className="w-3 h-3 text-amber-400" />
+            <span className="hidden sm:inline">Comments</span>
+            {commentsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-black font-extrabold text-[9px]">
+                {commentsCount}
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* Project Assets ZIP Backup Button */}
+        {onExportAssetsZip && (
+          <button
+            type="button"
+            onClick={onExportAssetsZip}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 rounded-md text-[11px] font-semibold transition cursor-pointer shadow-xs"
+            title="Export all scene assets (video/image/audio/subtitles) to a single compressed ZIP archive for external backup"
+          >
+            <FolderDown className="w-3 h-3 text-emerald-400" />
+            <span className="hidden md:inline">Backup ZIP</span>
           </button>
         )}
       </div>

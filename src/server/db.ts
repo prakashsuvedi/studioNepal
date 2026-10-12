@@ -21,6 +21,23 @@ export interface PricingConfig {
   voiceCloneSynthesisCostCredits?: number;
 }
 
+export interface FeedbackSubmission {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  type: 'feature_request' | 'error_report' | 'system_comment';
+  category?: string;
+  title: string;
+  description: string;
+  errorCodeOrLogs?: string;
+  status: 'open' | 'under_review' | 'in_progress' | 'resolved';
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DatabaseStore {
   users: User[];
   trialUsage: Record<string, TrialUsage>;
@@ -30,6 +47,7 @@ export interface DatabaseStore {
   avatarJobs: AvatarVideoJob[];
   customVoices: CustomVoice[];
   pricingConfig?: PricingConfig;
+  feedbackSubmissions?: FeedbackSubmission[];
 }
 
 export const DEFAULT_STOCK_AVATARS: Avatar[] = [
@@ -187,6 +205,7 @@ const DB_PATH = path.join(DB_DIR, 'nepalai_db.json');
 const BACKUP_DIR = path.join(DB_DIR, 'backups');
 
 // Default initial state
+// Pristine real initial state - strictly real administrators, zero mock users or transactions
 const INITIAL_STORE: DatabaseStore = {
   users: [
     {
@@ -201,142 +220,77 @@ const INITIAL_STORE: DatabaseStore = {
       updatedAt: '2026-09-03T18:00:00.000Z',
     },
     {
-      id: 'usr_client_02',
-      email: 'ramesh.shrestha@gmail.com',
-      name: 'Ramesh Shrestha',
+      id: 'usr_admin_prakash_gmail',
+      email: 'prakashsuvedi@gmail.com',
+      name: 'Prakash Suvedi (Platform Owner)',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      role: 'admin',
+      tier: 'pro_studio',
+      credits: 999999,
+      createdAt: '2026-08-01T10:00:00.000Z',
+      updatedAt: '2026-09-03T18:00:00.000Z',
+    },
+    {
+      id: 'usr_admin_saghimire12',
+      email: 'saghimire12@gmail.com',
+      name: 'Suman Ghimire',
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      role: 'user',
-      tier: 'creator',
-      credits: 1420,
-      createdAt: '2026-08-15T12:30:00.000Z',
-      updatedAt: '2026-09-02T14:15:00.000Z',
-    },
-    {
-      id: 'usr_client_03',
-      email: 'maya.gurung@gmail.com',
-      name: 'Maya Gurung',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-      role: 'user',
-      tier: 'free_trial',
-      credits: 0,
-      createdAt: '2026-09-01T09:12:00.000Z',
-      updatedAt: '2026-09-03T11:20:00.000Z',
-    },
-    {
-      id: 'usr_client_04',
-      email: 'kathmandu.media@agency.com',
-      name: 'Kathmandu Media Lab',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      role: 'user',
-      tier: 'starter',
-      credits: 380,
-      createdAt: '2026-08-20T16:45:00.000Z',
-      updatedAt: '2026-09-03T08:10:00.000Z',
+      role: 'admin',
+      tier: 'pro_studio',
+      credits: 999999,
+      createdAt: '2026-08-01T10:00:00.000Z',
+      updatedAt: '2026-09-03T18:00:00.000Z',
     },
   ],
   trialUsage: {
     usr_admin_01: {
       userId: 'usr_admin_01',
-      imagesCount: 24,
+      imagesCount: 0,
       maxImages: 99999,
-      videoCount: 15,
+      videoCount: 0,
       maxVideo: 99999,
-      videoDurationSeconds: 1800,
-      audioCount: 30,
+      videoDurationSeconds: 0,
+      audioCount: 0,
       maxAudio: 99999,
-      audioDurationSeconds: 3600,
-      rendersCount: 12,
+      audioDurationSeconds: 0,
+      rendersCount: 0,
       maxRenders: 99999,
-      totalTokensUsed: 145000,
+      totalTokensUsed: 0,
       lastUsedAt: '2026-09-03T20:10:00.000Z',
     },
-    usr_client_02: {
-      userId: 'usr_client_02',
-      imagesCount: 45,
-      maxImages: 500,
-      videoCount: 8,
-      maxVideo: 60,
-      videoDurationSeconds: 720,
-      audioCount: 14,
-      maxAudio: 120,
-      audioDurationSeconds: 1400,
-      rendersCount: 6,
-      maxRenders: 50,
-      totalTokensUsed: 52400,
-      lastUsedAt: '2026-09-02T14:15:00.000Z',
-    },
-    usr_client_03: {
-      userId: 'usr_client_03',
-      imagesCount: 3, // Exhausted images
-      maxImages: 3,
-      videoCount: 1, // Exhausted video
-      maxVideo: 1,
-      videoDurationSeconds: 65,
-      audioCount: 1, // Exhausted audio
-      maxAudio: 1,
-      audioDurationSeconds: 110,
+    usr_admin_prakash_gmail: {
+      userId: 'usr_admin_prakash_gmail',
+      imagesCount: 0,
+      maxImages: 99999,
+      videoCount: 0,
+      maxVideo: 99999,
+      videoDurationSeconds: 0,
+      audioCount: 0,
+      maxAudio: 99999,
+      audioDurationSeconds: 0,
       rendersCount: 0,
-      maxRenders: 1,
-      totalTokensUsed: 4200,
-      lastUsedAt: '2026-09-03T11:20:00.000Z',
+      maxRenders: 99999,
+      totalTokensUsed: 0,
+      lastUsedAt: '2026-09-03T20:10:00.000Z',
     },
-    usr_client_04: {
-      userId: 'usr_client_04',
-      imagesCount: 18,
-      maxImages: 100,
-      videoCount: 3,
-      maxVideo: 10,
-      videoDurationSeconds: 240,
-      audioCount: 5,
-      maxAudio: 20,
-      audioDurationSeconds: 450,
-      rendersCount: 2,
-      maxRenders: 10,
-      totalTokensUsed: 21800,
-      lastUsedAt: '2026-09-03T08:10:00.000Z',
+    usr_admin_saghimire12: {
+      userId: 'usr_admin_saghimire12',
+      imagesCount: 0,
+      maxImages: 99999,
+      videoCount: 0,
+      maxVideo: 99999,
+      videoDurationSeconds: 0,
+      audioCount: 0,
+      maxAudio: 99999,
+      audioDurationSeconds: 0,
+      rendersCount: 0,
+      maxRenders: 99999,
+      totalTokensUsed: 0,
+      lastUsedAt: '2026-09-03T20:10:00.000Z',
     },
   },
-  transactions: [
-    {
-      id: 'tx_stripe_8841',
-      userId: 'usr_client_02',
-      userEmail: 'ramesh.shrestha@gmail.com',
-      packageId: 'creator',
-      packageName: 'Creator Tier (1,800 Credits)',
-      amount: 49,
-      currency: 'USD',
-      creditsAdded: 1800,
-      stripePaymentId: 'ch_3PzQx8Lk910298aK2',
-      status: 'succeeded',
-      createdAt: '2026-08-15T12:30:00.000Z',
-    },
-    {
-      id: 'tx_stripe_9921',
-      userId: 'usr_client_04',
-      userEmail: 'kathmandu.media@agency.com',
-      packageId: 'starter',
-      packageName: 'Starter Tier (500 Credits)',
-      amount: 19,
-      currency: 'USD',
-      creditsAdded: 500,
-      stripePaymentId: 'ch_3PzL91Ja8211029Lk',
-      status: 'succeeded',
-      createdAt: '2026-08-20T16:45:00.000Z',
-    },
-  ],
-  generationLogs: [
-    {
-      id: 'gen_log_01',
-      userId: 'usr_client_02',
-      type: 'image',
-      model: 'gpt-image-1.5 / FLUX.1',
-      prompt: 'Himalayan sunrise reflection over Phewa Lake Pokhara',
-      resultUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1080&auto=format&fit=crop&q=80',
-      tokensCost: 350,
-      creditsCost: 5,
-      createdAt: '2026-09-02T14:15:00.000Z',
-    },
-  ],
+  transactions: [],
+  generationLogs: [],
   avatars: DEFAULT_STOCK_AVATARS,
   avatarJobs: [],
   customVoices: [],
@@ -435,6 +389,40 @@ class Database {
         if (!parsed.customVoices) {
           parsed.customVoices = [];
         }
+
+        // Prune legacy mock seed users and test artifacts so strictly real data is maintained
+        const MOCK_EMAILS = new Set([
+          'ramesh.shrestha@gmail.com',
+          'maya.gurung@gmail.com',
+          'kathmandu.media@agency.com',
+        ]);
+        if (parsed.users && Array.isArray(parsed.users)) {
+          parsed.users = parsed.users.filter(u => {
+            const email = (u.email || '').toLowerCase();
+            if (MOCK_EMAILS.has(email)) return false;
+            if (email.startsWith('idemp_') || email.includes('nepalai.studio') || email.includes('nepalai.tech') || email.includes('client.user@gmail.com')) return false;
+            return true;
+          });
+        }
+        // Ensure verified real administrators are always present
+        if (!parsed.users) parsed.users = [];
+        for (const admin of INITIAL_STORE.users) {
+          if (!parsed.users.some(u => u.email.toLowerCase() === admin.email.toLowerCase())) {
+            parsed.users.push(admin);
+          }
+        }
+
+        // Prune mock transactions so only real payments are displayed
+        if (parsed.transactions && Array.isArray(parsed.transactions)) {
+          parsed.transactions = parsed.transactions.filter(t => {
+            const email = (t.userEmail || '').toLowerCase();
+            if (MOCK_EMAILS.has(email) || email.startsWith('idemp_') || email.includes('nepalai.studio') || email.includes('nepalai.tech') || t.id === 'tx_stripe_8841' || t.id === 'tx_stripe_9921') {
+              return false;
+            }
+            return true;
+          });
+        }
+
         // Guarantee strict ID uniqueness across all users
         if (parsed.users && Array.isArray(parsed.users)) {
           const seenIds = new Set<string>();
@@ -1361,6 +1349,90 @@ class Database {
       this.save(this.store);
       this.syncUserToPostgres(user);
     }
+  }
+
+  // Admin Manual Credit Expansion & Limit Management
+  public adminExpandCredits(userId: string, additionalCredits: number): { user: User; newCredits: number } | null {
+    const user = this.getUserById(userId);
+    if (!user) return null;
+    user.credits = Math.max(0, (user.credits || 0) + additionalCredits);
+    this.save(this.store);
+    this.syncUserToPostgres(user);
+    return { user, newCredits: user.credits };
+  }
+
+  public adminSetLimits(
+    userId: string,
+    limits: {
+      maxImages?: number;
+      maxVideo?: number;
+      maxAudio?: number;
+      maxRenders?: number;
+      maxChat?: number;
+    }
+  ): TrialUsage {
+    const quota = this.getTrialUsage(userId);
+    if (typeof limits.maxImages === 'number') quota.maxImages = limits.maxImages;
+    if (typeof limits.maxVideo === 'number') quota.maxVideo = limits.maxVideo;
+    if (typeof limits.maxAudio === 'number') quota.maxAudio = limits.maxAudio;
+    if (typeof limits.maxRenders === 'number') quota.maxRenders = limits.maxRenders;
+    if (typeof limits.maxChat === 'number') quota.maxChat = limits.maxChat;
+    this.save(this.store);
+    return quota;
+  }
+
+  // User Feedback, Feature Requests & Bug Reporting
+  public saveFeedbackSubmission(
+    item: Omit<FeedbackSubmission, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { status?: FeedbackSubmission['status'] }
+  ): FeedbackSubmission {
+    if (!this.store.feedbackSubmissions) {
+      this.store.feedbackSubmissions = [];
+    }
+    const id = `fb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+    const submission: FeedbackSubmission = {
+      id,
+      userId: item.userId || 'usr_guest',
+      userName: item.userName || 'Anonymous Creator',
+      userEmail: item.userEmail || '',
+      type: item.type || 'system_comment',
+      category: item.category || 'general',
+      title: item.title,
+      description: item.description,
+      errorCodeOrLogs: item.errorCodeOrLogs || '',
+      status: item.status || 'open',
+      priority: item.priority || 'medium',
+      adminNotes: '',
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.store.feedbackSubmissions.unshift(submission);
+    this.save(this.store);
+    return submission;
+  }
+
+  public getAllFeedbackSubmissions(): FeedbackSubmission[] {
+    return this.store.feedbackSubmissions || [];
+  }
+
+  public updateFeedbackSubmission(id: string, updates: Partial<FeedbackSubmission>): FeedbackSubmission | null {
+    if (!this.store.feedbackSubmissions) return null;
+    const item = this.store.feedbackSubmissions.find(f => f.id === id);
+    if (!item) return null;
+    Object.assign(item, updates, { updatedAt: new Date().toISOString() });
+    this.save(this.store);
+    return item;
+  }
+
+  public deleteFeedbackSubmission(id: string): boolean {
+    if (!this.store.feedbackSubmissions) return false;
+    const initialLen = this.store.feedbackSubmissions.length;
+    this.store.feedbackSubmissions = this.store.feedbackSubmissions.filter(f => f.id !== id);
+    if (this.store.feedbackSubmissions.length !== initialLen) {
+      this.save(this.store);
+      return true;
+    }
+    return false;
   }
 }
 

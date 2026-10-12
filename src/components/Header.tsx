@@ -33,7 +33,8 @@ import {
   ChevronDown,
   MoreHorizontal,
   Wand2,
-  Check
+  Check,
+  MessageSquare
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -48,6 +49,7 @@ interface HeaderProps {
   onOpenWorkspaces?: () => void;
   onOpenUsageHistory?: () => void;
   onOpenTour?: () => void;
+  onOpenFeedback?: () => void;
   activeWorkspaceName?: string;
 }
 
@@ -63,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenWorkspaces,
   onOpenUsageHistory,
   onOpenTour,
+  onOpenFeedback,
   activeWorkspaceName = 'Personal Studio',
 }) => {
   const { toggleTheme, isDark } = useTheme();
@@ -492,6 +495,20 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
+            {/* Feedback & Bug Reporting Trigger Button */}
+            {onOpenFeedback && (
+              <button
+                type="button"
+                onClick={onOpenFeedback}
+                aria-label="Feedback & Bug Reporting"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 text-xs font-semibold transition cursor-pointer shadow-xs"
+                title="Submit Feature Request, Bug Report, or Direct Feedback"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-rose-500" />
+                <span className="hidden md:inline">Feedback / Bug</span>
+              </button>
+            )}
+
             {/* Utilities Submenu (Tour, Workspace, Shortcuts, Theme) */}
             <div className="relative" ref={utilitiesMenuRef}>
               <button
@@ -546,6 +563,18 @@ export const Header: React.FC<HeaderProps> = ({
                         <span>Shortcuts</span>
                       </div>
                       <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">?</span>
+                    </button>
+                  )}
+                  {onOpenFeedback && (
+                    <button
+                      onClick={() => {
+                        onOpenFeedback();
+                        setIsUtilitiesMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-rose-500" />
+                      <span>Feedback & Report Bug</span>
                     </button>
                   )}
                   <button

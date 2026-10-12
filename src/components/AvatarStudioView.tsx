@@ -209,6 +209,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedResult, setGeneratedResult] = useState<any | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successNotification, setSuccessNotification] = useState<string | null>(null);
   const [historyJobs, setHistoryJobs] = useState<any[]>([]);
 
   // Video Player Ref
@@ -455,7 +456,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
     }
 
     if (!consentConfirmed) {
-      alert('Please confirm likeness rights and voice consent before generating.');
+      setErrorMessage('Please confirm likeness rights and voice consent before generating.');
       return;
     }
 
@@ -549,7 +550,8 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
             setCustomSoraVideoUrl(videoUrl);
             setRealVideoPreset('custom');
             setShowSoraStudioModal(false);
-            alert('✅ New custom 4K real studio video generated successfully with Azure Sora-2!');
+            setSuccessNotification('✅ New custom 4K real studio video generated successfully with Azure Sora-2!');
+            setTimeout(() => setSuccessNotification(null), 5000);
           } else if (sData.status === 'failed') {
             clearInterval(pollInterval);
             setIsGeneratingSoraStudio(false);
@@ -1283,6 +1285,14 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
                 <span className="text-emerald-400 font-mono">AUDIT_CERTIFIED_OK</span>
               </div>
             </div>
+
+            {/* Success Banner if any */}
+            {successNotification && (
+              <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>{successNotification}</span>
+              </div>
+            )}
 
             {/* Error Banner if any */}
             {errorMessage && (

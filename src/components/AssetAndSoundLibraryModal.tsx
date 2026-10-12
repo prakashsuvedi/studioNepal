@@ -121,6 +121,61 @@ export const PREDEFINED_AUDIO_LIBRARY: (AudioTrack & { category: 'bgm' | 'vo' | 
     genre: 'Devanagari TTS',
     category: 'vo',
     description: 'Warm female narration reading "माउन्ट एभरेष्टको शिखरबाट सुनौलो बिहानीको दृश्य".'
+  },
+  {
+    id: 'bgm-temple-meditation',
+    title: 'Sacred Temple Meditation Bells',
+    artist: 'Sacred Nepal Soundscapes',
+    url: '/audio/temple_bells.mp3',
+    duration: 30,
+    volume: 75,
+    genre: 'Traditional Ambience',
+    category: 'bgm',
+    description: 'Deep resonant brass meditation chimes and spiritual bells.'
+  },
+  {
+    id: 'sfx-rain-1',
+    title: 'Monsoon Rain & Mountain Thunder',
+    artist: 'Nepal Natural Ambience',
+    url: '/audio/sfx_rain.mp3',
+    duration: 6,
+    volume: 80,
+    genre: 'Nature SFX',
+    category: 'sfx',
+    description: 'Real soothing rainfall and distant Himalayan mountain ambience.'
+  },
+  {
+    id: 'sfx-wind-1',
+    title: 'High-Altitude Himalayan Wind',
+    artist: 'Nepal Natural Ambience',
+    url: '/audio/sfx_wind.mp3',
+    duration: 6,
+    volume: 75,
+    genre: 'Atmospheric SFX',
+    category: 'sfx',
+    description: 'Organic mountain wind gusts for dramatic scenic shots.'
+  },
+  {
+    id: 'sfx-camera-1',
+    title: 'Studio Camera Shutter Snap',
+    artist: 'NepalAI SFX Vault',
+    url: '/audio/sfx_camera.mp3',
+    duration: 1,
+    volume: 90,
+    genre: 'Foley SFX',
+    category: 'sfx',
+    description: 'Crisp mechanical camera shutter snap for freeze-frames and photo reveals.'
+  },
+  {
+    id: 'sfx-pop-1',
+    title: 'Clean Acoustic Pop & Click',
+    artist: 'NepalAI SFX Vault',
+    url: '/audio/sfx_pop.mp3',
+    duration: 1,
+    volume: 85,
+    genre: 'UI SFX',
+    category: 'sfx',
+    description: 'Smooth acoustic bubble pop for modern animated badges and titles.'
   }
 ];
 

@@ -25,9 +25,11 @@ import {
   ChevronRight,
   Sun,
   Moon,
-  MessageSquare
+  MessageSquare,
+  Radio,
+  Play
 } from 'lucide-react';
-import { UserSession } from '../types';
+import { UserSession, StudioTab } from '../types';
 import { InteractiveStudioPlayer } from './InteractiveStudioPlayer';
 import { ViralTemplate } from '../data/viralTemplates';
 import { useLanguage } from '../context/LanguageContext';
@@ -41,6 +43,7 @@ interface LandingPageViewProps {
   onLaunchHamroAi?: () => void;
   onSelectPlan: (planId: 'starter' | 'creator' | 'pro_studio' | 'sasta_50_npr' | string) => void;
   onSelectTemplate?: (template: ViralTemplate) => void;
+  onNavigateTab?: (tab: StudioTab) => void;
 }
 
 type LangMode = 'en' | 'ne' | 'hi';
@@ -52,6 +55,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onLaunchStudio,
   onLaunchHamroAi,
   onSelectPlan,
+  onNavigateTab,
 }) => {
   const { language, setLanguage } = useLanguage();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -75,11 +79,11 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   });
 
   const promptSuggestions = [
-    { label: '🏔️ Everest Sunrise 4K', text: 'Cinematic 4K drone shot over Mt. Everest sunrise with golden snow particles and dramatic lighting' },
-    { label: '🛕 Kathmandu Night', text: 'Kathmandu Dashain festival night, thousands of oil lamps and floating lanterns in 60fps slow motion' },
-    { label: '📱 9:16 Shorts Ad', text: 'Fast-paced 9:16 YouTube Short product commercial for Himalayan organic honey with kinetic subtitles' },
-    { label: '☕ Organic Tea Plantation', text: 'Artisanal Nepali mountain tea plantation in Ilam, morning mist rising with peaceful ambient breeze' },
-    { label: '🌌 Cyberpunk Nepal 2099', text: 'Futuristic Cyberpunk Kathmandu in 2099 with holographic temples and flying electric vehicles in neon rain' },
+    { label: '🏔️ सगरमाथा विहानी (Everest)', text: 'Cinematic 4K drone shot over Mt. Everest sunrise with golden snow particles and dramatic lighting' },
+    { label: '🛕 पशुपति आरती (Pashupati)', text: 'Pashupati temple evening aarti rituals, oil lamps reflection and sacred devotional chanting in slow motion' },
+    { label: '🍲 मोमो क्याफे विज्ञापन (Food Ad)', text: 'Crispy steaming Nepali c-momo platter commercial with spicy chutney dip, 4K macro cinematic close-up' },
+    { label: '📻 भर्चुअल एंकर (AI Anchor)', text: 'Professional Nepali virtual news anchor presenting prime news in studio with breaking headlines and charts' },
+    { label: '🌿 फेवाताल यात्रा (Pokhara)', text: 'Peaceful Pokhara Phewa lake boat ride with Annapurna range reflection and serene acoustic flute' },
   ];
 
   // Scroll listener for floating CTA - only appears after scrolling past hero & interactive demo
@@ -119,10 +123,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   // Content translations
   const t = {
     en: {
-      badge: "Azure Sora-2 • Broadcast Neural Voice • FonePay QR",
-      heroH1: "Cinematic AI Video Creation",
-      heroHighlight: "Crafted for Creators & Brands",
-      heroSubtitle: "Generate photorealistic 4K scenes with Azure Sora-2, authentic Nepali neural narration, and auto-synced Devanagari subtitles in a unified timeline editor.",
+      badge: "Sora-2 · Neural Voices · Instant FonePay QR",
+      heroH1: "Cinematic AI Video",
+      heroHighlight: "Studio",
+      heroSubtitle: "Transform ideas into 4K video scenes and authentic neural voiceovers.",
       sastaCta: "Micro-Pass (रू 50)",
       freeTrialCta: "Start Free Trial",
       launchStudioCta: "Launch Studio",
@@ -142,10 +146,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       faqSubtitle: "Common questions about commercial licensing, billing, and technical capabilities.",
     },
     ne: {
-      badge: "एज्योर सोरा-२ • न्युरल नेपाली आवाज • फोनपे क्युआर",
+      badge: "सोरा-२ · न्युरल नेपाली आवाज · फोनपे क्युआर",
       heroH1: "सिनेमेटिक एआई भिडियो",
-      heroHighlight: "मिनेटमै तयार, सिधै आम्दानी",
-      heroSubtitle: "सोरा-२ भिडियो जेनेरेसन, प्राकृतिक नेपाली न्युरल आवाज र मुक्ता फन्ट सबटाइटलसहित व्यावसायिक भिडियोहरू सजिलै बनाउनुहोस्।",
+      heroHighlight: "स्टुडियो",
+      heroSubtitle: "आफ्नो सोचलाई ४K भिडियो र प्राकृतिक आवाजमा बदल्नुहोस्।",
       sastaCta: "सस्तो पास (रू ५० मात्र)",
       freeTrialCta: "निःशुल्क सुरु गर्नुहोस्",
       launchStudioCta: "स्टुडियो खोल्नुहोस्",
@@ -165,10 +169,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       faqSubtitle: "कमर्सियल राइट्स, फोनपे भुक्तानी र भिडियो निर्माण सम्बन्धी जानकारी।",
     },
     hi: {
-      badge: "एज़्योर सोरा-2 • नेचुरल वॉइस • फोनपे क्यूआर",
+      badge: "सोरा-2 · नेचुरल वॉइस · फोनपे क्यूआर",
       heroH1: "सिनेमैटिक एआई वीडियो",
-      heroHighlight: "मिनटों में तैयार करें",
-      heroSubtitle: "4K सोरा-2 वीडियो, नेचुरल वॉइसओवर और एनिमेटेड सबटाइटल्स के साथ हाई-कन्वर्टिंग वीडियो बनाएं।",
+      heroHighlight: "स्टूडियो",
+      heroSubtitle: "अपने विचारों को 4K वीडियो और नेचुरल आवाज़ में बदलें।",
       sastaCta: "सस्ता पास (मात्र रू 50)",
       freeTrialCta: "मुफ़्त शुरू करें",
       launchStudioCta: "स्टूडियो खोलें",
@@ -351,49 +355,55 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         />
       </div>
 
-      {/* 1. HERO SECTION */}
-      <section className="relative pt-10 sm:pt-16 pb-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+      {/* 1. HERO SECTION - CLEAN, UNCLUTTERED & BILINGUAL */}
+      <section className="relative pt-8 sm:pt-14 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="flex flex-col items-center"
+          className="flex flex-col items-center w-full"
         >
-          {/* Status Badge */}
+          {/* Subtle Live Kicker */}
           <motion.div variants={itemVariants}>
-            <div className="hero-glass-card inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold text-slate-800 dark:text-slate-100 mb-6 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{t.badge}</span>
+            <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3 tracking-wide px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 shadow-xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
+              </span>
+              <span>नेपालको पहिलो एआई मिडिया स्टुडियो · Sovereign Creative Suite</span>
             </div>
           </motion.div>
 
-          {/* Hero Headline */}
+          {/* Clean Bilingual Hero Headline */}
           <motion.h1 
             variants={itemVariants}
-            className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-[1.15] max-w-4xl mx-auto drop-shadow-sm"
+            className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-[1.14] max-w-4xl mx-auto"
           >
-            <span className="text-slate-950 dark:text-white">{t.heroH1}</span>{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 dark:from-rose-400 dark:via-purple-300 dark:to-indigo-300">
-              {t.heroHighlight}
+            सिनेमेटिक एआई भिडियो र आवाज
+            <span className="block mt-1.5 sm:mt-2.5 text-2xl sm:text-4xl lg:text-5xl bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 dark:from-rose-400 dark:via-purple-300 dark:to-indigo-300 bg-clip-text text-transparent font-extrabold">
+              Cinematic AI Video & Studio Suite
             </span>
           </motion.h1>
 
-          {/* Hero Subtitle */}
+          {/* Clean Bilingual Hero Subtitle */}
           <motion.p 
             variants={itemVariants}
-            className="mt-5 text-sm sm:text-base lg:text-lg text-slate-700 dark:text-slate-200 max-w-2xl mx-auto leading-relaxed font-normal"
+            className="mt-4 sm:mt-5 text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed"
           >
-            {t.heroSubtitle}
+            आफ्नो सोचलाई सेकेन्डमै ४K दृश्य, प्राकृतिक नेपाली आवाज र अटो-क्याप्सनमा बदल्नुहोस्।
+            <span className="block mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
+              Turn ideas into 4K scenes, Sora-2 motion, neural voices & synced captions in seconds.
+            </span>
           </motion.p>
 
-          {/* Interactive Prompt Terminal */}
+          {/* Interactive Prompt Terminal - Clean & Spacious */}
           <motion.div 
             variants={itemVariants}
-            className="hero-glass-panel mt-8 w-full max-w-3xl mx-auto rounded-2xl p-2.5 sm:p-3 shadow-xl"
+            className="relative mt-7 sm:mt-8 w-full max-w-3xl lg:max-w-4xl mx-auto rounded-2xl p-2.5 sm:p-3 bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-2xl shadow-slate-900/5 dark:shadow-black/50"
           >
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <div className="hero-glass-input relative flex-1 flex items-center pl-3 rounded-xl py-1">
-                <Wand2 className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mr-2" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <div className="relative flex-1 flex items-center pl-3.5 pr-2 py-1.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/70 border border-slate-200/80 dark:border-white/[0.08] focus-within:border-rose-500/50 focus-within:ring-2 focus-within:ring-rose-500/20 transition-all">
+                <Wand2 className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mr-2.5" />
                 <label htmlFor="hero-prompt-input" className="visually-hidden">Video prompt description</label>
                 <input
                   id="hero-prompt-input"
@@ -402,8 +412,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   type="text"
                   value={heroPrompt}
                   onChange={(e) => setHeroPrompt(e.target.value)}
-                  placeholder="Describe the video you want to generate..."
-                  className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none font-medium py-1.5"
+                  placeholder="कुनै पनि भिडियोको सोच लेख्नुहोस्... (e.g. Mt. Everest sunrise 4K)"
+                  className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden font-medium py-1"
                 />
               </div>
 
@@ -412,9 +422,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleHeroGenerate}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm shadow-md transition active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold text-xs sm:text-sm shadow-md shadow-rose-600/25 transition active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <span>{user ? t.launchStudioCta : t.freeTrialCta}</span>
+                  <span>{user ? 'स्टुडियो खोल्नुहोस्' : 'निःशुल्क सुरु गर्नुहोस्'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </motion.button>
 
@@ -422,24 +432,27 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => onSelectPlan('sasta_50_npr')}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/20 transition active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>{t.sastaCta}</span>
+                  <span>सस्तो पास (रू ५०)</span>
                 </motion.button>
               </div>
             </div>
 
             {/* Quick Prompt Chips */}
-            <div className="mt-3 pt-2.5 border-t border-slate-200/80 dark:border-white/[0.08] flex items-center gap-2 overflow-x-auto no-scrollbar text-[11px]">
-              <span className="text-slate-700 dark:text-slate-300 font-bold shrink-0">Inspiration:</span>
+            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/[0.06] flex items-center gap-2 overflow-x-auto no-scrollbar text-[11px] sm:text-xs">
+              <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-semibold shrink-0">
+                <Sparkles className="w-3 h-3 text-rose-500" />
+                <span>सुझाव:</span>
+              </span>
               {promptSuggestions.map((item, idx) => (
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   key={idx}
                   onClick={() => setHeroPrompt(item.text)}
-                  className="hero-glass-chip px-2.5 py-1 rounded-lg font-medium transition whitespace-nowrap cursor-pointer hover:border-rose-500/50"
+                  className="px-3 py-1 rounded-lg font-medium transition whitespace-nowrap cursor-pointer bg-slate-100/90 dark:bg-slate-800/70 hover:bg-slate-200/90 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-white/[0.08] hover:border-rose-500/40"
                 >
                   {item.label}
                 </motion.button>
@@ -450,35 +463,48 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* Trust Row */}
           <motion.div 
             variants={itemVariants}
-            className="mt-6 flex flex-wrap items-center justify-center gap-y-2 gap-x-6 text-xs text-slate-700 dark:text-slate-200 font-medium"
+            className="mt-6 flex flex-wrap items-center justify-center gap-y-2 gap-x-6 text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium"
           >
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Watermark-Free HD/4K</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>वाटरमार्क-रहित HD/4K</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>Commercial Rights Included</span>
+              <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>पूर्ण कमर्सियल अधिकार</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              <span>4.9/5 by 1,200+ Creators</span>
+              <QrCode className="w-4 h-4 text-amber-500" />
+              <span>फोनपे / eSewa Instant QR</span>
             </div>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* 2. REFINED STUDIO PLAYER DEMO (Single Unified Container, No Nested Mac Borders) */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto pb-16">
+      {/* 2. REFINED STUDIO PLAYER DEMO - Expansive & Cinematic Frame */}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-14">
+        <div className="text-center max-w-3xl mx-auto mb-5 sm:mb-6">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1.5">
+            <Radio className="w-3.5 h-3.5 animate-pulse" />
+            <span>प्रत्यक्ष स्टुडियो डेमो · Live Studio Demo</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+            हेर्नुहोस् कसरी ३ मिनेटमा ४K भिडियो, आवाज र सबटाइटल तयार हुन्छ
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Real Sora-2 4K scenes, authentic neural voiceovers & word-accurate Devanagari captions.
+          </p>
+        </div>
+
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="relative"
+          viewport={{ once: true, margin: "-30px" }}
+          transition={{ duration: 0.4 }}
+          className="relative w-full"
         >
           {/* Subtle Ambient Glow */}
-          <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-indigo-500/20 blur-xl opacity-60 pointer-events-none -z-10" />
+          <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-rose-500/20 via-purple-500/20 to-indigo-500/20 blur-xl opacity-50 pointer-events-none -z-10" />
 
           <InteractiveStudioPlayer
             onLaunchStudio={onLaunchStudio}
@@ -487,14 +513,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </motion.div>
       </section>
 
-      {/* 3. FOUR CORE CAPABILITIES */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
-        <div className="text-center max-w-2xl mx-auto mb-12">
+      {/* 3. FOUR CORE CAPABILITIES - Rich Visual Cards */}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-14 border-t border-slate-200 dark:border-white/[0.08]">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>एआई प्रविधिहरू · Core AI Engines</span>
+          </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-            {t.capabilitiesTitle}
+            चार मुख्य सिर्जनात्मक प्रविधिहरू · Four Creative Engines
           </h2>
-          <p className="mt-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-            {t.capabilitiesSubtitle}
+          <p className="mt-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+            युट्युब, रील्स, टिकटक र व्यावसायिक विज्ञापनहरू निर्माण गर्ने पूर्ण स्टुडियो। Everything needed to produce studio-grade short films and reels.
           </p>
         </div>
 
@@ -502,31 +532,35 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {[
             {
               icon: Film,
-              color: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20',
-              title: 'Sora-2 Cinema',
-              desc: 'Generate 4s, 8s, and 12s high-resolution photorealistic scenes with cinematic physics and fluid camera dynamics.',
+              image: '/samples/everest_sunrise_thumb.jpg',
+              color: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
+              title: 'सोरा-२ सिनेमा · Sora-2 Cinema',
+              desc: '४, ८ र १२ सेकेन्डका ४K सिनेमेटिक दृश्यहरू। 4K photorealistic scenes with fluid physics & camera motion.',
               tag: '4K Broadcast Ready',
             },
             {
               icon: Mic,
-              color: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20',
-              title: 'Neural Voiceover',
-              desc: '24kHz broadcast narration in fluent Nepali, Indian English, and Hindi with realistic pitch inflection and pacing.',
-              tag: 'Azure & SpeechT5 Voices',
+              image: '/assets/avatars/aarav.jpg',
+              color: 'text-purple-500 bg-purple-500/10 border-purple-500/20',
+              title: 'न्युरल आवाज · Neural Voiceover',
+              desc: '२४kHz प्राकृतिक नेपाली, भारतीय अंग्रेजी र हिन्दी आवाज। Fluent broadcast narration in authentic accents.',
+              tag: 'Azure & SpeechT5 Master',
             },
             {
               icon: Sparkles,
-              color: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
-              title: 'Devanagari Subtitles',
-              desc: 'Automatic word-level sync with native Mukta font rendering, vibrant karaoke highlights, and custom caption styling.',
-              tag: 'Frame-Accurate Alignment',
+              image: '/samples/durbar_square_thumb.jpg',
+              color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+              title: 'देवनागरी सबटाइटल · Captions',
+              desc: 'शब्द-शब्दमा मेल खाने मुक्ता फन्ट काराओके सबटाइटल। Word-level sync with native Mukta typography.',
+              tag: 'Karaoke Frame Sync',
             },
             {
               icon: Zap,
-              color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
-              title: '1-Click Publishing',
-              desc: 'Export and publish directly to YouTube Shorts, Instagram Reels, and TikTok with optimized metadata and tags.',
-              tag: 'Zero Transcode Latency',
+              image: '/samples/phewa_lake_thumb.jpg',
+              color: 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20',
+              title: '१-क्लिक पब्लिश · 1-Click Post',
+              desc: 'युट्युब सर्ट्स र इन्स्टाग्राम रील्समा सीधा पब्लिश गर्नुहोस्। Export directly with optimized SEO tags.',
+              tag: 'YouTube & Reels Ready',
             },
           ].map((item, idx) => {
             const Icon = item.icon;
@@ -538,17 +572,40 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 viewport={{ once: true, margin: "-30px" }}
                 transition={{ duration: 0.4, delay: idx * 0.08 }}
                 whileHover={{ y: -3 }}
-                className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.16] transition shadow-sm flex flex-col justify-between space-y-4"
+                className="group rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.2] transition shadow-xs overflow-hidden flex flex-col justify-between"
               >
-                <div className="space-y-3">
-                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${item.color}`}>
-                    <Icon className="w-5 h-5" />
+                {/* Visual Thumbnail Header */}
+                <div className="relative h-28 w-full overflow-hidden bg-slate-950">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition duration-300 group-hover:scale-105 opacity-80 group-hover:opacity-100"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/samples/everest_sunrise_thumb.jpg';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                  <div className={`absolute top-2.5 left-2.5 w-8 h-8 rounded-lg border backdrop-blur-md flex items-center justify-center ${item.color}`}>
+                    <Icon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{item.title}</h3>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{item.desc}</p>
+                  <span className="absolute bottom-2 right-2.5 text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-black/70 text-slate-200 border border-white/10">
+                    {item.tag}
+                  </span>
                 </div>
-                <div className="text-[11px] font-semibold pt-2 border-t border-slate-100 dark:border-white/[0.06] text-slate-600 dark:text-slate-400">
-                  {item.tag}
+
+                <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-rose-500 transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+                      {item.desc}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-[11px] text-rose-600 dark:text-rose-400 font-semibold">
+                    <span>स्टुडियोमा प्रयोग गर्नुहोस्</span>
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
               </motion.div>
             );
@@ -556,8 +613,105 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </section>
 
+      {/* 3.5 RECENT STUDIO SHOWCASES (High-Resolution Sample Showcase) */}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12 border-t border-slate-200 dark:border-white/[0.08]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">
+              <Film className="w-3.5 h-3.5" />
+              <span>स्टुडियो नमुनाहरू · Studio Showcase</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              हालै तयार गरिएका उत्कृष्ट सिनेमेटिक दृश्यहरू
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Broadcast-quality clips generated with NepalAI Studio engines. Click to launch.
+            </p>
+          </div>
+          <button
+            onClick={onLaunchStudio}
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-200 dark:text-slate-950 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+          >
+            <span>सबै दृश्य हेर्नुहोस् · Explore All</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              title: 'सगरमाथा विहानी (Everest Dawn)',
+              subtitle: 'Sora-2 Cinema · 4K Drone Simulation',
+              thumb: '/samples/everest_sunrise_thumb.jpg',
+              duration: '0:04',
+              aspect: '१६:९ 4K',
+            },
+            {
+              title: 'काठमाडौँ दरबार स्क्वायर (Durbar Heritage)',
+              subtitle: 'Historical Heritage · Neural Soundscape',
+              thumb: '/samples/durbar_square_thumb.jpg',
+              duration: '0:08',
+              aspect: '१६:९ 4K',
+            },
+            {
+              title: 'पोखरा फेवाताल यात्रा (Phewa Lake Reel)',
+              subtitle: '9:16 Shorts · Annapurna Reflections',
+              thumb: '/samples/phewa_lake_thumb.jpg',
+              duration: '0:12',
+              aspect: '९:१६ Shorts',
+            },
+            {
+              title: 'प्राइमटाइम एआई समाचार (Virtual Anchor)',
+              subtitle: '24kHz Studio Audio · Lip-Sync Anchor',
+              thumb: '/samples/dual_anchor_primetime_poster.jpg',
+              duration: '0:16',
+              aspect: '१६:९ News',
+            },
+          ].map((sample, sIdx) => (
+            <motion.div
+              key={sIdx}
+              whileHover={{ y: -4 }}
+              onClick={onLaunchStudio}
+              className="group cursor-pointer rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] hover:border-rose-500/40 transition shadow-xs overflow-hidden"
+            >
+              <div className="relative aspect-video w-full overflow-hidden bg-slate-950">
+                <img
+                  src={sample.thumb}
+                  alt={sample.title}
+                  className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/samples/everest_sunrise_thumb.jpg';
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
+                <span className="absolute bottom-2 left-2 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-black/70 text-slate-200 border border-white/10">
+                  {sample.duration}
+                </span>
+                <span className="absolute bottom-2 right-2 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-rose-600/90 text-white">
+                  {sample.aspect}
+                </span>
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[1px]">
+                  <div className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg">
+                    <Play className="w-4 h-4 fill-white ml-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3.5 space-y-1">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-rose-500 transition-colors truncate">
+                  {sample.title}
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {sample.subtitle}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* 4. PERSONA & WORKFLOW SELECTOR */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {t.personaTitle}
@@ -644,7 +798,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </section>
 
       {/* 5. 4-STEP PRODUCTION PIPELINE */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {t.stepsTitle}
@@ -678,7 +832,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </section>
 
       {/* 6. ROI & EARNINGS CALCULATOR */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {t.calcTitle}
@@ -693,7 +847,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.5 }}
-          className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-300 dark:border-white/[0.1] max-w-4xl mx-auto shadow-sm"
+          className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-300 dark:border-white/[0.1] max-w-5xl mx-auto shadow-sm"
         >
           <div className="space-y-3 mb-8">
             <div className="flex items-center justify-between text-xs sm:text-sm">
@@ -751,7 +905,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </section>
 
       {/* 7. ARCHITECTURAL PRICING MATRIX */}
-      <section id="pricing" className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
+      <section id="pricing" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {t.pricingTitle}
@@ -915,8 +1069,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </section>
 
       {/* 8. COLLAPSIBLE FAQ */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
-        <div className="text-center max-w-2xl mx-auto mb-10">
+      <section className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto py-16 border-t border-slate-200 dark:border-white/[0.08]">
+        <div className="text-center max-w-3xl mx-auto mb-10">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {t.faqTitle}
           </h2>
@@ -962,7 +1116,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </section>
 
       {/* 8.5 POPULAR AI WORKFLOWS & KEYWORD HUB (SEO OPTIMIZED FOR NEPAL, INDIA & SOUTH ASIA) */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-12 border-t border-slate-200 dark:border-white/[0.08]">
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12 border-t border-slate-200 dark:border-white/[0.08]">
         <div className="text-center max-w-3xl mx-auto mb-8">
           <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40">
             {lang === 'ne' 
@@ -1055,7 +1209,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </section>
 
       {/* 9. BOTTOM CTA */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto py-16">
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-16">
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -1063,7 +1217,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           transition={{ duration: 0.5 }}
           className="rounded-3xl bg-gradient-to-r from-rose-500/[0.1] via-purple-500/[0.08] to-indigo-500/[0.1] dark:from-rose-950/40 dark:via-slate-900 dark:to-indigo-950/40 border border-slate-300 dark:border-white/[0.12] p-8 sm:p-12 text-center relative overflow-hidden shadow-xl"
         >
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-4">
             <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-950 dark:text-white tracking-tight">
               {lang === 'ne'
                 ? 'आफ्नो पहिलो भिडियो अहिले नै बनाउनुहोस्'
@@ -1071,7 +1225,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 ? 'अपना पहला वीडियो अभी तैयार करें'
                 : 'Start Creating Studio-Grade Videos Today'}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-normal">
+            <p className="text-xs sm:text-sm lg:text-base text-slate-700 dark:text-slate-200 leading-relaxed font-normal">
               {lang === 'ne'
                 ? 'हजारौं क्रिएटरहरूसँगै नेपालएआई स्टुडियोमा जोडिनुहोस् र आफ्ना सामाजिक सञ्जाललाई नयाँ उचाइमा पुर्‍याउनुहोस्।'
                 : 'Join creators and businesses generating millions of views with Azure Sora-2 motion, neural voiceovers, and frame-accurate Devanagari subtitles.'}
@@ -1101,90 +1255,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           </div>
         </motion.div>
       </section>
-
-      {/* 10. CLEAN MODERN FOOTER */}
-      <footer className="border-t border-slate-300 dark:border-white/[0.08] py-10 px-4 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-[#07080D]">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <NepalAiLogo size="sm" />
-              <span className="text-slate-400 dark:text-slate-600">•</span>
-              <span className="text-slate-800 dark:text-slate-200 font-semibold">NepalAI Studio // Cinematic Creative Suite</span>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-5 text-slate-700 dark:text-slate-300 font-medium">
-              <button onClick={onLaunchStudio} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer">
-                Studio
-              </button>
-              {onLaunchHamroAi && (
-                <button onClick={onLaunchHamroAi} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1">
-                  <MessageSquare className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                  <span>HamroAI</span>
-                </button>
-              )}
-              <a href="#pricing" className="hover:text-slate-950 dark:hover:text-white transition">
-                Pricing
-              </a>
-              <a 
-                href="/sitemap.xml" 
-                target="_blank" 
-                rel="noreferrer"
-                className="hover:text-slate-950 dark:hover:text-white transition"
-              >
-                Sitemap
-              </a>
-              <button onClick={() => onOpenAuth('admin')} className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer">
-                Admin Portal
-              </button>
-              
-              {/* Theme Toggle in Footer */}
-              <button 
-                onClick={toggleTheme} 
-                className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-white/[0.1] bg-slate-50 dark:bg-slate-900"
-                title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
-              >
-                {isDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
-                <span className="capitalize">{theme}</span>
-              </button>
-
-              {/* Language Switcher */}
-              <button
-                onClick={() => setLanguage(lang === 'en' ? 'ne' : lang === 'ne' ? 'hi' : 'en')}
-                className="hover:text-slate-950 dark:hover:text-white transition cursor-pointer flex items-center gap-1 text-slate-800 dark:text-slate-200"
-              >
-                <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                <span>{lang === 'en' ? 'नेपाली' : lang === 'ne' ? 'हिन्दी' : 'English'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Platform Engineering & Founder Credits */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-slate-400">
-            <div>
-              Platform designed and created by{' '}
-              <a
-                href="https://scamspike.com"
-                target="_blank"
-                rel="noreferrer"
-                className="font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
-              >
-                ScamSpike Solutions Pvt. Ltd. (scamspike.com)
-              </a>
-            </div>
-            <div className="flex items-center gap-2">
-              <span>Founder:</span>
-              <a
-                href="https://prakashsuvedi.com.np"
-                target="_blank"
-                rel="noreferrer"
-                className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                Prakash Suvedi (prakashsuvedi.com.np)
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
 
       {/* PERSISTENT FLOATING QUICK ACTION PILL */}
       <div

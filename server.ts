@@ -4,7 +4,266 @@ import path from 'path';
 import os from 'os';
 import { execFile } from 'child_process';
 import crypto from 'crypto';
+import { promisify } from 'util';
+import JSZip from 'jszip';
 import { createServer as createViteServer } from 'vite';
+
+const execFileAsync = promisify(execFile);
+
+interface ParsedRange {
+  start: number;
+  end: number;
+  chunkSize: number;
+  isRange: boolean;
+  isSatisfiable: boolean;
+}
+
+function parseHttpRange(rangeHeader: string | undefined, fileSize: number): ParsedRange {
+  if (!rangeHeader || fileSize <= 0) {
+    return { start: 0, end: Math.max(0, fileSize - 1), chunkSize: Math.max(0, fileSize), isRange: false, isSatisfiable: true };
+  }
+
+  const matches = rangeHeader.trim().match(/^bytes=((\d*)-(\d*))$/);
+  if (!matches) {
+    return { start: 0, end: Math.max(0, fileSize - 1), chunkSize: Math.max(0, fileSize), isRange: false, isSatisfiable: true };
+  }
+
+  const startStr = matches[2];
+  const endStr = matches[3];
+  let start = 0;
+  let end = fileSize - 1;
+
+  if (startStr === '' && endStr !== '') {
+    // Suffix range: bytes=-500 (last 500 bytes)
+    const suffix = parseInt(endStr, 10);
+    if (isNaN(suffix) || suffix <= 0) {
+      return { start: 0, end: 0, chunkSize: 0, isRange: true, isSatisfiable: false };
+    }
+    start = Math.max(0, fileSize - suffix);
+    end = fileSize - 1;
+  } else if (startStr !== '' && endStr === '') {
+    // Prefix range: bytes=500-
+    start = parseInt(startStr, 10);
+    if (isNaN(start) || start < 0) {
+      return { start: 0, end: 0, chunkSize: 0, isRange: true, isSatisfiable: false };
+    }
+    end = fileSize - 1;
+  } else if (startStr !== '' && endStr !== '') {
+    // Exact range: bytes=500-1000
+    start = parseInt(startStr, 10);
+    end = parseInt(endStr, 10);
+    if (isNaN(start) || isNaN(end) || start < 0) {
+      return { start: 0, end: 0, chunkSize: 0, isRange: true, isSatisfiable: false };
+    }
+    end = Math.min(end, fileSize - 1);
+  } else {
+    return { start: 0, end: Math.max(0, fileSize - 1), chunkSize: Math.max(0, fileSize), isRange: false, isSatisfiable: true };
+  }
+
+  if (start >= fileSize || end < start || end < 0) {
+    return { start: 0, end: 0, chunkSize: 0, isRange: true, isSatisfiable: false };
+  }
+
+  return {
+    start,
+    end,
+    chunkSize: (end - start) + 1,
+    isRange: true,
+    isSatisfiable: true,
+  };
+}
+
+interface DialogueLineInput {
+  speakerTag: string;
+  voiceId?: string;
+  text: string;
+  emotion?: string;
+  audioUrl?: string;
+  duration?: number;
+}
+
+async function renderCompleteDialogueAudio(
+  lines: DialogueLineInput[],
+  pauseBetweenSpeakersMs: number = 350
+): Promise<{
+  url: string;
+  storageUrl?: string;
+  filename: string;
+  duration: number;
+  lineCount: number;
+  speakers: string[];
+}> {
+  if (!lines || lines.length === 0) {
+    throw new Error('At least one dialogue line is required for rendering');
+  }
+
+  const scratchDir = path.join(os.tmpdir(), `dlg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+  fs.mkdirSync(scratchDir, { recursive: true });
+
+  const speakers = Array.from(new Set(lines.map(l => (l.speakerTag || 'Narrator').trim()).filter(Boolean)));
+  const partWavFiles: string[] = [];
+
+  try {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      let rawBuffer: Buffer | null = null;
+      let rawExt = 'wav';
+
+      if (line.audioUrl) {
+        if (line.audioUrl.startsWith('data:audio/')) {
+          const commaIdx = line.audioUrl.indexOf(',');
+          const b64 = commaIdx !== -1 ? line.audioUrl.slice(commaIdx + 1) : line.audioUrl;
+          rawBuffer = Buffer.from(b64, 'base64');
+          if (line.audioUrl.includes('audio/mpeg') || line.audioUrl.includes('audio/mp3')) rawExt = 'mp3';
+        } else if (line.audioUrl.includes('/api/storage/file/')) {
+          const fn = path.basename(line.audioUrl.split('/api/storage/file/')[1]?.split('?')[0] || '');
+          const localCheck = storageBucket.getLocalFile(fn);
+          if (localCheck.exists && localCheck.buffer) {
+            rawBuffer = localCheck.buffer;
+          } else if (localCheck.filePath && fs.existsSync(localCheck.filePath)) {
+            rawBuffer = fs.readFileSync(localCheck.filePath);
+          }
+          if (fn.endsWith('.mp3')) rawExt = 'mp3';
+        } else if (line.audioUrl.startsWith('/audio/') || line.audioUrl.startsWith('/samples/')) {
+          const fn = path.basename(line.audioUrl);
+          const p1 = path.join(process.cwd(), 'public', 'audio', fn);
+          const p2 = path.join(process.cwd(), 'dist', 'audio', fn);
+          const p3 = path.join(process.cwd(), 'public', 'samples', fn);
+          if (fs.existsSync(p1)) rawBuffer = fs.readFileSync(p1);
+          else if (fs.existsSync(p2)) rawBuffer = fs.readFileSync(p2);
+          else if (fs.existsSync(p3)) rawBuffer = fs.readFileSync(p3);
+          if (fn.endsWith('.mp3')) rawExt = 'mp3';
+        } else if (line.audioUrl.startsWith('http')) {
+          try {
+            const fetchRes = await fetch(line.audioUrl);
+            if (fetchRes.ok) {
+              const ab = await fetchRes.arrayBuffer();
+              rawBuffer = Buffer.from(ab);
+              const ctype = fetchRes.headers.get('content-type') || '';
+              if (ctype.includes('mp3') || ctype.includes('mpeg') || line.audioUrl.endsWith('.mp3')) rawExt = 'mp3';
+            }
+          } catch (fetchErr) {
+            console.warn(`[DialogueRender] Fetch failed for line ${i}:`, fetchErr);
+          }
+        }
+      }
+
+      // If buffer not available or corrupted, synthesize directly via serverGenerateAudio
+      if (!rawBuffer || rawBuffer.length < 500) {
+        console.log(`[DialogueRender] Synthesizing line ${i + 1}/${lines.length} for ${line.speakerTag}...`);
+        const synthRes = await serverGenerateAudio(
+          line.text,
+          line.voiceId || 'sagar_pure_ne',
+          'ne-NP',
+          line.emotion || 'neutral',
+          'general'
+        );
+        if (synthRes.url.startsWith('data:audio/')) {
+          const commaIdx = synthRes.url.indexOf(',');
+          const b64 = commaIdx !== -1 ? synthRes.url.slice(commaIdx + 1) : synthRes.url;
+          rawBuffer = Buffer.from(b64, 'base64');
+          rawExt = synthRes.format || 'wav';
+        } else if (synthRes.filename) {
+          const localCheck = storageBucket.getLocalFile(synthRes.filename);
+          if (localCheck.exists && localCheck.buffer) {
+            rawBuffer = localCheck.buffer;
+          } else if (localCheck.filePath && fs.existsSync(localCheck.filePath)) {
+            rawBuffer = fs.readFileSync(localCheck.filePath);
+          }
+          if (synthRes.filename.endsWith('.mp3')) rawExt = 'mp3';
+        }
+      }
+
+      if (!rawBuffer || rawBuffer.length < 100) {
+        const fallbackPath = path.join(scratchDir, `raw_${i}.wav`);
+        await execFileAsync('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-t', '1.0', fallbackPath]);
+        rawBuffer = fs.readFileSync(fallbackPath);
+        rawExt = 'wav';
+      }
+
+      const rawInputPath = path.join(scratchDir, `raw_${i}.${rawExt}`);
+      const partWavPath = path.join(scratchDir, `part_${i}.wav`);
+      fs.writeFileSync(rawInputPath, rawBuffer);
+
+      // Standardize audio stream to 44.1kHz stereo 16-bit PCM WAV
+      await execFileAsync('ffmpeg', [
+        '-y', '-i', rawInputPath,
+        '-ar', '44100', '-ac', '2',
+        '-c:a', 'pcm_s16le',
+        partWavPath
+      ]);
+
+      partWavFiles.push(partWavPath);
+    }
+
+    // Generate inter-speaker silence track
+    const silenceSec = Math.max(0.1, Math.min(2.0, (pauseBetweenSpeakersMs || 350) / 1000));
+    const silenceWavPath = path.join(scratchDir, 'pause.wav');
+    await execFileAsync('ffmpeg', [
+      '-y', '-f', 'lavfi',
+      '-i', 'anullsrc=r=44100:cl=stereo',
+      '-t', silenceSec.toFixed(3),
+      '-c:a', 'pcm_s16le',
+      silenceWavPath
+    ]);
+
+    // Build concat playlist
+    const concatListPath = path.join(scratchDir, 'concat_list.txt');
+    const concatLines: string[] = [];
+    for (let i = 0; i < partWavFiles.length; i++) {
+      concatLines.push(`file '${partWavFiles[i].replace(/'/g, "'\\''")}'`);
+      if (i < partWavFiles.length - 1) {
+        concatLines.push(`file '${silenceWavPath.replace(/'/g, "'\\''")}'`);
+      }
+    }
+    fs.writeFileSync(concatListPath, concatLines.join('\n'));
+
+    // Master MP3 render (192k CBR, 44.1kHz)
+    const masterMp3Path = path.join(scratchDir, 'master_dialogue.mp3');
+    await execFileAsync('ffmpeg', [
+      '-y', '-f', 'concat', '-safe', '0',
+      '-i', concatListPath,
+      '-c:a', 'libmp3lame',
+      '-b:a', '192k',
+      '-ar', '44100',
+      masterMp3Path
+    ]);
+
+    // Probe final duration
+    let masterDuration = 0;
+    try {
+      const { stdout: probeOut } = await execFileAsync('ffprobe', [
+        '-v', 'error',
+        '-show_entries', 'format=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        masterMp3Path
+      ]);
+      masterDuration = parseFloat(probeOut.trim()) || 0;
+    } catch {}
+
+    const masterBuffer = fs.readFileSync(masterMp3Path);
+    if (!masterDuration) {
+      masterDuration = Math.round(masterBuffer.length / (192 * 128));
+    }
+
+    // Save final combined dialogue MP3 to storage bucket
+    const outputFilename = `dialogue_master_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.mp3`;
+    const savedMedia = await storageBucket.saveMedia(outputFilename, masterBuffer, 'audio/mpeg');
+
+    return {
+      url: savedMedia.url,
+      storageUrl: (savedMedia as any).storageUrl || savedMedia.url,
+      filename: savedMedia.filename,
+      duration: masterDuration,
+      lineCount: lines.length,
+      speakers,
+    };
+  } finally {
+    try {
+      fs.rmSync(scratchDir, { recursive: true, force: true });
+    } catch {}
+  }
+}
 import { db } from './src/server/db';
 import { storageBucket } from './src/server/storageBucket';
 import { postgresDb } from './src/server/postgresDb';
@@ -1077,26 +1336,30 @@ Respond with valid JSON ONLY in this exact schema:
         const fileSize = stat.size;
         const range = req.headers.range;
 
-        if (range) {
-          const parts = range.replace(/bytes=/, '').split('-');
-          const start = parseInt(parts[0], 10);
-          const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-          const chunkSize = end - start + 1;
-          const fileStream = fs.createReadStream(localFile.filePath, { start, end });
+        const rangeInfo = parseHttpRange(range, fileSize);
+
+        if (rangeInfo.isRange && rangeInfo.isSatisfiable) {
+          const fileStream = fs.createReadStream(localFile.filePath, { start: rangeInfo.start, end: rangeInfo.end });
 
           res.writeHead(206, {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
             'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
             'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Content-Range': `bytes ${rangeInfo.start}-${rangeInfo.end}/${fileSize}`,
             'Accept-Ranges': 'bytes',
-            'Content-Length': chunkSize,
+            'Content-Length': rangeInfo.chunkSize,
             'Content-Type': 'video/mp4',
             'Cache-Control': 'public, max-age=86400',
           });
           fileStream.pipe(res);
           return;
+        } else if (rangeInfo.isRange && !rangeInfo.isSatisfiable) {
+          res.writeHead(416, {
+            'Content-Range': `bytes */${fileSize}`,
+            'Accept-Ranges': 'bytes',
+          });
+          return res.end();
         } else {
           res.writeHead(200, {
             'Access-Control-Allow-Origin': '*',
@@ -1131,20 +1394,18 @@ Respond with valid JSON ONLY in this exact schema:
           const stat = fs.statSync(fallbackPath);
           const fileSize = stat.size;
           const range = req.headers.range;
-          if (range) {
-            const parts = range.replace(/bytes=/, '').split('-');
-            const start = parseInt(parts[0], 10);
-            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-            const chunkSize = end - start + 1;
-            const fileStream = fs.createReadStream(fallbackPath, { start, end });
+          const rangeInfo = parseHttpRange(range, fileSize);
+
+          if (rangeInfo.isRange && rangeInfo.isSatisfiable) {
+            const fileStream = fs.createReadStream(fallbackPath, { start: rangeInfo.start, end: rangeInfo.end });
             res.writeHead(206, {
               'Access-Control-Allow-Origin': '*',
               'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
               'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
               'Cross-Origin-Resource-Policy': 'cross-origin',
-              'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+              'Content-Range': `bytes ${rangeInfo.start}-${rangeInfo.end}/${fileSize}`,
               'Accept-Ranges': 'bytes',
-              'Content-Length': chunkSize,
+              'Content-Length': rangeInfo.chunkSize,
               'Content-Type': 'video/mp4',
             });
             fileStream.pipe(res);
@@ -1704,6 +1965,19 @@ Respond with valid JSON ONLY in this exact schema:
             });
             return fs.createReadStream(fallbackPath).pipe(res);
           }
+        } else if (targetUrl.match(/\.(mp3|wav|ogg|m4a|aac)($|\?)/i) || targetUrl.includes('audio') || targetUrl.includes('azure_speech') || targetUrl.includes('voice')) {
+          const fallbackPath = path.join(process.cwd(), 'public', 'audio', 'vo_nepali_female.mp3');
+          if (fs.existsSync(fallbackPath)) {
+            const stat = fs.statSync(fallbackPath);
+            res.writeHead(200, {
+              'Access-Control-Allow-Origin': '*',
+              'Content-Type': 'audio/mpeg',
+              'Content-Length': stat.size,
+              'Accept-Ranges': 'bytes',
+              'Cross-Origin-Resource-Policy': 'cross-origin',
+            });
+            return fs.createReadStream(fallbackPath).pipe(res);
+          }
         }
         return res.status(response?.status || 502).json({ error: `Remote media returned ${response?.status || '502'}` });
       }
@@ -1969,6 +2243,75 @@ Respond with valid JSON ONLY in this exact schema:
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Audio generation failed' });
+    }
+  });
+
+  // ==========================================
+  // Multi-Speaker Dialogue Master Render Endpoints
+  // ==========================================
+
+  // Complete Dialogue Multi-Speaker Master Render (POST /api/dialogue/render-complete)
+  app.post('/api/dialogue/render-complete', async (req, res) => {
+    try {
+      const {
+        userId = 'usr_guest',
+        lines = [],
+        pauseBetweenSpeakersMs = 350,
+        title = 'Dialogue Conversation Master',
+      } = req.body;
+
+      if (!lines || !Array.isArray(lines) || lines.length === 0) {
+        return res.status(400).json({ error: 'Dialogue script requires at least one character line' });
+      }
+
+      console.log(`[DialogueMaster] Processing complete dialogue render for ${lines.length} lines...`);
+      const masterResult = await renderCompleteDialogueAudio(lines, pauseBetweenSpeakersMs);
+
+      // Record in project generations database
+      const speakersStr = masterResult.speakers.join(', ');
+      db.recordGeneration(
+        userId,
+        'audio',
+        `[Master Dialogue] ${speakersStr}: ${lines[0]?.text?.slice(0, 30) || 'Dialogue'}...`,
+        masterResult.url,
+        `Multi-Speaker Master (${masterResult.speakers.length} Characters)`,
+        Math.round(masterResult.duration)
+      );
+
+      const user = db.getUserById(userId);
+      res.json({
+        success: true,
+        result: masterResult,
+        trialUsage: db.getTrialUsage(userId),
+        remainingCredits: user?.credits ?? 0,
+      });
+    } catch (err: any) {
+      console.error('[DialogueMaster] Render failed:', err);
+      res.status(500).json({ error: err.message || 'Complete dialogue rendering failed' });
+    }
+  });
+
+  // Generic Multi-Clip Audio Stitching Endpoint (POST /api/audio/concat)
+  app.post('/api/audio/concat', async (req, res) => {
+    try {
+      const { audioUrls = [], pauseMs = 350 } = req.body;
+      if (!Array.isArray(audioUrls) || audioUrls.length === 0) {
+        return res.status(400).json({ error: 'At least one audio URL is required' });
+      }
+
+      const lines: DialogueLineInput[] = audioUrls.map((url: string, idx: number) => ({
+        speakerTag: `Speaker ${idx + 1}`,
+        text: '',
+        audioUrl: url,
+      }));
+
+      const result = await renderCompleteDialogueAudio(lines, pauseMs);
+      res.json({
+        success: true,
+        result,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Audio concatenation failed' });
     }
   });
 
@@ -3169,25 +3512,39 @@ Respond with valid JSON ONLY in this exact schema:
       const stat = fs.statSync(filePath);
       const total = stat.size;
 
-      if (range) {
-        const parts = range.replace(/bytes=/, '').split('-');
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
-        const chunkSize = end - start + 1;
-        const fileStream = fs.createReadStream(filePath, { start, end });
+      if (total === 0) {
+        res.writeHead(200, {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Length': 0,
+          'Accept-Ranges': 'bytes',
+          'Content-Type': mimeType,
+        });
+        return res.end();
+      }
+
+      const rangeInfo = parseHttpRange(range, total);
+
+      if (rangeInfo.isRange && rangeInfo.isSatisfiable) {
+        const fileStream = fs.createReadStream(filePath, { start: rangeInfo.start, end: rangeInfo.end });
 
         res.writeHead(206, {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
           'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
           'Cross-Origin-Resource-Policy': 'cross-origin',
-          'Content-Range': `bytes ${start}-${end}/${total}`,
+          'Content-Range': `bytes ${rangeInfo.start}-${rangeInfo.end}/${total}`,
           'Accept-Ranges': 'bytes',
-          'Content-Length': chunkSize,
+          'Content-Length': rangeInfo.chunkSize,
           'Content-Type': mimeType,
         });
         fileStream.pipe(res);
         return;
+      } else if (rangeInfo.isRange && !rangeInfo.isSatisfiable) {
+        res.writeHead(416, {
+          'Content-Range': `bytes */${total}`,
+          'Accept-Ranges': 'bytes',
+        });
+        return res.end();
       } else {
         res.writeHead(200, {
           'Access-Control-Allow-Origin': '*',
@@ -3205,24 +3562,28 @@ Respond with valid JSON ONLY in this exact schema:
     }
 
     const total = buffer.length;
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
-      const chunkSize = end - start + 1;
-      const chunk = buffer.subarray(start, end + 1);
+    const rangeInfo = parseHttpRange(range, total);
+
+    if (rangeInfo.isRange && rangeInfo.isSatisfiable) {
+      const chunk = buffer.subarray(rangeInfo.start, rangeInfo.end + 1);
 
       res.writeHead(206, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
         'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
         'Cross-Origin-Resource-Policy': 'cross-origin',
-        'Content-Range': `bytes ${start}-${end}/${total}`,
+        'Content-Range': `bytes ${rangeInfo.start}-${rangeInfo.end}/${total}`,
         'Accept-Ranges': 'bytes',
-        'Content-Length': chunkSize,
+        'Content-Length': rangeInfo.chunkSize,
         'Content-Type': mimeType,
       });
       res.end(chunk);
+    } else if (rangeInfo.isRange && !rangeInfo.isSatisfiable) {
+      res.writeHead(416, {
+        'Content-Range': `bytes */${total}`,
+        'Accept-Ranges': 'bytes',
+      });
+      res.end();
     } else {
       res.writeHead(200, {
         'Access-Control-Allow-Origin': '*',
@@ -4586,16 +4947,18 @@ Respond with valid JSON ONLY in this exact schema:
     }
   });
 
-  // Admin user adjustment (add credits, change tier, reset trial) (Admin Only)
+  // Admin user adjustment (expand credits, set limits, change tier, reset trial) (Admin Only)
   app.post('/api/admin/user/:id/update', requireAdmin, (req, res) => {
     try {
       const { id } = req.params;
-      const { credits, tier, resetTrial, role } = req.body;
+      const { credits, additionalCredits, tier, resetTrial, role, limits } = req.body;
 
       if (resetTrial) {
         db.adminResetTrial(id);
       }
-      if (typeof credits === 'number') {
+      if (typeof additionalCredits === 'number') {
+        db.adminExpandCredits(id, additionalCredits);
+      } else if (typeof credits === 'number') {
         db.adminSetCredits(id, credits);
       }
       if (tier) {
@@ -4603,6 +4966,9 @@ Respond with valid JSON ONLY in this exact schema:
       }
       if (role && (role === 'admin' || role === 'user')) {
         db.adminSetRole(id, role);
+      }
+      if (limits && typeof limits === 'object') {
+        db.adminSetLimits(id, limits);
       }
 
       const updatedUser = db.getUserById(id);
@@ -4615,6 +4981,191 @@ Respond with valid JSON ONLY in this exact schema:
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Admin update failed' });
+    }
+  });
+
+  // User Feedback, Feature Requests & Error Reporting Routes
+  app.post('/api/feedback/submit', (req, res) => {
+    try {
+      const {
+        userId = 'usr_guest',
+        userName,
+        userEmail,
+        type = 'feature_request',
+        category = 'general',
+        title,
+        description,
+        errorCodeOrLogs,
+        priority = 'medium',
+      } = req.body;
+
+      if (!title || !description) {
+        return res.status(400).json({ error: 'Title and detailed description are required.' });
+      }
+
+      const submission = db.saveFeedbackSubmission({
+        userId,
+        userName,
+        userEmail,
+        type,
+        category,
+        title,
+        description,
+        errorCodeOrLogs,
+        priority,
+      });
+
+      res.json({
+        success: true,
+        submission,
+        message: 'Feedback submitted successfully. Thank you for helping improve NepalAI Studio!',
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to submit feedback' });
+    }
+  });
+
+  app.get('/api/admin/feedback', requireAdmin, (_req, res) => {
+    try {
+      const list = db.getAllFeedbackSubmissions();
+      res.json({
+        success: true,
+        submissions: list,
+        counts: {
+          total: list.length,
+          featureRequests: list.filter(f => f.type === 'feature_request').length,
+          errorReports: list.filter(f => f.type === 'error_report').length,
+          comments: list.filter(f => f.type === 'system_comment').length,
+          open: list.filter(f => f.status === 'open').length,
+          resolved: list.filter(f => f.status === 'resolved').length,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to fetch feedback' });
+    }
+  });
+
+  app.post('/api/admin/feedback/:id/update', requireAdmin, (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, adminNotes, rewardCredits, userId } = req.body;
+
+      const updated = db.updateFeedbackSubmission(id, {
+        ...(status ? { status } : {}),
+        ...(typeof adminNotes === 'string' ? { adminNotes } : {}),
+      });
+
+      if (!updated) {
+        return res.status(404).json({ error: 'Feedback ticket not found' });
+      }
+
+      if (typeof rewardCredits === 'number' && rewardCredits > 0 && (userId || updated.userId)) {
+        const targetUser = userId || updated.userId;
+        db.adminExpandCredits(targetUser, rewardCredits);
+      }
+
+      res.json({
+        success: true,
+        submission: updated,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to update feedback' });
+    }
+  });
+
+  app.delete('/api/admin/feedback/:id', requireAdmin, (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = db.deleteFeedbackSubmission(id);
+      res.json({ success: deleted });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to delete feedback' });
+    }
+  });
+
+  // Project Assets ZIP Export (Single Compressed ZIP Backup Archive)
+  app.post('/api/project/export-assets-zip', async (req, res) => {
+    try {
+      const { projectTitle = 'NepalAI_Project', scenes = [], audioTracks = [], comments = [] } = req.body;
+      const zip = new JSZip();
+
+      // Project manifest metadata
+      const manifest = {
+        title: projectTitle,
+        exportedAt: new Date().toISOString(),
+        sceneCount: scenes.length,
+        audioTrackCount: audioTracks.length,
+        totalDuration: scenes.reduce((acc: number, s: any) => acc + (s.duration || 0), 0),
+        scenes,
+        audioTracks,
+        comments,
+      };
+      zip.file('project_manifest.json', JSON.stringify(manifest, null, 2));
+
+      // Folder structure inside ZIP
+      const videoFolder = zip.folder('visual_scenes');
+      const audioFolder = zip.folder('audio_tracks');
+      const docsFolder = zip.folder('metadata');
+
+      docsFolder?.file('team_feedback_comments.json', JSON.stringify(comments, null, 2));
+
+      // Helper to fetch or read buffer for an asset
+      const resolveAssetBuffer = async (url: string): Promise<Buffer | null> => {
+        if (!url) return null;
+        if (url.startsWith('data:')) {
+          const parts = url.split(',');
+          return Buffer.from(parts[1], 'base64');
+        }
+        if (url.startsWith('/samples/') || url.startsWith('/audio/') || url.startsWith('/renders/')) {
+          const localPath = path.join(process.cwd(), 'public', url.replace(/^\//, ''));
+          if (fs.existsSync(localPath)) return fs.readFileSync(localPath);
+          const distPath = path.join(process.cwd(), 'dist', url.replace(/^\//, ''));
+          if (fs.existsSync(distPath)) return fs.readFileSync(distPath);
+        }
+        if (url.startsWith('http')) {
+          try {
+            const resp = await fetch(url);
+            if (resp.ok) {
+              const ab = await resp.arrayBuffer();
+              return Buffer.from(ab);
+            }
+          } catch {}
+        }
+        return null;
+      };
+
+      // Add visual scenes to ZIP
+      for (let i = 0; i < scenes.length; i++) {
+        const s = scenes[i];
+        const ext = s.mediaType === 'image' ? 'png' : 'mp4';
+        const filename = `scene_${String(i + 1).padStart(2, '0')}_${(s.title || 'clip').replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`;
+        const buf = await resolveAssetBuffer(s.mediaUrl);
+        if (buf && videoFolder) {
+          videoFolder.file(filename, buf);
+        }
+      }
+
+      // Add audio tracks to ZIP
+      for (let i = 0; i < audioTracks.length; i++) {
+        const a = audioTracks[i];
+        const filename = `audio_${String(i + 1).padStart(2, '0')}_${(a.title || a.type || 'track').replace(/[^a-zA-Z0-9_-]/g, '_')}.mp3`;
+        const buf = await resolveAssetBuffer(a.url);
+        if (buf && audioFolder) {
+          audioFolder.file(filename, buf);
+        }
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      const safeTitle = projectTitle.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const zipName = `${safeTitle}_Assets_Backup_${Date.now()}.zip`;
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+      res.setHeader('Content-Length', zipBuffer.length);
+      res.send(zipBuffer);
+    } catch (err: any) {
+      console.error('[AssetZipExport] Error:', err);
+      res.status(500).json({ error: err.message || 'Failed to export assets zip' });
     }
   });
 
@@ -4661,11 +5212,33 @@ Respond with valid JSON ONLY in this exact schema:
 
       if (!targetFile) {
         if (safeFilename.endsWith('.mp4') || safeFilename.endsWith('.mov') || safeFilename.endsWith('.webm')) {
-          const sampleFb = path.join(publicSamplesDir, 'everest_sunrise.mp4');
-          if (fs.existsSync(sampleFb)) targetFile = sampleFb;
+          const sampleCandidates = [
+            'everest_sunrise.mp4',
+            'dual_anchor_studio_16s.mp4',
+            'durbar_square.mp4',
+            'phewa_lake.mp4',
+            'dual_anchor_primetime_16s.mp4'
+          ];
+          for (const s of sampleCandidates) {
+            const p = path.join(publicSamplesDir, s);
+            if (fs.existsSync(p) && fs.statSync(p).size > 1000) { targetFile = p; break; }
+            const d = path.join(distSamplesDir, s);
+            if (fs.existsSync(d) && fs.statSync(d).size > 1000) { targetFile = d; break; }
+          }
         } else if (safeFilename.endsWith('.mp3') || safeFilename.endsWith('.wav') || safeFilename.endsWith('.ogg')) {
-          const audioFb = path.join(publicAudioDir, 'sfx_whoosh.mp3');
-          if (fs.existsSync(audioFb)) targetFile = audioFb;
+          const audioCandidates = ['sfx_whoosh.mp3', 'himalayan_breeze.mp3', 'kathmandu_beats.mp3'];
+          for (const a of audioCandidates) {
+            const p = path.join(publicAudioDir, a);
+            if (fs.existsSync(p) && fs.statSync(p).size > 1000) { targetFile = p; break; }
+            const d = path.join(distAudioDir, a);
+            if (fs.existsSync(d) && fs.statSync(d).size > 1000) { targetFile = d; break; }
+          }
+        } else if (safeFilename.endsWith('.jpg') || safeFilename.endsWith('.jpeg') || safeFilename.endsWith('.png') || safeFilename.endsWith('.webp')) {
+          const thumbCandidates = ['everest_sunrise_thumb.jpg', 'durbar_square_thumb.jpg', 'dual_anchor_studio_poster.jpg'];
+          for (const t of thumbCandidates) {
+            const p = path.join(publicSamplesDir, t);
+            if (fs.existsSync(p) && fs.statSync(p).size > 1000) { targetFile = p; break; }
+          }
         }
       }
 
@@ -4689,26 +5262,60 @@ Respond with valid JSON ONLY in this exact schema:
                        safeFilename.endsWith('.mp3') ? 'audio/mpeg' :
                        safeFilename.endsWith('.wav') ? 'audio/wav' : contentType;
 
-      if (range) {
-        const parts = range.replace(/bytes=/, '').split('-');
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-        const chunksize = (end - start) + 1;
-        const file = fs.createReadStream(targetFile, { start, end });
-        res.writeHead(206, {
-          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      if (fileSize === 0) {
+        res.writeHead(200, {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Length': 0,
+          'Content-Type': mimeType,
           'Accept-Ranges': 'bytes',
-          'Content-Length': chunksize,
+        });
+        return res.end();
+      }
+
+      const rangeInfo = parseHttpRange(range, fileSize);
+
+      if (rangeInfo.isRange) {
+        if (!rangeInfo.isSatisfiable) {
+          res.writeHead(416, {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Range': `bytes */${fileSize}`,
+            'Accept-Ranges': 'bytes',
+          });
+          return res.end();
+        }
+
+        res.writeHead(206, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Content-Range': `bytes ${rangeInfo.start}-${rangeInfo.end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': rangeInfo.chunkSize,
           'Content-Type': mimeType,
         });
-        file.pipe(res);
+        const fileStream = fs.createReadStream(targetFile, { start: rangeInfo.start, end: rangeInfo.end });
+        fileStream.on('error', (streamErr) => {
+          console.warn('Serve media stream error:', streamErr);
+          if (!res.headersSent) res.status(500).end();
+        });
+        fileStream.pipe(res);
       } else {
         res.writeHead(200, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
           'Content-Length': fileSize,
           'Content-Type': mimeType,
           'Accept-Ranges': 'bytes',
         });
-        fs.createReadStream(targetFile).pipe(res);
+        const fileStream = fs.createReadStream(targetFile);
+        fileStream.on('error', (streamErr) => {
+          console.warn('Serve media file error:', streamErr);
+          if (!res.headersSent) res.status(500).end();
+        });
+        fileStream.pipe(res);
       }
     } catch (err: any) {
       console.warn('Serve media error:', err);
@@ -4762,20 +5369,38 @@ Respond with valid JSON ONLY in this exact schema:
       const fileSize = stat.size;
       const range = req.headers.range;
 
-      if (range) {
-        const parts = range.replace(/bytes=/, '').split('-');
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-        const chunksize = (end - start) + 1;
-        const file = fs.createReadStream(targetFile, { start, end });
+      if (fileSize === 0) {
+        res.writeHead(200, {
+          'Content-Length': 0,
+          'Content-Type': 'video/mp4',
+          'Content-Disposition': `attachment; filename="${safeFilename}"`,
+        });
+        return res.end();
+      }
+
+      const rangeInfo = parseHttpRange(range, fileSize);
+
+      if (rangeInfo.isRange) {
+        if (!rangeInfo.isSatisfiable) {
+          res.writeHead(416, {
+            'Content-Range': `bytes */${fileSize}`,
+            'Accept-Ranges': 'bytes',
+          });
+          return res.end();
+        }
+
         const head = {
-          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Range': `bytes ${rangeInfo.start}-${rangeInfo.end}/${fileSize}`,
           'Accept-Ranges': 'bytes',
-          'Content-Length': chunksize,
+          'Content-Length': rangeInfo.chunkSize,
           'Content-Type': 'video/mp4',
         };
         res.writeHead(206, head);
-        file.pipe(res);
+        const fileStream = fs.createReadStream(targetFile, { start: rangeInfo.start, end: rangeInfo.end });
+        fileStream.on('error', (err) => {
+          if (!res.headersSent) res.status(500).end();
+        });
+        fileStream.pipe(res);
       } else {
         const head = {
           'Content-Length': fileSize,
@@ -4783,7 +5408,11 @@ Respond with valid JSON ONLY in this exact schema:
           'Content-Disposition': `attachment; filename="${safeFilename}"`,
         };
         res.writeHead(200, head);
-        fs.createReadStream(targetFile).pipe(res);
+        const fileStream = fs.createReadStream(targetFile);
+        fileStream.on('error', (err) => {
+          if (!res.headersSent) res.status(500).end();
+        });
+        fileStream.pipe(res);
       }
     } catch (err: any) {
       console.warn('Video download stream notice:', err);

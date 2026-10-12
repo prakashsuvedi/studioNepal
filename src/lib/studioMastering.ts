@@ -6,8 +6,10 @@
 export interface MasterRackSettings {
   enabled: boolean;
   lowCut: boolean; // 80Hz rumble filter
+  lowCut80Hz?: boolean; // alias for backwards compatibility
   presenceBoost: boolean; // 3.2kHz vocal articulation boost
   compression: boolean; // Broadcast leveling compressor
+  compressor?: boolean; // alias for backwards compatibility
   acousticRoom: 'dry' | 'booth' | 'warm_studio' | 'hall' | 'radio';
   ambientBed: 'none' | 'himalayan_drone' | 'mountain_flute' | 'studio_room' | 'peaceful_rain';
   ambientVolume: number; // 0.0 to 1.0
@@ -17,8 +19,10 @@ export interface MasterRackSettings {
 export const DEFAULT_MASTER_SETTINGS: MasterRackSettings = {
   enabled: false,
   lowCut: true,
+  lowCut80Hz: true,
   presenceBoost: true,
   compression: true,
+  compressor: true,
   acousticRoom: 'warm_studio',
   ambientBed: 'none',
   ambientVolume: 0.25,
@@ -28,6 +32,7 @@ export const DEFAULT_MASTER_SETTINGS: MasterRackSettings = {
 class StudioMasteringEngine {
   private ctx: AudioContext | null = null;
   private sourceNode: MediaElementAudioSourceNode | null = null;
+  private sourceMap = new WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>();
   private lowCutNode: BiquadFilterNode | null = null;
   private presenceNode: BiquadFilterNode | null = null;
   private compressorNode: DynamicsCompressorNode | null = null;
@@ -40,6 +45,8 @@ class StudioMasteringEngine {
   private ambientOsc2: OscillatorNode | null = null;
   private ambientNoiseSource: AudioBufferSourceNode | null = null;
   private ambientRunning = false;
+  private ambientMonitorInterval: any = null;
+  private currentAudioEl: HTMLAudioElement | null = null;
   private currentSettings: MasterRackSettings = { ...DEFAULT_MASTER_SETTINGS };
 
   private getAudioContext(): AudioContext {
@@ -60,11 +67,32 @@ class StudioMasteringEngine {
     try {
       const ctx = this.getAudioContext();
       this.currentSettings = { ...settings };
+      this.currentAudioEl = audioEl;
 
-      // Ensure we don't re-create MediaElementSource on the same element repeatedly
-      if (!this.sourceNode) {
-        this.sourceNode = ctx.createMediaElementSource(audioEl);
+      let source = this.sourceMap.get(audioEl);
+      if (!source) {
+        source = ctx.createMediaElementSource(audioEl);
+        this.sourceMap.set(audioEl, source);
       }
+      this.sourceNode = source;
+
+      // Immediately silence any lingering background noise or oscillators
+      this.stopAmbient();
+
+      // Hook audio element lifecycle so ambient bed ONLY plays when voice audio is actively playing
+      const killAmbient = () => this.stopAmbient();
+      audioEl.addEventListener('pause', killAmbient);
+      audioEl.addEventListener('ended', killAmbient);
+      audioEl.addEventListener('emptied', killAmbient);
+      audioEl.addEventListener('error', killAmbient);
+      audioEl.addEventListener('abort', killAmbient);
+      audioEl.addEventListener('play', () => {
+        if (this.currentSettings.enabled && this.currentSettings.ambientBed !== 'none') {
+          this.syncAmbientBed();
+        } else {
+          this.stopAmbient();
+        }
+      });
 
       this.rebuildChain();
     } catch (e) {
@@ -111,6 +139,9 @@ class StudioMasteringEngine {
 
   public updateSettings(settings: MasterRackSettings) {
     this.currentSettings = { ...settings };
+    if (!this.currentSettings.enabled || this.currentSettings.ambientBed === 'none' || !this.currentAudioEl || this.currentAudioEl.paused) {
+      this.stopAmbient();
+    }
     this.rebuildChain();
   }
 
@@ -131,9 +162,10 @@ class StudioMasteringEngine {
       }
 
       // 1. High Pass Low-Cut Filter (80Hz)
+      const isLowCutActive = !!(this.currentSettings.lowCut ?? this.currentSettings.lowCut80Hz);
       this.lowCutNode = ctx.createBiquadFilter();
       this.lowCutNode.type = 'highpass';
-      this.lowCutNode.frequency.value = this.currentSettings.lowCut ? 85 : 10;
+      this.lowCutNode.frequency.value = isLowCutActive ? 85 : 10;
       this.lowCutNode.Q.value = 0.7;
 
       // 2. Vocal Presence Boost (3.2kHz)
@@ -144,8 +176,9 @@ class StudioMasteringEngine {
       this.presenceNode.Q.value = 1.2;
 
       // 3. Broadcast Mastering Compressor
+      const isCompressionActive = !!(this.currentSettings.compression ?? this.currentSettings.compressor);
       this.compressorNode = ctx.createDynamicsCompressor();
-      if (this.currentSettings.compression) {
+      if (isCompressionActive) {
         this.compressorNode.threshold.value = -18;
         this.compressorNode.knee.value = 10;
         this.compressorNode.ratio.value = 4.0;
@@ -196,8 +229,10 @@ class StudioMasteringEngine {
 
       this.masterGainNode.connect(ctx.destination);
 
-      // Handle Ambient Bed
-      this.syncAmbientBed();
+      // Ensure ambient bed is stopped unless explicitly triggered by an active audio playback event
+      if (!this.currentSettings.enabled || this.currentSettings.ambientBed === 'none') {
+        this.stopAmbient();
+      }
     } catch (e) {
       console.warn('[Studio Mastering] Chain error:', e);
       if (this.sourceNode && this.ctx) {
@@ -210,7 +245,13 @@ class StudioMasteringEngine {
    * Synthesizes ambient drone or nature beds directly via Web Audio oscillators & filtered noise.
    */
   private syncAmbientBed() {
-    if (this.currentSettings.ambientBed === 'none' || !this.currentSettings.enabled) {
+    if (
+      this.currentSettings.ambientBed === 'none' ||
+      !this.currentSettings.enabled ||
+      !this.currentAudioEl ||
+      this.currentAudioEl.paused ||
+      this.currentAudioEl.ended
+    ) {
       this.stopAmbient();
       return;
     }
@@ -287,6 +328,14 @@ class StudioMasteringEngine {
       }
 
       this.ambientRunning = true;
+
+      // Fail-safe monitor interval: auto kill ambient if audio element ever stops or unloads
+      if (this.ambientMonitorInterval) clearInterval(this.ambientMonitorInterval);
+      this.ambientMonitorInterval = setInterval(() => {
+        if (!this.currentAudioEl || this.currentAudioEl.paused || this.currentAudioEl.ended) {
+          this.stopAmbient();
+        }
+      }, 250);
     } catch (e) {
       console.warn('[Studio Mastering] Ambient bed notice:', e);
     }
@@ -305,28 +354,41 @@ class StudioMasteringEngine {
 
   public stopAmbient() {
     try {
+      if (this.ambientMonitorInterval) {
+        clearInterval(this.ambientMonitorInterval);
+        this.ambientMonitorInterval = null;
+      }
       if (this.ambientOsc1) {
-        this.ambientOsc1.stop();
-        this.ambientOsc1.disconnect();
+        try { this.ambientOsc1.stop(); this.ambientOsc1.disconnect(); } catch {}
         this.ambientOsc1 = null;
       }
       if (this.ambientOsc2) {
-        this.ambientOsc2.stop();
-        this.ambientOsc2.disconnect();
+        try { this.ambientOsc2.stop(); this.ambientOsc2.disconnect(); } catch {}
         this.ambientOsc2 = null;
       }
       if (this.ambientNoiseSource) {
-        this.ambientNoiseSource.stop();
-        this.ambientNoiseSource.disconnect();
+        try { this.ambientNoiseSource.stop(); this.ambientNoiseSource.disconnect(); } catch {}
         this.ambientNoiseSource = null;
       }
-      if (this.ambientGainNode) {
-        this.ambientGainNode.disconnect();
+      if (this.ambientGainNode && this.ctx) {
+        try {
+          this.ambientGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+          this.ambientGainNode.disconnect();
+        } catch {}
         this.ambientGainNode = null;
       }
       this.ambientRunning = false;
     } catch (e) {
       // Ignored
+    }
+  }
+
+  public stopAll() {
+    this.stopAmbient();
+    if (this.sourceNode) {
+      try {
+        this.sourceNode.disconnect();
+      } catch {}
     }
   }
 }

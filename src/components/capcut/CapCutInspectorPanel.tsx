@@ -26,9 +26,11 @@ import {
   Play,
   Upload,
   Link2,
-  Plus
+  Plus,
+  MessageSquare,
+  Check
 } from 'lucide-react';
-import { Scene, AudioTrack, CameraMotion, TransitionType, ColorFilter, ColorAdjustments, TickerConfig } from '../../types';
+import { Scene, AudioTrack, CameraMotion, TransitionType, ColorFilter, ColorAdjustments, TickerConfig, SceneComment, UserSession } from '../../types';
 import { extractVideoThumbnailAndDuration } from '../../lib/mediaLibrary';
 
 interface CapCutInspectorPanelProps {
@@ -45,9 +47,12 @@ interface CapCutInspectorPanelProps {
   setBgmVolume: (vol: number) => void;
   voVolume: number;
   setVoVolume: (vol: number) => void;
+  currentTime?: number;
+  onSeek?: (time: number) => void;
+  currentUser?: UserSession | null;
 }
 
-type InspectorTab = 'basic' | 'ticker' | 'speed' | 'animation' | 'color' | 'audio';
+type InspectorTab = 'basic' | 'ticker' | 'speed' | 'animation' | 'color' | 'audio' | 'comments';
 
 export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
   selectedScene,
@@ -63,8 +68,13 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
   setBgmVolume,
   voVolume,
   setVoVolume,
+  currentTime = 0,
+  onSeek,
+  currentUser,
 }) => {
   const [activeTab, setActiveTab] = useState<InspectorTab>('basic');
+  const [commentDraft, setCommentDraft] = useState('');
+  const [commentAuthor, setCommentAuthor] = useState(currentUser?.name || 'Reviewer');
   const mediaFileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!selectedScene) {
@@ -187,6 +197,7 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
             { id: 'animation', label: 'Motion' },
             { id: 'color', label: 'Color' },
             { id: 'audio', label: 'Audio' },
+            { id: 'comments', label: `Notes${(selectedScene.comments?.length || 0) > 0 ? ` (${selectedScene.comments?.length})` : ''}` },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1317,6 +1328,148 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                 </div>
                 <p className="text-slate-400">Background music automatically lowers when speech or voiceover dialogue is playing.</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* COMMENTS & TEAM FEEDBACK TAB */}
+        {activeTab === 'comments' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-200 flex items-center gap-1.5 text-xs">
+                <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                <span>Scene Feedback ({selectedScene.comments?.length || 0})</span>
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">
+                Duration: {selectedScene.duration}s
+              </span>
+            </div>
+
+            {/* Existing Comments */}
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {!selectedScene.comments || selectedScene.comments.length === 0 ? (
+                <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-lg text-center text-slate-500 space-y-1">
+                  <p className="text-xs">No feedback on this clip yet</p>
+                  <p className="text-[10px] text-slate-600">Add a time-stamped note below to guide editors & animators.</p>
+                </div>
+              ) : (
+                selectedScene.comments.map(c => (
+                  <div
+                    key={c.id}
+                    className={`p-2.5 rounded-lg border space-y-1.5 transition ${
+                      c.resolved
+                        ? 'bg-slate-950/40 border-slate-800/60 opacity-60'
+                        : 'bg-slate-950 border-slate-800 hover:border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[10px]">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onSeek) {
+                              const sStart = selectedScene.startTime ?? 0;
+                              onSeek(sStart + c.timestamp);
+                            }
+                          }}
+                          className="px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-mono font-bold cursor-pointer transition border border-amber-500/30"
+                          title="Seek playhead to this exact frame"
+                        >
+                          {c.timestamp.toFixed(1)}s
+                        </button>
+                        <span className="font-bold text-slate-300">{c.author}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (selectedScene.comments || []).map(item =>
+                              item.id === c.id ? { ...item, resolved: !item.resolved } : item
+                            );
+                            onUpdateScene({ comments: updated });
+                          }}
+                          className={`p-1 rounded cursor-pointer transition ${
+                            c.resolved ? 'text-emerald-400' : 'text-slate-500 hover:text-emerald-400'
+                          }`}
+                          title={c.resolved ? 'Mark unresolved' : 'Mark resolved'}
+                        >
+                          <Check className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (selectedScene.comments || []).filter(item => item.id !== c.id);
+                            onUpdateScene({ comments: updated });
+                          }}
+                          className="p-1 rounded text-slate-500 hover:text-rose-400 cursor-pointer transition"
+                          title="Delete note"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-200 leading-snug break-words">{c.text}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add Comment Input */}
+            <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span className="font-semibold text-amber-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>At {Math.max(0, Math.min(selectedScene.duration, currentTime - (selectedScene.startTime ?? 0))).toFixed(1)}s</span>
+                </span>
+                <input
+                  type="text"
+                  value={commentAuthor}
+                  onChange={e => setCommentAuthor(e.target.value)}
+                  placeholder="Author"
+                  className="w-24 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-white"
+                />
+              </div>
+
+              <textarea
+                rows={2}
+                value={commentDraft}
+                onChange={e => setCommentDraft(e.target.value)}
+                placeholder="Write feedback note (framing, color, cuts, subtitles)..."
+                className="w-full px-2 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-amber-500 resize-none"
+              />
+
+              <button
+                type="button"
+                disabled={!commentDraft.trim()}
+                onClick={() => {
+                  if (!commentDraft.trim()) return;
+                  const sStart = selectedScene.startTime ?? 0;
+                  let rel = currentTime - sStart;
+                  if (rel < 0 || rel > selectedScene.duration) {
+                    rel = Math.max(0, Math.min(selectedScene.duration, rel < 0 ? 0 : selectedScene.duration));
+                  }
+
+                  const newComment: SceneComment = {
+                    id: `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                    sceneId: selectedScene.id,
+                    timestamp: Number(rel.toFixed(1)),
+                    timelineTime: Number((sStart + rel).toFixed(1)),
+                    author: commentAuthor.trim() || 'Reviewer',
+                    text: commentDraft.trim(),
+                    resolved: false,
+                    createdAt: new Date().toISOString(),
+                  };
+
+                  onUpdateScene({
+                    comments: [...(selectedScene.comments || []), newComment],
+                  });
+                  setCommentDraft('');
+                }}
+                className="w-full py-1.5 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Post Scene Comment</span>
+              </button>
             </div>
           </div>
         )}

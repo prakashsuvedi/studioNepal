@@ -14,13 +14,15 @@ import {
   ShieldCheck,
   Activity,
   Play,
-  AlertCircle
+  AlertCircle,
+  FolderDown
 } from 'lucide-react';
 import { Scene, AudioTrack, BrandOverlayConfig, VfxConfig } from '../types';
 import { SubtitleItem, SubtitleBurnOptions } from './SubtitleEditorModal';
 import { RenderAuditLogger, RenderAuditEntry } from '../lib/renderAuditLogger';
 import { RenderSummaryOverlay } from './RenderSummaryOverlay';
 import { renderTimelineToVideoBlob } from '../lib/videoCombiner';
+import { exportProjectAssetsToZip } from '../lib/projectAssetExporter';
 
 interface ProjectExportModalProps {
   isOpen: boolean;
@@ -63,8 +65,36 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
   const [showSummaryOverlay, setShowSummaryOverlay] = useState(false);
   const [lastAuditEntry, setLastAuditEntry] = useState<RenderAuditEntry | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [isExportingZip, setIsExportingZip] = useState(false);
+  const [zipStep, setZipStep] = useState('');
 
   if (!isOpen) return null;
+
+  const handleExportZip = async () => {
+    setIsExportingZip(true);
+    setZipStep('Archiving media files...');
+    try {
+      const result = await exportProjectAssetsToZip(
+        projectTitle,
+        scenes,
+        audioTracks,
+        aspectRatio,
+        (p) => setZipStep(p.step)
+      );
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert('Failed to export ZIP archive: ' + (e.message || 'Error'));
+    } finally {
+      setIsExportingZip(false);
+    }
+  };
 
   const estimatedFileSizeMb = () => {
     let factor = 1.2;
@@ -478,6 +508,16 @@ export const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
           </button>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportZip}
+              disabled={isExportingZip}
+              className="px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              title="Download all media, voiceovers, soundtrack, and project manifest in a single compressed ZIP"
+            >
+              <FolderDown className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{isExportingZip ? 'Archiving ZIP...' : 'Backup Assets (.ZIP)'}</span>
+            </button>
+
             <button
               onClick={handleExportTimelineMetadata}
               className="px-3.5 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"

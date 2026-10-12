@@ -542,6 +542,94 @@ export async function ensureSampleMediaFiles(): Promise<void> {
     }
   }
 
+  // 4.5. Render Photographic Sample Videos (Everest Sunrise, Durbar Square, Phewa Lake, etc.)
+  for (const vf of videoFiles) {
+    const targetPublic = path.join(publicSamplesDir, vf.filename);
+    const targetDist = path.join(distSamplesDir, vf.filename);
+    const thumbName = vf.filename.replace(/\.mp4$/, '_thumb.jpg');
+    const thumbPublic = path.join(publicSamplesDir, thumbName);
+    const thumbDist = path.join(distSamplesDir, thumbName);
+
+    if (fs.existsSync(targetPublic) && fs.statSync(targetPublic).size > 10000) {
+      if (fs.existsSync(distSamplesDir) && (!fs.existsSync(targetDist) || fs.statSync(targetDist).size < 10000)) {
+        try { fs.copyFileSync(targetPublic, targetDist); } catch {}
+      }
+      if (fs.existsSync(thumbPublic) && fs.existsSync(distSamplesDir) && !fs.existsSync(thumbDist)) {
+        try { fs.copyFileSync(thumbPublic, thumbDist); } catch {}
+      }
+      continue;
+    }
+
+    try {
+      // 1. Get or generate the high-res 1280x720 source frame
+      let framePath = path.join(cacheDir, `frame_${vf.filename}.jpg`);
+      let haveFrame = false;
+
+      if (vf.imageUrl) {
+        try {
+          const res = await fetch(vf.imageUrl, { signal: AbortSignal.timeout(5000) });
+          if (res.ok) {
+            const buf = Buffer.from(await res.arrayBuffer());
+            const resized = await sharp(buf).resize(1280, 720, { fit: 'cover' }).jpeg({ quality: 90 }).toBuffer();
+            fs.writeFileSync(framePath, resized);
+            haveFrame = true;
+          }
+        } catch (_) {}
+      }
+
+      if (!haveFrame) {
+        const titleClean = vf.filename.replace('.mp4', '').replace(/([A-Z])/g, ' $1').trim();
+        const svg = `
+          <svg width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g_${vf.filename.replace(/[^a-zA-Z0-9]/g, '')}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0f172a" />
+                <stop offset="50%" stop-color="#1e293b" />
+                <stop offset="100%" stop-color="#0284c7" />
+              </linearGradient>
+            </defs>
+            <rect width="1280" height="720" fill="url(#g_${vf.filename.replace(/[^a-zA-Z0-9]/g, '')})" />
+            <circle cx="640" cy="360" r="220" fill="#38bdf8" opacity="0.15" />
+            <text x="640" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="bold" fill="#ffffff" text-anchor="middle">${titleClean}</text>
+            <text x="640" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" fill="#38bdf8" text-anchor="middle">NepalAI Studio 4K Broadcast Sample</text>
+          </svg>
+        `;
+        const generated = await sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toBuffer();
+        fs.writeFileSync(framePath, generated);
+      }
+
+      // Save thumbnail
+      try {
+        fs.copyFileSync(framePath, thumbPublic);
+        if (fs.existsSync(distSamplesDir)) fs.copyFileSync(framePath, thumbDist);
+      } catch {}
+
+      // 2. Render fast 5s MP4 with AAC silent audio
+      await execFileAsync('ffmpeg', [
+        '-y',
+        '-loop', '1',
+        '-i', framePath,
+        '-f', 'lavfi',
+        '-i', 'anullsrc=r=44100:cl=stereo',
+        '-vf', 'scale=1280:720,format=yuv420p',
+        '-t', `${vf.duration || 5}`,
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-movflags', '+faststart',
+        targetPublic,
+      ]);
+
+      console.log(`[SampleMedia] Generated photographic sample video: ${vf.filename}`);
+      if (fs.existsSync(distSamplesDir)) {
+        try { fs.copyFileSync(targetPublic, targetDist); } catch {}
+      }
+    } catch (err: any) {
+      console.warn(`[SampleMedia] Notice generating video ${vf.filename}:`, err?.message || err);
+    }
+  }
+
   // 5. Presenter Studio Videos (Realistic Talking Anchors & Storytellers in Studio)
   const presenterVideos = [
     {

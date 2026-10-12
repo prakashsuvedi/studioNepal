@@ -24,7 +24,9 @@ import {
   Terminal,
   AlertCircle,
   Eye,
-  Globe
+  Globe,
+  MessageSquare,
+  FolderDown
 } from 'lucide-react';
 import { HardwareAccelerationIndicator } from '../HardwareAccelerationIndicator';
 
@@ -47,6 +49,9 @@ interface CapCutTopBarProps {
   onOpenStoryboards?: () => void;
   onOpenDebugger?: () => void;
   onOpenSocialPublisher?: () => void;
+  onOpenComments?: () => void;
+  commentsCount?: number;
+  onExportAssetsZip?: () => void;
   errorCount?: number;
   autoSaveTime?: string;
   scenesCount?: number;
@@ -71,6 +76,9 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
   onOpenStoryboards,
   onOpenDebugger,
   onOpenSocialPublisher,
+  onOpenComments,
+  commentsCount = 0,
+  onExportAssetsZip,
   errorCount = 0,
   autoSaveTime = 'Just now',
   scenesCount = 0,
@@ -234,6 +242,39 @@ export const CapCutTopBar: React.FC<CapCutTopBarProps> = ({
                 >
                   <Share2 className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                   <span>Social Publish Center...</span>
+                </button>
+              )}
+
+              {onOpenComments && (
+                <button
+                  onClick={() => {
+                    setShowMenuDropdown(false);
+                    onOpenComments();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center justify-between cursor-pointer text-amber-600 dark:text-amber-400 font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                    <span>Team Timeline Feedback...</span>
+                  </div>
+                  {commentsCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-black font-extrabold text-[9px]">
+                      {commentsCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {onExportAssetsZip && (
+                <button
+                  onClick={() => {
+                    setShowMenuDropdown(false);
+                    onExportAssetsZip();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2 cursor-pointer text-emerald-600 dark:text-emerald-400 font-semibold"
+                >
+                  <FolderDown className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                  <span>Backup Project Assets (.ZIP)...</span>
                 </button>
               )}
 

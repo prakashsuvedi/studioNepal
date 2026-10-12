@@ -565,13 +565,48 @@ export const CapCutTimelineDeck: React.FC<CapCutTimelineDeckProps> = ({
 
                         {/* Top Metadata */}
                         <div className="relative z-10 flex items-center justify-between text-[10px] overflow-hidden">
-                          <span className="font-bold text-white truncate max-w-[85px] drop-shadow-md">
-                            {widthPx > 35 ? scene.title : ''}
-                          </span>
+                          <div className="flex items-center gap-1 truncate max-w-[85px]">
+                            <span className="font-bold text-white drop-shadow-md truncate">
+                              {widthPx > 35 ? scene.title : ''}
+                            </span>
+                            {scene.comments && scene.comments.length > 0 && widthPx > 50 && (
+                              <span 
+                                className="px-1 py-0.2 rounded bg-amber-500/90 text-black font-extrabold text-[8px] shrink-0 shadow-xs"
+                                title={`${scene.comments.length} team feedback comments`}
+                              >
+                                💬 {scene.comments.length}
+                              </span>
+                            )}
+                          </div>
                           <span className="font-mono text-cyan-300 font-bold bg-black/75 px-1 rounded text-[9px]">
                             {widthPx > 45 ? `${scene.duration}s` : ''}
                           </span>
                         </div>
+
+                        {/* Time-stamped Comment Pins */}
+                        {scene.comments && scene.comments.length > 0 && (
+                          <div className="absolute inset-x-0 bottom-0.5 h-2.5 z-20 pointer-events-none">
+                            {scene.comments.map(c => {
+                              const pct = Math.max(0, Math.min(100, (c.timestamp / (scene.duration || 1)) * 100));
+                              return (
+                                <div
+                                  key={c.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectScene(scene.id);
+                                    const clipStart = timing?.startTime ?? 0;
+                                    onSeek(clipStart + c.timestamp);
+                                  }}
+                                  className={`absolute -translate-x-1/2 bottom-0 w-2.5 h-2.5 rounded-full border border-black/80 pointer-events-auto cursor-pointer transition hover:scale-125 shadow-xs ${
+                                    c.resolved ? 'bg-emerald-400' : 'bg-amber-400'
+                                  }`}
+                                  style={{ left: `${pct}%` }}
+                                  title={`[${c.timestamp.toFixed(1)}s] ${c.author}: ${c.text} (${c.resolved ? 'RESOLVED' : 'OPEN'})`}
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
 
                         {/* Bottom Tags */}
                         <div className="relative z-10 flex items-center justify-between text-[9px] text-slate-300 overflow-hidden">

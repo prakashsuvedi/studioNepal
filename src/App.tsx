@@ -23,12 +23,14 @@ import { GlobalLoadingOverlay, GlobalLoadingState } from './components/GlobalLoa
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { UserDashboardView } from './components/UserDashboardView';
 import { OnboardingTourModal } from './components/OnboardingTourModal';
+import { SystemFeedbackModal } from './components/SystemFeedbackModal';
 import { ViralTemplate } from './data/viralTemplates';
+import { NepalAiLogo } from './components/NepalAiLogo';
 
 import { apiGetMe, apiLogout } from './lib/api';
 import { authManager } from './lib/authManager';
 import { purgeLegacyStorageUrls, sanitizeScenes } from './lib/mediaUrlSanitizer';
-import { Lock, Sparkles, ShieldAlert } from 'lucide-react';
+import { Lock, Sparkles, ShieldAlert, MessageSquare } from 'lucide-react';
 
 export default function App() {
   // Navigation & studio state
@@ -81,6 +83,9 @@ export default function App() {
 
   // Onboarding Walkthrough Tour State
   const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // User Feedback, Feature Requests & Bug Reporting Modal State
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   // Authentication & Paywall states
   const [user, setUser] = useState<UserSession | null>(null);
@@ -318,6 +323,7 @@ export default function App() {
         onOpenWorkspaces={() => setShowGlobalWorkspaces(true)}
         onOpenUsageHistory={() => setIsUsageHistoryOpen(true)}
         onOpenTour={() => setIsTourOpen(true)}
+        onOpenFeedback={() => setIsFeedbackModalOpen(true)}
         activeWorkspaceName={globalWorkspace.name}
       />
 
@@ -349,6 +355,7 @@ export default function App() {
               }
             }}
             onSelectTemplate={handleApplyTemplate}
+            onNavigateTab={setActiveTab}
           />
         )}
 
@@ -601,22 +608,62 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 py-6 text-xs text-center transition-colors">
-        <div className="max-w-7xl mx-auto px-4 space-y-3">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">NepalAI Studio Pro</span> • studio.nepalai.tech • Full-Stack AI Media Platform
+      {/* Unified Global Master Footer */}
+      <footer className="border-t border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#07080D] text-slate-600 dark:text-slate-400 py-8 px-4 text-xs transition-colors">
+        <div className="max-w-7xl mx-auto space-y-5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <NepalAiLogo size="sm" />
+              <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+              <span className="text-slate-800 dark:text-slate-200 font-semibold">
+                NepalAI Studio Pro <span className="text-slate-400 dark:text-slate-500 font-normal">· studio.nepalai.tech</span>
+              </span>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
-              <button onClick={() => setActiveTab('faq')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">FAQ</button>
-              <span>•</span>
-              <button onClick={() => setActiveTab('about')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">About</button>
-              <span>•</span>
-              <button onClick={() => setActiveTab('privacy')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">Privacy</button>
-              <span>•</span>
-              <button onClick={() => setActiveTab('contact')} className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer">Contact</button>
-              <span>•</span>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-slate-600 dark:text-slate-300 font-medium">
+              <button 
+                onClick={() => handleSelectTab('landing')} 
+                className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
+              >
+                Home
+              </button>
+              <button 
+                onClick={() => handleSelectTab('video_studio')} 
+                className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
+              >
+                Studio
+              </button>
+              <button 
+                onClick={() => handleSelectTab('hamro_ai')} 
+                className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer flex items-center gap-1"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-rose-500" />
+                <span>HamroAI</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('faq')} 
+                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+              >
+                FAQ
+              </button>
+              <button 
+                onClick={() => setActiveTab('about')} 
+                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+              >
+                About
+              </button>
+              <button 
+                onClick={() => setActiveTab('privacy')} 
+                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+              >
+                Privacy
+              </button>
+              <button 
+                onClick={() => setActiveTab('contact')} 
+                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+              >
+                Contact
+              </button>
               <a 
                 href="/sitemap.xml" 
                 target="_blank" 
@@ -625,17 +672,16 @@ export default function App() {
               >
                 Sitemap
               </a>
-              <span>•</span>
               <button 
                 onClick={() => handleOpenAuth('admin')} 
-                className="text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-medium cursor-pointer"
+                className="text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold cursor-pointer"
               >
                 Admin Portal
               </button>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px]">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
             <div>
               Platform designed and created by{' '}
               <a
@@ -718,6 +764,26 @@ export default function App() {
         onClose={() => setIsTourOpen(false)}
         onNavigateTab={handleSelectTab}
       />
+
+      {/* User Feature Request, Bug Report & System Comment Submission Modal */}
+      <SystemFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        currentUser={user}
+      />
+
+      {/* Floating System Feedback & Issue Report Trigger Button */}
+      <div className="fixed bottom-4 right-4 z-40 hidden sm:block">
+        <button
+          type="button"
+          onClick={() => setIsFeedbackModalOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white dark:bg-white/90 dark:hover:bg-white dark:text-slate-900 shadow-xl backdrop-blur-md text-xs font-bold border border-slate-700/50 dark:border-slate-300 transition hover:scale-105 active:scale-95 cursor-pointer group"
+          title="Submit Feature Request, Report Bugs, or Direct System Comments"
+        >
+          <MessageSquare className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+          <span>Feedback / Report Error</span>
+        </button>
+      </div>
     </div>
   );
 }

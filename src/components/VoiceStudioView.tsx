@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Mic, Play, Pause, Square, Volume2, Volume1, Sparkles, Check, Download, Music, AlertCircle, 
   ArrowRight, Save, Library, Smile, Clock, FileText, RotateCcw, Compass, 
   UserCheck, HelpCircle, ChevronRight, VolumeX, Flame, Heart, Headphones, Scissors, Upload, Trash2,
-  Sliders, Radio, Layers, Activity, SlidersHorizontal, Users, Wand2, Mic2, Clapperboard, AudioWaveform
+  Sliders, Radio, Layers, Activity, SlidersHorizontal, Users, Wand2, Mic2, Clapperboard, AudioWaveform,
+  Search, Loader2
 } from 'lucide-react';
 import { UserSession, UserTrialQuota, CustomVoice } from '../types';
 import { apiGenerateAudio, apiGetAudioSuggestions, apiGetCustomVoices, apiDeleteCustomVoice } from '../lib/api';
@@ -461,7 +462,7 @@ export const PRODUCTION_PRESETS: ProductionPreset[] = [
     sampleScriptNe: 'हिमालयको काखमा फैलिएको यो रमणीय उपत्यका प्राकृतिक र सांस्कृतिक सौन्दर्यले भरिपूर्ण छ। [Pause: 600ms] युगौंदेखि चल्दै आएका परम्परा, मन्दिर र जीवनशैली आज पनि यहाँ जीवन्त छन्। [Pause: 500ms] यो अनुपम धरोहर हामी सबैको साझा गौरव हो।',
     sampleScriptEn: 'Nestled deep within the Himalayas, this ancient valley preserves a rare cultural heritage. [Pause: 600ms] Centuries of tradition and breathtaking landscapes meet in quiet reverence.',
     acousticRoom: 'warm_studio',
-    ambientBed: 'himalayan_drone',
+    ambientBed: 'none',
   },
   {
     id: 'podcast_talk',
@@ -475,7 +476,7 @@ export const PRODUCTION_PRESETS: ProductionPreset[] = [
     sampleScriptNe: 'नमस्ते साथीहरू! नेपालएआई स्टुडियो पोडकास्टको आजको विशेष अंकमा तपाईंलाई हार्दिक स्वागत छ। [Pause: 400ms] आज हामी आधुनिक डिजिटल मिडिया र आर्टिफिसियल इन्टेलिजेन्सको प्रभावबारे कुराकानी गर्नेछौं।',
     sampleScriptEn: 'Welcome back to the studio! In today\'s episode, we explore the creative horizon where artificial intelligence meets professional storytelling.',
     acousticRoom: 'booth',
-    ambientBed: 'studio_room',
+    ambientBed: 'none',
   },
   {
     id: 'storytelling',
@@ -489,7 +490,7 @@ export const PRODUCTION_PRESETS: ProductionPreset[] = [
     sampleScriptNe: 'धेरै वर्ष पहिलेको कुरा हो... [Pause: 800ms] डाँडापारिको सानो गाउँमा एउटा पुरानो मन्दिर थियो। [Pause: 500ms] त्यहाँका मानिसहरू सधैं शान्ति र एकतामा बाँचेका थिए, तर एकदिन अनौठो रहस्य सुरु भयो।',
     sampleScriptEn: 'Long ago, beyond the mist-covered hills... [Pause: 800ms] there stood a quiet sanctuary where ancient legends still whispered in the morning breeze.',
     acousticRoom: 'hall',
-    ambientBed: 'mountain_flute',
+    ambientBed: 'none',
   },
   {
     id: 'broadcast_news',
@@ -552,6 +553,9 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   const [language, setLanguage] = useState<'ne' | 'en'>('ne');
   const [selectedVoiceId, setSelectedVoiceId] = useState('hemkala_pure_ne');
   const [activeDemographicTab, setActiveDemographicTab] = useState<'all' | 'children' | 'teen' | 'young_adult' | 'adult' | 'elderly' | 'ambient' | 'cloned'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLanguageFilter, setSelectedLanguageFilter] = useState<'all' | 'ne' | 'en'>('all');
+  const [selectedGenderFilter, setSelectedGenderFilter] = useState<'all' | 'Female' | 'Male'>('all');
   
   // Emotional and Genre toggles
   const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'sad' | 'energetic' | 'horror'>('neutral');
@@ -598,6 +602,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     return () => {
       window.removeEventListener('nepalai_media_library_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
+      studioMastering.stopAll();
       if (activeSoundAudioRef.current) {
         activeSoundAudioRef.current.pause();
       }
@@ -742,6 +747,12 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     studioMastering.duckAmbient(isPlaying);
   }, [isPlaying]);
 
+  useEffect(() => {
+    return () => {
+      studioMastering.stopAll();
+    };
+  }, []);
+
   // Dialogue Director (Screenplay Studio) state
   const [dialogueScriptText, setDialogueScriptText] = useState<string>(
 `[Sagar]: नमस्ते र नेपालएआई स्टुडियो पोडकास्टको नयाँ अंकमा तपाईंलाई हार्दिक स्वागत छ।
@@ -824,10 +835,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   };
 
   useEffect(() => {
-    if (dialogueScriptText) {
-      parseDialogueScript(dialogueScriptText, dialogueSpeakerMap);
-    }
-  }, []);
+    const timer = setTimeout(() => {
+      if (dialogueScriptText) {
+        parseDialogueScript(dialogueScriptText, dialogueSpeakerMap);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [dialogueScriptText]);
 
   const handleAddNaturalBreathPauses = () => {
     const withPauses = text
@@ -918,6 +932,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     }
   };
 
+  const [completeDialogueAudioUrl, setCompleteDialogueAudioUrl] = useState<string | null>(null);
+  const [completeDialogueDuration, setCompleteDialogueDuration] = useState<number>(0);
+  const [completeDialogueSpeakers, setCompleteDialogueSpeakers] = useState<string[]>([]);
+  const [isRenderingCompleteDialogue, setIsRenderingCompleteDialogue] = useState(false);
+  const [isPlayingCompleteDialogue, setIsPlayingCompleteDialogue] = useState(false);
+  const completeDialogueAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const handleTogglePlayDialogueLine = (line: DialogueLineItem) => {
     if (!line.audioUrl) return;
 
@@ -926,17 +947,188 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         dialogueAudioRef.current.pause();
       }
       setActivePlayingDialogueId(null);
+      studioMastering.stopAmbient();
     } else {
       if (dialogueAudioRef.current) {
         dialogueAudioRef.current.pause();
       }
+      if (completeDialogueAudioRef.current) {
+        completeDialogueAudioRef.current.pause();
+        setIsPlayingCompleteDialogue(false);
+      }
       const audio = new Audio(line.audioUrl);
       dialogueAudioRef.current = audio;
       studioMastering.attachToAudioElement(audio, masterSettings);
-      audio.onended = () => setActivePlayingDialogueId(null);
-      audio.onerror = () => setActivePlayingDialogueId(null);
+      audio.onended = () => {
+        setActivePlayingDialogueId(null);
+        studioMastering.stopAmbient();
+      };
+      audio.onpause = () => {
+        studioMastering.stopAmbient();
+      };
+      audio.onerror = () => {
+        setActivePlayingDialogueId(null);
+        studioMastering.stopAmbient();
+      };
       audio.play().catch(console.warn);
       setActivePlayingDialogueId(line.id);
+    }
+  };
+
+  const handleRenderCompleteDialogue = async () => {
+    if (isRenderingCompleteDialogue || dialogueLines.length === 0) return;
+    setIsRenderingCompleteDialogue(true);
+
+    const totalSpeakers = Object.keys(dialogueSpeakerMap).length;
+    if (onStartGlobalLoading) {
+      onStartGlobalLoading({
+        title: 'Rendering Complete Dialogue Master Track',
+        subtitle: `Stitching all ${dialogueLines.length} lines across ${totalSpeakers} characters into a single combined MP3`,
+        type: 'voice'
+      });
+    }
+
+    try {
+      const targetUserId = user?.id || 'usr_guest_' + Date.now();
+      const currentLines = [...dialogueLines];
+
+      // Step 1: Ensure all individual dialogue cues are synthesized
+      for (let i = 0; i < currentLines.length; i++) {
+        if (!currentLines[i].audioUrl) {
+          const line = currentLines[i];
+          const voice = voicesList.find(v => v.id === line.voiceId) || selectedVoice;
+          setDialogueLines(prev => prev.map((l, idx) => idx === i ? { ...l, isProcessing: true } : l));
+          try {
+            const data = await apiGenerateAudio(
+              targetUserId,
+              line.text,
+              voice.id,
+              voice.language === 'Nepali' ? 'ne-NP' : 'en-US',
+              line.emotion || 'neutral',
+              'general'
+            );
+            if (data?.result?.url) {
+              const dur = data.result.duration || Math.max(3, Math.ceil(line.text.length / 14));
+              currentLines[i] = {
+                ...currentLines[i],
+                audioUrl: data.result.url,
+                duration: dur,
+                isProcessing: false,
+              };
+              setDialogueLines(prev => prev.map((l, idx) => idx === i ? currentLines[i] : l));
+            }
+          } catch (err) {
+            console.warn(`Line ${i} synthesis notice:`, err);
+          }
+        }
+      }
+
+      // Step 2: Request server to render combined multi-speaker master MP3
+      const payloadLines = currentLines.map(l => ({
+        speakerTag: l.speakerTag,
+        voiceId: l.voiceId,
+        text: l.text,
+        emotion: l.emotion || 'neutral',
+        audioUrl: l.audioUrl,
+        duration: l.duration
+      }));
+
+      const res = await fetch('/api/dialogue/render-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: targetUserId,
+          lines: payloadLines,
+          pauseBetweenSpeakersMs: 350,
+          title: `Dialogue Master (${Object.keys(dialogueSpeakerMap).join(', ')})`
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success || !json.result?.url) {
+        throw new Error(json.error || 'Failed to render combined dialogue MP3');
+      }
+
+      const master = json.result;
+      setCompleteDialogueAudioUrl(master.url);
+      setCompleteDialogueDuration(master.duration || 0);
+      setCompleteDialogueSpeakers(master.speakers || Object.keys(dialogueSpeakerMap));
+
+      // Save to generated sound library
+      const savedItem = saveMediaItem({
+        type: 'ai_audio',
+        title: `[Complete Dialogue] ${master.speakers?.join(', ') || 'Cast'} (${Math.round(master.duration)}s)`,
+        url: master.url,
+        duration: master.duration,
+        category: 'Dialogue Master',
+        engine: `Multi-Character Master (${master.speakers?.length || totalSpeakers} Characters)`,
+        prompt: dialogueScriptText.slice(0, 150)
+      });
+      setGeneratedSounds(prev => [savedItem, ...prev.filter(s => s.id !== savedItem.id)]);
+
+      // Auto-play the master combined dialogue
+      if (dialogueAudioRef.current) dialogueAudioRef.current.pause();
+      if (completeDialogueAudioRef.current) completeDialogueAudioRef.current.pause();
+
+      const audio = new Audio(master.url);
+      completeDialogueAudioRef.current = audio;
+      studioMastering.attachToAudioElement(audio, masterSettings);
+      audio.onended = () => {
+        setIsPlayingCompleteDialogue(false);
+        studioMastering.stopAmbient();
+      };
+      audio.onpause = () => {
+        setIsPlayingCompleteDialogue(false);
+        studioMastering.stopAmbient();
+      };
+      audio.onerror = () => {
+        setIsPlayingCompleteDialogue(false);
+        studioMastering.stopAmbient();
+      };
+      audio.play().catch(console.warn);
+      setIsPlayingCompleteDialogue(true);
+    } catch (err: any) {
+      console.warn('Complete dialogue render error:', err);
+    } finally {
+      setIsRenderingCompleteDialogue(false);
+      if (onStopGlobalLoading) onStopGlobalLoading();
+    }
+  };
+
+  const handleTogglePlayCompleteDialogue = () => {
+    if (!completeDialogueAudioUrl) return;
+
+    if (isPlayingCompleteDialogue) {
+      if (completeDialogueAudioRef.current) {
+        completeDialogueAudioRef.current.pause();
+      }
+      setIsPlayingCompleteDialogue(false);
+      studioMastering.stopAmbient();
+    } else {
+      if (dialogueAudioRef.current) {
+        dialogueAudioRef.current.pause();
+        setActivePlayingDialogueId(null);
+      }
+      if (completeDialogueAudioRef.current) {
+        completeDialogueAudioRef.current.pause();
+      }
+      const audio = new Audio(completeDialogueAudioUrl);
+      completeDialogueAudioRef.current = audio;
+      studioMastering.attachToAudioElement(audio, masterSettings);
+      audio.onended = () => {
+        setIsPlayingCompleteDialogue(false);
+        studioMastering.stopAmbient();
+      };
+      audio.onpause = () => {
+        setIsPlayingCompleteDialogue(false);
+        studioMastering.stopAmbient();
+      };
+      audio.onerror = () => {
+        setIsPlayingCompleteDialogue(false);
+        studioMastering.stopAmbient();
+      };
+      audio.play().catch(console.warn);
+      setIsPlayingCompleteDialogue(true);
     }
   };
 
@@ -969,7 +1161,9 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
   const [samplePhoneticLang, setSamplePhoneticLang] = useState<'ne' | 'en'>('ne');
   const [comparedVoiceIds, setComparedVoiceIds] = useState<string[]>([]);
   const [playingSampleVoiceIds, setPlayingSampleVoiceIds] = useState<Record<string, boolean>>({});
+  const [loadingSampleVoiceIds, setLoadingSampleVoiceIds] = useState<Record<string, boolean>>({});
   const playingAudiosRef = useRef<Record<string, HTMLAudioElement>>({});
+  const sampleAudioCacheRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     // Cleanup playing audios on unmount
@@ -981,6 +1175,39 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     };
   }, []);
 
+  // Preload flagship voice preview caches in background for instant 0ms preview
+  useEffect(() => {
+    const warmupVoices = async () => {
+      try {
+        const flagshipVoices = ['hemkala_pure_ne', 'sagar_pure_ne'];
+        for (const vid of flagshipVoices) {
+          const v = VOICES.find(item => item.id === vid);
+          if (v) {
+            const key = `${v.id}_ne`;
+            if (!sampleAudioCacheRef.current[key]) {
+              const textSample = getVoiceSampleText(v, 'ne');
+              apiGenerateAudio(
+                user?.id || 'guest_warmup',
+                textSample,
+                v.id,
+                'ne-NP',
+                'neutral',
+                'general'
+              ).then(res => {
+                if (res?.result?.url) {
+                  sampleAudioCacheRef.current[key] = res.result.url;
+                }
+              }).catch(() => {});
+            }
+          }
+        }
+      } catch {
+        // Non-blocking warmup
+      }
+    };
+    warmupVoices();
+  }, [user?.id]);
+
   const selectedVoice = voicesList.find(v => v.id === selectedVoiceId) || voicesList[5]; // defaults to Sita
 
   const stopAllSamples = () => {
@@ -989,6 +1216,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     });
     playingAudiosRef.current = {};
     setPlayingSampleVoiceIds({});
+    setLoadingSampleVoiceIds({});
   };
 
   const playVoiceSample = async (voice: VoiceItem, e?: React.MouseEvent, overrideLang?: 'ne' | 'en') => {
@@ -1004,6 +1232,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         delete playingAudiosRef.current[playKey];
       }
       setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
+      setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
       return;
     }
 
@@ -1013,7 +1242,46 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       setIsPlaying(false);
     }
 
-    setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: true }));
+    // Stop any other preview audio that might be playing so voices don't collide
+    Object.keys(playingAudiosRef.current).forEach(k => {
+      if (k !== playKey) {
+        playingAudiosRef.current[k]?.pause();
+        delete playingAudiosRef.current[k];
+      }
+    });
+    setPlayingSampleVoiceIds({});
+
+    // Check client-side sample cache for instant 0ms preview playback
+    if (sampleAudioCacheRef.current[playKey]) {
+      const cachedUrl = sampleAudioCacheRef.current[playKey];
+      const audio = new Audio(cachedUrl);
+      playingAudiosRef.current[playKey] = audio;
+
+      const stopAudio = () => {
+        audio.pause();
+        delete playingAudiosRef.current[playKey];
+        setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
+        setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
+      };
+
+      audio.onended = stopAudio;
+      audio.onerror = stopAudio;
+      audio.onplay = () => {
+        setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
+        setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: true }));
+      };
+
+      try {
+        await audio.play();
+        setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: true }));
+      } catch (err) {
+        console.warn('Cached sample playback failed:', err);
+        stopAudio();
+      }
+      return;
+    }
+
+    setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: true }));
 
     try {
       const targetUserId = user?.id || 'usr_guest_' + Date.now();
@@ -1029,6 +1297,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       );
 
       if (data?.result?.url) {
+        sampleAudioCacheRef.current[playKey] = data.result.url;
         const audio = new Audio(data.result.url);
         playingAudiosRef.current[playKey] = audio;
 
@@ -1036,21 +1305,28 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           audio.pause();
           delete playingAudiosRef.current[playKey];
           setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
+          setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
         };
 
         audio.onended = stopAudio;
         audio.onerror = stopAudio;
+        audio.onplay = () => {
+          setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
+          setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: true }));
+        };
 
         await audio.play().catch(err => {
           console.warn('Sample playback failed:', err);
           stopAudio();
         });
       } else {
+        setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
         setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
       }
     } catch (err: any) {
       console.error('Failed to generate sample voiceover:', err);
       setAudioError(`Voice preview notice: ${err.message || 'Unable to play voice sample'}`);
+      setLoadingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
       setPlayingSampleVoiceIds(prev => ({ ...prev, [playKey]: false }));
     }
   };
@@ -1170,7 +1446,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     return warnings;
   };
 
-  const unrecognizedTags = validateSsmlAndMarkup(text);
+  const unrecognizedTags = useMemo(() => validateSsmlAndMarkup(text), [text]);
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1341,11 +1617,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
     const handlePause = () => {
       setIsPlaying(false);
+      studioMastering.stopAmbient();
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
       setPlayerCurrentTime(0);
+      studioMastering.stopAmbient();
     };
 
     activeAudioElement.addEventListener('timeupdate', handleTimeUpdate);
@@ -1584,9 +1862,17 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         }
 
         audio.onplay = () => setIsPlaying(true);
-        audio.onended = () => setIsPlaying(false);
+        audio.onended = () => {
+          setIsPlaying(false);
+          studioMastering.stopAmbient();
+        };
+        audio.onpause = () => {
+          setIsPlaying(false);
+          studioMastering.stopAmbient();
+        };
         audio.onerror = () => {
           setIsPlaying(false);
+          studioMastering.stopAmbient();
         };
 
         setActiveAudioElement(audio);
@@ -1594,6 +1880,19 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           console.warn('Audio play notice:', e);
         });
         setIsPlaying(true);
+
+        // Auto-save take to persistent Generated Sound List & Media Library
+        const cleanScript = (textToSynthesize || text).replace(/\[.*?\]/g, '').trim();
+        const savedItem = saveMediaItem({
+          type: 'ai_audio',
+          title: `[Voiceover] ${selectedVoice.name} - ${(cleanScript || text).slice(0, 24)}...`,
+          url: data.result.url,
+          duration: data.result.duration || Math.max(4, Math.ceil((cleanScript || text).length / 14)),
+          category: 'AI Voiceover',
+          engine: `${selectedVoice.name} Neural (${selectedVoice.language})`,
+          prompt: text
+        });
+        setGeneratedSounds(prev => [savedItem, ...prev.filter(s => s.id !== savedItem.id)]);
 
         // Sync Asset to user Project reference
         const newAsset = {
@@ -1641,6 +1940,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     if (activeAudioElement) {
       activeAudioElement.pause();
       setIsPlaying(false);
+      studioMastering.stopAmbient();
     }
   };
 
@@ -1850,7 +2150,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
       }, 1000);
     } catch (err) {
       console.error('Error opening microphone:', err);
-      alert('Could not access microphone. Please check your browser permissions.');
+      setAudioError('Could not access microphone. Please check your browser microphone permissions.');
     }
   };
 
@@ -1877,7 +2177,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
   const handleSaveClonedVoice = () => {
     if (!newClonedVoiceName.trim()) {
-      alert('Please enter a voice name');
+      setAudioError('Please enter a voice profile name before saving.');
       return;
     }
 
@@ -1942,124 +2242,157 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
     setTimeout(() => setAttachedSuccess(false), 3000);
   };
 
-  const handleAutoDubbing = () => {
+  const handleAutoDubbing = async () => {
     setIsAutoDubbing(true);
     setAutoDubSuccess(false);
+    setAudioError(null);
+
+    const targetLangLabel = dubTargetLang === 'ne' ? 'Nepali' : 'Hindi';
+    const targetLocale = dubTargetLang === 'ne' ? 'ne-NP' : 'hi-IN';
+    const dubVoiceId = dubTargetLang === 'ne' ? 'hemkala_pure_ne' : 'swara_hi';
+
     if (onStartGlobalLoading) {
       onStartGlobalLoading({
         type: 'voice',
-        title: `Auto-Dubbing Audio to ${dubTargetLang === 'ne' ? 'Nepali' : 'Hindi'}...`,
-        subtitle: 'Analyzing timeline pauses & synthesizing synced dub tracks',
-        progress: 35,
+        title: `Auto-Dubbing Audio to ${targetLangLabel}...`,
+        subtitle: `Analyzing timeline pauses & synthesizing ${targetLangLabel} neural dub tracks`,
+        progress: 45,
       });
     }
 
-    setTimeout(() => {
+    try {
+      const cleanScript = text.replace(/\[.*?\]/g, '').trim();
+      const targetUserId = user?.id || 'usr_guest_' + Date.now();
+      
+      const res = await apiGenerateAudio(
+        targetUserId,
+        cleanScript || text,
+        dubVoiceId,
+        targetLocale,
+        emotion,
+        formatStyle
+      );
+
+      if (res?.result?.url) {
+        setGeneratedAudioUrl(res.result.url);
+        
+        if (activeAudioElement) {
+          activeAudioElement.pause();
+        }
+        const audio = new Audio(res.result.url);
+        studioMastering.attachToAudioElement(audio, masterSettings);
+        setActiveAudioElement(audio);
+
+        const savedDub = saveMediaItem({
+          type: 'ai_audio',
+          title: `[${targetLangLabel} Dub] ${(cleanScript || text).slice(0, 24)}...`,
+          url: res.result.url,
+          duration: res.result.duration || Math.max(3, Math.ceil((cleanScript || text).length / 14)),
+          category: 'AI Voiceover',
+          engine: `Neural Dub Synchronizer (${targetLangLabel})`,
+          prompt: text
+        });
+        setGeneratedSounds(prev => [savedDub, ...prev.filter(s => s.id !== savedDub.id)]);
+
+        setAutoDubSuccess(true);
+        setTimeout(() => setAutoDubSuccess(false), 4500);
+      }
+    } catch (err: any) {
+      console.warn('Auto-dubbing failed:', err);
+      setAudioError(`Auto-Dubbing notice: ${err.message || 'Failed to synthesize dubbed audio'}`);
+    } finally {
       setIsAutoDubbing(false);
-      setAutoDubSuccess(true);
       if (onStopGlobalLoading) onStopGlobalLoading();
-      setTimeout(() => setAutoDubSuccess(false), 4000);
-    }, 2500);
+    }
   };
 
-  // Filter voices based on active demographic tab
-  const filteredVoices = voicesList.filter(voice => {
-    if (activeDemographicTab === 'cloned') return !!voice.isCustomCloned;
-    if (activeDemographicTab !== 'all' && voice.demographic !== activeDemographicTab) return false;
-    return true;
-  });
+  // Filter voices based on search, active demographic tab, language, and gender (memoized to eliminate lag)
+  const filteredVoices = useMemo(() => {
+    return voicesList.filter(voice => {
+      if (activeDemographicTab === 'cloned') {
+        if (!voice.isCustomCloned) return false;
+      } else if (activeDemographicTab !== 'all') {
+        if (voice.demographic !== activeDemographicTab) return false;
+      }
 
-  // Real-time script stats calculations
-  const cleanScriptText = text
-    .replace(/\[[^\]]+\]/g, '')
-    .trim();
-  const scriptWords = cleanScriptText.split(/\s+/).filter(w => w.trim().length > 0);
-  const scriptWordCount = scriptWords.length;
+      if (selectedLanguageFilter === 'ne' && voice.language !== 'Nepali') return false;
+      if (selectedLanguageFilter === 'en' && voice.language !== 'English') return false;
 
-  let scriptPauseSeconds = 0;
-  const pauseRegex = /\[Pause:\s*([0-9\.]+(s|ms))\]/gi;
-  let pauseMatch;
-  while ((pauseMatch = pauseRegex.exec(text)) !== null) {
-    const pauseDurStr = pauseMatch[1].toLowerCase();
-    let secs = 1.0;
-    if (pauseDurStr.endsWith('ms')) {
-      secs = parseFloat(pauseDurStr) / 1000;
-    } else if (pauseDurStr.endsWith('s')) {
-      secs = parseFloat(pauseDurStr);
+      if (selectedGenderFilter !== 'all' && voice.gender !== selectedGenderFilter) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = voice.name.toLowerCase().includes(q);
+        const matchDesc = voice.description.toLowerCase().includes(q);
+        const matchRole = voice.role.toLowerCase().includes(q);
+        const matchLang = voice.language.toLowerCase().includes(q);
+        if (!matchName && !matchDesc && !matchRole && !matchLang) return false;
+      }
+
+      return true;
+    });
+  }, [voicesList, activeDemographicTab, selectedLanguageFilter, selectedGenderFilter, searchQuery]);
+
+  // Real-time script stats calculations (memoized to eliminate typing lag)
+  const { cleanScriptText, scriptWordCount, scriptPauseSeconds, estimatedReadingTimeSec } = useMemo(() => {
+    const cleanText = text.replace(/\[[^\]]+\]/g, '').trim();
+    const words = cleanText.split(/\s+/).filter(w => w.trim().length > 0);
+    const wordCount = words.length;
+
+    let pauseSecs = 0;
+    const pauseRegex = /\[Pause:\s*([0-9\.]+(s|ms))\]/gi;
+    let pauseMatch;
+    while ((pauseMatch = pauseRegex.exec(text)) !== null) {
+      const pauseDurStr = pauseMatch[1].toLowerCase();
+      let secs = 1.0;
+      if (pauseDurStr.endsWith('ms')) {
+        secs = parseFloat(pauseDurStr) / 1000;
+      } else if (pauseDurStr.endsWith('s')) {
+        secs = parseFloat(pauseDurStr);
+      }
+      pauseSecs += secs;
     }
-    scriptPauseSeconds += secs;
-  }
 
-  let scriptReadingSeconds = (scriptWordCount / 2.3) + scriptPauseSeconds;
-  if (scriptWordCount === 0 && cleanScriptText.length > 0) {
-    scriptReadingSeconds = (cleanScriptText.length / 8) + scriptPauseSeconds;
-  }
-  const estimatedReadingTimeSec = Math.ceil(scriptReadingSeconds);
+    let readingSecs = (wordCount / 2.3) + pauseSecs;
+    if (wordCount === 0 && cleanText.length > 0) {
+      readingSecs = (cleanText.length / 8) + pauseSecs;
+    }
+    return {
+      cleanScriptText: cleanText,
+      scriptWordCount: wordCount,
+      scriptPauseSeconds: pauseSecs,
+      estimatedReadingTimeSec: Math.ceil(readingSecs),
+    };
+  }, [text]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Premium Hub Header with project workspace context */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
-        <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
-        <div className="space-y-1.5 z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-indigo-600/25 rounded-xl border border-indigo-500/30 text-indigo-400">
-              <Headphones className="w-5 h-5 animate-pulse" />
+      {/* Voiceover Studio Executive Header */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg relative overflow-hidden">
+        <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-rose-500/10 via-transparent to-transparent pointer-events-none" />
+        <div className="flex items-center gap-3.5 z-10">
+          <div className="p-2.5 bg-rose-500/15 rounded-xl border border-rose-500/30 text-rose-400 shrink-0">
+            <Headphones className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg font-bold text-white tracking-tight">Voiceover & Speech Studio</h1>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+                48kHz Broadcast Master
+              </span>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Context-Aware Neural TTS Studio</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Design custom age-categorized voices with deep emotional resonance, pacing controls, and AI auto-pushed assets.
-              </p>
-            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              High-definition neural voice synthesis in authentic Nepali & English with dynamic audio mastering.
+            </p>
           </div>
         </div>
-
-        {/* Dynamic Project Workspace Synchronizer */}
-        <div className="flex items-center gap-3 bg-slate-950/80 p-3 rounded-xl border border-slate-800 z-10 shrink-0 w-full md:w-auto">
-          <div className="space-y-1 w-full sm:w-auto">
-            <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block">Active Project Workspace</span>
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedProject}
-                onChange={e => setSelectedProject(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-semibold"
-              >
-                {projects.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setShowAddProject(!showAddProject)}
-                className="p-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs transition font-bold"
-                title="Create Project"
-              >
-                +
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 z-10 shrink-0">
+          <span className="text-[11px] text-slate-400 font-medium hidden md:inline">Voice Engine:</span>
+          <span className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 font-mono font-semibold">
+            Azure Cognitive Neural
+          </span>
         </div>
       </div>
-
-      {/* Project Creator Popover */}
-      {showAddProject && (
-        <form onSubmit={handleCreateProject} className="p-4 bg-slate-900 border border-slate-800 rounded-xl max-w-sm flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
-          <input
-            type="text"
-            required
-            value={newProjectName}
-            onChange={e => setNewProjectName(e.target.value)}
-            placeholder="New Project Name"
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-          />
-          <button type="submit" className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs">
-            Save
-          </button>
-          <button type="button" onClick={() => setShowAddProject(false)} className="text-xs text-slate-400 hover:text-white px-1">
-            Cancel
-          </button>
-        </form>
-      )}
 
       {/* Grid Layout: Main Studio on Left, Directory/Assistant on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -3228,10 +3561,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   </div>
                   <textarea
                     value={dialogueScriptText}
-                    onChange={(e) => {
-                      setDialogueScriptText(e.target.value);
-                      parseDialogueScript(e.target.value, dialogueSpeakerMap);
-                    }}
+                    onChange={(e) => setDialogueScriptText(e.target.value)}
                     rows={6}
                     className="w-full text-xs font-mono p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-hidden focus:ring-2 focus:ring-rose-500 leading-relaxed text-slate-900 dark:text-slate-100"
                     placeholder="[Sagar]: नमस्ते साथीहरू...\n[Hemkala]: धन्यवाद सागर जी..."
@@ -3294,23 +3624,121 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                       <button
                         type="button"
                         onClick={handleSynthesizeAllDialogue}
-                        disabled={isSynthesizingAllDialogue || dialogueLines.length === 0}
-                        className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10.5px] transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs"
+                        disabled={isSynthesizingAllDialogue || isRenderingCompleteDialogue || dialogueLines.length === 0}
+                        className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[10.5px] transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs border border-slate-300 dark:border-slate-700"
+                        title="Synthesize each character dialogue cue separately"
                       >
                         {isSynthesizingAllDialogue ? (
                           <>
-                            <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span className="w-3 h-3 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></span>
                             <span>Rendering Lines...</span>
                           </>
                         ) : (
                           <>
+                            <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+                            <span>⚡ Synthesize Individual Lines</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleRenderCompleteDialogue}
+                        disabled={isRenderingCompleteDialogue || isSynthesizingAllDialogue || dialogueLines.length === 0}
+                        className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10.5px] transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-md"
+                        title="Render all 3, 4 or more characters together into ONE single master MP3 conversation"
+                      >
+                        {isRenderingCompleteDialogue ? (
+                          <>
+                            <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span>Stitching Combined MP3...</span>
+                          </>
+                        ) : (
+                          <>
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>⚡ Synthesize All Lines</span>
+                            <span>🎬 Render Complete Dialogue (All in 1 MP3)</span>
                           </>
                         )}
                       </button>
                     </div>
                   </div>
+
+                  {/* Rendered Complete Dialogue Master Audio Box */}
+                  {completeDialogueAudioUrl && (
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-teal-950/25 to-slate-900 border border-emerald-500/40 shadow-lg space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30">
+                            🎙️
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white tracking-wide">
+                                Complete Dialogue Master Audio
+                              </span>
+                              <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+                                1 Combined Master MP3
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-300 mt-0.5">
+                              Speakers: <span className="text-emerald-400 font-semibold">{completeDialogueSpeakers.join(', ')}</span> • Duration: <span className="text-white font-bold">{completeDialogueDuration.toFixed(1)}s</span> • {dialogueLines.length} Cues Combined
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleTogglePlayCompleteDialogue}
+                            className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer transition ${
+                              isPlayingCompleteDialogue
+                                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+                            }`}
+                          >
+                            {isPlayingCompleteDialogue ? (
+                              <>
+                                <Pause className="w-3.5 h-3.5" />
+                                <span>Pause Master</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                                <span>Play Full Conversation</span>
+                              </>
+                            )}
+                          </button>
+
+                          <a
+                            href={completeDialogueAudioUrl}
+                            download={`dialogue_master_${Date.now()}.mp3`}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition flex items-center gap-1.5 border border-slate-700 cursor-pointer shadow-xs"
+                          >
+                            <Download className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Download MP3</span>
+                          </a>
+
+                          {onAttachAudioTrack && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onAttachAudioTrack(
+                                  `[Full Dialogue] ${completeDialogueSpeakers.join(' & ')}`,
+                                  completeDialogueDuration,
+                                  completeDialogueAudioUrl,
+                                  dialogueScriptText
+                                );
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <Layers className="w-3.5 h-3.5" />
+                              <span>Add to Timeline</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {dialogueLines.length === 0 ? (
                     <div className="p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center text-xs text-slate-400">
@@ -3388,22 +3816,16 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                               {line.audioUrl && onAttachAudioTrack && (
                                 <button
                                   type="button"
-                                  onClick={() => onAttachAudioTrack({
-                                    id: 'trk_' + Date.now(),
-                                    name: `[${line.speakerTag}] ${line.text.slice(0, 16)}...`,
-                                    type: 'audio',
-                                    muted: false,
-                                    clips: [{
-                                      id: 'clp_' + Date.now(),
-                                      title: `[${line.speakerTag}] ${line.text.slice(0, 20)}...`,
-                                      url: line.audioUrl!,
-                                      start: 0,
-                                      duration: line.duration || 4,
-                                      volume: 1.0,
-                                      fadeIn: 0.1,
-                                      fadeOut: 0.1
-                                    }]
-                                  })}
+                                  onClick={() => {
+                                    onAttachAudioTrack(
+                                      `[${line.speakerTag}] ${line.text.slice(0, 20)}...`,
+                                      line.duration || 4,
+                                      line.audioUrl,
+                                      line.text
+                                    );
+                                    setAttachedSuccess(true);
+                                    setTimeout(() => setAttachedSuccess(false), 3000);
+                                  }}
                                   className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-600 hover:text-white text-indigo-600 dark:text-indigo-400 transition cursor-pointer"
                                   title="Add line clip to Video Studio timeline"
                                 >
@@ -3762,9 +4184,12 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             </p>
             <VoiceWaveformVisualizer
               audioTitle={`Speech: ${selectedVoice.name} (${selectedVoice.language})`}
-              duration={Math.max(4, Math.ceil(text.length / 14))}
+              audioUrl={generatedAudioUrl}
+              duration={playerDuration || Math.max(4, Math.ceil(text.length / 14))}
+              currentTime={playerCurrentTime}
               isPlaying={isPlaying}
-              onPlayToggle={isPlaying ? handleStop : handleSpeak}
+              onPlayToggle={generatedAudioUrl ? togglePlayerPlay : handleSpeak}
+              onSeek={handlePlayerSeek}
               scriptText={text}
             />
           </div>
@@ -3870,6 +4295,67 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   >
                     🇺🇸 English (EN)
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Search and Quick Filters */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search voices by name, style, or character..."
+                  className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 font-medium text-slate-800 dark:text-slate-200"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-slate-200 font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between gap-2 flex-wrap text-[10px]">
+                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                  <span className="text-slate-400 font-medium px-1">Language:</span>
+                  {(['all', 'ne', 'en'] as const).map(l => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setSelectedLanguageFilter(l)}
+                      className={`px-2 py-0.5 rounded font-bold transition ${
+                        selectedLanguageFilter === l
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {l === 'all' ? 'All' : l === 'ne' ? 'Nepali' : 'English'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                  <span className="text-slate-400 font-medium px-1">Gender:</span>
+                  {(['all', 'Female', 'Male'] as const).map(g => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setSelectedGenderFilter(g)}
+                      className={`px-2 py-0.5 rounded font-bold transition ${
+                        selectedGenderFilter === g
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -4016,9 +4502,32 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
             {/* Scrollable Voice Cards Grid */}
             <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
-              {filteredVoices.map(voice => {
+              {filteredVoices.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 dark:bg-slate-950 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 space-y-2">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    No voices match your filter criteria
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Try clearing the search query or switching language/gender filters.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedLanguageFilter('all');
+                      setSelectedGenderFilter('all');
+                      setActiveDemographicTab('all');
+                    }}
+                    className="text-[10.5px] px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition shadow-xs cursor-pointer"
+                  >
+                    Reset All Filters
+                  </button>
+                </div>
+              ) : (
+                filteredVoices.map(voice => {
                 const sampleKey = `${voice.id}_${samplePhoneticLang}`;
                 const isSamplePlaying = !!playingSampleVoiceIds[sampleKey];
+                const isSampleLoading = !!loadingSampleVoiceIds[sampleKey];
                 const isComparing = comparedVoiceIds.includes(voice.id);
 
                 return (
@@ -4055,19 +4564,20 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                     <div className="space-y-1 overflow-hidden flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-xs font-bold text-slate-900 dark:text-white">{voice.name}</span>
-                        <span className={`text-[8px] px-1.5 py-0.2 rounded-full font-semibold uppercase ${
-                          voice.language === 'Nepali' ? 'bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300'
-                        }`}>
+                        <span className="text-[10px] text-slate-400">·</span>
+                        <span className="text-[10.5px] font-medium text-slate-600 dark:text-slate-300">
                           {voice.language}
                         </span>
                         {(voice.id === 'hemkala_pure_ne' || voice.id === 'sagar_pure_ne') && (
-                          <span className="text-[7.5px] px-1.5 py-0.2 rounded bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-extrabold uppercase tracking-wider">
-                            ✨ Pure Neural 48kHz HD
+                          <span className="text-[9.5px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>48kHz HD</span>
                           </span>
                         )}
                         {voice.isCustomCloned && (
-                          <span className="text-[7.5px] px-1.5 py-0.2 rounded bg-gradient-to-r from-purple-500/20 to-indigo-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 font-extrabold uppercase tracking-wider">
-                            🧬 Custom Acoustic Clone
+                          <span className="text-[9.5px] text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                            <span>Cloned</span>
                           </span>
                         )}
                       </div>
@@ -4076,13 +4586,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                         {voice.description}
                       </p>
 
-                      {/* Metadata Badges & Comparison Selector */}
-                      <div className="flex items-center gap-2 pt-1 flex-wrap text-[8px] font-bold text-slate-400">
-                        <span className="uppercase text-indigo-500 bg-indigo-500/5 px-1 py-0.2 rounded">{voice.role}</span>
-                        <span>•</span>
-                        <span>Pitch: {voice.pitchShift}</span>
-                        <span>•</span>
-                        <span>Speed: {voice.speedShift}</span>
+                      {/* Clean Unboxed Metadata */}
+                      <div className="flex items-center gap-1.5 pt-0.5 flex-wrap text-[10px] text-slate-400 font-medium">
+                        <span className="text-slate-500 dark:text-slate-300">{voice.role}</span>
+                        <span>·</span>
+                        <span>Pitch {voice.pitchShift}</span>
+                        <span>·</span>
+                        <span>Speed {voice.speedShift}</span>
                       </div>
                     </div>
 
@@ -4107,14 +4617,19 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                       <button
                         type="button"
                         onClick={(e) => playVoiceSample(voice, e)}
+                        disabled={isSampleLoading}
                         className={`p-1.5 rounded-full transition-all border shadow-xs flex items-center justify-center ${
                           isSamplePlaying
                             ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                            : isSampleLoading
+                            ? 'bg-slate-100 dark:bg-slate-800 text-rose-500 border-rose-400'
                             : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 hover:scale-105'
                         }`}
-                        title={isSamplePlaying ? "Stop Sample" : "Play Voice Sample Demo"}
+                        title={isSamplePlaying ? "Stop Sample" : isSampleLoading ? "Generating neural voice sample..." : "Play Voice Sample Demo"}
                       >
-                        {isSamplePlaying ? (
+                        {isSampleLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : isSamplePlaying ? (
                           <Pause className="w-3.5 h-3.5 fill-current" />
                         ) : (
                           <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
@@ -4126,12 +4641,14 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                           type="button"
                           onClick={async (e) => {
                             e.stopPropagation();
-                            if (window.confirm(`Delete custom cloned voice "${voice.name}"?`)) {
+                            try {
                               await apiDeleteCustomVoice(voice.id, user?.id || 'all');
                               setCustomVoices(prev => prev.filter(cv => cv.id !== voice.id));
                               if (selectedVoiceId === voice.id) {
                                 setSelectedVoiceId('hemkala_pure_ne');
                               }
+                            } catch (err: any) {
+                              setAudioError(`Failed to delete cloned voice: ${err.message || 'Network error'}`);
                             }
                           }}
                           className="p-1.5 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
@@ -4143,7 +4660,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
 
@@ -4236,71 +4753,44 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             )}
           </div>
 
-          {/* Section 3: Synced Assets & Projects Portfolio */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between">
+          {/* Section 3: Studio Pipeline & Storage Status */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 space-y-3.5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
               <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                <Save className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Generated Sound List</span>
+                <Activity className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Audio Engine & Storage Infrastructure</span>
               </h3>
-              <span className="px-1.5 py-0.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-mono rounded-full font-bold">
-                {generatedSounds.length}
+              <span className="text-[10px] font-mono text-emerald-500 font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Active</span>
               </span>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Every synthesized voiceover is automatically stored and synchronized with Video Studio's Audio section.
-            </p>
 
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-              {generatedSounds.length === 0 ? (
-                <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl text-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 text-xs">
-                  No generated sounds yet. Synthesize audio to populate this list.
-                </div>
-              ) : (
-                generatedSounds.map(sound => {
-                  const isCurrentlyPlaying = playingSoundId === sound.id;
-                  return (
-                    <div key={sound.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 rounded-xl flex items-center justify-between gap-2.5 text-xs">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePlayGeneratedSound(sound)}
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition cursor-pointer ${
-                            isCurrentlyPlaying
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white'
-                          }`}
-                          title={isCurrentlyPlaying ? 'Pause' : 'Play preview'}
-                        >
-                          {isCurrentlyPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current ml-0.5" />}
-                        </button>
-                        <div className="overflow-hidden min-w-0 flex-1">
-                          <span className="font-bold text-slate-800 dark:text-white block truncate">{sound.title}</span>
-                          <span className="text-[9px] text-slate-400 block mt-0.5">
-                            {Math.round(sound.duration || 6)}s • {sound.engine || 'Neural TTS'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => handleAttachGeneratedSound(sound)}
-                          className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-[10px] rounded transition cursor-pointer"
-                          title="Attach to Video Studio"
-                        >
-                          Use
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteGeneratedSound(sound.id, e)}
-                          className="p-1 text-slate-400 hover:text-rose-500 transition cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500">Flagship Synthesis:</span>
+                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Azure Cognitive Neural 48kHz</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500">Secondary Engine:</span>
+                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">OpenAI gpt-audio (Azure Foundry)</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500">Cloud Storage Tier:</span>
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Cloudflare R2 Bucket (Active)</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500">Studio Master Rack:</span>
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                  {masterSettings.enabled ? 'Active (Convolver Reverb + Limiter)' : 'Bypassed (Clean Direct)'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60">
+                <span className="text-[11px] text-slate-500">Library Takes Stored:</span>
+                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 font-mono">
+                  {generatedSounds.length} {generatedSounds.length === 1 ? 'take' : 'takes'}
+                </span>
+              </div>
             </div>
           </div>
 

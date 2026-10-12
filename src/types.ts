@@ -301,10 +301,44 @@ export interface SavedSceneTemplate {
   sceneData: Omit<Scene, 'id'>;
 }
 
+export interface SceneComment {
+  id: string;
+  sceneId: string;
+  timestamp: number; // offset in seconds relative to scene start
+  timelineTime?: number; // absolute timeline playhead time in seconds
+  author: string; // name or role, e.g. "Prakash (Producer)", "Director", "Editor"
+  role?: string;
+  authorRole?: string;
+  authorEmail?: string;
+  avatarUrl?: string;
+  text: string;
+  resolved: boolean;
+  createdAt: string;
+  timeFormatted?: string;
+}
+
+export interface FeedbackSubmission {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  type: 'feature_request' | 'error_report' | 'system_comment';
+  category?: 'video_studio' | 'voice_studio' | 'image_studio' | 'billing' | 'general';
+  title: string;
+  description: string;
+  errorCodeOrLogs?: string;
+  status: 'open' | 'under_review' | 'in_progress' | 'resolved';
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Scene {
   id: string;
   assetId?: string; // Stable reference to MediaItem id in persistent MediaLibrary
   title: string;
+  description?: string;
   duration: number; // in seconds (e.g. 3, 4, 5)
   startTime?: number; // timeline start offset in seconds
   sourceStart?: number; // media source offset in seconds (default 0)
@@ -341,7 +375,10 @@ export interface Scene {
   tagColor?: string; // hex color or tailwind badge color
   notes?: string; // production notes & instructions
   tags?: string[]; // batch tags e.g. ['Draft', 'Needs Review', 'Final']
+  comments?: SceneComment[]; // time-stamped team feedback comments
   scriptText?: string;
+  audioUrl?: string;
+  zoomEffect?: string;
   narrationVoice?: string;
   devanagariSubtitle?: string;
   storyboardProjectId?: string;

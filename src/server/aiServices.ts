@@ -1,6 +1,19 @@
 import { GoogleGenAI } from '@google/genai';
+import crypto from 'crypto';
 import { storageBucket } from './storageBucket';
 import { videoProcessor, VideoSegmentInput } from './videoProcessor';
+
+interface CachedTtsAudio {
+  url: string;
+  storageUrl?: string;
+  filename?: string;
+  duration: number;
+  voice: string;
+  language: string;
+  format: string;
+  cachedAt: number;
+}
+const serverTtsCache = new Map<string, CachedTtsAudio>();
 
 
 /**
@@ -818,8 +831,10 @@ function applyPhoneticRules(text: string, phoneticDict: string, language: string
  */
 export async function callAzureGptAudio(
   text: string,
-  preferredVoice: string,
-  lang: string = 'ne-NP'
+  preferredVoice?: string,
+  lang: string = 'ne-NP',
+  emotion: string = 'neutral',
+  deliveryStyle: string = 'general'
 ): Promise<{
   url: string;
   storageUrl?: string;
@@ -853,7 +868,23 @@ export async function callAzureGptAudio(
     targetVoice = 'nova'; // Warm, natural expressive female default
   }
 
-  console.log(`[Azure gpt-audio] Synthesizing speech with voice: ${targetVoice}, text: "${cleanText.slice(0, 60)}..."`);
+  // Tailor actor prompt to purpose and style for ultra-premium natural delivery
+  let actorPrompt = 'You are a professional broadcast voice actor for NepalAI Studio. Read aloud the given text accurately and clearly in natural, organic human cadence. Do not add any conversational remarks, introductions, or disclaimers.';
+  if (deliveryStyle === 'commercial' || deliveryStyle === 'promo' || deliveryStyle === 'ad') {
+    actorPrompt = 'You are a dynamic, charismatic promotional voice artist for high-conversion commercials. Read aloud with confident energy, punchy timing, and engaging commercial charisma.';
+  } else if (deliveryStyle === 'story' || deliveryStyle === 'cinematic') {
+    actorPrompt = 'You are an evocative master storyteller for audiobooks and cinematic drama. Read aloud with expressive inflection, dramatic cadence, and emotional depth.';
+  } else if (deliveryStyle === 'meditation' || deliveryStyle === 'calm') {
+    actorPrompt = 'You are a calming mindfulness and meditation guide. Read aloud in a peaceful, soothing, gentle cadence with deep warmth.';
+  } else if (deliveryStyle === 'news' || deliveryStyle === 'broadcast') {
+    actorPrompt = 'You are an authoritative broadcast news anchor. Read aloud in clear, precise, professional broadcast diction.';
+  } else if (emotion === 'cheerful' || emotion === 'excited') {
+    actorPrompt = 'You are an enthusiastic voice artist. Read aloud with bright, joyful energy and genuine warmth.';
+  } else if (emotion === 'serious' || emotion === 'urgent') {
+    actorPrompt = 'You are a serious voice artist. Read aloud with focused urgency, crisp diction, and gravitas.';
+  }
+
+  console.log(`[Azure gpt-audio] Synthesizing speech with voice: ${targetVoice}, style: ${deliveryStyle}, text: "${cleanText.slice(0, 60)}..."`);
 
   try {
     const res = await fetch(endpoint, {
@@ -873,7 +904,7 @@ export async function callAzureGptAudio(
         messages: [
           {
             role: 'system',
-            content: 'You are a professional broadcast voice actor for NepalAI Studio. Read aloud the given text accurately and clearly in natural cadence. Do not add any conversational remarks, introductions, or disclaimers.',
+            content: actorPrompt,
           },
           {
             role: 'user',
@@ -964,45 +995,79 @@ export async function serverGenerateAudio(
   const langStr = String(language || (hasDevanagari ? 'ne-NP' : 'ne-NP'));
   const normLang = hasDevanagari ? 'ne-NP' : ((langStr === 'ne' || langStr === 'ne-NP') ? 'ne-NP' : ((langStr === 'en' || langStr === 'en-US') ? 'en-US' : langStr));
 
+  // Ambient Soundscapes (Tea Shop / Mountain Wind)
+  if (voiceId === 'ambient_cafe' || voiceId.includes('ambient_cafe')) {
+    return {
+      url: '/audio/kathmandu_beats.mp3',
+      storageUrl: '/audio/kathmandu_beats.mp3',
+      filename: 'kathmandu_beats.mp3',
+      duration: 30,
+      voice: 'Kathmandu Ambient Cafe',
+      language: normLang,
+      format: 'Authentic Stereo Ambient Soundscape (44.1kHz MP3)',
+    };
+  }
+  if (voiceId === 'ambient_wind' || voiceId.includes('ambient_wind')) {
+    return {
+      url: '/audio/sfx_wind.mp3',
+      storageUrl: '/audio/sfx_wind.mp3',
+      filename: 'sfx_wind.mp3',
+      duration: 6,
+      voice: 'Himalayan Wind Chimes',
+      language: normLang,
+      format: 'Authentic Mountain Atmospheric Soundscape (44.1kHz MP3)',
+    };
+  }
+
   // Determine Azure Speech Neural Voice Name & default demographics
   let azureVoice = normLang === 'en-US' ? 'en-US-AvaMultilingualNeural' : 'ne-NP-HemkalaNeural';
   let defaultCharacterPitch: string | undefined = undefined;
+  let defaultCharacterRate: string | undefined = undefined;
+
+  // Compute deterministic cache key for instant retrieval (eliminates repeated API latency)
+  const normSpeed = speed || '1.0';
+  const normPitch = pitch || '0';
+  const normVolume = volume || 'default';
+  const textHash = crypto.createHash('md5').update((text || '').trim()).digest('hex');
+  const cacheKey = `tts_${voiceId}_${normLang}_${emotion}_${deliveryStyle}_${normSpeed}_${normPitch}_${normVolume}_${textHash}`;
+
+  const cached = serverTtsCache.get(cacheKey);
+  if (cached && (Date.now() - cached.cachedAt < 24 * 60 * 60 * 1000)) {
+    return {
+      url: cached.url,
+      storageUrl: cached.storageUrl,
+      filename: cached.filename,
+      duration: cached.duration,
+      voice: cached.voice,
+      language: cached.language,
+      format: cached.format,
+    };
+  }
+
+  const saveToCache = (res: { url: string; storageUrl?: string; filename?: string; duration: number; voice: string; language: string; format: string }) => {
+    if (res?.url && !res.url.includes('himalayan_breeze')) {
+      serverTtsCache.set(cacheKey, { ...res, cachedAt: Date.now() });
+      if (serverTtsCache.size > 800) {
+        const oldest = serverTtsCache.keys().next().value;
+        if (oldest) serverTtsCache.delete(oldest);
+      }
+    }
+    return res;
+  };
   
   if (normLang === 'ne-NP') {
     if (voiceId.includes('hemkala') || voiceId.includes('sita') || voiceId.includes('female') || voiceId.includes('aama') || voiceId.includes('kanti')) {
       azureVoice = 'ne-NP-HemkalaNeural';
-      // Specific demographic tuning for secondary characters only
-      if (voiceId.includes('kanti') || voiceId.includes('child')) {
-        defaultCharacterPitch = '+12%';
-      } else if (voiceId.includes('aama') || voiceId.includes('elder')) {
-        defaultCharacterPitch = '-6%';
-      }
     } else if (voiceId.includes('sagar') || voiceId.includes('aarav') || voiceId.includes('aakash') || voiceId.includes('male') || voiceId.includes('rohan') || voiceId.includes('sanjok') || voiceId.includes('guru')) {
       azureVoice = 'ne-NP-SagarNeural';
-      // Specific demographic tuning for secondary characters only
-      if (voiceId.includes('sanjok') || voiceId.includes('child')) {
-        defaultCharacterPitch = '+12%';
-      } else if (voiceId.includes('guru') || voiceId.includes('elder')) {
-        defaultCharacterPitch = '-6%';
-      } else if (voiceId.includes('rohan') || voiceId.includes('teen')) {
-        defaultCharacterPitch = '+4%';
-      }
     } else {
       azureVoice = 'ne-NP-HemkalaNeural';
-    }
-
-    // If pure or unmodified flagship voice is requested, ensure absolutely no pitch deviation
-    if (voiceId.includes('pure') || voiceId === 'hemkala_pure_ne' || voiceId === 'sagar_pure_ne' || voiceId === 'sita_ne' || voiceId === 'aarav_ne') {
-      defaultCharacterPitch = undefined;
     }
   } else if (normLang === 'en-US') {
     if (voiceId.includes('ana')) {
       azureVoice = 'en-US-AnaNeural'; // Native Child Voice
     } else if (voiceId.includes('andrew') || voiceId.includes('guy') || voiceId.includes('male') || voiceId.includes('david') || voiceId.includes('arthur')) {
       azureVoice = 'en-US-AndrewMultilingualNeural';
-      if (voiceId.includes('arthur') || voiceId.includes('elder')) {
-        defaultCharacterPitch = '-6%';
-      }
     } else if (voiceId.includes('emma')) {
       azureVoice = 'en-US-EmmaMultilingualNeural';
     } else if (voiceId.includes('jenny')) {
@@ -1010,6 +1075,46 @@ export async function serverGenerateAudio(
     } else {
       azureVoice = 'en-US-AvaMultilingualNeural';
     }
+  } else if (normLang === 'hi-IN' || normLang.startsWith('hi')) {
+    azureVoice = (voiceId.includes('male') || voiceId.includes('sagar') || voiceId.includes('aarav') || voiceId.includes('david'))
+      ? 'hi-IN-MadhurNeural'
+      : 'hi-IN-SwaraNeural';
+  }
+
+  // Authentic demographic pitch and pace modulation to eliminate robotic monotone
+  if (voiceId.includes('kanti')) {
+    defaultCharacterPitch = '+16%';
+    defaultCharacterRate = '+3%';
+  } else if (voiceId.includes('sanjok')) {
+    defaultCharacterPitch = '+20%';
+    defaultCharacterRate = '+5%';
+  } else if (voiceId.includes('rohan')) {
+    defaultCharacterPitch = '+3%';
+    defaultCharacterRate = '+4%';
+  } else if (voiceId.includes('emily')) {
+    defaultCharacterPitch = '+4%';
+    defaultCharacterRate = '+5%';
+  } else if (voiceId.includes('guru')) {
+    defaultCharacterPitch = '-6%';
+    defaultCharacterRate = '-7%';
+  } else if (voiceId.includes('aama')) {
+    defaultCharacterPitch = '-4%';
+    defaultCharacterRate = '-5%';
+  } else if (voiceId.includes('arthur')) {
+    defaultCharacterPitch = '-5%';
+    defaultCharacterRate = '-6%';
+  }
+
+  // Purpose & delivery style modulation
+  if (deliveryStyle === 'commercial' || deliveryStyle === 'promo' || deliveryStyle === 'ad') {
+    defaultCharacterRate = defaultCharacterRate || '+5%';
+  } else if (deliveryStyle === 'story' || deliveryStyle === 'cinematic') {
+    defaultCharacterRate = defaultCharacterRate || '-4%';
+  } else if (deliveryStyle === 'meditation' || deliveryStyle === 'calm') {
+    defaultCharacterRate = defaultCharacterRate || '-10%';
+    defaultCharacterPitch = defaultCharacterPitch || '-2%';
+  } else if (deliveryStyle === 'news' || deliveryStyle === 'broadcast') {
+    defaultCharacterRate = defaultCharacterRate || '+2%';
   }
 
   // Helper for formatting rate attributes without generating invalid '+fast' or '+slow' SSML
@@ -1033,7 +1138,7 @@ export async function serverGenerateAudio(
     ['alloy', 'nova', 'echo', 'onyx', 'fable', 'shimmer'].some((v) => voiceId.toLowerCase().includes(v));
 
   if (isGptAudioRequested) {
-    const gptAudioResult = await callAzureGptAudio(text, voiceId, normLang);
+    const gptAudioResult = await callAzureGptAudio(text, voiceId, normLang, emotion, deliveryStyle);
     if (gptAudioResult) {
       return gptAudioResult;
     }
@@ -1057,11 +1162,15 @@ export async function serverGenerateAudio(
         .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, '&amp;')
         .replace(/<(?!\/?(?:speak|voice|prosody|break|emphasis|phoneme|mstts:express-as)\b[^>]*>)/gi, '&lt;');
 
-      // Only apply <prosody> tag when user explicitly modifies speed, volume, or pitch
+      // Only apply <prosody> tag when user explicitly modifies speed, volume, or pitch, or demographic defaults apply
       let prosodyAttributes = '';
-      if (speed && speed !== 'normal' && speed !== 'medium' && speed !== '1.0' && speed !== '1.0x' && speed !== '0%') {
-        const spdLc = speed.toLowerCase();
-        let rateVal = speed;
+      const activeRate = (speed && speed !== 'normal' && speed !== 'medium' && speed !== '1.0' && speed !== '1.0x' && speed !== '0%')
+        ? speed
+        : defaultCharacterRate;
+
+      if (activeRate) {
+        const spdLc = activeRate.toLowerCase();
+        let rateVal = activeRate;
         if (spdLc === 'slow' || spdLc === '0.8x') rateVal = '-15%';
         else if (spdLc === 'fast' || spdLc === '1.2x') rateVal = '+15%';
         else if (spdLc === 'x-slow' || spdLc === '0.5x') rateVal = '-25%';
@@ -1152,7 +1261,7 @@ export async function serverGenerateAudio(
         // Save audio buffer to Storage Bucket (Local / Supabase)
         const savedMedia = await storageBucket.saveMedia(filename, buffer, 'audio/mpeg');
 
-        return {
+        return saveToCache({
           url: savedMedia.url || `/api/storage/file/${filename}`,
           storageUrl: savedMedia.url,
           filename: savedMedia.filename,
@@ -1160,7 +1269,7 @@ export async function serverGenerateAudio(
           voice: azureVoice,
           language,
           format: 'Azure Cognitive Speech (eastus) 48kHz Studio MP3',
-        };
+        });
       } else {
         const errText = await ttsRes.text().catch(() => '');
         console.warn('Azure Speech API error response:', ttsRes.status, errText);
@@ -1173,9 +1282,9 @@ export async function serverGenerateAudio(
   // 1.5. Azure OpenAI gpt-audio High-Fidelity Voice Synthesis (prakashsuvedi-7749-resource)
   try {
     const fallbackVoice = (azureVoice && azureVoice.includes('Sagar')) ? 'onyx' : 'nova';
-    const gptAudioRes = await callAzureGptAudio(text, voiceId || fallbackVoice, normLang);
+    const gptAudioRes = await callAzureGptAudio(text, voiceId || fallbackVoice, normLang, emotion, deliveryStyle);
     if (gptAudioRes) {
-      return gptAudioRes;
+      return saveToCache(gptAudioRes);
     }
   } catch (gptAudioErr) {
     console.warn('[Azure gpt-audio] Secondary fallback notice:', gptAudioErr);
@@ -1206,7 +1315,7 @@ export async function serverGenerateAudio(
         if (hfBuf.byteLength > 800) {
           const filename = `hf_tts_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.wav`;
           const savedMedia = await storageBucket.saveMedia(filename, hfBuf, 'audio/wav');
-          return {
+          return saveToCache({
             url: savedMedia.url || `/api/storage/file/${filename}`,
             storageUrl: savedMedia.url,
             filename: savedMedia.filename,
@@ -1214,7 +1323,7 @@ export async function serverGenerateAudio(
             voice: normLang === 'ne-NP' ? 'Meta MMS Nepali Neural TTS' : 'SpeechT5 Neural TTS',
             language,
             format: 'Hugging Face Neural TTS (WAV 48kHz)',
-          };
+          });
         }
       }
     } catch (hfErr) {
@@ -1279,7 +1388,7 @@ export async function serverGenerateAudio(
       const filename = `tts_neural_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.mp3`;
       const savedMedia = await storageBucket.saveMedia(filename, combinedBuf, 'audio/mpeg');
 
-      return {
+      return saveToCache({
         url: savedMedia.url || `/api/storage/file/${filename}`,
         storageUrl: savedMedia.url,
         filename: savedMedia.filename,
@@ -1287,7 +1396,7 @@ export async function serverGenerateAudio(
         voice: isNepali ? 'Nepali Natural Neural Voice' : 'English Natural Neural Voice',
         language,
         format: 'NepalAI Neural TTS Stream (MP3 44.1kHz)',
-      };
+      });
     }
   } catch (gErr) {
     console.warn('Google Neural TTS fallback notice:', gErr);

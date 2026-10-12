@@ -85,9 +85,12 @@ import {
   Database,
   ChevronDown,
   Plus,
+  FolderDown,
   X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { TimelineCommentsDrawer } from './TimelineCommentsDrawer';
+import { exportProjectAssetsToZip } from '../lib/projectAssetExporter';
 import { SceneTemplatesModal } from './SceneTemplatesModal';
 import { AssetLibrarySidebar } from './AssetLibrarySidebar';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
@@ -211,6 +214,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [showGlobalMediaLibrary, setShowGlobalMediaLibrary] = useState(false);
   const [showStoryboardPdfModal, setShowStoryboardPdfModal] = useState(false);
   const [transitionTargetSceneIndex, setTransitionTargetSceneIndex] = useState(0);
+
+  // Team Feedback Comments Drawer & ZIP Export state
+  const [showCommentsDrawer, setShowCommentsDrawer] = useState(false);
+  const [isExportingZip, setIsExportingZip] = useState(false);
+  const [zipProgress, setZipProgress] = useState<{ step: string; percent: number }>({ step: '', percent: 0 });
 
   // Non-intrusive auto-save toast state
   const [showAutoSaveToast, setShowAutoSaveToast] = useState(false);
@@ -399,6 +407,43 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     setScenes(prev => prev.map(s => selectedSceneIds.includes(s.id) ? { ...s, tags: [] } : s));
     setProjectNotice(`Cleared all tags from ${selectedSceneIds.length} selected scenes.`);
     setTimeout(() => setProjectNotice(null), 2500);
+  };
+
+  // Export all scene assets (video/image/audio/subtitles) to a single compressed ZIP archive
+  const handleExportAssetsZip = async () => {
+    if (scenes.length === 0 && audioTracks.length === 0) {
+      setProjectNotice('Timeline contains no assets to backup yet. Add clips first.');
+      setTimeout(() => setProjectNotice(null), 3000);
+      return;
+    }
+    setIsExportingZip(true);
+    setZipProgress({ step: 'Initializing asset backup archive...', percent: 5 });
+    try {
+      const result = await exportProjectAssetsToZip(
+        projectTitle,
+        scenes,
+        audioTracks,
+        aspectRatio,
+        (p) => {
+          setZipProgress({ step: p.step, percent: p.percent });
+        }
+      );
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setProjectNotice(`✨ Downloaded project assets backup archive (${result.filename})!`);
+      setTimeout(() => setProjectNotice(null), 4500);
+    } catch (err: any) {
+      console.error('Failed to export project assets zip:', err);
+      alert('Failed to export project assets archive: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsExportingZip(false);
+    }
   };
 
   // Playback state
@@ -962,15 +1007,24 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         const ctx = getAudioContext();
         if (!ctx) return null;
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        let res: Response;
+        try {
+          res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        } catch {
+          // If remote URL failed due to CORS or network, route through /api/proxy/media
+          const proxyUrl = `/api/proxy/media?url=${encodeURIComponent(url)}`;
+          res = await fetch(proxyUrl);
+          if (!res.ok) throw new Error(`Proxy HTTP error ${res.status}`);
+        }
+
         const arrayBuffer = await res.arrayBuffer();
         const decoded = await ctx.decodeAudioData(arrayBuffer);
         audioBufferCache.current.set(url, decoded);
         setAudioLoadingStatus(prev => ({ ...prev, [url]: 'ready' }));
         return decoded;
       } catch (err) {
-        console.warn('Audio pre-buffering error for', url, err);
+        console.warn('Audio pre-buffering notice for', url, err);
         setAudioLoadingStatus(prev => ({ ...prev, [url]: 'error' }));
         return null;
       } finally {
@@ -986,14 +1040,20 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // Pre-load audio track objects whenever scenes or audio track selections change
   useEffect(() => {
     const urlsToPreload = new Set<string>();
-    if (bgmTrack?.url) urlsToPreload.add(bgmTrack.url);
-    if (voTrack?.url) urlsToPreload.add(voTrack.url);
-    if (sfxTrack?.url) urlsToPreload.add(sfxTrack.url);
-    audioTracks.forEach(t => { if (t.url) urlsToPreload.add(t.url); });
-    sfxTracks.forEach(s => { if (s.url) urlsToPreload.add(s.url); });
+    const addUrl = (raw: string | undefined | null) => {
+      if (!raw) return;
+      const sanitized = sanitizeMediaUrl(raw);
+      if (sanitized) urlsToPreload.add(sanitized);
+    };
+
+    addUrl(bgmTrack?.url);
+    addUrl(voTrack?.url);
+    addUrl(sfxTrack?.url);
+    audioTracks.forEach(t => addUrl(t.url));
+    sfxTracks.forEach(s => addUrl(s.url));
     scenes.forEach(s => {
-      if (s.audioUrl) urlsToPreload.add(s.audioUrl);
-      if (s.narrationAudioUrl) urlsToPreload.add(s.narrationAudioUrl);
+      addUrl(s.audioUrl);
+      addUrl(s.narrationAudioUrl);
     });
 
     urlsToPreload.forEach(url => {
@@ -1962,6 +2022,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         onOpenDebugger={() => setShowRenderingDebugger(true)}
         onOpenSocialPublisher={() => setShowSocialPublisherModal(true)}
         onOpenRenderPreview={() => setShowRenderPreviewModal(true)}
+        onOpenComments={() => setShowCommentsDrawer(true)}
+        commentsCount={scenes.reduce((acc, s) => acc + (s.comments?.filter(c => !c.resolved).length || 0), 0)}
+        onExportAssetsZip={handleExportAssetsZip}
         errorCount={debuggerErrorCount}
         autoSaveTime={lastAutoSavedTime || 'Just now'}
       />
@@ -2180,6 +2243,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           pushToHistory(scenes);
           setScenes(prev => prev.map(s => s.id === selectedScene.id ? { ...s, ...updated } : s));
         }}
+        onOpenComments={() => setShowCommentsDrawer(true)}
+        commentsCount={scenes.reduce((acc, s) => acc + (s.comments?.filter(c => !c.resolved).length || 0), 0)}
+        onExportAssetsZip={handleExportAssetsZip}
       />
 
       {/* 4. Bottom Deck: CapCut Multi-Track Timeline */}
@@ -2542,6 +2608,57 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         scenes={scenes}
         aspectRatio={aspectRatio}
       />
+
+      {/* Team Feedback & Scene Comments Drawer */}
+      <TimelineCommentsDrawer
+        isOpen={showCommentsDrawer}
+        onClose={() => setShowCommentsDrawer(false)}
+        scenes={scenes}
+        selectedSceneId={selectedSceneId}
+        currentTime={currentTime}
+        onSeek={(time) => setCurrentTime(time)}
+        onSelectScene={(scId) => {
+          setSelectedSceneId(scId);
+          const idx = scenes.findIndex(s => s.id === scId);
+          if (idx >= 0) {
+            let t = 0;
+            for (let i = 0; i < idx; i++) t += scenes[i].duration;
+            setCurrentTime(t);
+          }
+        }}
+        onUpdateScenes={(updatedScenes) => {
+          pushToHistory(scenes);
+          setScenes(updatedScenes);
+        }}
+        currentUser={currentUser}
+      />
+
+      {/* External Project Assets Compressed ZIP Export Overlay */}
+      {isExportingZip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <FolderDown className="w-5 h-5 animate-bounce" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">Archiving Project Assets</h4>
+                <p className="text-xs text-slate-400">{zipProgress.step}</p>
+              </div>
+            </div>
+            <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300 rounded-full"
+                style={{ width: `${zipProgress.percent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Packaging media, voiceovers & manifest...</span>
+              <span className="font-bold text-emerald-400">{zipProgress.percent}%</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Scene Preview Modal */}
       {previewModalSceneIndex !== null && scenes[previewModalSceneIndex] && (

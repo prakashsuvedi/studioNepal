@@ -377,12 +377,12 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 99999,
-      "totalTokensUsed": 19800,
-      "lastUsedAt": "2026-10-10T03:31:13.353Z",
+      "totalTokensUsed": 29700,
+      "lastUsedAt": "2026-10-12T09:03:39.531Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:20:17.003Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T03:27:32.032Z"
     },
     "usr_client_02": {
       "userId": "usr_client_02",
@@ -398,8 +398,8 @@
       "maxRenders": 50,
       "totalTokensUsed": 52400,
       "lastUsedAt": "2026-09-02T14:15:00.000Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.498Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.600Z",
       "maxChat": 50,
       "chatCount": 0
     },
@@ -417,8 +417,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 82150,
       "lastUsedAt": "2026-09-18T02:09:53.551Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.500Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.602Z",
       "maxChat": 50,
       "chatCount": 0,
       "avatarCount": 1,
@@ -438,8 +438,8 @@
       "maxRenders": 10,
       "totalTokensUsed": 21800,
       "lastUsedAt": "2026-09-03T08:10:00.000Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.502Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.604Z",
       "maxChat": 50,
       "chatCount": 0
     },
@@ -472,8 +472,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-04T07:43:50.345Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.504Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.606Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -491,8 +491,8 @@
       "maxRenders": 1,
       "totalTokensUsed": 700,
       "lastUsedAt": "2026-09-04T07:48:58.626Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.505Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.608Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -510,8 +510,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-06T03:22:54.375Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.507Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.611Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -546,8 +546,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-07T05:17:07.003Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.508Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.613Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -582,8 +582,8 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-09-08T10:51:49.197Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.509Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.615Z",
       "maxChat": 20,
       "chatCount": 0
     },
@@ -654,8 +654,8 @@
       "lastUsedAt": "2026-09-12T14:46:01.824Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.511Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.620Z"
     },
     "usr_test_manual_123": {
       "userId": "usr_test_manual_123",
@@ -690,8 +690,8 @@
       "lastUsedAt": "2026-09-14T10:04:54.432Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.512Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.623Z"
     },
     "usr_1789380378333_7njle": {
       "userId": "usr_1789380378333_7njle",
@@ -709,8 +709,8 @@
       "lastUsedAt": "2026-09-14T10:06:18.333Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.513Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.624Z"
     },
     "usr_1789380418429_oxy2d": {
       "userId": "usr_1789380418429_oxy2d",
@@ -728,8 +728,8 @@
       "lastUsedAt": "2026-09-14T10:06:58.429Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.515Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.626Z"
     },
     "usr_1789380468732_5pboy": {
       "userId": "usr_1789380468732_5pboy",
@@ -747,8 +747,8 @@
       "lastUsedAt": "2026-09-14T10:07:48.732Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.516Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.628Z"
     },
     "usr_1789380506595_vnkvq": {
       "userId": "usr_1789380506595_vnkvq",
@@ -766,8 +766,8 @@
       "lastUsedAt": "2026-09-14T10:08:26.595Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.518Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.630Z"
     },
     "usr_1789380536032_i4ean": {
       "userId": "usr_1789380536032_i4ean",
@@ -785,8 +785,8 @@
       "lastUsedAt": "2026-09-14T10:08:56.032Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.519Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.632Z"
     },
     "usr_1789380577135_smbag": {
       "userId": "usr_1789380577135_smbag",
@@ -804,8 +804,8 @@
       "lastUsedAt": "2026-09-14T10:09:37.135Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.520Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.634Z"
     },
     "usr_1789381056714_6avw3": {
       "userId": "usr_1789381056714_6avw3",
@@ -823,8 +823,8 @@
       "lastUsedAt": "2026-09-14T10:17:36.714Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.522Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.636Z"
     },
     "usr_1789381108234_8rb64": {
       "userId": "usr_1789381108234_8rb64",
@@ -842,8 +842,8 @@
       "lastUsedAt": "2026-09-14T10:18:28.234Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.523Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.638Z"
     },
     "usr_1789382315114_n19uh": {
       "userId": "usr_1789382315114_n19uh",
@@ -861,8 +861,8 @@
       "lastUsedAt": "2026-09-14T10:38:35.114Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.524Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.640Z"
     },
     "usr_1789382396226_a1mlx": {
       "userId": "usr_1789382396226_a1mlx",
@@ -880,8 +880,8 @@
       "lastUsedAt": "2026-09-14T10:39:56.226Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.526Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.642Z"
     },
     "usr_1789382802907_mihrq": {
       "userId": "usr_1789382802907_mihrq",
@@ -899,8 +899,8 @@
       "lastUsedAt": "2026-09-14T10:46:42.907Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.527Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.643Z"
     },
     "usr_1789385212135_4nzyr": {
       "userId": "usr_1789385212135_4nzyr",
@@ -918,8 +918,8 @@
       "lastUsedAt": "2026-09-14T11:26:52.135Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.528Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.646Z"
     },
     "usr_1789385552715_ijd7h": {
       "userId": "usr_1789385552715_ijd7h",
@@ -937,8 +937,8 @@
       "lastUsedAt": "2026-09-14T11:32:32.715Z",
       "maxChat": 50,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.529Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.647Z"
     },
     "usr_1789649037554_g85bl": {
       "userId": "usr_1789649037554_g85bl",
@@ -956,8 +956,8 @@
       "lastUsedAt": "2026-09-17T12:43:57.554Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.531Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.649Z"
     },
     "usr_qa_staging_test": {
       "userId": "usr_qa_staging_test",
@@ -994,8 +994,8 @@
       "lastUsedAt": "2026-09-17T12:46:52.849Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.532Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.651Z"
     },
     "usr_qa_staging_1789649212829": {
       "userId": "usr_qa_staging_1789649212829",
@@ -1032,8 +1032,8 @@
       "lastUsedAt": "2026-09-17T12:49:14.812Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.533Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.653Z"
     },
     "usr_qa_staging_1789649354792": {
       "userId": "usr_qa_staging_1789649354792",
@@ -1070,8 +1070,8 @@
       "lastUsedAt": "2026-09-18T02:52:34.499Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.535Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.655Z"
     },
     "usr_admin_master": {
       "userId": "usr_admin_master",
@@ -1108,8 +1108,8 @@
       "lastUsedAt": "2026-09-19T03:49:38.418Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.536Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.657Z"
     },
     "usr_1789831067926_t38vo": {
       "userId": "usr_1789831067926_t38vo",
@@ -1127,8 +1127,8 @@
       "lastUsedAt": "2026-09-19T15:17:47.926Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T02:39:40.537Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.661Z"
     },
     "user-creator-nepal-001": {
       "userId": "user-creator-nepal-001",
@@ -1165,8 +1165,8 @@
       "maxChat": 999999,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-10-10T03:07:51.965Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T03:07:51.965Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.617Z"
     },
     "usr_admin_creator_default": {
       "userId": "usr_admin_creator_default",
@@ -1184,8 +1184,8 @@
       "maxChat": 999999,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-10-10T03:07:51.967Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T03:07:51.967Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.619Z"
     },
     "usr_admin_prakash_gmail": {
       "userId": "usr_admin_prakash_gmail",
@@ -1203,8 +1203,65 @@
       "maxChat": 999999,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-10-10T03:07:51.968Z",
-      "lastResetDate": "2026-10-10",
-      "lastResetAt": "2026-10-10T03:07:51.968Z"
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T09:19:00.659Z"
+    },
+    "usr_test": {
+      "userId": "usr_test",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "chatCount": 0,
+      "maxChat": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-10-12T03:55:10.904Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T03:55:10.904Z"
+    },
+    "test_usr": {
+      "userId": "test_usr",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "chatCount": 0,
+      "maxChat": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-10-12T04:10:28.475Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T04:10:28.475Z"
+    },
+    "usr_guest": {
+      "userId": "usr_guest",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 25,
+      "chatCount": 0,
+      "maxChat": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-10-12T04:49:06.337Z",
+      "lastResetDate": "2026-10-12",
+      "lastResetAt": "2026-10-12T04:49:06.337Z"
     }
   },
   "transactions": [
@@ -1561,6 +1618,90 @@
     }
   ],
   "generationLogs": [
+    {
+      "id": "gen_1791795819531_jji1",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-HemkalaNeural",
+      "prompt": "नमस्ते साथीहरू! नेपालएआई स्टुडियो पोडकास्टको आजको विशेष अंकमा तपाईंलाई हार्दिक स्वागत छ। [Pause: 400ms] आज हामी आधुनिक डिजिटल मिडिया र आर्टिफिसियल इन्टेलिजेन्सको प्रभावबारे कुराकानी गर्नेछौं।",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1791795819212_qgb7.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-12T09:03:39.531Z"
+    },
+    {
+      "id": "gen_1791795781607_qzq1",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-HemkalaNeural",
+      "prompt": "नमस्ते! म हेमकला हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1791795780631_hvnt.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-12T09:03:01.607Z"
+    },
+    {
+      "id": "gen_1791795781475_hd0o",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते! म सागर हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1791795780516_7cl3.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-12T09:03:01.475Z"
+    },
+    {
+      "id": "gen_1791795781018_jaw9",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते! म सागर हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1791795780448_811x.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-12T09:03:01.018Z"
+    },
+    {
+      "id": "gen_1791795780366_glr1",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-HemkalaNeural",
+      "prompt": "नमस्ते! म हेमकला हुँ। यो मेरो वास्तविक, शुद्ध र प्राकृतिक नेपाली आवाज हो।",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1791795779432_9ene.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-12T09:03:00.366Z"
+    },
+    {
+      "id": "gen_1791780605745_itqv",
+      "userId": "usr_admin_01",
+      "type": "render",
+      "model": "NepalAI Video Assembler Pro",
+      "prompt": "Render Project: NepalAI Pro Ad Campaign 2026",
+      "resultUrl": "/renders/rnd_mv4rwlgm_zlcp7.mp4",
+      "tokensCost": 4500,
+      "creditsCost": 30,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-12T04:50:05.745Z"
+    },
+    {
+      "id": "gen_1791780557856_5e7c",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते! नेपाल एआई भिडियो स्टुडियोमा स्वागत छ। आधुनिक क्रिएटरहरूका लागि तयार गरिएको शक्तिशाली प्लेटफर्म।",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1791780557064_dwdn.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-10-12T04:49:17.857Z"
+    },
     {
       "id": "gen_1791603073354_ypub",
       "userId": "usr_admin_01",
@@ -3276,84 +3417,6 @@
       "creditsCost": 5,
       "deductionSource": "package_credits",
       "createdAt": "2026-09-08T11:12:14.151Z"
-    },
-    {
-      "id": "gen_1788865857863_aqa7",
-      "userId": "usr_admin_01",
-      "type": "image",
-      "model": "gpt-image-1.5 (High-Res Photorealistic)",
-      "prompt": "generate sharukh khan in everest smilling",
-      "resultUrl": "/api/storage/file/gpt_image_1788865857140_2v1c.png",
-      "tokensCost": 350,
-      "creditsCost": 5,
-      "deductionSource": "package_credits",
-      "createdAt": "2026-09-08T11:10:57.863Z"
-    },
-    {
-      "id": "gen_1788526980779_9ey2",
-      "userId": "usr_admin_01",
-      "type": "image",
-      "model": "gpt-image-1.5",
-      "prompt": "A beautiful stupa in Kathmandu",
-      "resultUrl": "[base64_media_truncated]",
-      "tokensCost": 350,
-      "creditsCost": 5,
-      "createdAt": "2026-09-04T13:03:00.779Z"
-    },
-    {
-      "id": "gen_1788526644976_qrxs",
-      "userId": "usr_admin_01",
-      "type": "video",
-      "model": "sora-2",
-      "prompt": "A cinematic drone flight skimming over snow-dusted Himalayan pine forests at golden hour, 4k photorealistic",
-      "resultUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-      "tokensCost": 2800,
-      "creditsCost": 25,
-      "createdAt": "2026-09-04T12:57:24.976Z"
-    },
-    {
-      "id": "gen_1788526628770_2b8b",
-      "userId": "usr_admin_01",
-      "type": "video",
-      "model": "sora-2",
-      "prompt": "A cinematic drone flight skimming over snow-dusted Himalayan pine forests at golden hour, 4k photorealistic",
-      "resultUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-      "tokensCost": 2800,
-      "creditsCost": 25,
-      "createdAt": "2026-09-04T12:57:08.770Z"
-    },
-    {
-      "id": "gen_1788526566429_ihke",
-      "userId": "usr_admin_01",
-      "type": "video",
-      "model": "sora-2",
-      "prompt": "Cinematic camera pan over lush green hills of Pokhara in Nepal",
-      "resultUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-      "tokensCost": 2800,
-      "creditsCost": 25,
-      "createdAt": "2026-09-04T12:56:06.429Z"
-    },
-    {
-      "id": "gen_1788526552071_rwb6",
-      "userId": "usr_admin_01",
-      "type": "image",
-      "model": "gpt-image-1.5 (Azure AI Foundry)",
-      "prompt": "make a picture of beautiful sexy hot nepali girl with cleavage.",
-      "resultUrl": "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=85",
-      "tokensCost": 350,
-      "creditsCost": 5,
-      "createdAt": "2026-09-04T12:55:52.071Z"
-    },
-    {
-      "id": "gen_1788526527875_x360",
-      "userId": "usr_admin_01",
-      "type": "image",
-      "model": "gpt-image-1.5 (Azure AI Foundry)",
-      "prompt": "make a picture of beautiful sexy hot nepali girl with cleavage.",
-      "resultUrl": "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&auto=format&fit=crop&q=85",
-      "tokensCost": 350,
-      "creditsCost": 5,
-      "createdAt": "2026-09-04T12:55:27.875Z"
     }
   ],
   "pricingConfig": {
@@ -5586,6 +5649,40 @@
       "moderationStatus": "approved",
       "createdAt": "2026-09-17T13:53:57.839Z",
       "updatedAt": "2026-09-17T13:53:57.839Z"
+    }
+  ],
+  "feedbackSubmissions": [
+    {
+      "id": "fb_1791796724055_co571",
+      "userId": "usr_guest",
+      "userName": "Bikash Sharma",
+      "userEmail": "creator.real@test.com",
+      "type": "error_report",
+      "category": "voice_studio",
+      "title": "Test bug report from live curl",
+      "description": "Audio playback latency when scrubbing waveform track",
+      "errorCodeOrLogs": "",
+      "status": "open",
+      "priority": "high",
+      "adminNotes": "",
+      "createdAt": "2026-10-12T09:18:44.055Z",
+      "updatedAt": "2026-10-12T09:18:44.055Z"
+    },
+    {
+      "id": "fb_1791780524503_orb7n",
+      "userId": "usr_guest",
+      "userName": "Aayush",
+      "userEmail": "creator@test.com",
+      "type": "feature_request",
+      "category": "video_studio",
+      "title": "Timeline waveform zoom",
+      "description": "Zooming in timeline waveform would be awesome",
+      "errorCodeOrLogs": "",
+      "status": "under_review",
+      "priority": "medium",
+      "adminNotes": "Planned for sprint 4",
+      "createdAt": "2026-10-12T04:48:44.503Z",
+      "updatedAt": "2026-10-12T04:49:01.363Z"
     }
   ]
 }

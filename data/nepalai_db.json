@@ -9,7 +9,7 @@
       "tier": "pro_studio",
       "credits": 999999,
       "createdAt": "2026-08-01T10:00:00.000Z",
-      "updatedAt": "2026-11-02T11:12:37.527Z"
+      "updatedAt": "2026-11-04T14:07:44.029Z"
     },
     {
       "id": "usr_admin_saghimire12",
@@ -45,15 +45,26 @@
       "updatedAt": "2026-11-02T11:12:42.074Z"
     },
     {
-      "id": "usr_1793618000313_qbc2o",
-      "email": "idemp_1793618000312@nepalai.studio",
-      "name": "Idempotency Tester",
+      "id": "usr_1793800854798_h795b",
+      "email": "creator_usr_guest@nepalai.tech",
+      "name": "Creator User",
       "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
       "role": "user",
-      "tier": "starter",
-      "credits": 1000,
-      "createdAt": "2026-11-02T11:13:20.313Z",
-      "updatedAt": "2026-11-02T11:13:20.318Z"
+      "tier": "free_trial",
+      "credits": 500,
+      "createdAt": "2026-11-04T14:00:54.798Z",
+      "updatedAt": "2026-11-04T14:00:54.798Z"
+    },
+    {
+      "id": "usr_1793801264011_ml439",
+      "email": "creative.artist@gmail.com",
+      "name": "Creative Artist",
+      "avatar": "https://ui-avatars.com/api/?name=Creative%20Artist&background=e11d48&color=fff",
+      "role": "user",
+      "tier": "free_trial",
+      "credits": 500,
+      "createdAt": "2026-11-04T14:07:44.011Z",
+      "updatedAt": "2026-11-04T14:07:44.011Z"
     }
   ],
   "trialUsage": {
@@ -69,12 +80,12 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 99999,
-      "totalTokensUsed": 36000,
-      "lastUsedAt": "2026-10-16T04:09:04.040Z",
+      "totalTokensUsed": 36900,
+      "lastUsedAt": "2026-11-04T14:00:45.773Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-11-02",
-      "lastResetAt": "2026-11-02T04:02:04.751Z"
+      "lastResetDate": "2026-11-04",
+      "lastResetAt": "2026-11-04T13:56:14.995Z"
     },
     "usr_client_02": {
       "userId": "usr_client_02",
@@ -800,8 +811,8 @@
       "lastUsedAt": "2026-09-19T03:49:38.418Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-11-02",
-      "lastResetAt": "2026-11-02T04:02:04.752Z"
+      "lastResetDate": "2026-11-04",
+      "lastResetAt": "2026-11-04T13:57:43.407Z"
     },
     "usr_1789831067926_t38vo": {
       "userId": "usr_1789831067926_t38vo",
@@ -895,8 +906,8 @@
       "maxChat": 999999,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-10-10T03:07:51.968Z",
-      "lastResetDate": "2026-11-02",
-      "lastResetAt": "2026-11-02T04:02:04.753Z"
+      "lastResetDate": "2026-11-04",
+      "lastResetAt": "2026-11-04T13:57:43.409Z"
     },
     "usr_test": {
       "userId": "usr_test",
@@ -948,12 +959,12 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 25,
-      "chatCount": 0,
+      "chatCount": 1,
       "maxChat": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-10-12T04:49:06.337Z",
-      "lastResetDate": "2026-11-02",
-      "lastResetAt": "2026-11-02T10:00:33.832Z"
+      "lastResetDate": "2026-11-04",
+      "lastResetAt": "2026-11-04T13:08:40.599Z"
     },
     "usr_1792554133922_7ug47": {
       "userId": "usr_1792554133922_7ug47",
@@ -1017,9 +1028,9 @@
     },
     "usr_1793614090110_nb00v": {
       "userId": "usr_1793614090110_nb00v",
-      "imagesCount": 50,
+      "imagesCount": 0,
       "maxImages": 50,
-      "videoCount": 20,
+      "videoCount": 0,
       "maxVideo": 20,
       "videoDurationSeconds": 0,
       "audioCount": 0,
@@ -1031,8 +1042,8 @@
       "lastUsedAt": "2026-11-02T11:12:42.077Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-11-02",
-      "lastResetAt": "2026-11-02T10:08:10.113Z"
+      "lastResetDate": "2026-11-04",
+      "lastResetAt": "2026-11-04T13:57:43.411Z"
     },
     "usr_1793614352027_hhpgd": {
       "userId": "usr_1793614352027_hhpgd",
@@ -1063,24 +1074,71 @@
       "maxRenders": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-11-02T11:13:20.313Z"
+    },
+    "usr_1793797720595_77zxu": {
+      "userId": "usr_1793797720595_77zxu",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-11-04T13:08:40.595Z"
+    },
+    "usr_1793800854798_h795b": {
+      "userId": "usr_1793800854798_h795b",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-11-04T14:00:54.798Z"
+    },
+    "usr_1793801264011_ml439": {
+      "userId": "usr_1793801264011_ml439",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-11-04T14:07:44.011Z",
+      "maxChat": 20,
+      "chatCount": 0,
+      "lastResetDate": "2026-11-04",
+      "lastResetAt": "2026-11-04T14:07:44.016Z"
     }
   },
-  "transactions": [
-    {
-      "id": "tx_fonepay_1793618000318_pg8z",
-      "userId": "usr_1793618000313_qbc2o",
-      "userEmail": "idemp_1793618000312@nepalai.studio",
-      "packageId": "starter",
-      "packageName": "Starter Tier (500 Credits) [FonePay NPR]",
-      "amount": 2500,
-      "currency": "NPR",
-      "creditsAdded": 500,
-      "stripePaymentId": "fonepay_prn_PRN_IDEMP_1793618000317_TEST",
-      "status": "succeeded",
-      "createdAt": "2026-11-02T11:13:20.318Z"
-    }
-  ],
+  "transactions": [],
   "generationLogs": [
+    {
+      "id": "gen_1793800845773_fqt9",
+      "userId": "usr_admin_01",
+      "type": "audio",
+      "model": "ne-NP-SagarNeural",
+      "prompt": "नमस्ते नेपाल",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1793800844828_wm2v.mp3",
+      "tokensCost": 900,
+      "creditsCost": 10,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-11-04T14:00:45.773Z"
+    },
     {
       "id": "gen_1793614124082_szdz",
       "userId": "usr_1793614090110_nb00v",
@@ -2868,18 +2926,6 @@
       "creditsCost": 10,
       "deductionSource": "package_credits",
       "createdAt": "2026-09-08T15:16:56.239Z"
-    },
-    {
-      "id": "gen_1788880609288_q23h",
-      "userId": "usr_admin_01",
-      "type": "audio",
-      "model": "ne-NP-HemkalaNeural",
-      "prompt": "हिमालयको चिसो हावा र घन्टीको मधुर धुन।",
-      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
-      "tokensCost": 900,
-      "creditsCost": 10,
-      "deductionSource": "package_credits",
-      "createdAt": "2026-09-08T15:16:49.288Z"
     }
   ],
   "pricingConfig": {
@@ -5276,6 +5322,169 @@
         "updatedAt": "2026-11-02T11:13:20.318Z"
       },
       "createdAt": "2026-11-02T11:13:20.321Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793797720597_aru7d",
+      "type": "user",
+      "payload": {
+        "id": "usr_1793797720595_77zxu",
+        "email": "creator_usr_guest@nepalai.tech",
+        "name": "Creator User",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        "role": "user",
+        "tier": "free_trial",
+        "credits": 500,
+        "createdAt": "2026-11-04T13:08:40.595Z",
+        "updatedAt": "2026-11-04T13:08:40.595Z"
+      },
+      "createdAt": "2026-11-04T13:08:40.597Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793800574993_mkt12",
+      "type": "user",
+      "payload": {
+        "id": "usr_admin_01",
+        "email": "prakashsuvedi.backup@gmail.com",
+        "name": "Prakash Suvedi (Platform Owner)",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "role": "admin",
+        "tier": "pro_studio",
+        "credits": 999999,
+        "createdAt": "2026-08-01T10:00:00.000Z",
+        "updatedAt": "2026-11-04T14:07:44.029Z"
+      },
+      "createdAt": "2026-11-04T13:56:14.993Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793800784605_g88v0",
+      "type": "user",
+      "payload": {
+        "id": "usr_admin_01",
+        "email": "prakashsuvedi.backup@gmail.com",
+        "name": "Prakash Suvedi (Platform Owner)",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "role": "admin",
+        "tier": "pro_studio",
+        "credits": 999999,
+        "createdAt": "2026-08-01T10:00:00.000Z",
+        "updatedAt": "2026-11-04T14:07:44.029Z"
+      },
+      "createdAt": "2026-11-04T13:59:44.605Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793800784616_k0rv1",
+      "type": "user",
+      "payload": {
+        "id": "usr_admin_01",
+        "email": "prakashsuvedi.backup@gmail.com",
+        "name": "Prakash Suvedi (Platform Owner)",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "role": "admin",
+        "tier": "pro_studio",
+        "credits": 999999,
+        "createdAt": "2026-08-01T10:00:00.000Z",
+        "updatedAt": "2026-11-04T14:07:44.029Z"
+      },
+      "createdAt": "2026-11-04T13:59:44.616Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793800845775_q7eyu",
+      "type": "generation_log",
+      "payload": {
+        "id": "gen_1793800845773_fqt9",
+        "userId": "usr_admin_01",
+        "type": "audio",
+        "model": "ne-NP-SagarNeural",
+        "prompt": "नमस्ते नेपाल",
+        "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/azure_speech_1793800844828_wm2v.mp3",
+        "tokensCost": 900,
+        "creditsCost": 10,
+        "deductionSource": "package_credits",
+        "createdAt": "2026-11-04T14:00:45.773Z"
+      },
+      "createdAt": "2026-11-04T14:00:45.775Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793800854800_p5ci9",
+      "type": "user",
+      "payload": {
+        "id": "usr_1793800854798_h795b",
+        "email": "creator_usr_guest@nepalai.tech",
+        "name": "Creator User",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        "role": "user",
+        "tier": "free_trial",
+        "credits": 500,
+        "createdAt": "2026-11-04T14:00:54.798Z",
+        "updatedAt": "2026-11-04T14:00:54.798Z"
+      },
+      "createdAt": "2026-11-04T14:00:54.800Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793801263999_vxb9p",
+      "type": "user",
+      "payload": {
+        "id": "usr_admin_01",
+        "email": "prakashsuvedi.backup@gmail.com",
+        "name": "Prakash Suvedi (Platform Owner)",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "role": "admin",
+        "tier": "pro_studio",
+        "credits": 999999,
+        "createdAt": "2026-08-01T10:00:00.000Z",
+        "updatedAt": "2026-11-04T14:07:44.029Z"
+      },
+      "createdAt": "2026-11-04T14:07:43.999Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793801264014_8cqgo",
+      "type": "user",
+      "payload": {
+        "id": "usr_1793801264011_ml439",
+        "email": "creative.artist@gmail.com",
+        "name": "Creative Artist",
+        "avatar": "https://ui-avatars.com/api/?name=Creative%20Artist&background=e11d48&color=fff",
+        "role": "user",
+        "tier": "free_trial",
+        "credits": 500,
+        "createdAt": "2026-11-04T14:07:44.011Z",
+        "updatedAt": "2026-11-04T14:07:44.011Z"
+      },
+      "createdAt": "2026-11-04T14:07:44.014Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793801264032_r2pcf",
+      "type": "user",
+      "payload": {
+        "id": "usr_admin_01",
+        "email": "prakashsuvedi.backup@gmail.com",
+        "name": "Prakash Suvedi (Platform Owner)",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "role": "admin",
+        "tier": "pro_studio",
+        "credits": 999999,
+        "createdAt": "2026-08-01T10:00:00.000Z",
+        "updatedAt": "2026-11-04T14:07:44.029Z"
+      },
+      "createdAt": "2026-11-04T14:07:44.032Z",
       "attempts": 0,
       "lastError": "PostgreSQL disconnected"
     }

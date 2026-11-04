@@ -940,21 +940,41 @@ ${xmlUrls}
   app.get('/api/auth/me', (req, res) => {
     const authHeader = (req.headers['authorization'] as string) || '';
     let userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
+    let verifiedEmail = '';
 
     // Primary: Resolve user from verified cryptographic token if present
     if (authHeader) {
       const verified = verifyJwtToken(authHeader);
-      if (verified.valid && verified.payload?.userId) {
-        userId = verified.payload.userId;
+      if (verified.valid) {
+        if (verified.payload?.userId) userId = verified.payload.userId;
+        if (verified.payload?.email) verifiedEmail = verified.payload.email;
       }
     }
 
-    if (!userId) {
+    if (!userId && !verifiedEmail) {
       return res.status(401).json({ error: 'Authentication required. Real Google Sign-in required.' });
     }
-    const user = db.getUserById(userId);
+
+    let user = userId ? db.getUserById(userId) : null;
+    if (!user && verifiedEmail) {
+      user = db.findOrCreateUser(verifiedEmail);
+    }
+    if (!user && userId && userId.includes('@')) {
+      user = db.findOrCreateUser(userId);
+    }
+
     if (!user) {
       return res.status(401).json({ error: 'Session not found. Please log in with your Google account.' });
+    }
+
+    // Sync platform owner and whitelisted admin roles
+    if (user.email && ADMIN_WHITELIST_EMAILS.includes(user.email.toLowerCase())) {
+      if (user.role !== 'admin' || user.tier !== 'pro_studio') {
+        user.role = 'admin';
+        user.tier = 'pro_studio';
+        user.credits = Math.max(user.credits || 0, 999999);
+        db.updateUser(user.id, { role: 'admin', tier: 'pro_studio', credits: user.credits });
+      }
     }
 
     const trialUsage = db.getTrialUsage(user.id);

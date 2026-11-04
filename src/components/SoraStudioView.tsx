@@ -43,7 +43,10 @@ import {
   GitBranch,
   ArrowRight,
   Eye,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight
 } from 'lucide-react';
 import { saveMediaItem, getMediaLibrary, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
 import {
@@ -361,6 +364,52 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   // Simple Mode Toggle & Simplified Style Preset
   const [isSimpleMode, setIsSimpleMode] = useState<boolean>(true);
   const [selectedStyle, setSelectedStyle] = useState<'cinematic' | 'realistic' | 'animated' | 'documentary' | 'vintage'>('cinematic');
+
+  // Collapsible Minimalistic Studio Sections (Clean, distraction-free by default)
+  const [isStyleSectionOpen, setIsStyleSectionOpen] = useState<boolean>(false);
+  const [isStoryPresetsOpen, setIsStoryPresetsOpen] = useState<boolean>(false);
+  const [isSubjectLockOpen, setIsSubjectLockOpen] = useState<boolean>(false);
+  const [isStoryboardSectionOpen, setIsStoryboardSectionOpen] = useState<boolean>(false);
+  const [isHistorySectionOpen, setIsHistorySectionOpen] = useState<boolean>(false);
+  const [styleToast, setStyleToast] = useState<string | null>(null);
+
+  const handleSelectStyle = (styleId: 'cinematic' | 'realistic' | 'animated' | 'documentary' | 'vintage') => {
+    setSelectedStyle(styleId);
+    const targetPreset = SIMPLE_STYLE_PRESETS.find(p => p.id === styleId);
+    if (!targetPreset) return;
+
+    setStyleToast(`✓ भिडियो शैली: ${targetPreset.label} (${targetPreset.labelNe}) प्रम्प्टमा थपियो`);
+    setTimeout(() => setStyleToast(null), 3000);
+
+    setPrompt(prevPrompt => {
+      let clean = prevPrompt.trim();
+
+      // Remove any previously appended style modifiers
+      for (const p of SIMPLE_STYLE_PRESETS) {
+        if (p.promptModifier) {
+          const escaped = p.promptModifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          clean = clean.replace(new RegExp(`,?\\s*${escaped}`, 'gi'), '');
+        }
+      }
+      clean = clean.replace(/,\s*,/g, ',').replace(/,\s*$/, '').trim();
+
+      if (!clean) {
+        return `A majestic cinematic aerial view of the Himalayan peaks at sunrise, ${targetPreset.promptModifier}`;
+      }
+
+      return `${clean}, ${targetPreset.promptModifier}`;
+    });
+  };
+
+  const handleSelectStoryScript = (item: typeof STORY_SCRIPT_PRESETS[0]) => {
+    setSelectedStyle(item.style);
+    const targetPreset = SIMPLE_STYLE_PRESETS.find(p => p.id === item.style);
+    const scriptWithStyle = targetPreset ? `${item.script}, ${targetPreset.promptModifier}` : item.script;
+    setPrompt(scriptWithStyle);
+    setVideoSubtitle(item.subtitle);
+    setStyleToast(`✓ कथा लोड भयो: ${item.title}`);
+    setTimeout(() => setStyleToast(null), 3000);
+  };
 
   // Production Modes & Storyboard States
   const [productionMode, setProductionMode] = useState<'character_lock' | 'extended_chain' | 'storyboard' | 'single' | 'podcast' | 'broadcast'>('single');
@@ -2080,103 +2129,156 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                   </div>
                 )}
 
-                {/* Story Script Presets (1-Click Story Starter Pills) */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="font-semibold text-slate-700">📜 1-Click Story Scripts (तयारी कथा स्क्रिप्टहरू):</span>
-                    <span className="text-[10px] text-indigo-600 font-medium">Click to load</span>
+                {/* Style Toast Feedback */}
+                {styleToast && (
+                  <div className="p-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold flex items-center gap-2 shadow-sm animate-in fade-in duration-150">
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>{styleToast}</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                    {STORY_SCRIPT_PRESETS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setPrompt(item.script);
-                          setVideoSubtitle(item.subtitle);
-                          setSelectedStyle(item.style);
-                        }}
-                        className="text-[11px] text-left p-2 rounded-lg bg-white hover:bg-indigo-50/80 text-slate-800 border border-slate-200 hover:border-indigo-300 font-medium transition cursor-pointer shadow-xs group"
-                      >
-                        <div className="font-bold text-slate-900 group-hover:text-indigo-700 truncate">{item.title}</div>
-                        <div className="text-[10px] text-slate-500 font-['Mukta'] truncate">{item.titleNe}</div>
-                      </button>
-                    ))}
-                  </div>
+                )}
+
+                {/* Collapsible Story Script Presets (1-Click Story Starters) */}
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
+                  <button
+                    type="button"
+                    onClick={() => setIsStoryPresetsOpen(!isStoryPresetsOpen)}
+                    className="w-full flex items-center justify-between p-2.5 hover:bg-slate-100/70 dark:hover:bg-slate-800 transition cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">📜</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        1-Click Story Scripts <span className="text-slate-500 font-normal font-['Mukta'] text-[11px]">(तयारी कथा - {STORY_SCRIPT_PRESETS.length})</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-slate-500 text-[11px] font-medium">
+                      <span>{isStoryPresetsOpen ? 'Hide' : 'Browse'}</span>
+                      {isStoryPresetsOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </div>
+                  </button>
+                  {isStoryPresetsOpen && (
+                    <div className="p-2.5 pt-0 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-2">
+                        {STORY_SCRIPT_PRESETS.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSelectStoryScript(item)}
+                            className="text-[11px] text-left p-2 rounded-lg bg-white dark:bg-slate-900 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 font-medium transition cursor-pointer shadow-2xs group"
+                          >
+                            <div className="font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">{item.title}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-['Mukta'] truncate">{item.titleNe}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Step 2: Visual Style Presets */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">2</span>
-                  <label className="text-xs font-bold text-slate-900">
-                    Choose Visual Style <span className="text-slate-500 font-normal font-['Mukta']">(भिडियो शैली)</span>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {SIMPLE_STYLE_PRESETS.map((preset) => {
-                    const isSelected = selectedStyle === preset.id;
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => setSelectedStyle(preset.id)}
-                        className={`text-left p-2.5 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-1 relative ${
-                          isSelected
-                            ? 'bg-indigo-50/90 border-indigo-600 ring-2 ring-indigo-500/20 shadow-xs'
-                            : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg">{preset.icon}</span>
-                          <span className={`text-[9.5px] px-1.5 py-0.5 rounded-md font-bold ${
-                            isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {preset.badge}
-                          </span>
-                        </div>
+              {/* Step 2: Collapsible Visual Style Presets (भिडियो शैली) */}
+              {(() => {
+                const activeStyleObj = SIMPLE_STYLE_PRESETS.find(s => s.id === selectedStyle) || SIMPLE_STYLE_PRESETS[0];
+                return (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setIsStyleSectionOpen(!isStyleSectionOpen)}
+                      className="w-full flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</span>
                         <div>
-                          <div className="text-xs font-bold text-slate-900">{preset.label}</div>
-                          <div className="text-[10px] text-indigo-700 font-medium font-['Mukta']">{preset.labelNe}</div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
+                            <span>Video Style</span>
+                            <span className="text-slate-500 dark:text-slate-400 font-normal font-['Mukta'] text-[11px]">(भिडियो शैली)</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold text-[10px]">
+                              {activeStyleObj.icon} {activeStyleObj.label} ({activeStyleObj.labelNe})
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-sm mt-0.5">
+                            {activeStyleObj.badge} • {isStyleSectionOpen ? 'Click a style below to append to prompt' : 'Click to change visual style'}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-500 leading-tight line-clamp-2">
-                          {preset.description}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-semibold shrink-0">
+                        <span className="text-[10px] hidden sm:inline">{isStyleSectionOpen ? 'Collapse' : 'Change Style'}</span>
+                        {isStyleSectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </div>
+                    </button>
+
+                    {isStyleSectionOpen && (
+                      <div className="p-3 pt-0 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <div className="text-[10.5px] text-slate-500 dark:text-slate-400 pt-2 font-medium">
+                          कुनै शैलीमा क्लिक गर्दा प्रम्प्ट बक्समा सिनेमाटिक विशेषताहरू तुरुन्तै थपिन्छन्:
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {SIMPLE_STYLE_PRESETS.map((preset) => {
+                            const isSelected = selectedStyle === preset.id;
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => handleSelectStyle(preset.id)}
+                                className={`text-left p-2.5 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-1 relative ${
+                                  isSelected
+                                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 border-indigo-600 ring-2 ring-indigo-500/20 shadow-xs'
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="text-lg">{preset.icon}</span>
+                                  <span className={`text-[9.5px] px-1.5 py-0.5 rounded-md font-bold ${
+                                    isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                  }`}>
+                                    {preset.badge}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                                    <span>{preset.label}</span>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
+                                  </div>
+                                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400 font-medium font-['Mukta']">{preset.labelNe}</div>
+                                </div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight line-clamp-2">
+                                  {preset.description}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Step 3: Duration & Screen Format */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">3</span>
-                  <label className="text-xs font-bold text-slate-900">
-                    Video Duration & Format <span className="text-slate-500 font-normal font-['Mukta']">(समय र आकार)</span>
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">3</span>
+                  <label className="text-xs font-bold text-slate-900 dark:text-white">
+                    Duration & Screen Format <span className="text-slate-500 dark:text-slate-400 font-normal font-['Mukta'] text-[11px]">(समय र आकार)</span>
                   </label>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Duration Picker */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-600">Video Length (लम्बाइ):</label>
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <label className="text-[10.5px] font-semibold text-slate-600 dark:text-slate-400">Video Length:</label>
+                    <div className="grid grid-cols-3 gap-1">
                       {[
-                        { val: '12', label: '12s (Master)' },
-                        { val: '8', label: '8s (Standard)' },
-                        { val: '4', label: '4s (Fast)' },
+                        { val: '12', label: '12s Master' },
+                        { val: '8', label: '8s Standard' },
+                        { val: '4', label: '4s Fast' },
                       ].map(dur => (
                         <button
                           key={dur.val}
                           type="button"
                           onClick={() => setSeconds(dur.val as any)}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition border cursor-pointer text-center ${
                             seconds === dur.val
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 border-slate-200 dark:border-slate-700'
                           }`}
                         >
                           {dur.label}
@@ -2185,76 +2287,99 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Aspect Ratio Picker */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-600">Screen Format (आकार):</label>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <label className="text-[10.5px] font-semibold text-slate-600 dark:text-slate-400">Aspect Ratio:</label>
+                    <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
                         onClick={() => setResolution('1280x720')}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition border cursor-pointer text-center ${
                           resolution === '1280x720'
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                            : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 border-slate-200 dark:border-slate-700'
                         }`}
                       >
-                        🖥️ 16:9 Landscape
+                        🖥️ 16:9 Cinema
                       </button>
                       <button
                         type="button"
                         onClick={() => setResolution('720x1280')}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition border cursor-pointer text-center ${
                           resolution === '720x1280'
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                            : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 border-slate-200 dark:border-slate-700'
                         }`}
                       >
-                        📱 9:16 Shorts/Reels
+                        📱 9:16 Shorts
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Step 4: Optional Subject Continuity */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between">
+              {/* Step 4: Collapsible Character / Subject Continuity (Optional) */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                <div className="w-full flex items-center justify-between p-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">4</span>
-                    <label className="text-xs font-bold text-slate-900">
-                      Keep Character / Subject Same <span className="text-slate-500 font-normal font-['Mukta']">(पात्र लक - Optional)</span>
-                    </label>
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold flex items-center justify-center shrink-0">4</span>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Character Continuity</span>
+                        <span className="text-slate-400 font-normal font-['Mukta'] text-[11px]">(पात्र लक - Optional)</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {subjectLockEnabled ? `Active: ${activeSubjectLock.name}` : 'Keep character face & appearance continuous across scenes'}
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSubjectLockEnabled(!subjectLockEnabled)}
-                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold transition cursor-pointer ${
-                      subjectLockEnabled
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : 'bg-slate-100 text-slate-600 border border-slate-200'
-                    }`}
-                  >
-                    {subjectLockEnabled ? '✓ Lock Enabled' : '○ Disabled'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !subjectLockEnabled;
+                        setSubjectLockEnabled(next);
+                        if (next) setIsSubjectLockOpen(true);
+                      }}
+                      className={`text-[11px] px-2.5 py-1 rounded-full font-bold transition cursor-pointer border ${
+                        subjectLockEnabled
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {subjectLockEnabled ? '✓ Enabled' : '○ Disabled'}
+                    </button>
+                    {subjectLockEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => setIsSubjectLockOpen(!isSubjectLockOpen)}
+                        className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {isSubjectLockOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {subjectLockEnabled && (
-                  <div className="flex flex-wrap gap-1.5 p-2 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                    {SUBJECT_LOCK_REGISTRY.slice(0, 6).map(sub => (
-                      <button
-                        key={sub.id}
-                        type="button"
-                        onClick={() => handleSelectSubjectLock(sub)}
-                        className={`text-[10.5px] px-2.5 py-1 rounded-lg font-bold transition cursor-pointer border flex items-center gap-1 ${
-                          activeSubjectLock.id === sub.id
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                            : 'bg-white text-slate-700 hover:bg-indigo-50 border-slate-200'
-                        }`}
-                      >
-                        <span>{sub.avatarEmoji}</span>
-                        <span>{sub.name}</span>
-                      </button>
-                    ))}
+                {subjectLockEnabled && isSubjectLockOpen && (
+                  <div className="p-3 pt-0 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <div className="text-[10.5px] text-slate-500 dark:text-slate-400 pt-1 font-medium">Select continuous character:</div>
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+                      {SUBJECT_LOCK_REGISTRY.slice(0, 6).map(sub => (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={() => handleSelectSubjectLock(sub)}
+                          className={`text-[10.5px] px-2.5 py-1 rounded-lg font-bold transition cursor-pointer border flex items-center gap-1 ${
+                            activeSubjectLock.id === sub.id
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          <span>{sub.avatarEmoji}</span>
+                          <span>{sub.name}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -3357,34 +3482,67 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           </div>
         </div>
 
-        {/* Unified Project Storyboard & Character Continuity Suite */}
-        <div className="col-span-1 lg:col-span-12 w-full">
-          <StoryContinuityDeck
-            scenes={projectScenes}
-            characterRegistry={projectCharacterRegistry}
-            activeCharacterId={selectedContinuityCharId || undefined}
-            currentGeneratingIndex={currentGeneratingSceneIndex}
-            onGenerateScene={handleGenerateProjectScene}
-            onBatchRenderAll={handleBatchRenderAllProjectScenes}
-            isBatchRendering={isBatchRenderingScenes}
-            onAssembleStoryToTimeline={handleAssembleFullProjectToTimeline}
-            onOpenPreview={(url) => setPreviewingItem({
-              id: 'seq-preview-' + Date.now(),
-              type: 'sora_video',
-              title: 'Story Scene Preview',
-              url,
-              createdAt: new Date().toISOString(),
-              duration: 8,
-              resolution
-            })}
-            onUpdateScenePrompt={handleUpdateProjectScenePrompt}
-            onAddNextSceneBeat={handleAddNextProjectSceneBeat}
-            onToggleCharacterForScene={handleToggleCharacterForScene}
-            onAddNewCharacter={handleAddCustomCharacterToBank}
-            onRemoveScene={handleRemoveProjectScene}
-            onApplyPromptToScene={handleApplyPromptToScene}
-            currentPrompt={prompt}
-          />
+        {/* Collapsible Unified Project Storyboard & Character Continuity Suite */}
+        <div className="col-span-1 lg:col-span-12 w-full border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setIsStoryboardSectionOpen(!isStoryboardSectionOpen)}
+            className="w-full flex items-center justify-between p-4 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition cursor-pointer text-left select-none border-b border-slate-100 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <Clapperboard className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Multi-Scene Storyboard &amp; Continuity Suite</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold">
+                    {projectScenes.length} Scenes
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {isStoryboardSectionOpen 
+                    ? 'Individual scene render, batch render & timeline assembly' 
+                    : 'Click to expand multi-scene storyboard strip and character continuity'}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-700 dark:text-amber-400">
+              <span className="text-[11px] hidden sm:inline">{isStoryboardSectionOpen ? 'Collapse Storyboard' : 'Expand Storyboard Strip'}</span>
+              {isStoryboardSectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </button>
+
+          {isStoryboardSectionOpen && (
+            <div className="p-4 pt-2">
+              <StoryContinuityDeck
+                scenes={projectScenes}
+                characterRegistry={projectCharacterRegistry}
+                activeCharacterId={selectedContinuityCharId || undefined}
+                currentGeneratingIndex={currentGeneratingSceneIndex}
+                onGenerateScene={handleGenerateProjectScene}
+                onBatchRenderAll={handleBatchRenderAllProjectScenes}
+                isBatchRendering={isBatchRenderingScenes}
+                onAssembleStoryToTimeline={handleAssembleFullProjectToTimeline}
+                onOpenPreview={(url) => setPreviewingItem({
+                  id: 'seq-preview-' + Date.now(),
+                  type: 'sora_video',
+                  title: 'Story Scene Preview',
+                  url,
+                  createdAt: new Date().toISOString(),
+                  duration: 8,
+                  resolution
+                })}
+                onUpdateScenePrompt={handleUpdateProjectScenePrompt}
+                onAddNextSceneBeat={handleAddNextProjectSceneBeat}
+                onToggleCharacterForScene={handleToggleCharacterForScene}
+                onAddNewCharacter={handleAddCustomCharacterToBank}
+                onRemoveScene={handleRemoveProjectScene}
+                onApplyPromptToScene={handleApplyPromptToScene}
+                currentPrompt={prompt}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -3678,35 +3836,48 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       )}
 
       {/* Persistent Sora Videos Gallery & History Section */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setIsHistorySectionOpen(!isHistorySectionOpen)}
+          className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition cursor-pointer text-left select-none"
+        >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
               <FolderHeart className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Generated Sora Video History & Persistent Library</h3>
-              <p className="text-xs text-slate-500">
-                All Sora videos generated here persist automatically. Add them to your Video Studio timeline at any time using stable asset IDs.
+              <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Generated Sora Video History &amp; Persistent Library</span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold font-mono">
+                  {historyVideos.length} Clips
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {isHistorySectionOpen ? 'All saved Sora videos available to insert into timeline' : 'Click to browse all saved Sora videos'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold font-mono">
-              {historyVideos.length} Video Clips
-            </span>
-            {onNavigateToTimeline && (
-              <button
-                type="button"
-                onClick={onNavigateToTimeline}
-                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
-              >
-                <Film className="w-3.5 h-3.5 text-slate-600" />
-                <span>View Timeline</span>
-              </button>
-            )}
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+            <span className="text-[11px] hidden sm:inline">{isHistorySectionOpen ? 'Collapse' : 'Browse History'}</span>
+            {isHistorySectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
-        </div>
+        </button>
+
+        {isHistorySectionOpen && (
+          <div className="p-5 pt-0 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex justify-end pt-3">
+              {onNavigateToTimeline && (
+                <button
+                  type="button"
+                  onClick={onNavigateToTimeline}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Film className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                  <span>View Timeline</span>
+                </button>
+              )}
+            </div>
 
         {historyVideos.length === 0 ? (
           <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
@@ -3836,6 +4007,8 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+        )}
           </div>
         )}
       </div>

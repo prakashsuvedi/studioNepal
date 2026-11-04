@@ -183,8 +183,15 @@ export async function fetchCurrentUser(
   userId: string
 ): Promise<{ user: UserSession; trialUsage: UserTrialQuota }> {
   try {
+    const token = typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('nepalai_auth_token') || localStorage.getItem('nepalai_token') || '')
+      : '';
+    const headers: Record<string, string> = { 'x-user-id': userId };
+    if (token) {
+      headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    }
     const res = await fetch(`/api/auth/me?userId=${encodeURIComponent(userId)}`, {
-      headers: { 'x-user-id': userId },
+      headers,
     });
     if (!res.ok) {
       throw new Error('Failed to fetch user profile');

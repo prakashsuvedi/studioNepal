@@ -11,6 +11,8 @@
  */
 
 import { UserSession, UserTrialQuota } from '../types';
+import { secureStorage } from './secureStorage';
+import { resolveApiUrl } from './apiConfig';
 
 export interface DecodedToken {
   userId?: string;
@@ -72,6 +74,8 @@ export class AuthManager {
    * Get current stored token
    */
   public getToken(): string {
+    const secureToken = secureStorage.getToken();
+    if (secureToken) return secureToken;
     if (typeof localStorage === 'undefined') return '';
     return (
       localStorage.getItem('nepalai_auth_token') ||
@@ -85,6 +89,8 @@ export class AuthManager {
    * Get current stored user ID
    */
   public getUserId(): string {
+    const secureId = secureStorage.getUserId();
+    if (secureId) return secureId;
     if (typeof localStorage === 'undefined') return '';
     return localStorage.getItem('nepalai_user_id') || '';
   }
@@ -103,6 +109,14 @@ export class AuthManager {
    * Set active token and schedule background refresh
    */
   public setToken(token: string, userId?: string) {
+    if (token) {
+      secureStorage.setToken(token);
+    } else {
+      secureStorage.clearToken();
+    }
+    if (userId) {
+      secureStorage.setUserId(userId);
+    }
     if (typeof localStorage !== 'undefined') {
       if (token) {
         localStorage.setItem('nepalai_auth_token', token);
@@ -160,6 +174,8 @@ export class AuthManager {
     }
     this.refreshPromise = null;
     this.isRefreshing = false;
+
+    secureStorage.wipeSession().catch(() => {});
 
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('nepalai_auth_token');
@@ -233,7 +249,7 @@ export class AuthManager {
    * Exchange Google Access Token with server to receive a renewed JWT
    */
   public async exchangeGoogleAccessToken(accessToken: string): Promise<string> {
-    const res = await fetch('/api/auth/google', {
+    const res = await fetch(resolveApiUrl('/api/auth/google'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accessToken }),
@@ -319,7 +335,8 @@ export class AuthManager {
 
         // 2. Fallback: Verify current session with /api/auth/me
         if (userId && currentToken) {
-          const verifyRes = await fetch(`/api/auth/me?userId=${encodeURIComponent(userId)}`, {
+          const verifyUrl = resolveApiUrl(`/api/auth/me?userId=${encodeURIComponent(userId)}`);
+          const verifyRes = await fetch(verifyUrl, {
             headers: {
               Authorization: currentToken.startsWith('Bearer ') ? currentToken : `Bearer ${currentToken}`,
               'x-user-id': userId,

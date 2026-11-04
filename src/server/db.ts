@@ -38,6 +38,15 @@ export interface FeedbackSubmission {
   updatedAt: string;
 }
 
+export interface OutboxItem {
+  id: string;
+  type: 'user' | 'transaction' | 'generation_log' | 'custom_voice';
+  payload: any;
+  createdAt: string;
+  attempts: number;
+  lastError?: string;
+}
+
 export interface DatabaseStore {
   users: User[];
   trialUsage: Record<string, TrialUsage>;
@@ -48,6 +57,7 @@ export interface DatabaseStore {
   customVoices: CustomVoice[];
   pricingConfig?: PricingConfig;
   feedbackSubmissions?: FeedbackSubmission[];
+  syncOutbox?: OutboxItem[];
 }
 
 export const DEFAULT_STOCK_AVATARS: Avatar[] = [
@@ -294,14 +304,33 @@ const INITIAL_STORE: DatabaseStore = {
   avatars: DEFAULT_STOCK_AVATARS,
   avatarJobs: [],
   customVoices: [],
+  syncOutbox: [],
 };
 
 class Database {
   private store: DatabaseStore;
   private backupIntervalId: NodeJS.Timeout | null = null;
+  private lastLoadedMtime = 0;
+
+  private maybeReloadFromDisk() {
+    try {
+      if (fs.existsSync(DB_PATH)) {
+        const stat = fs.statSync(DB_PATH);
+        if (stat.mtimeMs > this.lastLoadedMtime) {
+          this.store = this.load();
+          this.lastLoadedMtime = stat.mtimeMs;
+        }
+      }
+    } catch {}
+  }
 
   constructor() {
     this.store = this.load();
+    try {
+      if (fs.existsSync(DB_PATH)) {
+        this.lastLoadedMtime = fs.statSync(DB_PATH).mtimeMs;
+      }
+    } catch {}
     // Create initial backup snapshot on boot to protect existing data
     this.createBackupSnapshot();
     // Schedule periodic hourly backup snapshots
@@ -389,6 +418,9 @@ class Database {
         if (!parsed.customVoices) {
           parsed.customVoices = [];
         }
+        if (!parsed.syncOutbox) {
+          parsed.syncOutbox = [];
+        }
 
         // Prune legacy mock seed users and test artifacts so strictly real data is maintained
         const MOCK_EMAILS = new Set([
@@ -456,6 +488,11 @@ class Database {
       const tmpPath = path.join(DB_DIR, `nepalai_db.json.tmp.${process.pid}.${Date.now()}`);
       fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf-8');
       fs.renameSync(tmpPath, DB_PATH);
+      try {
+        if (fs.existsSync(DB_PATH)) {
+          this.lastLoadedMtime = fs.statSync(DB_PATH).mtimeMs;
+        }
+      } catch {}
     } catch (err) {
       console.error('Failed to write db.json atomically:', err);
     }
@@ -464,6 +501,7 @@ class Database {
   // User operations
   public getUserById(id: string): User | undefined {
     if (!id) return undefined;
+    this.maybeReloadFromDisk();
     if (id === 'usr-google-prakash' || id === 'usr_admin_01' || id.toLowerCase().includes('prakashsuvedi')) {
       const admin = this.store.users.find(u => 
         u.email.toLowerCase() === 'prakashsuvedi.backup@gmail.com' ||
@@ -483,6 +521,7 @@ class Database {
 
   public getUserByEmail(email: string): User | undefined {
     if (!email) return undefined;
+    this.maybeReloadFromDisk();
     const user = this.store.users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (user && ADMIN_WHITELIST_EMAILS.includes(email.toLowerCase()) && user.role !== 'admin') {
       user.role = 'admin';
@@ -566,10 +605,122 @@ class Database {
     return user;
   }
 
-  // Non-blocking asynchronous sync to Supabase PostgreSQL
+  // Outbox Queue Management & Cloud Synchronization Reconciliation (Finding 08)
+  public enqueueSyncOutbox(type: OutboxItem['type'], payload: any, error?: string): OutboxItem {
+    this.maybeReloadFromDisk();
+    if (!this.store.syncOutbox) {
+      this.store.syncOutbox = [];
+    }
+    const item: OutboxItem = {
+      id: `outbox_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      type,
+      payload,
+      createdAt: new Date().toISOString(),
+      attempts: 0,
+      lastError: error || 'Queued for cloud synchronization',
+    };
+    this.store.syncOutbox.push(item);
+    if (this.store.syncOutbox.length > 500) {
+      this.store.syncOutbox = this.store.syncOutbox.slice(-500);
+    }
+    this.save(this.store);
+    return item;
+  }
+
+  public getPendingSyncOutbox(): OutboxItem[] {
+    this.maybeReloadFromDisk();
+    return this.store.syncOutbox || [];
+  }
+
+  public clearPendingSyncOutbox(): void {
+    this.maybeReloadFromDisk();
+    this.store.syncOutbox = [];
+    this.save(this.store);
+  }
+
+  public async drainPendingSyncOutbox(): Promise<{ processed: number; succeeded: number; failed: number }> {
+    this.maybeReloadFromDisk();
+    if (!this.store.syncOutbox || this.store.syncOutbox.length === 0) {
+      return { processed: 0, succeeded: 0, failed: 0 };
+    }
+
+    if (!postgresDb.isConnected) {
+      const reconnected = await postgresDb.testConnection();
+      if (!reconnected) {
+        return { processed: 0, succeeded: 0, failed: this.store.syncOutbox.length };
+      }
+    }
+
+    let succeeded = 0;
+    let failed = 0;
+    const remaining: OutboxItem[] = [];
+
+    for (const item of this.store.syncOutbox) {
+      try {
+        if (item.type === 'user') {
+          const user = item.payload as User;
+          await postgresDb.query(
+            `INSERT INTO users (id, email, name, picture, role, tier, credits, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+             ON CONFLICT (id) DO UPDATE SET
+               email = EXCLUDED.email,
+               name = EXCLUDED.name,
+               picture = EXCLUDED.picture,
+               role = EXCLUDED.role,
+               tier = EXCLUDED.tier,
+               credits = EXCLUDED.credits,
+               updated_at = NOW()`,
+            [user.id, user.email, user.name || '', user.avatar || '', user.role, user.tier, user.credits]
+          );
+          succeeded++;
+        } else if (item.type === 'transaction') {
+          const tx = item.payload as Transaction;
+          await postgresDb.query(
+            `INSERT INTO transactions (id, user_id, user_email, package_id, package_name, amount, currency, credits_added, stripe_payment_id, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             ON CONFLICT (id) DO NOTHING`,
+            [tx.id, tx.userId, tx.userEmail, tx.packageId, tx.packageName, tx.amount, tx.currency, tx.creditsAdded, tx.stripePaymentId || '', tx.status]
+          );
+          succeeded++;
+        } else if (item.type === 'generation_log') {
+          const log = item.payload as GenerationLog;
+          await postgresDb.query(
+            `INSERT INTO generation_logs (id, user_id, type, prompt, status)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (id) DO NOTHING`,
+            [log.id, log.userId, log.type, log.prompt, 'succeeded']
+          );
+          succeeded++;
+        } else if (item.type === 'custom_voice') {
+          await postgresDb.syncCustomVoice(item.payload);
+          succeeded++;
+        } else {
+          succeeded++;
+        }
+      } catch (err: any) {
+        failed++;
+        item.attempts = (item.attempts || 0) + 1;
+        item.lastError = err?.message || 'Sync error';
+        if (item.attempts < 10) {
+          remaining.push(item);
+        } else {
+          console.warn(`[Outbox] Discarding persistently failing outbox item ${item.id}:`, item.lastError);
+        }
+      }
+    }
+
+    this.store.syncOutbox = remaining;
+    this.save(this.store);
+    return { processed: succeeded + failed, succeeded, failed };
+  }
+
+  // Non-blocking asynchronous sync to Supabase PostgreSQL with Outbox Fallback (Finding 08)
   public async syncUserToPostgres(user: User) {
     try {
-      if (!postgresDb.isConnected) return;
+      if (!postgresDb.isConnected) {
+        this.enqueueSyncOutbox('user', user, 'PostgreSQL disconnected');
+        return;
+      }
       await postgresDb.query(
         `INSERT INTO users (id, email, name, picture, role, tier, credits, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
@@ -584,13 +735,16 @@ class Database {
         [user.id, user.email, user.name || '', user.avatar || '', user.role, user.tier, user.credits]
       );
     } catch (e: any) {
-      // Non-blocking sync error catch
+      this.enqueueSyncOutbox('user', user, e?.message || 'Query failed');
     }
   }
 
   public async syncTransactionToPostgres(tx: Transaction) {
     try {
-      if (!postgresDb.isConnected) return;
+      if (!postgresDb.isConnected) {
+        this.enqueueSyncOutbox('transaction', tx, 'PostgreSQL disconnected');
+        return;
+      }
       await postgresDb.query(
         `INSERT INTO transactions (id, user_id, user_email, package_id, package_name, amount, currency, credits_added, stripe_payment_id, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -598,13 +752,16 @@ class Database {
         [tx.id, tx.userId, tx.userEmail, tx.packageId, tx.packageName, tx.amount, tx.currency, tx.creditsAdded, tx.stripePaymentId || '', tx.status]
       );
     } catch (e: any) {
-      // Non-blocking sync error catch
+      this.enqueueSyncOutbox('transaction', tx, e?.message || 'Query failed');
     }
   }
 
   public async syncLogToPostgres(log: GenerationLog) {
     try {
-      if (!postgresDb.isConnected) return;
+      if (!postgresDb.isConnected) {
+        this.enqueueSyncOutbox('generation_log', log, 'PostgreSQL disconnected');
+        return;
+      }
       await postgresDb.query(
         `INSERT INTO generation_logs (id, user_id, type, prompt, status)
          VALUES ($1, $2, $3, $4, $5)
@@ -612,7 +769,7 @@ class Database {
         [log.id, log.userId, log.type, log.prompt, 'succeeded']
       );
     } catch (e: any) {
-      // Non-blocking sync error catch
+      this.enqueueSyncOutbox('generation_log', log, e?.message || 'Query failed');
     }
   }
 
@@ -666,6 +823,13 @@ class Database {
       }
     }
     return this.store.trialUsage[userId];
+  }
+
+  public setTrialUsage(userId: string, usage: Partial<TrialUsage>): TrialUsage {
+    const current = this.getTrialUsage(userId);
+    Object.assign(current, usage, { lastUsedAt: new Date().toISOString() });
+    this.save(this.store);
+    return current;
   }
 
   // Quota & Permission Verification
@@ -1437,6 +1601,13 @@ class Database {
 }
 
 export const db = new Database();
+
+// Connect automatic outbox reconciliation on PostgreSQL connection/reconnection (Finding 08)
+postgresDb.onConnect(() => {
+  db.drainPendingSyncOutbox().catch(err => {
+    console.warn('[Outbox] Automatic reconnect drain notice:', err?.message || err);
+  });
+});
 
 // Shared Feature Credit Cost Helper (Prompt #3 / Task #4)
 export function getFeatureCreditCost(type: string, pricingConfig?: PricingConfig): number {

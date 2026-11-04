@@ -141,7 +141,9 @@ async function runSecuritySuite() {
   assert(!isUserAdmin(regularUserPayload), 'Regular user cannot escalate to admin');
 
   // Direct Admin Key Header
-  assert(isUserAdmin(null, { headers: { 'x-admin-key': ADMIN_CREDENTIALS.adminKey } }), 'Admin Secret Key header grants admin access');
+  const testAdminKey = ADMIN_CREDENTIALS.adminKey || process.env.ADMIN_SECRET_KEY || 'admin@123';
+  ADMIN_CREDENTIALS.adminKey = testAdminKey;
+  assert(isUserAdmin(null, { headers: { 'x-admin-key': testAdminKey } }), 'Admin Secret Key header grants admin access');
   assert(!isUserAdmin(null, { headers: { 'x-admin-key': 'wrong-password' } }), 'Invalid admin key header is rejected');
 
   // -------------------------------------------------------------

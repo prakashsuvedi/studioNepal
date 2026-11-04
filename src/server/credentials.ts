@@ -5,46 +5,52 @@ dotenv.config();
 // Secure Server-Side Platform Admin Credentials
 // Kept strictly offline and hidden from the client browser.
 export const ADMIN_CREDENTIALS = {
-  email: 'prakashsuvedi.backup@gmail.com',
-  password: process.env.ADMIN_PASSWORD || 'admin@123',
-  adminKey: process.env.ADMIN_SECRET_KEY || process.env.ADMIN_KEY || 'nepalai-admin-key'
+  email: (process.env.ADMIN_EMAIL || 'prakashsuvedi.backup@gmail.com').trim().toLowerCase(),
+  password: (process.env.ADMIN_PASSWORD || '').trim(),
+  adminKey: (process.env.ADMIN_SECRET_KEY || process.env.ADMIN_KEY || '').trim()
 };
 
+/**
+ * Constant-time string comparison to prevent timing side-channel attacks
+ */
+function safeTimingCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length === 0 || bufB.length === 0 || bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 export function getValidAdminPasswords(): string[] {
-  const allowed = new Set<string>([
-    'admin@123',
-    'Admin@123',
-    'admin123',
-    'Admin123',
-    'admin',
-    'Admin',
-    'prakash',
-    'prakash123',
-    'Prakash@123',
-    'prakashsuvedi',
-    'nepalai',
-    'nepalai2026',
-    'nepalai-admin-key',
-    'nepalai_studio_secret_2026',
-    '123456',
-    'password',
-  ]);
-  if (ADMIN_CREDENTIALS.password) allowed.add(ADMIN_CREDENTIALS.password);
-  if (ADMIN_CREDENTIALS.adminKey) allowed.add(ADMIN_CREDENTIALS.adminKey);
-  if (process.env.ADMIN_PASSWORD) allowed.add(process.env.ADMIN_PASSWORD);
-  if (process.env.ADMIN_SECRET_KEY) allowed.add(process.env.ADMIN_SECRET_KEY);
-  if (process.env.ADMIN_KEY) allowed.add(process.env.ADMIN_KEY);
-  return Array.from(allowed).filter(Boolean);
+  const allowed = new Set<string>();
+  if (ADMIN_CREDENTIALS.password && ADMIN_CREDENTIALS.password.length >= 8) {
+    allowed.add(ADMIN_CREDENTIALS.password);
+  }
+  if (ADMIN_CREDENTIALS.adminKey && ADMIN_CREDENTIALS.adminKey.length >= 8) {
+    allowed.add(ADMIN_CREDENTIALS.adminKey);
+  }
+  if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.trim().length >= 8) {
+    allowed.add(process.env.ADMIN_PASSWORD.trim());
+  }
+  if (process.env.ADMIN_SECRET_KEY && process.env.ADMIN_SECRET_KEY.trim().length >= 8) {
+    allowed.add(process.env.ADMIN_SECRET_KEY.trim());
+  }
+  if (process.env.ADMIN_KEY && process.env.ADMIN_KEY.trim().length >= 8) {
+    allowed.add(process.env.ADMIN_KEY.trim());
+  }
+  return Array.from(allowed);
 }
 
 export function isValidAdminSecret(input?: string): boolean {
   if (!input || typeof input !== 'string') return false;
   const trimmed = input.trim();
+  if (trimmed.length < 8) return false;
   const validSecrets = getValidAdminPasswords();
-  return validSecrets.includes(trimmed);
+  if (validSecrets.length === 0) return false; // Fail closed if no admin secret is configured
+  return validSecrets.some(secret => safeTimingCompare(trimmed, secret));
 }
 
-export const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || ADMIN_CREDENTIALS.adminKey || 'nepalai_studio_secret_2026';
+export const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'nepalai_studio_jwt_super_secret_key_2026';
 
 export function getAdminWhitelistEmails(): string[] {
   const envEmails = process.env.ADMIN_EMAILS
@@ -161,10 +167,10 @@ export function extractAuthUser(req: any): TokenPayload | null {
 
   // Check admin key header for server-to-server/admin authentication
   const adminKey = req.headers && (req.headers['x-admin-key'] || req.headers['X-Admin-Key']);
-  if (adminKey && adminKey === ADMIN_CREDENTIALS.adminKey) {
+  if (adminKey && typeof adminKey === 'string' && isValidAdminSecret(adminKey)) {
     return {
       userId: 'usr_admin_root',
-      email: ADMIN_CREDENTIALS.email,
+      email: ADMIN_CREDENTIALS.email || 'prakashsuvedi.backup@gmail.com',
       role: 'admin',
       tier: 'enterprise_admin',
       exp: Math.floor(Date.now() / 1000) + 86400,
@@ -181,10 +187,13 @@ export function extractAuthUser(req: any): TokenPayload | null {
 export function isUserAdmin(user: TokenPayload | null, req?: any): boolean {
   if (req) {
     const adminKey = req.headers && (req.headers['x-admin-key'] || req.headers['X-Admin-Key']);
-    if (adminKey && adminKey === ADMIN_CREDENTIALS.adminKey) return true;
+    if (adminKey && typeof adminKey === 'string' && isValidAdminSecret(adminKey)) {
+      return true;
+    }
   }
   if (!user) return false;
-  if (user.role === 'admin') return true;
-  if (user.email && ADMIN_WHITELIST_EMAILS.includes(user.email.toLowerCase())) return true;
+  if (user.role === 'admin' && user.email && ADMIN_WHITELIST_EMAILS.includes(user.email.toLowerCase())) {
+    return true;
+  }
   return false;
 }

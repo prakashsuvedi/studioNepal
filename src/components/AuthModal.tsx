@@ -201,7 +201,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
     try {
       const email = adminEmail.trim().toLowerCase();
-      const password = adminPassword.trim() || 'admin@123';
+      const password = adminPassword.trim();
+      if (!email || !password) {
+        setError('Please enter both your administrator email and password.');
+        setLoading(false);
+        return;
+      }
       const data = await loginAdmin(email, password);
       if (data.token) {
         authManager.saveToken(data.token, data.user.id);
@@ -209,7 +214,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onLoginSuccess(data.user, data.trialUsage);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Admin authentication failed. Check your password.');
+      setError(err.message || 'Admin authentication failed. Check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -217,7 +222,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 text-slate-900 dark:text-slate-100 space-y-5">
+      <div className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto overflow-touch bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-5 sm:p-6 text-slate-900 dark:text-slate-100 space-y-5">
         {/* Close Button */}
         <button
           onClick={onClose}

@@ -20,6 +20,7 @@ import {
 import { AUDIT_ROUTE_MATRIX } from '../data';
 import { runRenderTestEngine } from '../lib/renderTestEngine';
 import { RenderAuditLogger } from '../lib/renderAuditLogger';
+import { authManager } from '../lib/authManager';
 
 interface AuditReportViewProps {
   onGoToVideoStudio: () => void;
@@ -53,7 +54,10 @@ export const AuditReportView: React.FC<AuditReportViewProps> = ({
         const data = await res.json();
         setTestResult(JSON.stringify(data, null, 2));
       } else if (endpoint === 'diagnostic') {
-        const res = await fetch('/api/diagnostic/ai-credentials');
+        const token = authManager.getToken();
+        const res = await fetch('/api/diagnostic/ai-credentials', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         const data = await res.json();
         setTestResult(JSON.stringify(data, null, 2));
       } else if (endpoint === 'video') {

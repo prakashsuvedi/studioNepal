@@ -611,19 +611,14 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
               <Film className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+              <div>
                 <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   Avatar Presenter Studio
                 </h1>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700/60">
-                  Neural Studio v2.0
-                </span>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Photorealistic virtual presenters with synchronized lip-motion.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Photorealistic AI presenters with synchronized speech, studio backdrops, and bold lower-third script.
-              </p>
-            </div>
           </div>
 
           {/* Credits & Free Render Policy Badge */}
@@ -670,7 +665,7 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Column (5 Cols): Presenter Selection, Voice & Controls */}
-        <div className="lg:col-span-5 space-y-5">
+        <div className="order-2 lg:order-1 lg:col-span-5 space-y-5">
 
           {/* Studio Production Mode Selector */}
           <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 shadow-sm space-y-2.5">
@@ -1345,9 +1340,12 @@ export const AvatarStudioView: React.FC<AvatarStudioViewProps> = ({
               </button>
             </div>
           </div>
+        </div>
 
+        {/* Right Column (7 Cols): Live Studio Output Stage & Video Player */}
+        <div className="order-1 lg:order-2 lg:col-span-7 space-y-5">
           {/* Live Studio Output Stage & Video Player */}
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-3">
+          <div className="p-4 rounded-xl bg-slate-900/95 lg:bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-sm space-y-3 sticky top-14 z-20 lg:static">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Film className="w-4 h-4 text-teal-400" />

@@ -378,41 +378,28 @@ async function startServer() {
 
   // Security Middleware: Require Verified Administrator Privileges
   const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
-    const authHeader = (req.headers['authorization'] as string) || '';
-    const adminKeyHeader = (req.headers['x-admin-key'] as string) || (req.query.adminKey as string) || '';
-
-    // 1. Direct admin secret key header or query
-    if (adminKeyHeader && (adminKeyHeader === ADMIN_CREDENTIALS.adminKey || isValidAdminSecret(adminKeyHeader))) {
+    // 1. Direct server-to-server admin secret key header ONLY (NEVER query parameters)
+    const adminKeyHeader = (req.headers['x-admin-key'] || req.headers['X-Admin-Key']) as string;
+    if (adminKeyHeader && typeof adminKeyHeader === 'string' && isValidAdminSecret(adminKeyHeader)) {
       return next();
     }
 
     // 2. Cryptographic JWT Bearer Token validation
-    if (authHeader) {
+    const authHeader = (req.headers['authorization'] || req.headers['Authorization']) as string;
+    if (authHeader && typeof authHeader === 'string') {
       const verified = verifyJwtToken(authHeader);
       if (verified.valid && verified.payload) {
-        if (verified.payload.role === 'admin' || ADMIN_WHITELIST_EMAILS.includes(verified.payload.email.toLowerCase())) {
+        const userEmail = (verified.payload.email || '').trim().toLowerCase();
+        // User must possess role 'admin' AND be present on the server-side administrator whitelist
+        if (verified.payload.role === 'admin' && ADMIN_WHITELIST_EMAILS.includes(userEmail)) {
           return next();
         }
       }
     }
 
-    // 3. Authenticated admin user check by userId or admin email whitelist
-    if (userId) {
-      if (
-        userId === 'usr_admin_01' ||
-        userId === 'usr-google-prakash' ||
-        userId === 'usr_admin_saghimire12' ||
-        userId.toLowerCase().includes('prakashsuvedi')
-      ) {
-        return next();
-      }
-
-      const user = db.getUserById(userId);
-      if (user && (user.role === 'admin' || ADMIN_WHITELIST_EMAILS.includes(user.email?.toLowerCase() || ''))) {
-        return next();
-      }
-    }
+    // Block all unverified requests; never accept client-controlled x-user-id or query params
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+    console.warn(`[SecurityWarning] Blocked unauthorized attempt on admin endpoint: ${req.method} ${req.path} from IP: ${clientIp}`);
 
     return res.status(403).json({
       error: 'Access Denied: Administrator authentication required.',
@@ -626,8 +613,8 @@ ${xmlUrls}
     });
   });
 
-  // Cloudflare R2 Diagnostic Verification Endpoint
-  app.get('/api/diagnostic/storage/r2', async (req, res) => {
+  // Cloudflare R2 Diagnostic Verification Endpoint (Admin Only - Remediated Finding 04)
+  app.get('/api/diagnostic/storage/r2', requireAdmin, async (req, res) => {
     try {
       const config = storageBucket.getConfig();
       const endpoint = process.env.R2_ENDPOINT || process.env.CLOUDFLARE_R2_ENDPOINT || process.env.S3_ENDPOINT || config.s3Endpoint || '';
@@ -666,13 +653,21 @@ ${xmlUrls}
     }
   });
 
-  // Supabase PostgreSQL Diagnostic Verification Endpoint (Admin Only)
+  // Supabase PostgreSQL Diagnostic Verification Endpoint (Admin Only - Enhanced with Outbox Queue Reconciliation)
   app.get('/api/admin/postgres/verify', requireAdmin, async (req, res) => {
     try {
+      if (postgresDb.isConnected) {
+        await db.drainPendingSyncOutbox().catch(() => {});
+      }
       const report = await postgresDb.getDiagnosticReport();
+      const outboxItems = db.getPendingSyncOutbox();
       res.json({
         success: true,
         report,
+        outbox: {
+          pendingCount: outboxItems.length,
+          items: outboxItems.slice(0, 10),
+        },
       });
     } catch (err: any) {
       res.status(500).json({
@@ -847,61 +842,97 @@ ${xmlUrls}
     }
   });
 
-  // Admin Specific Role-Based Login
+  // Admin Specific Role-Based Login (Remediated Finding 01 & Finding 03)
   app.post('/api/auth/admin-login', (req, res) => {
     try {
       const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+
+      if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid request body. Expected JSON object with administrator email and password.',
+        });
+      }
+
       const { email, password, adminKey } = req.body;
-      const validAdminEmail = ADMIN_CREDENTIALS.email;
+      const inputEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+      const inputPass = typeof password === 'string' ? password.trim() : (typeof adminKey === 'string' ? adminKey.trim() : '');
 
-      const inputPass = (password || adminKey || '').toString().trim();
-      const inputEmail = (email || '').toString().trim().toLowerCase();
-
-      // Check passwords and keys securely
-      const isEmailWhitelisted = inputEmail ? ADMIN_WHITELIST_EMAILS.includes(inputEmail) : true;
-      const isPassValid = !inputPass || isValidAdminSecret(inputPass) || inputPass === ADMIN_CREDENTIALS.password || inputPass === ADMIN_CREDENTIALS.adminKey;
-
-      // If credentials match admin whitelist or valid secret key
-      if ((isEmailWhitelisted && (isPassValid || inputPass.length > 0)) || isPassValid) {
-        recordAdminLoginSuccess(clientIp);
-
-        // Elevate or retrieve admin account
-        const targetAdminEmail = inputEmail && ADMIN_WHITELIST_EMAILS.includes(inputEmail)
-          ? inputEmail
-          : validAdminEmail;
-        const adminUser = db.findOrCreateUser(targetAdminEmail, 'Platform Administrator');
-        adminUser.role = 'admin';
-        adminUser.credits = 999999;
-        adminUser.tier = 'pro_studio';
-        db.updateUser(adminUser.id, { role: 'admin', credits: 999999, tier: 'pro_studio' });
-
-        const adminToken = generateJwtToken({
-          userId: adminUser.id,
-          email: adminUser.email,
-          role: 'admin',
-          tier: 'pro_studio',
-        });
-
-        return res.json({
-          success: true,
-          user: adminUser,
-          trialUsage: db.getTrialUsage(adminUser.id),
-          token: adminToken,
+      // 1. Strict validation: email and password/secret must be non-empty strings
+      if (!inputEmail || !inputPass) {
+        return res.status(400).json({
+          success: false,
+          error: 'Administrator email and password or secret key are required.',
         });
       }
 
-      // Check rate limit on failure
-      const rateLimit = checkAdminRateLimit(clientIp);
-      if (!rateLimit.allowed) {
-        return res.status(429).json({
-          error: `Too many failed admin attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+      // 2. Minimum length check on password
+      if (inputPass.length < 8) {
+        recordAdminLoginFailure(clientIp);
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid administrator credentials. Access restricted to authorized platform personnel.',
         });
       }
 
-      recordAdminLoginFailure(clientIp);
-      return res.status(401).json({ error: 'Invalid admin credentials or secret key' });
+      // 3. Verify that the email is on the server-side administrator whitelist
+      const isEmailWhitelisted = ADMIN_WHITELIST_EMAILS.includes(inputEmail);
+      if (!isEmailWhitelisted) {
+        recordAdminLoginFailure(clientIp);
+        const rateLimit = checkAdminRateLimit(clientIp);
+        if (!rateLimit.allowed) {
+          return res.status(429).json({
+            error: `Too many failed admin attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+          });
+        }
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid administrator credentials. Access restricted to authorized platform personnel.',
+        });
+      }
+
+      // 4. Verify password against configured admin secrets using constant-time comparison
+      const isPassValid = isValidAdminSecret(inputPass);
+      if (!isPassValid) {
+        recordAdminLoginFailure(clientIp);
+        const rateLimit = checkAdminRateLimit(clientIp);
+        if (!rateLimit.allowed) {
+          return res.status(429).json({
+            error: `Too many failed admin attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+          });
+        }
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid administrator credentials. Access restricted to authorized platform personnel.',
+        });
+      }
+
+      // 5. Success: record login, clean rate limit, and issue administrator JWT
+      recordAdminLoginSuccess(clientIp);
+
+      const adminUser = db.findOrCreateUser(inputEmail, 'Platform Administrator');
+      adminUser.role = 'admin';
+      adminUser.credits = 999999;
+      adminUser.tier = 'pro_studio';
+      db.updateUser(adminUser.id, { role: 'admin', credits: 999999, tier: 'pro_studio' });
+
+      const adminToken = generateJwtToken({
+        userId: adminUser.id,
+        email: adminUser.email,
+        role: 'admin',
+        tier: 'pro_studio',
+      });
+
+      console.log(`[AdminAuth] Verified administrator login from ${clientIp} for ${inputEmail}`);
+
+      return res.json({
+        success: true,
+        user: adminUser,
+        trialUsage: db.getTrialUsage(adminUser.id),
+        token: adminToken,
+      });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || 'Admin login failed' });
+      res.status(500).json({ error: 'Administrator login failed' });
     }
   });
 
@@ -1123,17 +1154,23 @@ Respond with valid JSON ONLY in this exact schema:
   app.post('/api/generate/image', async (req, res) => {
     try {
       const { userId, prompt, model, quality, aspectRatio, negativePrompt, stylePreset, cameraAngle } = req.body;
-      if (!userId || !prompt) {
-        return res.status(400).json({ error: 'User ID and prompt are required' });
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
       }
 
+      const authUser = extractAuthUser(req);
+      const isAdmin = isUserAdmin(authUser, req);
+      const effectiveUserId = isAdmin
+        ? (userId || authUser?.userId || 'usr_admin_01')
+        : (authUser?.userId || (userId && userId !== 'usr_admin_01' ? userId : 'usr_guest'));
+
       // Check quota & trial permissions
-      const check = db.checkCanGenerate(userId, 'image');
+      const check = db.checkCanGenerate(effectiveUserId, 'image');
       if (!check.allowed) {
         return res.status(403).json({
           error: check.reason,
           hardLocked: check.hardLocked,
-          trialUsage: db.getTrialUsage(userId),
+          trialUsage: db.getTrialUsage(effectiveUserId),
           code: 'PAYWALL_TRIGGERED',
         });
       }
@@ -1147,13 +1184,13 @@ Respond with valid JSON ONLY in this exact schema:
       });
 
       // Record in persistent database & deduct credits/quota
-      db.recordGeneration(userId, 'image', prompt, result.url, result.model);
+      db.recordGeneration(effectiveUserId, 'image', prompt, result.url, result.model);
 
-      const user = db.getUserById(userId);
+      const user = db.getUserById(effectiveUserId);
       res.json({
         success: true,
         result,
-        trialUsage: db.getTrialUsage(userId),
+        trialUsage: db.getTrialUsage(effectiveUserId),
         remainingCredits: user?.credits ?? 0,
       });
     } catch (err: any) {
@@ -1272,7 +1309,11 @@ Respond with valid JSON ONLY in this exact schema:
         frameOneSeedPrompt,
         continuationOf,
       } = req.body;
-      const effectiveUserId = userId || 'usr_admin_01';
+      const authUser = extractAuthUser(req);
+      const isAdmin = isUserAdmin(authUser, req);
+      const effectiveUserId = isAdmin
+        ? (userId || authUser?.userId || 'usr_admin_01')
+        : (authUser?.userId || (userId && userId !== 'usr_admin_01' ? userId : 'usr_guest'));
       const effectivePrompt = (prompt || 'Cinematic view of Mount Everest at sunrise').trim();
 
       const requestedDuration = seconds || durationSeconds || 8;
@@ -2023,27 +2064,37 @@ Respond with valid JSON ONLY in this exact schema:
   // Dedicated Azure GPT-Image-1.5 Endpoint (/api/images/azure)
   app.post('/api/images/azure', async (req, res) => {
     try {
-      const { prompt, size = '1024x1024', quality = 'hd', adminBypass, userId = 'usr_admin_01' } = req.body;
+      const { prompt, size = '1024x1024', quality = 'hd', adminBypass, userId } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
+      const authUser = extractAuthUser(req);
+      const isAdmin = isUserAdmin(authUser, req);
+      const effectiveUserId = isAdmin
+        ? (userId || authUser?.userId || 'usr_admin_01')
+        : (authUser?.userId || (userId && userId !== 'usr_admin_01' ? userId : 'usr_guest'));
+
+      // Admin bypass is strictly granted ONLY to verified administrators
+      const effectiveAdminBypass = isAdmin && (adminBypass === true || !authUser || authUser.role === 'admin');
+
       // Check quota for non-bypassed requests
-      if (!adminBypass && userId && userId !== 'usr_admin_01') {
-        const canGen = db.checkCanGenerate(userId, 'image');
+      if (!effectiveAdminBypass) {
+        const canGen = db.checkCanGenerate(effectiveUserId, 'image');
         if (!canGen.allowed) {
           return res.status(403).json({
             error: canGen.reason || 'Image generation quota exceeded. Please upgrade your plan or top up credits.',
             quotaExceeded: true,
+            code: 'INSUFFICIENT_CREDITS',
           });
         }
       }
 
-      console.log('[Azure Image Endpoint] Request prompt:', prompt, 'Quality:', quality, 'AdminBypass:', !!adminBypass);
+      console.log('[Azure Image Endpoint] Request prompt:', prompt, 'Quality:', quality, 'AdminBypass:', effectiveAdminBypass);
       const result = await serverGenerateImage(prompt, 'gpt-image-1.5', quality);
 
-      if (!adminBypass && userId) {
-        db.recordGeneration(userId, 'image', prompt, result.url, 'gpt-image-1.5');
+      if (!effectiveAdminBypass && effectiveUserId) {
+        db.recordGeneration(effectiveUserId, 'image', prompt, result.url, 'gpt-image-1.5');
       }
 
       return res.json({
@@ -2052,7 +2103,7 @@ Respond with valid JSON ONLY in this exact schema:
         model: 'gpt-image-1.5',
         resolution: result.resolution,
         engine: result.engine,
-        bypassed: !!adminBypass,
+        bypassed: effectiveAdminBypass,
       });
     } catch (error: any) {
       console.error('[Azure Image Endpoint Error]:', error.message);
@@ -2066,32 +2117,41 @@ Respond with valid JSON ONLY in this exact schema:
   // Dedicated Azure Sora-2 Video Endpoint (/api/video/azure)
   app.post('/api/video/azure', async (req, res) => {
     try {
-      const { prompt, model = 'sora-2', size = '720x1280', seconds = '4', adminBypass, userId = 'usr_admin_01' } = req.body;
+      const { prompt, model = 'sora-2', size = '720x1280', seconds = '4', adminBypass, userId } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
       const duration = parseInt(seconds, 10) || 4;
+      const authUser = extractAuthUser(req);
+      const isAdmin = isUserAdmin(authUser, req);
+      const effectiveUserId = isAdmin
+        ? (userId || authUser?.userId || 'usr_admin_01')
+        : (authUser?.userId || (userId && userId !== 'usr_admin_01' ? userId : 'usr_guest'));
+
+      // Admin bypass is strictly granted ONLY to verified administrators
+      const effectiveAdminBypass = isAdmin && (adminBypass === true || !authUser || authUser.role === 'admin');
 
       // Check quota for non-bypassed requests
-      if (!adminBypass && userId && userId !== 'usr_admin_01') {
-        const canGen = db.checkCanGenerate(userId, 'video', duration);
+      if (!effectiveAdminBypass) {
+        const canGen = db.checkCanGenerate(effectiveUserId, 'video', duration);
         if (!canGen.allowed) {
           return res.status(403).json({
             error: canGen.reason || 'Video generation quota exceeded. Please upgrade your plan or top up credits.',
             quotaExceeded: true,
+            code: 'INSUFFICIENT_CREDITS',
           });
         }
       }
 
-      console.log('[Azure Sora Endpoint] Request prompt:', prompt, 'Duration:', duration, 'AdminBypass:', !!adminBypass);
+      console.log('[Azure Sora Endpoint] Request prompt:', prompt, 'Duration:', duration, 'AdminBypass:', effectiveAdminBypass);
       const result = await serverGenerateVideo(prompt, duration, 'sora-2', {
         resolution: size,
         aspectRatio: size === '720x1280' ? '9:16' : '16:9',
       });
 
-      if (!adminBypass && userId) {
-        db.recordGeneration(userId, 'video', prompt, result.url, 'sora-2', duration);
+      if (!effectiveAdminBypass && effectiveUserId) {
+        db.recordGeneration(effectiveUserId, 'video', prompt, result.url, 'sora-2', duration);
       }
 
       return res.json({
@@ -2114,8 +2174,56 @@ Respond with valid JSON ONLY in this exact schema:
     }
   });
 
-  // Diagnostic Endpoint: Live Check AI Endpoints & API Keys
-  app.get('/api/diagnostic/ai-credentials', async (req, res) => {
+  // Public, unprivileged health check for mobile connection probing
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'NepalAI Studio API',
+      timestamp: new Date().toISOString(),
+      uptimeSec: Math.round(process.uptime()),
+    });
+  });
+
+  // Release Artifacts: Standalone Android APK Download & Status (Outside frontend public/ bundle)
+  const releasesDir = path.join(process.cwd(), 'data', 'releases');
+  if (!fs.existsSync(releasesDir)) {
+    try { fs.mkdirSync(releasesDir, { recursive: true }); } catch {}
+  }
+
+  app.get('/api/downloads/apk/status', (req, res) => {
+    const apkPath = path.join(releasesDir, 'nepalai-studio.apk');
+    if (!fs.existsSync(apkPath)) {
+      return res.json({ available: false, version: '1.0.0' });
+    }
+    try {
+      const stat = fs.statSync(apkPath);
+      return res.json({
+        available: true,
+        filename: 'nepalai-studio.apk',
+        version: '1.0.0',
+        sizeBytes: stat.size,
+        sizeFormatted: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+        updatedAt: stat.mtime.toISOString(),
+        downloadUrl: '/downloads/nepalai-studio.apk',
+      });
+    } catch {
+      return res.json({ available: false, version: '1.0.0' });
+    }
+  });
+
+  app.get(['/downloads/nepalai-studio.apk', '/api/downloads/apk'], (req, res) => {
+    const apkPath = path.join(releasesDir, 'nepalai-studio.apk');
+    if (!fs.existsSync(apkPath)) {
+      return res.status(404).json({ error: 'Android APK build in progress or not yet available' });
+    }
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Disposition', 'attachment; filename="nepalai-studio-v1.0.0.apk"');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.sendFile(apkPath);
+  });
+
+  // Diagnostic Endpoint: Live Check AI Endpoints & API Keys (Admin Only - Remediated Finding 05)
+  app.get('/api/diagnostic/ai-credentials', requireAdmin, async (req, res) => {
     try {
       const azureKey = getAzureOpenAIKey();
       const hasKey = Boolean(azureKey && azureKey.length > 5);
@@ -2737,22 +2845,34 @@ Respond with valid JSON ONLY in this exact schema:
   const handleChatRequest = async (req: express.Request, res: express.Response) => {
     try {
       const { userId, messages, attachments, model = 'gpt-4o', language = 'auto', systemInstruction, adminBypass } = req.body;
-      const requestUserId = (req.headers['x-user-id'] as string) || userId || 'usr_admin_01';
-      const adminHeaderKey = req.headers['x-admin-key'] as string;
+      const authUser = extractAuthUser(req);
+      const isVerifiedAdmin = isUserAdmin(authUser, req);
+      const effectiveUserId = isVerifiedAdmin
+        ? (userId || authUser?.userId || 'usr_admin_01')
+        : (authUser?.userId || (userId && userId !== 'usr_admin_01' ? userId : 'usr_guest'));
 
-      let user = db.getUserById(requestUserId);
+      let user = db.getUserById(effectiveUserId);
       if (!user) {
-        user = db.getUserById('usr_admin_01') || ({
-          id: requestUserId,
-          email: 'admin@nepalai.studio',
-          name: 'Admin / Studio User',
-          role: 'admin',
-          tier: 'pro_studio',
-          credits: 999999,
-        } as any);
+        user = isVerifiedAdmin
+          ? db.getUserById('usr_admin_01') || ({
+              id: effectiveUserId,
+              email: 'admin@nepalai.studio',
+              name: 'Admin / Studio User',
+              role: 'admin',
+              tier: 'pro_studio',
+              credits: 999999,
+            } as any)
+          : ({
+              id: effectiveUserId,
+              email: 'guest@nepalai.studio',
+              name: 'Studio Guest User',
+              role: 'user',
+              tier: 'freemium',
+              credits: 10,
+            } as any);
       }
 
-      const isAdmin = user.role === 'admin' || user.email === 'admin@nepalai.studio' || ADMIN_WHITELIST_EMAILS.includes(user.email?.toLowerCase() || '') || adminBypass === true || adminHeaderKey === process.env.ADMIN_KEY;
+      const isAdmin = isVerifiedAdmin;
 
       if (!Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({ error: 'Messages array is required' });
@@ -3654,7 +3774,7 @@ Respond with valid JSON ONLY in this exact schema:
     try {
       const { url, rawText, articleTitle, targetDuration, aspectRatio, language, generateVoiceover, voiceId, visualMode } = req.body;
       const authUser = extractAuthUser(req);
-      const userId = authUser?.userId || (req.headers['x-user-id'] as string) || 'usr_admin_01';
+      const userId = authUser?.userId || 'usr_guest';
 
       if (!url && !rawText) {
         return res.status(400).json({ error: 'Please provide either a valid article "url" or "rawText".' });
@@ -3708,15 +3828,35 @@ Respond with valid JSON ONLY in this exact schema:
     }
   });
 
-  // Get Project by ID
+  // Get Project by ID (Tenant Isolated)
   app.get('/api/projects/:projectId', async (req, res) => {
     try {
       const { projectId } = req.params;
+      const authUser = extractAuthUser(req);
+      const isAdmin = isUserAdmin(authUser, req);
+      const callerUserId = authUser?.userId;
+
       if (postgresDb.isConnected) {
-        const queryText = `SELECT id, title, aspect_ratio, scenes, subtitles, audio_tracks, metadata, version, created_at, updated_at FROM projects WHERE id = $1`;
+        const queryText = `SELECT id, user_id, owner_user_id, title, aspect_ratio, scenes, subtitles, audio_tracks, metadata, version, created_at, updated_at FROM projects WHERE id = $1`;
         const dbRes = await postgresDb.query(queryText, [projectId]);
         if (dbRes.rows.length > 0) {
           const row = dbRes.rows[0];
+          const projectOwner = row.user_id || row.owner_user_id;
+
+          // Tenant isolation check:
+          // 1. Admin has global audit access
+          // 2. Project owner matches authenticated caller
+          // 3. Guest/unclaimed project ('usr_guest', 'anonymous', or empty) is accessible
+          const isOwner = Boolean(callerUserId && projectOwner && (projectOwner === callerUserId || projectOwner.toLowerCase() === callerUserId.toLowerCase()));
+          const isGuestProject = !projectOwner || projectOwner === 'usr_guest' || projectOwner === 'anonymous';
+
+          if (!isAdmin && !isOwner && !isGuestProject) {
+            return res.status(403).json({
+              error: 'Access denied: You do not have permission to access this project.',
+              code: 'FORBIDDEN_TENANT_ACCESS',
+            });
+          }
+
           return res.json({
             success: true,
             project: {
@@ -3735,8 +3875,15 @@ Respond with valid JSON ONLY in this exact schema:
         }
       }
 
-      // Fallback check versionHistory snapshots
-      const versions = versionHistory.getVersions(projectId, undefined, true);
+      // Fallback check versionHistory snapshots with tenant access validation
+      if (!versionHistory.hasAccess(projectId, callerUserId, isAdmin)) {
+        return res.status(403).json({
+          error: 'Access denied: You do not have permission to access this project.',
+          code: 'FORBIDDEN_TENANT_ACCESS',
+        });
+      }
+
+      const versions = versionHistory.getVersions(projectId, callerUserId, isAdmin);
       if (versions && versions.length > 0) {
         const latest = versions[versions.length - 1];
         return res.json({
@@ -3760,12 +3907,27 @@ Respond with valid JSON ONLY in this exact schema:
     }
   });
 
-  // List all Projects
+  // List all Projects (Tenant Isolated)
   app.get('/api/projects', async (req, res) => {
     try {
+      const authUser = extractAuthUser(req);
+      const isAdmin = isUserAdmin(authUser, req);
+      const callerUserId = authUser?.userId;
+
       if (postgresDb.isConnected) {
-        const queryText = `SELECT id, title, aspect_ratio, scenes, metadata, version, created_at, updated_at FROM projects ORDER BY updated_at DESC LIMIT 50`;
-        const dbRes = await postgresDb.query(queryText);
+        let queryText = '';
+        let queryParams: any[] = [];
+
+        if (isAdmin) {
+          queryText = `SELECT id, user_id, owner_user_id, title, aspect_ratio, scenes, metadata, version, created_at, updated_at FROM projects ORDER BY updated_at DESC LIMIT 50`;
+        } else if (callerUserId) {
+          queryText = `SELECT id, user_id, owner_user_id, title, aspect_ratio, scenes, metadata, version, created_at, updated_at FROM projects WHERE user_id = $1 OR owner_user_id = $1 ORDER BY updated_at DESC LIMIT 50`;
+          queryParams = [callerUserId];
+        } else {
+          queryText = `SELECT id, user_id, owner_user_id, title, aspect_ratio, scenes, metadata, version, created_at, updated_at FROM projects WHERE user_id = 'usr_guest' OR owner_user_id = 'usr_guest' ORDER BY updated_at DESC LIMIT 50`;
+        }
+
+        const dbRes = await postgresDb.query(queryText, queryParams);
         const projects = dbRes.rows.map(row => ({
           id: row.id,
           title: row.title,
@@ -3779,7 +3941,9 @@ Respond with valid JSON ONLY in this exact schema:
         return res.json({ success: true, projects });
       }
 
-      res.json({ success: true, projects: [] });
+      // In-memory versionHistory store fallback with tenant isolation
+      const inMemoryProjects = versionHistory.listProjects(callerUserId, isAdmin);
+      res.json({ success: true, projects: inMemoryProjects });
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Failed to list projects' });
     }
@@ -3789,11 +3953,11 @@ Respond with valid JSON ONLY in this exact schema:
   // VERSION HISTORY & SCENE CONFIG SNAPSHOTS
   // ==========================================
 
-  // List Version Snapshots
+  // List Version Snapshots (Tenant Isolated)
   app.get('/api/projects/:projectId/versions', (req, res) => {
     const { projectId } = req.params;
     const authUser = extractAuthUser(req);
-    const userId = authUser?.userId || (req.headers['x-user-id'] as string) || (req.query.userId as string);
+    const userId = authUser?.userId;
     const isAdmin = isUserAdmin(authUser, req);
 
     const versions = versionHistory.getVersions(projectId, userId, isAdmin);
@@ -3811,24 +3975,35 @@ Respond with valid JSON ONLY in this exact schema:
     });
   });
 
-  // Create Version Snapshot
+  // Create Version Snapshot (Tenant Isolated)
   app.post('/api/projects/:projectId/versions', async (req, res) => {
     try {
       const { projectId } = req.params;
       const { title, description, createdBy, scenes, audioTracks, ownerId } = req.body;
       const authUser = extractAuthUser(req);
-      const callerUserId = authUser?.userId || (req.headers['x-user-id'] as string);
+      const isAdmin = isUserAdmin(authUser, req);
+      const callerUserId = authUser?.userId;
 
       if (!Array.isArray(scenes) || scenes.length === 0) {
         return res.status(400).json({ error: 'Scenes array is required to create version snapshot' });
       }
+
+      // Check if project has an existing owner and caller has access
+      if (!versionHistory.hasAccess(projectId, callerUserId, isAdmin)) {
+        return res.status(403).json({
+          error: 'Access denied: You do not have permission to modify this project.',
+          code: 'FORBIDDEN_TENANT_ACCESS',
+        });
+      }
+
+      const effectiveOwnerId = callerUserId || versionHistory.getOwner(projectId) || (isAdmin && ownerId ? ownerId : 'usr_guest');
 
       const version = await versionHistory.saveVersion({
         projectId,
         title: title || 'Version Snapshot',
         description,
         createdBy: createdBy || authUser?.email || 'Editor',
-        ownerId: callerUserId || ownerId || createdBy,
+        ownerId: effectiveOwnerId,
         scenes,
         audioTracks: audioTracks || [],
       });
@@ -3843,11 +4018,11 @@ Respond with valid JSON ONLY in this exact schema:
     }
   });
 
-  // Restore Version Snapshot
+  // Restore Version Snapshot (Tenant Isolated)
   app.post('/api/projects/:projectId/versions/:versionId/restore', (req, res) => {
     const { projectId, versionId } = req.params;
     const authUser = extractAuthUser(req);
-    const userId = authUser?.userId || (req.headers['x-user-id'] as string) || (req.query.userId as string);
+    const userId = authUser?.userId;
     const isAdmin = isUserAdmin(authUser, req);
 
     if (!versionHistory.hasAccess(projectId, userId, isAdmin)) {
@@ -3933,6 +4108,17 @@ Respond with valid JSON ONLY in this exact schema:
         return res.status(400).json({ error: 'Valid projectId and scenes array are required for atomic transactions.' });
       }
 
+      const authUser = extractAuthUser(req);
+      const isAdmin = isUserAdmin(authUser, req);
+      const effectiveUserId = authUser?.userId || (isAdmin && userId ? String(userId) : (userId || 'usr_guest'));
+
+      if (!versionHistory.hasAccess(projectId, effectiveUserId, isAdmin)) {
+        return res.status(403).json({
+          error: 'Access denied: You do not have permission to modify this project.',
+          code: 'FORBIDDEN_TENANT_ACCESS',
+        });
+      }
+
       let versionResult = null;
       if (autoSnapshot !== false) {
         try {
@@ -3940,7 +4126,8 @@ Respond with valid JSON ONLY in this exact schema:
             projectId,
             title: projectTitle ? `${projectTitle} (Atomic State)` : 'Atomic Snapshot',
             description: `Atomic commit with ${scenes.length} scene(s) and ${(subtitles || []).length} subtitle(s)`,
-            createdBy: userId || 'Editor',
+            createdBy: effectiveUserId,
+            ownerId: effectiveUserId,
             scenes,
             audioTracks: audioTracks || [],
           });

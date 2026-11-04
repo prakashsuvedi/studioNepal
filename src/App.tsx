@@ -191,6 +191,79 @@ export default function App() {
     };
   }, []);
 
+  // Android Hardware Back Button & OAuth Deep Link Handling
+  useEffect(() => {
+    let unlistenBack: any = null;
+    let unlistenUrl: any = null;
+
+    try {
+      import('@capacitor/app').then(({ App: CapApp }) => {
+        // Hardware Back Button: Modals -> Landing -> Exit
+        CapApp.addListener('backButton', ({ canGoBack }) => {
+          if (isAuthOpen) { setIsAuthOpen(false); return; }
+          if (isPaywallOpen) { setIsPaywallOpen(false); return; }
+          if (isTourOpen) { setIsTourOpen(false); return; }
+          if (isFeedbackModalOpen) { setIsFeedbackModalOpen(false); return; }
+          if (showGlobalWorkspaces) { setShowGlobalWorkspaces(false); return; }
+          if (showGlobalShortcuts) { setShowGlobalShortcuts(false); return; }
+          if (isUsageHistoryOpen) { setIsUsageHistoryOpen(false); return; }
+
+          if (activeTab !== 'landing') {
+            setActiveTab('landing');
+            return;
+          }
+
+          if (!canGoBack) {
+            CapApp.exitApp();
+          } else {
+            window.history.back();
+          }
+        }).then(res => {
+          unlistenBack = res;
+        }).catch(() => {});
+
+        // OAuth Deep Link Callback (nepalai://auth/callback)
+        CapApp.addListener('appUrlOpen', (event) => {
+          try {
+            if (event.url && (event.url.includes('auth/callback') || event.url.includes('token='))) {
+              const parsed = new URL(event.url);
+              const token = parsed.searchParams.get('token');
+              const userId = parsed.searchParams.get('userId');
+              if (token) {
+                authManager.saveToken(token, userId || undefined);
+                const targetUserId = userId || authManager.getUserId();
+                if (targetUserId) {
+                  apiGetMe(targetUserId).then((data: any) => {
+                    if (data?.user) setUser(data.user);
+                    if (data?.trialUsage) setTrialUsage(data.trialUsage);
+                  }).catch(() => {});
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Deep link parse error:', e);
+          }
+        }).then(res => {
+          unlistenUrl = res;
+        }).catch(() => {});
+      }).catch(() => {});
+    } catch {}
+
+    return () => {
+      if (unlistenBack && typeof unlistenBack.remove === 'function') unlistenBack.remove();
+      if (unlistenUrl && typeof unlistenUrl.remove === 'function') unlistenUrl.remove();
+    };
+  }, [
+    activeTab,
+    isAuthOpen,
+    isPaywallOpen,
+    isTourOpen,
+    isFeedbackModalOpen,
+    showGlobalWorkspaces,
+    showGlobalShortcuts,
+    isUsageHistoryOpen,
+  ]);
+
   const handleOpenAuth = (mode: 'user' | 'admin' = 'user') => {
     setAuthMode(mode);
     setIsAuthOpen(true);
@@ -328,7 +401,7 @@ export default function App() {
       />
 
       {/* Main Studio Viewport */}
-      <main className={`flex-1 ${activeTab === 'video_studio' || activeTab === 'character_studio' || activeTab === 'ad_builder' ? 'pb-0 overflow-hidden' : 'pb-24 md:pb-16'}`}>
+      <main className={`flex-1 ${activeTab === 'hamro_ai' || activeTab === 'video_studio' || activeTab === 'character_studio' || activeTab === 'ad_builder' ? 'h-[calc(100dvh-3.25rem)] overflow-hidden pb-0' : 'pb-24 md:pb-16'}`}>
         {activeTab === 'landing' && (
           <LandingPageView
             user={user}
@@ -608,105 +681,107 @@ export default function App() {
         )}
       </main>
 
-      {/* Unified Global Master Footer */}
-      <footer className="border-t border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#07080D] text-slate-600 dark:text-slate-400 py-8 px-4 text-xs transition-colors">
-        <div className="max-w-7xl mx-auto space-y-5">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <NepalAiLogo size="sm" />
-              <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-              <span className="text-slate-800 dark:text-slate-200 font-semibold">
-                NepalAI Studio Pro <span className="text-slate-400 dark:text-slate-500 font-normal">· studio.nepalai.tech</span>
-              </span>
+      {/* Unified Global Master Footer - Only displayed on public/landing pages */}
+      {['landing', 'faq', 'about', 'privacy', 'contact'].includes(activeTab) && (
+        <footer className="border-t border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#07080D] text-slate-600 dark:text-slate-400 py-8 px-4 text-xs transition-colors">
+          <div className="max-w-7xl mx-auto space-y-5">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <NepalAiLogo size="sm" />
+                <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+                <span className="text-slate-800 dark:text-slate-200 font-semibold">
+                  NepalAI Studio Pro <span className="text-slate-400 dark:text-slate-500 font-normal">· studio.nepalai.tech</span>
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-slate-600 dark:text-slate-300 font-medium">
+                <button 
+                  onClick={() => handleSelectTab('landing')} 
+                  className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
+                >
+                  Home
+                </button>
+                <button 
+                  onClick={() => handleSelectTab('video_studio')} 
+                  className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
+                >
+                  Studio
+                </button>
+                <button 
+                  onClick={() => handleSelectTab('hamro_ai')} 
+                  className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer flex items-center gap-1"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-rose-500" />
+                  <span>HamroAI</span>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('faq')} 
+                  className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+                >
+                  FAQ
+                </button>
+                <button 
+                  onClick={() => setActiveTab('about')} 
+                  className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+                >
+                  About
+                </button>
+                <button 
+                  onClick={() => setActiveTab('privacy')} 
+                  className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+                >
+                  Privacy
+                </button>
+                <button 
+                  onClick={() => setActiveTab('contact')} 
+                  className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+                >
+                  Contact
+                </button>
+                <a 
+                  href="/sitemap.xml" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+                >
+                  Sitemap
+                </a>
+                <button 
+                  onClick={() => handleOpenAuth('admin')} 
+                  className="text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold cursor-pointer"
+                >
+                  Admin Portal
+                </button>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-slate-600 dark:text-slate-300 font-medium">
-              <button 
-                onClick={() => handleSelectTab('landing')} 
-                className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
-              >
-                Home
-              </button>
-              <button 
-                onClick={() => handleSelectTab('video_studio')} 
-                className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
-              >
-                Studio
-              </button>
-              <button 
-                onClick={() => handleSelectTab('hamro_ai')} 
-                className="hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer flex items-center gap-1"
-              >
-                <MessageSquare className="w-3.5 h-3.5 text-rose-500" />
-                <span>HamroAI</span>
-              </button>
-              <button 
-                onClick={() => setActiveTab('faq')} 
-                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
-              >
-                FAQ
-              </button>
-              <button 
-                onClick={() => setActiveTab('about')} 
-                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
-              >
-                About
-              </button>
-              <button 
-                onClick={() => setActiveTab('privacy')} 
-                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
-              >
-                Privacy
-              </button>
-              <button 
-                onClick={() => setActiveTab('contact')} 
-                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
-              >
-                Contact
-              </button>
-              <a 
-                href="/sitemap.xml" 
-                target="_blank" 
-                rel="noreferrer"
-                className="hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
-              >
-                Sitemap
-              </a>
-              <button 
-                onClick={() => handleOpenAuth('admin')} 
-                className="text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold cursor-pointer"
-              >
-                Admin Portal
-              </button>
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <div>
+                Platform designed and created by{' '}
+                <a
+                  href="https://scamspike.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-rose-600 dark:text-rose-400 hover:underline"
+                >
+                  ScamSpike Solutions Pvt. Ltd. (scamspike.com)
+                </a>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span>Founder:</span>
+                <a
+                  href="https://prakashsuvedi.com.np"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  Prakash Suvedi (prakashsuvedi.com.np)
+                </a>
+              </div>
             </div>
           </div>
-
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
-            <div>
-              Platform designed and created by{' '}
-              <a
-                href="https://scamspike.com"
-                target="_blank"
-                rel="noreferrer"
-                className="font-bold text-rose-600 dark:text-rose-400 hover:underline"
-              >
-                ScamSpike Solutions Pvt. Ltd. (scamspike.com)
-              </a>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span>Founder:</span>
-              <a
-                href="https://prakashsuvedi.com.np"
-                target="_blank"
-                rel="noreferrer"
-                className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                Prakash Suvedi (prakashsuvedi.com.np)
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       {/* Mobile & Tablet App Bottom Navigation Bar */}
       <MobileBottomNav
@@ -715,6 +790,10 @@ export default function App() {
         user={user}
         onOpenAuth={handleOpenAuth}
         onOpenPaywall={() => handleTriggerPaywall('Manage subscription & credits')}
+        onOpenTour={() => setIsTourOpen(true)}
+        onOpenWorkspaces={() => setShowGlobalWorkspaces(true)}
+        onOpenUsageHistory={() => setIsUsageHistoryOpen(true)}
+        onOpenFeedback={() => setIsFeedbackModalOpen(true)}
       />
 
       {/* Authentication Modal */}
@@ -772,18 +851,20 @@ export default function App() {
         currentUser={user}
       />
 
-      {/* Floating System Feedback & Issue Report Trigger Button */}
-      <div className="fixed bottom-4 right-4 z-40 hidden sm:block">
-        <button
-          type="button"
-          onClick={() => setIsFeedbackModalOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white dark:bg-white/90 dark:hover:bg-white dark:text-slate-900 shadow-xl backdrop-blur-md text-xs font-bold border border-slate-700/50 dark:border-slate-300 transition hover:scale-105 active:scale-95 cursor-pointer group"
-          title="Submit Feature Request, Report Bugs, or Direct System Comments"
-        >
-          <MessageSquare className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
-          <span>Feedback / Report Error</span>
-        </button>
-      </div>
+      {/* Floating System Feedback & Issue Report Trigger Button - Only on public pages */}
+      {['landing', 'faq', 'about', 'privacy', 'contact'].includes(activeTab) && (
+        <div className="fixed bottom-4 right-4 z-40 hidden sm:block">
+          <button
+            type="button"
+            onClick={() => setIsFeedbackModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white dark:bg-white/90 dark:hover:bg-white dark:text-slate-900 shadow-xl backdrop-blur-md text-xs font-bold border border-slate-700/50 dark:border-slate-300 transition hover:scale-105 active:scale-95 cursor-pointer group"
+            title="Submit Feature Request, Report Bugs, or Direct System Comments"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+            <span>Feedback / Report Error</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,14 +2,29 @@ node_modules/
 build/
 dist/
 coverage/
+.cache/
 .DS_Store
 *.log
 .env*
 !.env.example
 
+# Tooling, Android, and AI Studio internals
+.tools/
+.aistudio/
+.git/
+android/
+
 # Exclude runtime generated media & storage binaries
 data/storage/*
 !data/storage/.gitkeep
+data/backups/
+data/releases/
+public/uploads/*.json
+public/samples/
+public/audio/
+public/renders/
+
+# Media binaries matching original studioNepal repo
 *.mp3
 *.mp4
 *.wav
@@ -25,3 +40,14 @@ full_chat_history.txt
 test_e2e_results.json
 extracted_*.md
 *.tmp
+
+# Android signing keys, gradle cache, and release artifacts
+*.keystore
+*.jks
+*.apk
+*.aab
+keystore.properties
+.gradle/
+
+
+

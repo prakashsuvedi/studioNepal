@@ -179,3 +179,30 @@ html.dark .hero-glass-chip {
   border: 0 !important;
 }
 
+/* Mobile-friendly safe area and touch utilities */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.safe-area-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+.safe-area-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+
+.overflow-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

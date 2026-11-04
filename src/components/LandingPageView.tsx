@@ -79,11 +79,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   });
 
   const promptSuggestions = [
-    { label: '🏔️ सगरमाथा विहानी (Everest)', text: 'Cinematic 4K drone shot over Mt. Everest sunrise with golden snow particles and dramatic lighting' },
-    { label: '🛕 पशुपति आरती (Pashupati)', text: 'Pashupati temple evening aarti rituals, oil lamps reflection and sacred devotional chanting in slow motion' },
-    { label: '🍲 मोमो क्याफे विज्ञापन (Food Ad)', text: 'Crispy steaming Nepali c-momo platter commercial with spicy chutney dip, 4K macro cinematic close-up' },
-    { label: '📻 भर्चुअल एंकर (AI Anchor)', text: 'Professional Nepali virtual news anchor presenting prime news in studio with breaking headlines and charts' },
-    { label: '🌿 फेवाताल यात्रा (Pokhara)', text: 'Peaceful Pokhara Phewa lake boat ride with Annapurna range reflection and serene acoustic flute' },
+    { label: '🏔️ सगरमाथा', text: 'Cinematic 4K drone shot over Mt. Everest sunrise with golden snow particles and dramatic lighting' },
+    { label: '🛕 पशुपति', text: 'Pashupati temple evening aarti rituals, oil lamps reflection and sacred devotional chanting in slow motion' },
+    { label: '🍲 मोमो विज्ञापन', text: 'Crispy steaming Nepali c-momo platter commercial with spicy chutney dip, 4K macro cinematic close-up' },
+    { label: '🌿 फेवाताल', text: 'Peaceful Pokhara Phewa lake boat ride with Annapurna range reflection and serene acoustic flute' },
   ];
 
   // Scroll listener for floating CTA - only appears after scrolling past hero & interactive demo
@@ -363,37 +362,47 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           animate="visible"
           className="flex flex-col items-center w-full"
         >
-          {/* Subtle Live Kicker */}
+          {/* Subtle Minimal Kicker */}
           <motion.div variants={itemVariants}>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3 tracking-wide px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 shadow-xs">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 mb-3.5 tracking-wide px-3.5 py-1 rounded-full bg-slate-100/90 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 shadow-2xs">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
               </span>
-              <span>नेपालको पहिलो एआई मिडिया स्टुडियो · Sovereign Creative Suite</span>
+              <span>{lang === 'en' ? 'AI Video & Voice Studio' : lang === 'hi' ? 'एआई वीडियो और वॉइस स्टूडियो' : 'सिनेमेटिक एआई स्टुडियो'}</span>
             </div>
           </motion.div>
 
-          {/* Clean Bilingual Hero Headline */}
+          {/* Premium Focused Headline - Single Clear Title */}
           <motion.h1 
             variants={itemVariants}
-            className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-[1.14] max-w-4xl mx-auto"
+            className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-[1.12] max-w-2xl mx-auto"
           >
-            सिनेमेटिक एआई भिडियो र आवाज
-            <span className="block mt-1.5 sm:mt-2.5 text-2xl sm:text-4xl lg:text-5xl bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 dark:from-rose-400 dark:via-purple-300 dark:to-indigo-300 bg-clip-text text-transparent font-extrabold">
-              Cinematic AI Video & Studio Suite
-            </span>
+            {lang === 'ne' ? (
+              <>
+                सिनेमेटिक <span className="bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 dark:from-rose-400 dark:via-purple-300 dark:to-indigo-300 bg-clip-text text-transparent">भिडियो र आवाज</span>
+              </>
+            ) : lang === 'hi' ? (
+              <>
+                सिनेमैटिक <span className="bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 dark:from-rose-400 dark:via-purple-300 dark:to-indigo-300 bg-clip-text text-transparent">वीडियो और आवाज़</span>
+              </>
+            ) : (
+              <>
+                Cinematic <span className="bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 dark:from-rose-400 dark:via-purple-300 dark:to-indigo-300 bg-clip-text text-transparent">Video & Voice</span>
+              </>
+            )}
           </motion.h1>
 
-          {/* Clean Bilingual Hero Subtitle */}
+          {/* Clean Single-Sentence Tagline */}
           <motion.p 
             variants={itemVariants}
-            className="mt-4 sm:mt-5 text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed"
+            className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 max-w-lg mx-auto leading-relaxed font-normal"
           >
-            आफ्नो सोचलाई सेकेन्डमै ४K दृश्य, प्राकृतिक नेपाली आवाज र अटो-क्याप्सनमा बदल्नुहोस्।
-            <span className="block mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
-              Turn ideas into 4K scenes, Sora-2 motion, neural voices & synced captions in seconds.
-            </span>
+            {lang === 'ne' 
+              ? 'आफ्नो सोचलाई ४K दृश्य र प्राकृतिक आवाजमा बदल्नुहोस्।'
+              : lang === 'hi'
+              ? 'अपने विचारों को 4K दृश्यों और प्राकृतिक आवाज़ में बदलें।'
+              : 'Create cinematic 4K scenes and natural voices in seconds.'}
           </motion.p>
 
           {/* Interactive Prompt Terminal - Clean & Spacious */}
@@ -412,7 +421,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   type="text"
                   value={heroPrompt}
                   onChange={(e) => setHeroPrompt(e.target.value)}
-                  placeholder="कुनै पनि भिडियोको सोच लेख्नुहोस्... (e.g. Mt. Everest sunrise 4K)"
+                  placeholder={lang === 'en' ? "Describe your video idea... (e.g. Mt. Everest sunrise 4K)" : "कुनै पनि भिडियोको सोच लेख्नुहोस्... (जस्तै: सगरमाथा बिहानी ४K)"}
                   className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden font-medium py-1"
                 />
               </div>
@@ -424,7 +433,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   onClick={handleHeroGenerate}
                   className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold text-xs sm:text-sm shadow-md shadow-rose-600/25 transition active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <span>{user ? 'स्टुडियो खोल्नुहोस्' : 'निःशुल्क सुरु गर्नुहोस्'}</span>
+                  <span>{user ? (lang === 'en' ? 'Launch Studio' : 'स्टुडियो खोल्नुहोस्') : (lang === 'en' ? 'Start Free' : 'सुरु गर्नुहोस्')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </motion.button>
 
@@ -435,7 +444,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/20 transition active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>सस्तो पास (रू ५०)</span>
+                  <span>{lang === 'en' ? 'Micro-Pass (रू 50)' : 'सस्तो पास (रू ५०)'}</span>
                 </motion.button>
               </div>
             </div>
@@ -444,7 +453,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/[0.06] flex items-center gap-2 overflow-x-auto no-scrollbar text-[11px] sm:text-xs">
               <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-semibold shrink-0">
                 <Sparkles className="w-3 h-3 text-rose-500" />
-                <span>सुझाव:</span>
+                <span>{lang === 'en' ? 'Ideas:' : 'सुझाव:'}</span>
               </span>
               {promptSuggestions.map((item, idx) => (
                 <motion.button
@@ -460,22 +469,24 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </div>
           </motion.div>
 
-          {/* Trust Row */}
+          {/* Trust Row - Clean inline indicators */}
           <motion.div 
             variants={itemVariants}
-            className="mt-6 flex flex-wrap items-center justify-center gap-y-2 gap-x-6 text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium"
+            className="mt-5 flex flex-wrap items-center justify-center gap-y-1.5 gap-x-5 text-xs text-slate-500 dark:text-slate-400 font-medium"
           >
             <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>वाटरमार्क-रहित HD/4K</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{lang === 'en' ? 'Watermark-Free 4K' : 'वाटरमार्क-रहित HD/4K'}</span>
             </div>
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">·</span>
             <div className="flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span>पूर्ण कमर्सियल अधिकार</span>
+              <Shield className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{lang === 'en' ? 'Commercial Rights' : 'कमर्सियल अधिकार'}</span>
             </div>
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">·</span>
             <div className="flex items-center gap-1.5">
-              <QrCode className="w-4 h-4 text-amber-500" />
-              <span>फोनपे / eSewa Instant QR</span>
+              <QrCode className="w-3.5 h-3.5 text-amber-500" />
+              <span>{lang === 'en' ? 'Instant FonePay QR' : 'फोनपे क्युआर'}</span>
             </div>
           </motion.div>
         </motion.div>
@@ -486,13 +497,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <div className="text-center max-w-3xl mx-auto mb-5 sm:mb-6">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1.5">
             <Radio className="w-3.5 h-3.5 animate-pulse" />
-            <span>प्रत्यक्ष स्टुडियो डेमो · Live Studio Demo</span>
+            <span>{lang === 'en' ? 'Live Studio Demo' : 'प्रत्यक्ष स्टुडियो डेमो'}</span>
           </div>
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
-            हेर्नुहोस् कसरी ३ मिनेटमा ४K भिडियो, आवाज र सबटाइटल तयार हुन्छ
+            {lang === 'en' ? 'Generate 4K Video, Voice & Captions in 3 Minutes' : 'हेर्नुहोस् कसरी ३ मिनेटमा ४K भिडियो र आवाज तयार हुन्छ'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Real Sora-2 4K scenes, authentic neural voiceovers & word-accurate Devanagari captions.
+            {lang === 'en' ? 'Real 4K scenes, authentic neural voiceovers & word-accurate captions.' : '४K दृश्य, प्राकृतिक न्युरल आवाज र शुद्ध देवनागरी सबटाइटल।'}
           </p>
         </div>
 
@@ -518,13 +529,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <div className="text-center max-w-2xl mx-auto mb-10">
           <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>एआई प्रविधिहरू · Core AI Engines</span>
+            <span>{lang === 'en' ? 'Core Engines' : 'मुख्य प्रविधिहरू'}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-            चार मुख्य सिर्जनात्मक प्रविधिहरू · Four Creative Engines
+            {t.capabilitiesTitle}
           </h2>
           <p className="mt-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-            युट्युब, रील्स, टिकटक र व्यावसायिक विज्ञापनहरू निर्माण गर्ने पूर्ण स्टुडियो। Everything needed to produce studio-grade short films and reels.
+            {t.capabilitiesSubtitle}
           </p>
         </div>
 
@@ -534,33 +545,33 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               icon: Film,
               image: '/samples/everest_sunrise_thumb.jpg',
               color: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
-              title: 'सोरा-२ सिनेमा · Sora-2 Cinema',
-              desc: '४, ८ र १२ सेकेन्डका ४K सिनेमेटिक दृश्यहरू। 4K photorealistic scenes with fluid physics & camera motion.',
-              tag: '4K Broadcast Ready',
+              title: lang === 'en' ? 'Sora-2 Cinema' : 'सोरा-२ सिनेमा',
+              desc: lang === 'en' ? '4K photorealistic scenes with fluid physics & camera motion.' : '४, ८ र १२ सेकेन्डका ४K सिनेमेटिक दृश्यहरू।',
+              tag: '4K Cinema',
             },
             {
               icon: Mic,
               image: '/assets/avatars/aarav.jpg',
               color: 'text-purple-500 bg-purple-500/10 border-purple-500/20',
-              title: 'न्युरल आवाज · Neural Voiceover',
-              desc: '२४kHz प्राकृतिक नेपाली, भारतीय अंग्रेजी र हिन्दी आवाज। Fluent broadcast narration in authentic accents.',
-              tag: 'Azure & SpeechT5 Master',
+              title: lang === 'en' ? 'Neural Voiceover' : 'न्युरल आवाज',
+              desc: lang === 'en' ? 'Fluent broadcast narration in authentic local accents.' : '२४kHz प्राकृतिक नेपाली, भारतीय अंग्रेजी र हिन्दी आवाज।',
+              tag: 'Studio Master',
             },
             {
               icon: Sparkles,
               image: '/samples/durbar_square_thumb.jpg',
               color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-              title: 'देवनागरी सबटाइटल · Captions',
-              desc: 'शब्द-शब्दमा मेल खाने मुक्ता फन्ट काराओके सबटाइटल। Word-level sync with native Mukta typography.',
-              tag: 'Karaoke Frame Sync',
+              title: lang === 'en' ? 'Devanagari Captions' : 'देवनागरी सबटाइटल',
+              desc: lang === 'en' ? 'Word-level sync with native typography animations.' : 'शब्द-शब्दमा मेल खाने मुक्ता फन्ट काराओके सबटाइटल।',
+              tag: 'Auto-Sync',
             },
             {
               icon: Zap,
               image: '/samples/phewa_lake_thumb.jpg',
               color: 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20',
-              title: '१-क्लिक पब्लिश · 1-Click Post',
-              desc: 'युट्युब सर्ट्स र इन्स्टाग्राम रील्समा सीधा पब्लिश गर्नुहोस्। Export directly with optimized SEO tags.',
-              tag: 'YouTube & Reels Ready',
+              title: lang === 'en' ? '1-Click Export' : '१-क्लिक पब्लिश',
+              desc: lang === 'en' ? 'Export directly for YouTube Shorts and Instagram Reels.' : 'युट्युब सर्ट्स र इन्स्टाग्राम रील्समा सीधा पब्लिश गर्नुहोस्।',
+              tag: 'Instant Export',
             },
           ].map((item, idx) => {
             const Icon = item.icon;
@@ -603,7 +614,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     </p>
                   </div>
                   <div className="pt-2 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-[11px] text-rose-600 dark:text-rose-400 font-semibold">
-                    <span>स्टुडियोमा प्रयोग गर्नुहोस्</span>
+                    <span>{lang === 'en' ? 'Open in Studio' : 'स्टुडियोमा खोल्नुहोस्'}</span>
                     <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -619,20 +630,20 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">
               <Film className="w-3.5 h-3.5" />
-              <span>स्टुडियो नमुनाहरू · Studio Showcase</span>
+              <span>{lang === 'en' ? 'Showcase' : 'नमुना दृश्यहरू'}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-              हालै तयार गरिएका उत्कृष्ट सिनेमेटिक दृश्यहरू
+              {lang === 'en' ? 'Recent Studio Creations' : 'हालै तयार गरिएका सिनेमेटिक दृश्यहरू'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Broadcast-quality clips generated with NepalAI Studio engines. Click to launch.
+              {lang === 'en' ? 'Ultra-HD scenes created with NepalAI engines.' : 'नेपाल एआई इन्जिनबाट तयार गरिएका अल्ट्रा-एचडी दृश्यहरू।'}
             </p>
           </div>
           <button
             onClick={onLaunchStudio}
             className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-200 dark:text-slate-950 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shrink-0"
           >
-            <span>सबै दृश्य हेर्नुहोस् · Explore All</span>
+            <span>{lang === 'en' ? 'Open Studio' : 'स्टुडियो खोल्नुहोस्'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -640,29 +651,29 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
-              title: 'सगरमाथा विहानी (Everest Dawn)',
-              subtitle: 'Sora-2 Cinema · 4K Drone Simulation',
+              title: lang === 'en' ? 'Everest Sunrise' : 'सगरमाथा विहानी',
+              subtitle: 'Sora-2 Cinema · 4K Drone',
               thumb: '/samples/everest_sunrise_thumb.jpg',
               duration: '0:04',
               aspect: '१६:९ 4K',
             },
             {
-              title: 'काठमाडौँ दरबार स्क्वायर (Durbar Heritage)',
-              subtitle: 'Historical Heritage · Neural Soundscape',
+              title: lang === 'en' ? 'Kathmandu Durbar' : 'काठमाडौँ दरबार स्क्वायर',
+              subtitle: 'Heritage · 4K Simulation',
               thumb: '/samples/durbar_square_thumb.jpg',
               duration: '0:08',
               aspect: '१६:९ 4K',
             },
             {
-              title: 'पोखरा फेवाताल यात्रा (Phewa Lake Reel)',
-              subtitle: '9:16 Shorts · Annapurna Reflections',
+              title: lang === 'en' ? 'Phewa Lake Journey' : 'पोखरा फेवाताल यात्रा',
+              subtitle: '9:16 Shorts · Annapurna',
               thumb: '/samples/phewa_lake_thumb.jpg',
               duration: '0:12',
               aspect: '९:१६ Shorts',
             },
             {
-              title: 'प्राइमटाइम एआई समाचार (Virtual Anchor)',
-              subtitle: '24kHz Studio Audio · Lip-Sync Anchor',
+              title: lang === 'en' ? 'Virtual News Anchor' : 'प्राइमटाइम समाचार',
+              subtitle: '24kHz Studio Audio · Lip-Sync',
               thumb: '/samples/dual_anchor_primetime_poster.jpg',
               duration: '0:16',
               aspect: '१६:९ News',

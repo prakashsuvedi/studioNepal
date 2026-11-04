@@ -91,10 +91,50 @@ class VersionHistoryService {
     if (isAdmin) return true;
     const owner = this.projectOwners.get(projectId);
     // If no owner registered (e.g. open guest project), allow access
-    if (!owner) return true;
-    // If owner matches
+    if (!owner || owner === 'usr_guest' || owner === 'anonymous') return true;
+    // If owner matches authenticated caller
     if (userId && (owner === userId || owner.toLowerCase() === userId.toLowerCase())) return true;
     return false;
+  }
+
+  /**
+   * Get owner ID of a project
+   */
+  public getOwner(projectId: string): string | undefined {
+    return this.projectOwners.get(projectId);
+  }
+
+  /**
+   * Explicitly set owner ID of a project
+   */
+  public setOwner(projectId: string, ownerId: string): void {
+    this.projectOwners.set(projectId, ownerId);
+  }
+
+  /**
+   * List all projects visible to caller based on tenant isolation
+   */
+  public listProjects(userId?: string, isAdmin?: boolean): any[] {
+    const projectSummaries: any[] = [];
+    for (const [projectId, versions] of this.inMemoryVersions.entries()) {
+      if (this.hasAccess(projectId, userId, isAdmin)) {
+        const latest = versions[0]; // newest is first
+        if (latest) {
+          projectSummaries.push({
+            id: projectId,
+            title: latest.title,
+            aspectRatio: '16:9',
+            scenesCount: latest.scenesCount || (latest.scenesData ? latest.scenesData.length : 0),
+            metadata: {},
+            version: latest.versionNumber,
+            createdAt: latest.createdAt,
+            updatedAt: latest.createdAt,
+            ownerId: this.projectOwners.get(projectId) || latest.ownerId,
+          });
+        }
+      }
+    }
+    return projectSummaries;
   }
 
   /**

@@ -325,6 +325,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const [showAudioAddModal, setShowAudioAddModal] = useState(false);
   const [showSfxModal, setShowSfxModal] = useState(false);
   const [isTimelineDragActive, setIsTimelineDragActive] = useState(false);
+  const [mobileDeckTab, setMobileDeckTab] = useState<'player' | 'tools' | 'inspector'>('player');
 
   // Workspaces & Collaboration
   const [showWorkspacesModal, setShowWorkspacesModal] = useState(false);
@@ -1875,7 +1876,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   };
 
   return (
-    <div className="w-full h-[calc(100vh-3.25rem)] bg-slate-100 dark:bg-[#07090e] text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none">
+    <div className="w-full h-full bg-slate-100 dark:bg-[#07090e] text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none">
       {/* Hidden File Input for Importing Project JSON */}
       <input
         type="file"
@@ -2045,151 +2046,198 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         className="hidden" 
       />
 
+      {/* Mobile Upper Deck View Switcher (Visible only on < lg) */}
+      <div className="lg:hidden flex items-center justify-around bg-[#0a0d16] border-b border-slate-800/80 px-2 py-1.5 shrink-0 z-20">
+        <button
+          onClick={() => setMobileDeckTab('tools')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            mobileDeckTab === 'tools'
+              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-xs'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <FolderOpen className="w-3.5 h-3.5" />
+          <span>Tools & Media</span>
+        </button>
+
+        <button
+          onClick={() => setMobileDeckTab('player')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            mobileDeckTab === 'player'
+              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-xs'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Monitor className="w-3.5 h-3.5" />
+          <span>Player Canvas</span>
+        </button>
+
+        <button
+          onClick={() => setMobileDeckTab('inspector')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            mobileDeckTab === 'inspector'
+              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-xs'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Sliders className="w-3.5 h-3.5" />
+          <span>Properties</span>
+        </button>
+      </div>
+
       {/* 2. Upper Deck: 3 Non-Overlapping Studio Columns */}
       <div className="flex-1 flex overflow-hidden min-h-0 bg-slate-100 dark:bg-[#07090e]">
         {/* Left: Media / Audio / Text / Effects Asset Browser */}
-        <CapCutLeftPanel
-          onAddSceneToTimeline={(newScene) => {
-            pushToHistory(scenes);
-            setScenes(prev => [...prev, newScene]);
-            setSelectedSceneId(newScene.id);
-            setProjectNotice(`Added "${newScene.title}" to timeline!`);
-            setTimeout(() => setProjectNotice(null), 3000);
-          }}
-          onAddAudioToTimeline={(track) => {
-            pushToHistory(scenes);
-            const trackId = track.id || `bgm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-            const preparedTrack = { ...track, id: trackId };
-            if (track.type === 'voiceover') {
-              setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), preparedTrack]);
-              setProjectNotice(`Assigned "${track.title}" to Voiceover track!`);
-            } else {
-              setAudioTracks(prev => {
-                // Ensure no duplicate IDs
-                const filtered = prev.filter(t => t.id !== trackId);
-                return [...filtered, preparedTrack];
-              });
-              setSelectedAudioId(trackId);
-              setProjectNotice(`Added "${track.title}" to Music track!`);
-            }
-            setTimeout(() => setProjectNotice(null), 3000);
-          }}
-          selectedSceneId={selectedSceneId}
-          onUpdateScene={(sceneId, updatedProps) => {
-            pushToHistory(scenes);
-            setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updatedProps } : s));
-          }}
-          onLoadStarterTemplate={handleLoadStarterSequence}
-          onOpenImageStudio={onOpenImageStudio}
-          onOpenSoraStudio={onOpenSoraStudio}
-          onOpenVoiceStudio={onOpenVoiceStudio || (() => setShowCharacterConsistencyModal(true))}
-          onOpenUrlToProject={() => setShowUrlToProjectModal(true)}
-          onOpenSubtitleEditor={() => setShowSubtitleModal(true)}
-          onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
-          onOpenBrandWatermark={() => setShowBrandModal(true)}
-          brandOverlayConfig={brandOverlayConfig}
-          setBrandOverlayConfig={setBrandOverlayConfig}
-          subtitles={subtitles}
-          subtitleBurnOptions={subtitleBurnOptions}
-          setSubtitleBurnOptions={setSubtitleBurnOptions}
-          scenes={scenes}
-          audioTracks={audioTracks}
-        />
+        <div className={`${mobileDeckTab === 'tools' ? 'flex w-full' : 'hidden'} lg:flex shrink-0 h-full`}>
+          <CapCutLeftPanel
+            onAddSceneToTimeline={(newScene) => {
+              pushToHistory(scenes);
+              setScenes(prev => [...prev, newScene]);
+              setSelectedSceneId(newScene.id);
+              setProjectNotice(`Added "${newScene.title}" to timeline!`);
+              setTimeout(() => setProjectNotice(null), 3000);
+            }}
+            onAddAudioToTimeline={(track) => {
+              pushToHistory(scenes);
+              const trackId = track.id || `bgm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+              const preparedTrack = { ...track, id: trackId };
+              if (track.type === 'voiceover') {
+                setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), preparedTrack]);
+                setProjectNotice(`Assigned "${track.title}" to Voiceover track!`);
+              } else {
+                setAudioTracks(prev => {
+                  // Ensure no duplicate IDs
+                  const filtered = prev.filter(t => t.id !== trackId);
+                  return [...filtered, preparedTrack];
+                });
+                setSelectedAudioId(trackId);
+                setProjectNotice(`Added "${track.title}" to Music track!`);
+              }
+              setTimeout(() => setProjectNotice(null), 3000);
+            }}
+            selectedSceneId={selectedSceneId}
+            onUpdateScene={(sceneId, updatedProps) => {
+              pushToHistory(scenes);
+              setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updatedProps } : s));
+            }}
+            onLoadStarterTemplate={handleLoadStarterSequence}
+            onOpenImageStudio={onOpenImageStudio}
+            onOpenSoraStudio={onOpenSoraStudio}
+            onOpenVoiceStudio={onOpenVoiceStudio || (() => setShowCharacterConsistencyModal(true))}
+            onOpenUrlToProject={() => setShowUrlToProjectModal(true)}
+            onOpenSubtitleEditor={() => setShowSubtitleModal(true)}
+            onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
+            onOpenBrandWatermark={() => setShowBrandModal(true)}
+            brandOverlayConfig={brandOverlayConfig}
+            setBrandOverlayConfig={setBrandOverlayConfig}
+            subtitles={subtitles}
+            subtitleBurnOptions={subtitleBurnOptions}
+            setSubtitleBurnOptions={setSubtitleBurnOptions}
+            scenes={scenes}
+            audioTracks={audioTracks}
+          />
+        </div>
 
         {/* Center: Real-Time High-Res Player Canvas */}
-        <CapCutPlayerPanel
-          scenes={scenes}
-          selectedScene={selectedScene || scenes[0] || null}
-          isPlaying={isPlaying}
-          onTogglePlay={togglePlay}
-          currentTime={currentTime}
-          totalDuration={totalDuration}
-          aspectRatio={aspectRatio}
-          setAspectRatio={setAspectRatio}
-          onPrevScene={handlePrevScene}
-          onNextScene={handleNextScene}
-          onStepFrame={handleStepFrame}
-          onOpenMediaLibrary={() => setShowGlobalMediaLibrary(true)}
-          brandOverlayConfig={brandOverlayConfig}
-          subtitles={subtitles}
-          subtitleBurnOptions={subtitleBurnOptions}
-          previewMode={previewMode === 'interactive' ? 'stage' : 'canvas'}
-          setPreviewMode={(m) => setPreviewMode(m === 'stage' ? 'interactive' : 'canvas')}
-          isMuted={isMuted}
-          setIsMuted={setIsMuted}
-          onToggleCurrentTicker={() => {
-            const targetScene = selectedScene || scenes[0];
-            if (!targetScene) return;
-            const currentEnabled = Boolean(targetScene.tickerConfig?.enabled);
-            const updatedTicker = {
-              ...(targetScene.tickerConfig || {
-                badgeText: 'BREAKING',
-                headlineText: targetScene.textNepali || targetScene.title || 'Live Broadcast Update',
-                speed: 'normal' as const,
-                style: 'breaking_red' as const,
-              }),
-              enabled: !currentEnabled,
-            };
-            pushToHistory(scenes);
-            setScenes(prev => prev.map(s => s.id === targetScene.id ? { ...s, tickerConfig: updatedTicker } : s));
-            setProjectNotice(updatedTicker.enabled ? 'Enabled scrolling ticker overlay!' : 'Disabled scrolling ticker overlay!');
-            setTimeout(() => setProjectNotice(null), 2500);
-          }}
-        />
+        <div className={`${mobileDeckTab === 'player' ? 'flex' : 'hidden'} lg:flex flex-1 min-w-0 h-full`}>
+          <CapCutPlayerPanel
+            scenes={scenes}
+            selectedScene={selectedScene || scenes[0] || null}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+            currentTime={currentTime}
+            totalDuration={totalDuration}
+            aspectRatio={aspectRatio}
+            setAspectRatio={setAspectRatio}
+            onPrevScene={handlePrevScene}
+            onNextScene={handleNextScene}
+            onStepFrame={handleStepFrame}
+            onOpenMediaLibrary={() => setShowGlobalMediaLibrary(true)}
+            brandOverlayConfig={brandOverlayConfig}
+            subtitles={subtitles}
+            subtitleBurnOptions={subtitleBurnOptions}
+            previewMode={previewMode === 'interactive' ? 'stage' : 'canvas'}
+            setPreviewMode={(m) => setPreviewMode(m === 'stage' ? 'interactive' : 'canvas')}
+            isMuted={isMuted}
+            setIsMuted={setIsMuted}
+            onToggleCurrentTicker={() => {
+              const targetScene = selectedScene || scenes[0];
+              if (!targetScene) return;
+              const currentEnabled = Boolean(targetScene.tickerConfig?.enabled);
+              const updatedTicker = {
+                ...(targetScene.tickerConfig || {
+                  badgeText: 'BREAKING',
+                  headlineText: targetScene.textNepali || targetScene.title || 'Live Broadcast Update',
+                  speed: 'normal' as const,
+                  style: 'breaking_red' as const,
+                }),
+                enabled: !currentEnabled,
+              };
+              pushToHistory(scenes);
+              setScenes(prev => prev.map(s => s.id === targetScene.id ? { ...s, tickerConfig: updatedTicker } : s));
+              setProjectNotice(updatedTicker.enabled ? 'Enabled scrolling ticker overlay!' : 'Disabled scrolling ticker overlay!');
+              setTimeout(() => setProjectNotice(null), 2500);
+            }}
+          />
+        </div>
 
         {/* Right: Inspector Properties Panel */}
-        <CapCutInspectorPanel
-          selectedScene={selectedScene || scenes[0] || null}
-          scenes={scenes}
-          onUpdateScene={(updatedProps) => {
-            const targetId = selectedSceneId || scenes[0]?.id;
-            if (!targetId) return;
-            pushToHistory(scenes);
-            setScenes(prev => prev.map(s => s.id === targetId ? { ...s, ...updatedProps } : s));
-          }}
-          onDuplicateScene={handleDuplicateScene}
-          onDeleteScene={() => {
-            if (scenes.length <= 1) {
-              setProjectNotice('Cannot delete the last remaining scene');
-              setTimeout(() => setProjectNotice(null), 3000);
-              return;
-            }
-            pushToHistory(scenes);
-            const remaining = scenes.filter(s => s.id !== selectedSceneId);
-            setScenes(remaining);
-            setSelectedSceneId(remaining[0]?.id || '');
-          }}
-          onApplyTickerToAll={(tickerConfig) => {
-            pushToHistory(scenes);
-            setScenes(prev => prev.map(s => ({
-              ...s,
-              tickerConfig: tickerConfig ? { ...tickerConfig, enabled: true } : undefined
-            })));
-            setProjectNotice(tickerConfig ? 'Applied ticker to all clips in sequence!' : 'Removed ticker from all clips.');
-            setTimeout(() => setProjectNotice(null), 2500);
-          }}
-          onExtendTickerToSubsequent={(fromSceneId) => {
-            const sourceIndex = scenes.findIndex(s => s.id === fromSceneId);
-            if (sourceIndex === -1) return;
-            const sourceTicker = scenes[sourceIndex].tickerConfig;
-            if (!sourceTicker) return;
-            pushToHistory(scenes);
-            setScenes(prev => prev.map((s, idx) => {
-              if (idx >= sourceIndex) {
-                return { ...s, tickerConfig: { ...sourceTicker, enabled: true } };
+        <div className={`${mobileDeckTab === 'inspector' ? 'flex w-full' : 'hidden'} lg:flex shrink-0 h-full`}>
+          <CapCutInspectorPanel
+            selectedScene={selectedScene || scenes[0] || null}
+            scenes={scenes}
+            onUpdateScene={(updatedProps) => {
+              const targetId = selectedSceneId || scenes[0]?.id;
+              if (!targetId) return;
+              pushToHistory(scenes);
+              setScenes(prev => prev.map(s => s.id === targetId ? { ...s, ...updatedProps } : s));
+            }}
+            onDuplicateScene={handleDuplicateScene}
+            onDeleteScene={() => {
+              if (scenes.length <= 1) {
+                setProjectNotice('Cannot delete the last remaining scene');
+                setTimeout(() => setProjectNotice(null), 3000);
+                return;
               }
-              return s;
-            }));
-            setProjectNotice(`Extended ticker across clip #${sourceIndex + 1} to #${scenes.length}!`);
-            setTimeout(() => setProjectNotice(null), 2500);
-          }}
-          bgmTrack={bgmTrack}
-          voTrack={voTrack}
-          bgmVolume={bgmVolume}
-          setBgmVolume={setBgmVolume}
-          voVolume={voVolume}
-          setVoVolume={setVoVolume}
-        />
+              pushToHistory(scenes);
+              const remaining = scenes.filter(s => s.id !== selectedSceneId);
+              setScenes(remaining);
+              setSelectedSceneId(remaining[0]?.id || '');
+            }}
+            onApplyTickerToAll={(tickerConfig) => {
+              pushToHistory(scenes);
+              setScenes(prev => prev.map(s => ({
+                ...s,
+                tickerConfig: tickerConfig ? { ...tickerConfig, enabled: true } : undefined
+              })));
+              setProjectNotice(tickerConfig ? 'Applied ticker to all clips in sequence!' : 'Removed ticker from all clips.');
+              setTimeout(() => setProjectNotice(null), 2500);
+            }}
+            onExtendTickerToSubsequent={(fromSceneId) => {
+              const sourceIndex = scenes.findIndex(s => s.id === fromSceneId);
+              if (sourceIndex === -1) return;
+              const sourceTicker = scenes[sourceIndex].tickerConfig;
+              if (!sourceTicker) return;
+              pushToHistory(scenes);
+              setScenes(prev => prev.map((s, idx) => {
+                if (idx >= sourceIndex) {
+                  return { ...s, tickerConfig: { ...sourceTicker, enabled: true } };
+                }
+                return s;
+              }));
+              setProjectNotice(`Extended ticker across clip #${sourceIndex + 1} to #${scenes.length}!`);
+              setTimeout(() => setProjectNotice(null), 2500);
+            }}
+            bgmTrack={bgmTrack}
+            voTrack={voTrack}
+            bgmVolume={bgmVolume}
+            setBgmVolume={setBgmVolume}
+            voVolume={voVolume}
+            setVoVolume={setVoVolume}
+            brandOverlayConfig={brandOverlayConfig}
+            setBrandOverlayConfig={setBrandOverlayConfig}
+          />
+        </div>
       </div>
 
       {/* 3. Mid Divider: Timeline Edit Toolbar */}
@@ -2903,12 +2951,26 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
       {/* Production Asset & Sound Library Modal */}
       <AssetAndSoundLibraryModal
-        isOpen={showAssetAndSoundLibraryModal}
-        onClose={() => setShowAssetAndSoundLibraryModal(false)}
+        isOpen={showAssetAndSoundLibraryModal || showAudioAddModal}
+        initialTab="sounds"
+        onClose={() => {
+          setShowAssetAndSoundLibraryModal(false);
+          setShowAudioAddModal(false);
+        }}
         onAddAudioTrack={(track) => {
-          setAudioTracks(prev => [...prev, track]);
-          setSelectedAudioId(track.id);
-          setProjectNotice(`Added audio track "${track.title}" to timeline!`);
+          pushToHistory(scenes);
+          const trackId = track.id || `bgm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          const preparedTrack = { ...track, id: trackId };
+          if (track.type === 'voiceover') {
+            setAudioTracks(prev => [...prev.filter(t => t.type !== 'voiceover'), preparedTrack]);
+            setProjectNotice(`Assigned "${track.title}" to Voiceover track!`);
+          } else {
+            setAudioTracks(prev => [...prev.filter(t => t.id !== trackId), preparedTrack]);
+            setSelectedAudioId(trackId);
+            setProjectNotice(`Added audio track "${track.title}" to timeline!`);
+          }
+          setShowAudioAddModal(false);
+          setShowAssetAndSoundLibraryModal(false);
           setTimeout(() => setProjectNotice(null), 3000);
         }}
         onAddSceneToTimeline={(newSceneData) => {

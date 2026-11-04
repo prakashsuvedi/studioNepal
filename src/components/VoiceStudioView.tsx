@@ -2367,30 +2367,22 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Voiceover Studio Executive Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg relative overflow-hidden">
-        <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-rose-500/10 via-transparent to-transparent pointer-events-none" />
-        <div className="flex items-center gap-3.5 z-10">
+      {/* Voiceover Studio Header */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg relative overflow-hidden">
+        <div className="flex items-center gap-3 z-10">
           <div className="p-2.5 bg-rose-500/15 rounded-xl border border-rose-500/30 text-rose-400 shrink-0">
             <Headphones className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg font-bold text-white tracking-tight">Voiceover & Speech Studio</h1>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
-                48kHz Broadcast Master
-              </span>
-            </div>
+            <h1 className="text-lg font-bold text-white tracking-tight">Voice Studio</h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              High-definition neural voice synthesis in authentic Nepali & English with dynamic audio mastering.
+              Natural neural voiceover synthesis in authentic Nepali, Hindi, and English.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 z-10 shrink-0">
-          <span className="text-[11px] text-slate-400 font-medium hidden md:inline">Voice Engine:</span>
-          <span className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 font-mono font-semibold">
-            Azure Cognitive Neural
-          </span>
+        <div className="flex items-center gap-2 z-10 text-xs text-slate-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span className="font-medium text-slate-300">Neural Voices Ready</span>
         </div>
       </div>
 
@@ -2402,10 +2394,10 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 space-y-5 shadow-sm">
             
             {/* Mode Tab Switcher */}
-            <div className="flex border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex border-b border-slate-100 dark:border-slate-800 pb-3 overflow-x-auto no-scrollbar overflow-touch gap-2 sm:gap-0">
               <button
                 onClick={() => setActiveEditorTab('single')}
-                className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 ${
+                className={`shrink-0 sm:flex-1 px-3 sm:px-0 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   activeEditorTab === 'single'
                     ? 'border-rose-500 text-rose-600 dark:text-rose-400 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -2416,7 +2408,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </button>
               <button
                 onClick={() => setActiveEditorTab('dialogue')}
-                className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 ${
+                className={`shrink-0 sm:flex-1 px-3 sm:px-0 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   activeEditorTab === 'dialogue'
                     ? 'border-rose-500 text-rose-600 dark:text-rose-400 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -2427,7 +2419,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </button>
               <button
                 onClick={() => setActiveEditorTab('batch')}
-                className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 ${
+                className={`shrink-0 sm:flex-1 px-3 sm:px-0 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   activeEditorTab === 'batch'
                     ? 'border-rose-500 text-rose-600 dark:text-rose-400 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -2438,7 +2430,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </button>
               <button
                 onClick={() => setActiveEditorTab('clone')}
-                className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 ${
+                className={`shrink-0 sm:flex-1 px-3 sm:px-0 pb-2 text-xs font-bold transition-all border-b-2 text-center flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   activeEditorTab === 'clone'
                     ? 'border-rose-500 text-rose-600 dark:text-rose-400 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -3021,7 +3013,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             {generatedAudioUrl && (() => {
               const avatar = getVoiceAvatarMeta(selectedVoice);
               return (
-                <div id="neural-preview-player" className="p-5 bg-slate-950 text-white rounded-2xl space-y-4 border border-slate-800 shadow-2xl animate-in fade-in duration-300">
+                <div id="neural-preview-player" className="p-4 sm:p-5 bg-slate-950 text-white rounded-2xl space-y-4 border border-slate-800 shadow-2xl animate-in fade-in duration-300 sticky top-14 z-20 md:static">
                   {/* Character Avatar Banner */}
                   <div className={`p-4 rounded-xl bg-gradient-to-r ${avatar.bgGradient} border ${avatar.borderColor} flex items-center justify-between gap-4 flex-wrap`}>
                     <div className="flex items-center gap-3.5">

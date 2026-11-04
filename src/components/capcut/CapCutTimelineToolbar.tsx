@@ -22,7 +22,8 @@ import {
   FileText,
   Check,
   MessageSquare,
-  FolderDown
+  FolderDown,
+  Zap
 } from 'lucide-react';
 import { ProjectWorkflowPresetId, ProjectWorkflowPreset, Scene } from '../../types';
 import { WORKFLOW_PRESETS } from '../../data/workflowPresets';
@@ -80,9 +81,10 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   const activePreset = WORKFLOW_PRESETS.find(p => p.id === selectedWorkflowPresetId) || WORKFLOW_PRESETS[0];
 
   return (
-    <div className="h-10 bg-[#090c13] border-t border-b border-slate-800/80 px-3.5 flex items-center justify-between select-none shrink-0 text-xs relative z-30">
-      {/* Left Edit Tools (CapCut Style) */}
-      <div className="flex items-center gap-1.5">
+    <div className="h-10 bg-[#090c13] border-t border-b border-slate-800/80 px-2 sm:px-3.5 flex items-center justify-between select-none shrink-0 text-xs relative z-30 overflow-x-auto no-scrollbar overflow-touch">
+      <div className="flex items-center justify-between min-w-max w-full gap-3">
+        {/* Left Edit Tools (CapCut Style) */}
+        <div className="flex items-center gap-1.5 shrink-0">
         {/* Pointer Tool */}
         <button
           className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-md transition font-bold border border-cyan-500/30"
@@ -173,6 +175,40 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
                 <option value={1.25}>1.25x</option>
                 <option value={1.5}>1.5x</option>
                 <option value={2}>2.0x</option>
+              </select>
+            </div>
+
+            {/* Quick Transition Selector for Selected Clip */}
+            <div className="flex items-center gap-1 bg-slate-900/90 px-1.5 py-0.5 rounded-md border border-indigo-500/30 text-[11px]">
+              <span className="text-indigo-400 font-medium flex items-center gap-0.5">
+                <Zap className="w-2.5 h-2.5" />
+                <span>Trans:</span>
+              </span>
+              <select
+                value={selectedScene.transition || 'cut'}
+                onChange={(e) => {
+                  const trans = e.target.value as any;
+                  onUpdateSelectedScene({
+                    transition: trans,
+                    transitionDuration: selectedScene.transitionDuration || 0.8
+                  });
+                }}
+                className="bg-slate-950 text-indigo-300 font-bold border border-slate-700/80 rounded px-1 py-0.5 text-[10px] cursor-pointer focus:outline-hidden focus:border-indigo-400"
+                title="Select transition seam between this clip and the next scene"
+              >
+                <option value="cut">✂️ Cut</option>
+                <option value="dissolve">✨ Dissolve</option>
+                <option value="fade">🌫️ Fade</option>
+                <option value="wipe_left">⬅️ Wipe Left</option>
+                <option value="wipe_right">➡️ Wipe Right</option>
+                <option value="slide_left">◀️ Slide Left</option>
+                <option value="slide_right">▶️ Slide Right</option>
+                <option value="slide_up">▲ Slide Up</option>
+                <option value="slide_down">▼ Slide Down</option>
+                <option value="zoom_in">🔍 Zoom In</option>
+                <option value="zoom_out">🔎 Zoom Out</option>
+                <option value="flash_white">⚡ Flash White</option>
+                <option value="blur_dissolve">💫 Blur Defocus</option>
               </select>
             </div>
           </>
@@ -408,5 +444,6 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

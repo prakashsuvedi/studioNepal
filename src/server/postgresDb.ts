@@ -3,9 +3,22 @@ import pg from 'pg';
 export class PostgresService {
   private pool: pg.Pool | null = null;
   public isConnected = false;
+  private connectCallbacks: Array<() => Promise<void> | void> = [];
 
   constructor() {
     this.initPool();
+  }
+
+  public onConnect(cb: () => Promise<void> | void) {
+    this.connectCallbacks.push(cb);
+    if (this.isConnected) {
+      try {
+        const res = cb();
+        if (res && typeof (res as any).catch === 'function') {
+          (res as Promise<void>).catch(() => {});
+        }
+      } catch {}
+    }
   }
 
   private initPool() {
@@ -51,6 +64,13 @@ export class PostgresService {
       this.isConnected = true;
       console.log('✅ Supabase PostgreSQL Database Connected Successfully! Time:', res.rows[0].now);
       await this.bootstrapTables();
+      for (const cb of this.connectCallbacks) {
+        try {
+          await cb();
+        } catch (e: any) {
+          console.warn('[PostgresService] onConnect callback error:', e?.message || e);
+        }
+      }
       return true;
     } catch (err: any) {
       console.warn('⚠️ PostgreSQL connection notice (using JSON store fallback):', err?.message || err);

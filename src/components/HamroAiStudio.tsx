@@ -130,6 +130,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
       return false;
     }
   });
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [conversationSearch, setConversationSearch] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
@@ -258,6 +259,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
     setInputPrompt('');
     setAttachedFiles([]);
     setIsPlusMenuOpen(false);
+    setIsMobileSidebarOpen(false);
     textareaRef.current?.focus();
   };
 
@@ -269,6 +271,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
       setSelectedModel(found.model || 'gpt-4o');
       setSelectedLanguage(found.language || 'ne');
       setAttachedFiles([]);
+      setIsMobileSidebarOpen(false);
     }
   };
 
@@ -779,33 +782,54 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
   };
 
   return (
-    <div id="hamroai-root-container" className="flex h-[calc(100vh-3.25rem)] w-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-hidden select-none transition-colors">
+    <div id="hamroai-root-container" className="flex h-full w-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-hidden select-none transition-colors">
       
+      {/* Mobile Drawer Backdrop */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* ─────────────────────────────────────────────────────────────
           ZONE 1: LEFT AI WORKSPACE SIDEBAR
           ───────────────────────────────────────────────────────────── */}
       <aside
-        className={`flex flex-col border-r border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex-shrink-0 transition-all duration-200 ease-in-out z-20 ${
-          isSidebarCollapsed ? 'w-16' : 'w-72 md:w-80'
+        className={`${
+          isMobileSidebarOpen
+            ? 'fixed inset-y-0 left-0 z-50 w-72 sm:w-80 flex flex-col shadow-2xl animate-in slide-in-from-left duration-200'
+            : 'hidden md:flex flex-col'
+        } border-r border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex-shrink-0 transition-all duration-200 ease-in-out ${
+          isSidebarCollapsed ? 'md:w-16' : 'md:w-72 lg:w-80'
         }`}
       >
         {/* Top Header: New Chat Button & Collapse Toggle */}
         <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2">
-          {!isSidebarCollapsed ? (
+          {(!isSidebarCollapsed || isMobileSidebarOpen) ? (
             <>
               <button
                 onClick={createNewThread}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold text-xs shadow-[0_0_16px_rgba(6,182,212,0.3)] transition active:scale-[0.98] cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold text-xs shadow-[0_0_16px_rgba(6,182,212,0.3)] transition active:scale-[0.98] cursor-pointer min-h-[40px]"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Chat</span>
               </button>
+              {/* Desktop Collapse Button */}
               <button
                 onClick={() => setIsSidebarCollapsed(true)}
-                className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
+                className="hidden md:flex p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
                 title="Collapse sidebar"
               >
                 <PanelLeftClose className="w-4 h-4" />
+              </button>
+              {/* Mobile Close Button */}
+              <button
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
+                title="Close sidebar"
+              >
+                <X className="w-4 h-4" />
               </button>
             </>
           ) : (
@@ -1138,9 +1162,17 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
         <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/10 via-indigo-900/10 to-transparent" />
         
         {/* Top Header: Model, Language & Quick Actions */}
-        <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 z-10">
+        <header className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 z-10">
           {/* Left: Identity & Language Info */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden p-2 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 transition"
+              title="Open conversations & workspace"
+              aria-label="Open sidebar"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-amber-500 p-0.5 shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center justify-center flex-shrink-0">
               <div className="w-full h-full bg-slate-900 dark:bg-slate-950 rounded-[10px] flex items-center justify-center text-amber-400 font-black text-sm">
                 ✦
@@ -1597,22 +1629,22 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
 
                       {/* Action Toolbar under Assistant Message */}
                       {!isUser && (
-                        <div className="flex items-center gap-2 mt-2 px-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+                        <div className="flex items-center gap-1 mt-2 px-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
                           {/* Copy Response */}
                           <button
                             onClick={() => copyToClipboard(msg.content, msg.id)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-xs"
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                             title="Copy response"
                           >
                             {copiedId === msg.id ? (
                               <>
-                                <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                                <span className="text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold">Copied</span>
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                <span className="text-emerald-600 dark:text-emerald-400 text-[11px] font-medium">Copied</span>
                               </>
                             ) : (
                               <>
                                 <Copy className="w-3.5 h-3.5" />
-                                <span className="text-[11px]">Copy Text</span>
+                                <span className="text-[11px]">Copy</span>
                               </>
                             )}
                           </button>
@@ -1620,59 +1652,58 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
                           {/* Send to Video Timeline */}
                           <button
                             onClick={() => transferToVideoStudio(msg.content)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 transition"
-                            title="Transfer script to Video Studio Timeline"
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
+                            title="Transfer script to Video Timeline"
                           >
-                            <Film className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                            <span className="text-[11px] font-medium">Timeline</span>
+                            <Film className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Timeline</span>
                           </button>
 
                           {/* Send to Voice Studio */}
                           <button
                             onClick={() => transferToVoiceStudio(msg.content)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-700 dark:text-purple-300 transition"
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                             title="Synthesize Voiceover in Voice Studio"
                           >
-                            <Mic className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-                            <span className="text-[11px] font-medium">Voice Studio</span>
+                            <Mic className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Voice</span>
                           </button>
 
                           {/* Send to Sora Studio */}
                           <button
                             onClick={() => transferToSoraStudio(msg.content.slice(0, 300))}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-700 dark:text-blue-300 transition"
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
                             title="Synthesize Video in Sora-2 Studio"
                           >
-                            <Video className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-                            <span className="text-[11px] font-medium">Sora-2</span>
+                            <Video className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Sora-2</span>
                           </button>
 
-                          {/* Text to Image with GPT-Image-1.5 */}
+                          {/* Text to Image */}
                           <button
                             onClick={() => openTextToImageModal(msg.content.slice(0, 300))}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 transition"
-                            title="Generate photorealistic artwork with GPT-Image-1.5"
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer"
+                            title="Generate image from prompt"
                           >
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                            <span className="text-[11px] font-medium">Text to Image</span>
-                            <span className="text-[9px] font-mono px-1 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold">1.5</span>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Image</span>
                           </button>
 
                           {/* Thumbs Up / Down Feedback */}
                           <div className="flex items-center gap-0.5 ml-1 border-l border-slate-200 dark:border-slate-800 pl-1">
                             <button
                               onClick={() => handleFeedback(msg.id, 'up')}
-                              className={`p-1 rounded-md transition ${feedbackMap[msg.id] === 'up' ? 'text-emerald-500 dark:text-emerald-400 bg-emerald-500/10' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
-                              title="Good response"
+                              className={`p-1 rounded-md transition cursor-pointer ${feedbackMap[msg.id] === 'up' ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                              title="Helpful"
                             >
-                              <ThumbsUp className="w-3.5 h-3.5" />
+                              <ThumbsUp className="w-3 h-3" />
                             </button>
                             <button
                               onClick={() => handleFeedback(msg.id, 'down')}
-                              className={`p-1 rounded-md transition ${feedbackMap[msg.id] === 'down' ? 'text-red-500 dark:text-red-400 bg-red-500/10' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
-                              title="Poor response"
+                              className={`p-1 rounded-md transition cursor-pointer ${feedbackMap[msg.id] === 'down' ? 'text-red-500 bg-red-500/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                              title="Not helpful"
                             >
-                              <ThumbsDown className="w-3.5 h-3.5" />
+                              <ThumbsDown className="w-3 h-3" />
                             </button>
                           </div>
                         </div>
@@ -1813,7 +1844,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
 
                   {/* Popover Menu */}
                   {isPlusMenuOpen && (
-                    <div className="absolute left-0 bottom-11 w-64 bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-1.5 space-y-1 z-30 animate-fade-in">
+                    <div className="absolute left-0 bottom-11 w-64 max-w-[calc(100vw-2.5rem)] bg-white dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-1.5 space-y-1 z-30 animate-fade-in">
                       <button
                         onClick={() => { setIsTemplateModalOpen(true); setIsPlusMenuOpen(false); }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left"
@@ -1905,7 +1936,7 @@ export const HamroAiStudio: React.FC<HamroAiStudioProps> = ({
               </div>
 
               {/* Bottom Controls Row inside Composer */}
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800/60 mt-1">
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800/60 mt-1 gap-2 flex-wrap">
                 
                 {/* Left Controls: Unicode Toggle, Attach, Tools */}
                 <div className="flex items-center gap-1.5 flex-wrap">

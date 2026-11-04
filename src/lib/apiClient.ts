@@ -10,6 +10,7 @@
  */
 
 import { authManager } from './authManager';
+import { resolveApiUrl } from './apiConfig';
 
 export interface ApiClientRequestOptions extends Omit<RequestInit, 'body'> {
   timeoutMs?: number;
@@ -177,7 +178,8 @@ export class ApiClient {
           }
         }
 
-        const response = await fetch(url, {
+        const targetUrl = resolveApiUrl(url);
+        const response = await fetch(targetUrl, {
           method,
           headers,
           body: requestBody,

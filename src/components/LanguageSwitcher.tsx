@@ -44,7 +44,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 mt-1.5 w-40 rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+          <div className="fixed inset-x-3 sm:inset-x-auto sm:absolute sm:right-0 top-14 sm:top-full mt-1.5 sm:w-40 max-w-[calc(100vw-1.5rem)] rounded-xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
             <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800/60 mb-0.5">
               Select Language
             </div>

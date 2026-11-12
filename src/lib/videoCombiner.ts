@@ -3,6 +3,7 @@ import { SubtitleItem, SubtitleBurnOptions } from '../components/SubtitleEditorM
 import { getCompositionAtTime } from './timelineComposition';
 
 export interface RenderOptions {
+  userId?: string;
   scenes: Scene[];
   audioTracks?: AudioTrack[];
   aspectRatio: '16:9' | '9:16' | '1:1';
@@ -32,6 +33,7 @@ export interface RenderOptions {
  */
 export async function renderTimelineToVideoBlob(options: RenderOptions): Promise<{ blob: Blob; url: string }> {
   const {
+    userId,
     scenes,
     audioTracks = [],
     aspectRatio,
@@ -51,61 +53,72 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
 
   const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 4), 0);
 
-  // 1. Authoritative Primary Path: High-Performance Server-Side FFmpeg Stitching
-  // Matches exact timeline clips, speeds, aspect ratios, durations, and audio tracks with native H.264 / AAC
-  try {
-    if (onProgress) onProgress(10, 'Connecting to server rendering engine (FFmpeg H.264/AAC)...');
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000);
-    
-    const serverPayload = {
-      userId: 'guest_user',
-      projectName: 'Timeline Video Project',
-      scenes: scenes.map((s) => ({
-        ...s,
-        mediaUrl: s.mediaUrl,
-        duration: s.duration || 4,
-        speed: s.speed || 1,
-        transition: s.transition || 'fade',
-        mediaType: s.mediaType || (s.mediaUrl?.match(/\.(mp4|webm|mov|ogg)($|\?)/i) ? 'video' : 'image'),
-      })),
-      totalDurationSeconds: totalDuration,
-      aspectRatio,
-      preset: {
-        resolution,
-        fps,
-      },
-      brandOverlay: brandOverlayConfig,
-      subtitles,
-      audioTracks: audioTracks.filter((t) => !!t.url),
-    };
+  // Detect if project requires rich visual compositing (brand logos, scrolling tickers, subtitles, kinetic text, VFX)
+  const hasRichCompositingLayers = Boolean(
+    brandOverlayConfig?.enabled ||
+    (subtitles && subtitles.length > 0 && subtitleBurnOptions?.burnIn !== false) ||
+    scenes.some(s => s.tickerConfig?.enabled || s.textOverlay || s.textNepali || (s.transition && s.transition !== 'cut') || s.watermark?.url || s.brandLogo?.url) ||
+    vfxConfig?.filmGrain ||
+    vfxConfig?.vignette ||
+    vfxConfig?.frameType === 'letterbox_cinematic'
+  );
 
-    const serverRes = await fetch('/api/render', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(serverPayload),
-      signal: controller.signal,
-    }).catch(() => null);
+  // If simple cut stitching with no overlays is requested, server FFmpeg can be used as accelerator
+  if (!hasRichCompositingLayers) {
+    try {
+      if (onProgress) onProgress(10, 'Connecting to server rendering engine (FFmpeg H.264/AAC)...');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 35000);
+      
+      const serverPayload = {
+        userId: userId || 'usr_admin_01',
+        projectName: 'Timeline Video Project',
+        scenes: scenes.map((s) => ({
+          ...s,
+          mediaUrl: s.mediaUrl,
+          duration: s.duration || 4,
+          speed: s.speed || 1,
+          transition: s.transition || 'fade',
+          mediaType: s.mediaType || (s.mediaUrl?.match(/\.(mp4|webm|mov|ogg)($|\?)/i) ? 'video' : 'image'),
+        })),
+        totalDurationSeconds: totalDuration,
+        aspectRatio,
+        preset: {
+          resolution,
+          fps,
+        },
+        brandOverlay: brandOverlayConfig,
+        subtitles,
+        audioTracks: audioTracks.filter((t) => !!t.url),
+      };
 
-    clearTimeout(timeoutId);
+      const serverRes = await fetch('/api/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(serverPayload),
+        signal: controller.signal,
+      }).catch(() => null);
 
-    if (serverRes && serverRes.ok) {
-      const serverData = await serverRes.json();
-      const outputUrl = serverData.result?.downloadUrl || serverData.result?.videoUrl;
-      if (outputUrl) {
-        if (onProgress) onProgress(85, 'Finalizing broadcast-grade video stream...');
-        const fileRes = await fetch(outputUrl);
-        if (fileRes.ok) {
-          const blob = await fileRes.blob();
-          if (onProgress) onProgress(100, 'Render complete! Ready for download.');
-          const objectUrl = URL.createObjectURL(blob);
-          return { blob, url: objectUrl };
+      clearTimeout(timeoutId);
+
+      if (serverRes && serverRes.ok) {
+        const serverData = await serverRes.json();
+        const outputUrl = serverData.result?.downloadUrl || serverData.result?.videoUrl;
+        if (outputUrl) {
+          if (onProgress) onProgress(85, 'Finalizing broadcast-grade video stream...');
+          const fileRes = await fetch(outputUrl);
+          if (fileRes.ok) {
+            const blob = await fileRes.blob();
+            if (onProgress) onProgress(100, 'Render complete! Ready for download.');
+            const objectUrl = URL.createObjectURL(blob);
+            return { blob, url: objectUrl };
+          }
         }
       }
+    } catch (serverErr) {
+      console.warn('[VideoCombiner] Server FFmpeg rendering notice, continuing with client canvas compositor:', serverErr);
     }
-  } catch (serverErr) {
-    console.warn('[VideoCombiner] Server FFmpeg rendering notice, continuing with client canvas compositor:', serverErr);
   }
 
   // Determine exact canvas pixel dimensions
@@ -262,6 +275,8 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
       audioDest = audioCtx.createMediaStreamDestination();
 
       const activeTracks = audioTracks.filter((t) => !!t.url);
+      const decodedAudioSources: Array<{ buffer: AudioBuffer; volume: number; startTime: number }> = [];
+
       for (const track of activeTracks) {
         if (track.url) {
           try {
@@ -283,22 +298,21 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
 
             if (trackData) {
               const audioBuf = await audioCtx.decodeAudioData(trackData);
-              const source = audioCtx.createBufferSource();
-              source.buffer = audioBuf;
-
-              const gainNode = audioCtx.createGain();
               const vol = (track.volume ?? 80) / 100;
-              gainNode.gain.value = vol;
-
-              source.connect(gainNode);
-              gainNode.connect(audioDest);
-              source.start(audioCtx.currentTime + (track.startTime || 0));
+              decodedAudioSources.push({
+                buffer: audioBuf,
+                volume: vol,
+                startTime: track.startTime || 0,
+              });
             }
           } catch (audioErr) {
             console.warn('[VideoCombiner] Audio track mix notice:', audioErr);
           }
         }
       }
+
+      // Store in closure for synchronized start
+      (window as any).__decodedAudioSources = decodedAudioSources;
     }
   } catch (e) {
     console.warn('[VideoCombiner] Web Audio setup notice:', e);
@@ -349,6 +363,26 @@ export async function renderTimelineToVideoBlob(options: RenderOptions): Promise
       recordedChunks.push(e.data);
     }
   };
+
+  // Launch audio sources exactly in sync with recorder start
+  if (audioCtx && audioDest && (window as any).__decodedAudioSources) {
+    const sources: Array<{ buffer: AudioBuffer; volume: number; startTime: number }> = (window as any).__decodedAudioSources;
+    const now = audioCtx.currentTime;
+    for (const item of sources) {
+      try {
+        const src = audioCtx.createBufferSource();
+        src.buffer = item.buffer;
+        const gain = audioCtx.createGain();
+        gain.gain.value = item.volume;
+        src.connect(gain);
+        gain.connect(audioDest);
+        src.start(now + item.startTime);
+      } catch (err) {
+        console.warn('[VideoCombiner] Failed to launch audio source:', err);
+      }
+    }
+    delete (window as any).__decodedAudioSources;
+  }
 
   recorder.start(100);
 

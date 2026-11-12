@@ -18,6 +18,7 @@ import {
   Info
 } from 'lucide-react';
 import { SubjectLockItem } from '../data/soraProductionPacks';
+import { UploadReferenceImage } from './UploadReferenceImage';
 
 export interface DirectorApprovalPayload {
   prompt: string;
@@ -33,6 +34,7 @@ export interface DirectorApprovalPayload {
   lightingAtmosphere: string;
   sceneIndex: number;
   totalScenes: number;
+  referenceImageUrl?: string;
 }
 
 interface DirectorPreFlightApprovalModalProps {
@@ -53,9 +55,14 @@ export const DirectorPreFlightApprovalModal: React.FC<DirectorPreFlightApprovalM
   const [editedPayload, setEditedPayload] = useState<DirectorApprovalPayload>(payload);
   const [activeTab, setActiveTab] = useState<'blueprint' | 'character' | 'camera'>('blueprint');
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [refImgUrl, setRefImgUrl] = useState<string | null>(payload.referenceImageUrl || null);
+  const [refImgName, setRefImgName] = useState<string | null>(null);
 
   React.useEffect(() => {
     setEditedPayload(payload);
+    if (payload.referenceImageUrl) {
+      setRefImgUrl(payload.referenceImageUrl);
+    }
   }, [payload]);
 
   if (!isOpen) return null;
@@ -154,6 +161,37 @@ export const DirectorPreFlightApprovalModal: React.FC<DirectorPreFlightApprovalM
                   onChange={(e) => setEditedPayload({ ...editedPayload, prompt: e.target.value })}
                   rows={3}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 leading-relaxed font-sans"
+                />
+
+                {/* Reference Image / Avatar / Style Anchor Component */}
+                <UploadReferenceImage
+                  selectedImageUrl={refImgUrl}
+                  selectedImageName={refImgName}
+                  compact
+                  label="Reference Image / Avatar / Style Anchor"
+                  subLabel="Select an avatar or style image to inject into this generation"
+                  currentPrompt={editedPayload.prompt}
+                  onSelectImage={(url, name, promptInjection) => {
+                    setRefImgUrl(url);
+                    setRefImgName(name);
+                    setEditedPayload(prev => ({
+                      ...prev,
+                      referenceImageUrl: url,
+                      prompt: prev.prompt.includes(url) ? prev.prompt : (prev.prompt.trim() ? `${prev.prompt.trim()}, ${promptInjection}` : promptInjection),
+                      enhancedPrompt: prev.enhancedPrompt ? `${prev.enhancedPrompt}, ${promptInjection}` : undefined,
+                    }));
+                  }}
+                  onClearImage={() => {
+                    setRefImgUrl(null);
+                    setRefImgName(null);
+                    setEditedPayload(prev => ({
+                      ...prev,
+                      referenceImageUrl: undefined,
+                    }));
+                  }}
+                  onAppendToPrompt={(newPrompt) => {
+                    setEditedPayload(prev => ({ ...prev, prompt: newPrompt }));
+                  }}
                 />
               </div>
 

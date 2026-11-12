@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Scene, UserSession, UserTrialQuota } from '../types';
 import { apiGenerateVideo, apiCheckVideoStatus, apiTranslatePrompt, normalizeSoraDuration, pollSoraJobStatus } from '../lib/api';
 import { 
@@ -46,7 +46,11 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  X,
+  Image as ImageIcon,
+  Zap
 } from 'lucide-react';
 import { saveMediaItem, getMediaLibrary, removeMediaItem, MediaItem } from '../lib/mediaLibrary';
 import {
@@ -78,7 +82,9 @@ import {
   initializeProjectContinuity,
   formatCharacterPromptDescriptor,
   quickSwapSceneCharacter,
-  downloadSceneSequenceProjectJSON
+  downloadSceneSequenceProjectJSON,
+  extractAllCharactersFromPrompt,
+  decomposePromptIntoNarrativeBeats
 } from '../services/characterContinuityEngine';
 
 interface SoraStudioViewProps {
@@ -317,6 +323,40 @@ const SAMPLE_SORA_PRESETS = [
   }
 ];
 
+export interface ReferenceAvatarPreset {
+  id: string;
+  name: string;
+  role: string;
+  avatarUrl: string;
+}
+
+export const REFERENCE_AVATAR_PRESETS: ReferenceAvatarPreset[] = [
+  {
+    id: 'prakash',
+    name: 'Prakash Suvedi',
+    role: 'Creator & Lead',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'aarav',
+    name: 'Aarav Sharma',
+    role: 'Himalayan Climber',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'maya',
+    name: 'Maya Gurung',
+    role: 'Village Storyteller',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'sagar',
+    name: 'Sagar Thapa',
+    role: 'Kathmandu Creator',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  },
+];
+
 export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   initialPrompt,
   onAddSceneToVideo,
@@ -346,6 +386,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const [model] = useState<'sora-2'>('sora-2');
   const [resolution, setResolution] = useState<'720x1280' | '1280x720'>('1280x720');
   const [seconds, setSeconds] = useState<'4' | '8' | '12'>('8');
+  const [motionMagnitude, setMotionMagnitude] = useState<number>(5);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [jobProgress, setJobProgress] = useState(0);
@@ -372,6 +413,176 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   const [isStoryboardSectionOpen, setIsStoryboardSectionOpen] = useState<boolean>(false);
   const [isHistorySectionOpen, setIsHistorySectionOpen] = useState<boolean>(false);
   const [styleToast, setStyleToast] = useState<string | null>(null);
+
+  // Reference Image & Avatar Anchor for Prompt
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [referenceImageBase64, setReferenceImageBase64] = useState<string | null>(null);
+  const [referenceImageName, setReferenceImageName] = useState<string | null>(null);
+  const [isUploadingRefImage, setIsUploadingRefImage] = useState<boolean>(false);
+  const refImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadReferenceImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingRefImage(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const b64 = reader.result as string;
+        setReferenceImageBase64(b64);
+        setReferenceImageName(file.name);
+        try {
+          const res = await fetch('/api/storage/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: `ref_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`,
+              fileData: b64,
+              mimeType: file.type || 'image/jpeg',
+            }),
+          });
+          const data = await res.json();
+          if (data.url) {
+            setReferenceImageUrl(data.url);
+          } else {
+            setReferenceImageUrl(b64);
+          }
+        } catch {
+          setReferenceImageUrl(b64);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Failed reading reference image:', err);
+    } finally {
+      setIsUploadingRefImage(false);
+    }
+  };
+
+  const handleSelectReferenceAvatar = (avatarUrl: string, name: string) => {
+    setReferenceImageUrl(avatarUrl);
+    setReferenceImageBase64(null);
+    setReferenceImageName(name);
+    if (!prompt.toLowerCase().includes(name.toLowerCase())) {
+      setPrompt(prev => prev.trim() ? `${prev.trim()}, featuring ${name}` : `Cinematic shot featuring ${name}`);
+    }
+  };
+
+  const handleClearReferenceImage = () => {
+    setReferenceImageUrl(null);
+    setReferenceImageBase64(null);
+    setReferenceImageName(null);
+    if (refImageInputRef.current) refImageInputRef.current.value = '';
+  };
+
+  const renderReferenceImageWidget = () => (
+    <div className="p-3 bg-slate-50/80 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+          <Camera className="w-3.5 h-3.5 text-indigo-500" />
+          <span>Reference Image &amp; Character Avatar</span>
+          <span className="text-slate-500 dark:text-slate-400 font-normal text-[10px]">(Optional Face &amp; Subject Visual Anchor)</span>
+        </div>
+        {referenceImageUrl && (
+          <button
+            type="button"
+            onClick={handleClearReferenceImage}
+            className="text-[10.5px] text-rose-500 hover:text-rose-600 flex items-center gap-1 font-medium cursor-pointer"
+          >
+            <X className="w-3 h-3" />
+            <span>Clear</span>
+          </button>
+        )}
+      </div>
+
+      <input
+        ref={refImageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleUploadReferenceImage}
+      />
+
+      {referenceImageUrl ? (
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60">
+          <img
+            src={referenceImageUrl}
+            alt="Reference Subject"
+            className="w-12 h-12 rounded-lg object-cover border border-indigo-300 dark:border-indigo-600 shadow-xs shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200 truncate flex items-center gap-1.5">
+              <span>{referenceImageName || 'Custom Reference Image'}</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-200 dark:bg-indigo-800 text-indigo-900 dark:text-indigo-100 font-bold">
+                Locked
+              </span>
+            </div>
+            <p className="text-[10.5px] text-indigo-700/80 dark:text-indigo-300/80 truncate">
+              Active anchor for character face, clothing, and visual style
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => refImageInputRef.current?.click()}
+            disabled={isUploadingRefImage}
+            className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-[10.5px] font-semibold border border-slate-200 dark:border-slate-700 transition cursor-pointer shrink-0"
+          >
+            Change
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => refImageInputRef.current?.click()}
+              disabled={isUploadingRefImage}
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
+            >
+              {isUploadingRefImage ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                  <span>Uploading Image...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Upload Reference Image / Photo</span>
+                </>
+              )}
+            </button>
+
+            <span className="text-[11px] text-slate-400">or pick avatar:</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            {REFERENCE_AVATAR_PRESETS.map((avatar) => (
+              <button
+                key={avatar.id}
+                type="button"
+                onClick={() => handleSelectReferenceAvatar(avatar.avatarUrl, avatar.name)}
+                className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-800/80 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition cursor-pointer text-left group"
+              >
+                <img
+                  src={avatar.avatarUrl}
+                  alt={avatar.name}
+                  className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-600 group-hover:border-indigo-500 shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
+                    {avatar.name}
+                  </div>
+                  <div className="text-[9.5px] text-slate-400 truncate">
+                    {avatar.role}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const handleSelectStyle = (styleId: 'cinematic' | 'realistic' | 'animated' | 'documentary' | 'vintage') => {
     setSelectedStyle(styleId);
@@ -471,25 +682,24 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
   // Dynamically extract character identity and synthesize scene sequence from prompt changes
   React.useEffect(() => {
     if (!prompt.trim()) return;
-    const { extractedCharacter, isNewCharacter } = extractCharactersFromPrompt(prompt, 1, projectCharacterRegistry);
-    if (extractedCharacter) {
-      if (isNewCharacter) {
-        setProjectCharacterRegistry(prev => [extractedCharacter, ...prev.filter(c => c.name !== extractedCharacter.name)]);
-      }
-      // Keep activeSubjectLock synced
+    
+    // Extract characters cleanly, purging default 'Person' placeholder if specific archetypes detected
+    const updatedRegistry = extractAllCharactersFromPrompt(prompt, projectCharacterRegistry);
+    if (updatedRegistry.length > 0) {
+      setProjectCharacterRegistry(updatedRegistry);
+      const primary = updatedRegistry[0];
       setActiveSubjectLock({
-        id: extractedCharacter.id,
-        name: extractedCharacter.name,
+        id: primary.id,
+        name: primary.name,
         category: 'person',
-        roleOrType: extractedCharacter.roleOrArchetype,
-        avatarEmoji: extractedCharacter.avatarEmoji,
-        visualDescription: extractedCharacter.visualDescription,
-        frameOneAnchorSeed: extractedCharacter.frameOneAnchorSeed,
-        anchorToken: extractedCharacter.anchorToken,
+        roleOrType: primary.roleOrArchetype,
+        avatarEmoji: primary.avatarEmoji,
+        visualDescription: primary.visualDescription,
+        frameOneAnchorSeed: primary.frameOneAnchorSeed,
+        anchorToken: primary.anchorToken,
         originBadge: 'Prompt Extracted',
         recommendedFraming: 'Cinematic 35mm Master'
       });
-      // Enable lock by default so continuity is preserved
       setSubjectLockEnabled(true);
     }
 
@@ -497,21 +707,94 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     setChainSegments(prev => {
       const hasAnyRendered = prev.some(s => !!s.videoUrl);
       if (hasAnyRendered) return prev;
-      return generateChainedSegmentsFromPrompt(prompt, extractedCharacter || null);
+      return generateChainedSegmentsFromPrompt(prompt, updatedRegistry[0] || null);
     });
 
-    // Dynamically re-derive unrendered storyboard project scenes from the new prompt
+    // Dynamically re-derive storyboard project scenes from the prompt narrative beats
     setProjectScenes(prev => {
-      // If Scene 1 already has a generated video, do not overwrite
-      if (prev.length > 0 && prev[0]?.videoUrl) return prev;
-
       const derivedState = initializeProjectContinuity(
         prompt,
         resolution === '720x1280' ? '9:16' : '16:9'
       );
+
+      // If Scene 1 already has a generated video, preserve its video and propagate to unrendered Scene 2 and 3
+      if (prev.length > 0 && prev[0]?.videoUrl) {
+        const scene1Url = prev[0].videoUrl;
+        return derivedState.scenes.map((derivedScene, idx) => {
+          if (idx === 0) {
+            return { ...derivedScene, videoUrl: prev[0].videoUrl, status: 'completed' as const };
+          }
+          if (prev[idx]?.videoUrl) {
+            return prev[idx];
+          }
+          return {
+            ...derivedScene,
+            userPrompt: derivedScene.userPrompt.includes('Visual Reference Anchor') 
+              ? derivedScene.userPrompt 
+              : `${derivedScene.userPrompt} [Visual Reference Anchor: Scene 1 Master (${scene1Url})]`
+          };
+        });
+      }
+
       return derivedState.scenes;
     });
   }, [prompt]);
+
+  // Synthesize multi-scene storyboard derived 100% from current user prompt
+  const handleSynthesizeStoryboardFromPrompt = () => {
+    const textPrompt = (prompt || '').trim();
+    if (!textPrompt) return;
+    const segments = generateChainedSegmentsFromPrompt(textPrompt, projectCharacterRegistry[0] || null);
+    const generatedScenes: StoryboardSceneItem[] = segments.map((seg, idx) => ({
+      id: 'story-derived-' + Date.now() + '-' + idx,
+      sceneNumber: idx + 1,
+      title: seg.title,
+      recommendedDuration: parseInt(normalizeSoraDuration(seg.recommendedDuration || 8), 10),
+      framing: seg.framing || 'Cinematic Medium 50mm',
+      prompt: seg.prompt,
+      subtitleEn: seg.subtitleEn,
+      subtitleNe: seg.subtitleNe,
+    }));
+    setStoryboardScenes(generatedScenes);
+    setActiveStoryboardPack({
+      id: 'custom-pack-' + Date.now(),
+      title: textPrompt.slice(0, 40) + ' (Storyboard)',
+      badge: 'PROMPT DERIVED',
+      description: `Dynamic storyboard sequenced directly from prompt: "${textPrompt.slice(0, 60)}..."`,
+      visualStyle: 'Cinematic Dynamic Storyboard',
+      totalEstimatedDuration: generatedScenes.reduce((acc, s) => acc + (s.recommendedDuration || 8), 0),
+      aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+      scenes: generatedScenes
+    });
+  };
+
+  // Re-derive the unified Project Storyboard scenes 100% from the current prompt
+  const handleResynthesizeProjectStoryboard = () => {
+    const textPrompt = (prompt || '').trim();
+    if (!textPrompt) return;
+    const derivedState = initializeProjectContinuity(
+      textPrompt,
+      resolution === '720x1280' ? '9:16' : '16:9'
+    );
+    setProjectScenes(derivedState.scenes);
+    setProjectCharacterRegistry(derivedState.characters);
+    if (derivedState.characters[0]) {
+      setSelectedContinuityCharId(derivedState.characters[0].id);
+      setActiveSubjectLock({
+        id: derivedState.characters[0].id,
+        name: derivedState.characters[0].name,
+        category: 'person',
+        roleOrType: derivedState.characters[0].roleOrArchetype,
+        avatarEmoji: derivedState.characters[0].avatarEmoji,
+        visualDescription: derivedState.characters[0].visualDescription,
+        frameOneAnchorSeed: derivedState.characters[0].frameOneAnchorSeed,
+        anchorToken: derivedState.characters[0].anchorToken,
+        originBadge: 'Prompt Extracted',
+        recommendedFraming: 'Cinematic 35mm Master'
+      });
+      setSubjectLockEnabled(true);
+    }
+  };
 
   // AI Director Pre-Flight Approval State
   const [showApprovalModal, setShowApprovalModal] = useState<boolean>(false);
@@ -601,6 +884,14 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
     try {
       const effectiveUserId = user?.id || 'usr_admin_01';
+      // Extract scene reference image if embedded in prompt
+      const sceneRefMatch = promptToUse.match(/\[(?:Visual Reference Anchor|Subject Visual Anchor|Subject Reference Lock|Visual Style Reference Lock): ([^|(]+)(?: \| |\()([^)]+)\)?\]/i);
+      let effectiveRefUrl = sceneRefMatch ? sceneRefMatch[2].replace(/\)$/, '').trim() : (referenceImageUrl || undefined);
+      // For scenes 2+, if no reference is explicitly set, lock and inherit Scene 1 media!
+      if (!effectiveRefUrl && sceneIndex > 0 && projectScenes[0]?.videoUrl) {
+        effectiveRefUrl = projectScenes[0].videoUrl;
+      }
+
       const data = await apiGenerateVideo(
         effectiveUserId,
         promptToUse,
@@ -609,9 +900,12 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         {
           resolution,
           aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+          motionMagnitude,
           lockedSubjectToken: primaryChar?.anchorToken,
           lockedSubjectDescription: primaryChar?.visualDescription,
           frameOneSeedPrompt: primaryChar?.frameOneAnchorSeed,
+          referenceImageUrl: effectiveRefUrl,
+          referenceImageBase64: referenceImageBase64 || undefined,
         }
       );
 
@@ -666,11 +960,26 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
       if (finalUrl) {
         setVideoResultUrl(finalUrl);
-        setProjectScenes(prev => prev.map((s, idx) => idx === sceneIndex ? { 
-          ...s, 
-          videoUrl: finalUrl,
-          status: 'completed'
-        } : s));
+        setProjectScenes(prev => prev.map((s, idx) => {
+          if (idx === sceneIndex) {
+            return {
+              ...s,
+              videoUrl: finalUrl,
+              duration: String(dur) as any,
+              status: 'completed'
+            };
+          }
+          // When Scene 1 finishes, propagate its media as reference visual anchor to Scene 2 and 3!
+          if (sceneIndex === 0 && idx > 0 && !s.videoUrl) {
+            return {
+              ...s,
+              userPrompt: s.userPrompt.includes('Visual Reference Anchor')
+                ? s.userPrompt
+                : `${s.userPrompt} [Visual Reference Anchor: Scene 1 Master (${finalUrl})]`
+            };
+          }
+          return s;
+        }));
 
         saveMediaItem({
           type: 'sora_video',
@@ -829,8 +1138,54 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     });
   };
 
-  // Apply continuity-aware prompt from GPT-4o Prompt Context Analyzer
+  // Apply continuity-aware prompt from Prompt Context Analyzer or Paste Prompt
   const handleApplyPromptToScene = (sceneIndex: number, promptText: string, title?: string, duration?: '4' | '8' | '12') => {
+    const updatedRegistry = extractAllCharactersFromPrompt(promptText, projectCharacterRegistry);
+    if (updatedRegistry.length > 0) {
+      setProjectCharacterRegistry(updatedRegistry);
+      setSelectedContinuityCharId(updatedRegistry[0]?.id || null);
+    }
+
+    const beats = decomposePromptIntoNarrativeBeats(promptText, updatedRegistry);
+
+    if (sceneIndex === 0 && beats.length > 1) {
+      setProjectScenes(prev => {
+        const updated = [...prev];
+        beats.forEach((beat, bIdx) => {
+          const sIdx = bIdx;
+          const prevScene = sIdx > 0 ? updated[sIdx - 1] : undefined;
+          const res = resolveSceneContinuity({
+            sceneIndex: sIdx + 1,
+            userPrompt: beat.userPrompt,
+            projectRegistry: updatedRegistry,
+            previousScene: prevScene,
+            duration: beat.duration
+          });
+          const node: SequentialSceneNode = {
+            id: updated[sIdx]?.id || `scene-node-${Date.now()}-${sIdx + 1}`,
+            sceneIndex: sIdx + 1,
+            title: beat.title,
+            userPrompt: beat.userPrompt,
+            constructedPrompt: res.constructedPrompt,
+            activeCharacterIds: res.activeCharacters.map(c => c.id),
+            duration: beat.duration,
+            framing: beat.framing,
+            cameraMovement: beat.cameraMovement,
+            lightingAtmosphere: updated[sIdx]?.lightingAtmosphere || 'Cinematic Master Lighting',
+            exitLatentContext: res.exitLatentContext,
+            status: updated[sIdx]?.status || 'idle',
+            videoUrl: updated[sIdx]?.videoUrl,
+            subtitleEn: beat.subtitleEn,
+            subtitleNe: beat.subtitleNe,
+            characterTokensInjected: res.activeCharacters.map(c => c.anchorToken)
+          };
+          updated[sIdx] = node;
+        });
+        return updated;
+      });
+      return;
+    }
+
     setProjectScenes(prev => {
       const updated = [...prev];
       if (!updated[sceneIndex]) return prev;
@@ -838,7 +1193,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       const res = resolveSceneContinuity({
         sceneIndex: sceneIndex + 1,
         userPrompt: promptText,
-        projectRegistry: projectCharacterRegistry,
+        projectRegistry: updatedRegistry.length > 0 ? updatedRegistry : projectCharacterRegistry,
         previousScene: prevScene,
         duration: duration || updated[sceneIndex].duration
       });
@@ -1440,7 +1795,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       const data = await apiGenerateVideo(
         effectiveUserId,
         promptToUse,
-        sceneItem.recommendedDuration || 15,
+        parseInt(normalizeSoraDuration(sceneItem.recommendedDuration || 8), 10),
         'sora-2',
         {
           resolution: activeStoryboardPack.aspectRatio === '9:16' ? '720x1280' : '1280x720',
@@ -1448,6 +1803,9 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           lockedSubjectToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
           lockedSubjectDescription: subjectLockEnabled ? activeSubjectLock.visualDescription : undefined,
           frameOneSeedPrompt: subjectLockEnabled ? activeSubjectLock.frameOneAnchorSeed : undefined,
+          referenceImageUrl: referenceImageUrl || undefined,
+          motionMagnitude: motionMagnitude,
+          motion: sceneItem.framing,
         }
       );
 
@@ -1570,7 +1928,7 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
       const data = await apiGenerateVideo(
         effectiveUserId,
         constructedPrompt,
-        15,
+        12,
         'sora-2',
         {
           resolution,
@@ -1578,6 +1936,8 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
           lockedSubjectToken: activeSubjectLock.anchorToken,
           lockedSubjectDescription: activeSubjectLock.visualDescription,
           frameOneSeedPrompt: activeSubjectLock.frameOneAnchorSeed,
+          referenceImageUrl: referenceImageUrl || undefined,
+          motionMagnitude: motionMagnitude,
         }
       );
 
@@ -1720,18 +2080,22 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
     const movieTitle = activeStoryboardPack.title || '6-7 Clip Short Movie';
 
     storyboardScenes.forEach((s, idx) => {
-      const sceneUrl = s.videoUrl || videoResultUrl || '/samples/ForBiggerBlazes.mp4';
+      const dur = parseInt(normalizeSoraDuration(s.recommendedDuration || 8), 10);
+      const isRenderedVideo = Boolean(s.videoUrl && s.videoUrl.match(/\.(mp4|webm)($|\?)/i));
+      const promptVisualUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(s.prompt.slice(0, 120))}?width=${activeStoryboardPack.aspectRatio === '9:16' ? 720 : 1280}&height=${activeStoryboardPack.aspectRatio === '9:16' ? 1280 : 720}&nologo=true`;
+      const sceneUrl = s.videoUrl || promptVisualUrl;
+
       const newScene: Scene = {
         id: 'scene-storyboard-' + Math.random().toString(36).substring(2, 9),
         assetId: 'media-sb-' + Date.now() + '-' + idx,
         title: s.title,
-        duration: s.recommendedDuration || 15,
-        startTime: idx * (s.recommendedDuration || 15),
+        duration: dur,
+        startTime: idx * dur,
         prompt: s.prompt,
         promptNepali: s.subtitleNe || s.prompt,
         mediaUrl: sceneUrl,
-        thumbnailUrl: sceneUrl.endsWith('.mp4') ? sceneUrl.replace(/\.mp4$/, '_thumb.jpg') : undefined,
-        mediaType: 'video',
+        thumbnailUrl: isRenderedVideo ? (sceneUrl.endsWith('.mp4') ? sceneUrl.replace(/\.mp4$/, '_thumb.jpg') : undefined) : sceneUrl,
+        mediaType: isRenderedVideo ? 'video' : 'image',
         aspectRatio: activeStoryboardPack.aspectRatio,
         motion: idx % 2 === 0 ? 'zoom_in' : 'pan_right',
         transition: idx === 0 ? 'cut' : 'dissolve',
@@ -1816,9 +2180,12 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
         {
           resolution,
           aspectRatio: resolution === '720x1280' ? '9:16' : '16:9',
+          motionMagnitude,
           lockedSubjectToken: subjectLockEnabled ? activeSubjectLock.anchorToken : undefined,
           lockedSubjectDescription: subjectLockEnabled ? activeSubjectLock.visualDescription : undefined,
           frameOneSeedPrompt: subjectLockEnabled ? activeSubjectLock.frameOneAnchorSeed : undefined,
+          referenceImageUrl: referenceImageUrl || undefined,
+          referenceImageBase64: referenceImageBase64 || undefined,
         }
       );
 
@@ -2109,6 +2476,9 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed shadow-inner"
                 />
 
+                {/* Reference Image / Character Avatar Anchor */}
+                {renderReferenceImageWidget()}
+
                 {/* Auto-Locked Character Notification Badge */}
                 {subjectLockEnabled && activeSubjectLock && (
                   <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 animate-in fade-in duration-200">
@@ -2315,6 +2685,52 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Motion Magnitude (1-10) Slider & Stepper */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[10.5px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Motion Magnitude:</span>
+                      <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                        {motionMagnitude}/10
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        ({motionMagnitude <= 3 ? 'Gentle Drift' : motionMagnitude <= 7 ? 'Cinematic Flow' : 'Dynamic High Velocity'})
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-1">
+                      {[1, 3, 5, 8, 10].map((presetVal) => (
+                        <button
+                          key={presetVal}
+                          type="button"
+                          onClick={() => setMotionMagnitude(presetVal)}
+                          className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold transition cursor-pointer ${
+                            motionMagnitude === presetVal
+                              ? 'bg-amber-500 text-slate-950 shadow-xs'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          {presetVal}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={motionMagnitude}
+                    onChange={(e) => setMotionMagnitude(parseInt(e.target.value, 10))}
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 font-mono mt-1">
+                    <span>1 (Slow / Subtle)</span>
+                    <span>5 (Balanced Cinematic)</span>
+                    <span>10 (Action / Fast Pan)</span>
+                  </div>
+                </div>
               </div>
 
               {/* Step 4: Collapsible Character / Subject Continuity (Optional) */}
@@ -2386,9 +2802,9 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
 
               {/* Generate Button */}
               <button
-                onClick={handleOpenApprovalForSingleShot}
-                disabled={isGenerating}
-                className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
+                onClick={handleGenerateSora}
+                disabled={isGenerating || !prompt.trim()}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 hover:from-indigo-500 hover:to-indigo-700 disabled:opacity-50 text-white text-sm font-bold shadow-md flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 {isGenerating ? (
                   <>
@@ -2397,11 +2813,22 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>✨ Review AI Director Blueprint & Generate Video</span>
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>🎬 Generate Sora-2 Video ({normalizeSoraDuration(seconds)}s Master)</span>
                   </>
                 )}
               </button>
+
+              <div className="flex items-center justify-center pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleOpenApprovalForSingleShot}
+                  disabled={isGenerating || !prompt.trim()}
+                  className="text-xs text-indigo-500 hover:text-indigo-400 dark:text-indigo-400 dark:hover:text-indigo-300 transition flex items-center gap-1 cursor-pointer"
+                >
+                  <span>📋 Advanced: Review AI Director Blueprint first</span>
+                </button>
+              </div>
             </div>
           ) : (
             /* Pro Studio Mode with Detailed Tabs */
@@ -2867,23 +3294,42 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 <div className="flex items-center gap-1.5">
                   <Clapperboard className="w-4 h-4 text-amber-600" />
                   <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    6-7 Clip Short Movie & Ad Storyboard
+                    Sequential Storyboard & Movie Clips
                   </span>
                 </div>
-                <select
-                  value={activeStoryboardPack.id}
-                  onChange={(e) => {
-                    const pack = NARRATIVE_STORYBOARDS.find(p => p.id === e.target.value);
-                    if (pack) setActiveStoryboardPack(pack);
-                  }}
-                  className="text-[11px] bg-white border border-slate-200 rounded-lg p-1.5 font-bold text-slate-800"
-                >
-                  {NARRATIVE_STORYBOARDS.map(pack => (
-                    <option key={pack.id} value={pack.id}>
-                      {pack.badge} • {pack.title}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSynthesizeStoryboardFromPrompt}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold transition flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                    title="Synthesize 4-6 narrative scenes directly from current prompt"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Synthesize from Prompt</span>
+                  </button>
+                  <select
+                    value={activeStoryboardPack.id}
+                    onChange={(e) => {
+                      const pack = NARRATIVE_STORYBOARDS.find(p => p.id === e.target.value);
+                      if (pack) {
+                        setActiveStoryboardPack(pack);
+                        setStoryboardScenes(pack.scenes);
+                      }
+                    }}
+                    className="text-[11px] bg-white border border-slate-200 rounded-lg p-1.5 font-bold text-slate-800"
+                  >
+                    {activeStoryboardPack.id.startsWith('custom-pack') && (
+                      <option value={activeStoryboardPack.id}>
+                        ✨ Custom • {activeStoryboardPack.title}
+                      </option>
+                    )}
+                    {NARRATIVE_STORYBOARDS.map(pack => (
+                      <option key={pack.id} value={pack.id}>
+                        {pack.badge} • {pack.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-[11px] text-slate-600 space-y-1">
@@ -3138,6 +3584,9 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 placeholder="उदा. सगरमाथामा बिहानीको घाम, काठमाडौंको मन्दिर, फेवातालमा डुङ्गा, गाउँमा चिया पसल..."
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-indigo-500 resize-none font-sans leading-relaxed"
               />
+
+              {/* Reference Image / Character Avatar Anchor */}
+              {renderReferenceImageWidget()}
 
               {/* Auto-Locked Character Notification Badge (Pro Mode) */}
               {subjectLockEnabled && activeSubjectLock && (
@@ -3539,6 +3988,14 @@ export const SoraStudioView: React.FC<SoraStudioViewProps> = ({
                 onAddNewCharacter={handleAddCustomCharacterToBank}
                 onRemoveScene={handleRemoveProjectScene}
                 onApplyPromptToScene={handleApplyPromptToScene}
+                onLoadPromptToStudio={(promptText, dur) => {
+                  setPrompt(promptText);
+                  if (dur) setSeconds(dur as any);
+                }}
+                onSetSceneMediaUrl={(idx, url) => {
+                  setProjectScenes(prev => prev.map((s, i) => i === idx ? { ...s, videoUrl: url } : s));
+                }}
+                onResynthesizeStoryboard={handleResynthesizeProjectStoryboard}
                 currentPrompt={prompt}
               />
             </div>

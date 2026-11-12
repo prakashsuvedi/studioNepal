@@ -12,6 +12,7 @@ import {
   FileText
 } from 'lucide-react';
 import { Scene, StoryboardScene, CameraMotion, TransitionType } from '../types';
+import { UploadReferenceImage } from './UploadReferenceImage';
 
 interface AiStoryboardModalProps {
   isOpen: boolean;
@@ -52,16 +53,23 @@ export const AiStoryboardModal: React.FC<AiStoryboardModalProps> = ({
   const [targetSceneCount, setTargetSceneCount] = useState<number>(4);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedStoryboard, setGeneratedStoryboard] = useState<StoryboardScene[] | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [referenceImageName, setReferenceImageName] = useState<string | null>(null);
+  const [referencePromptTag, setReferencePromptTag] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
+      const referenceInstruction = referencePromptTag
+        ? `\nVISUAL REFERENCE LOCK: All scenes MUST strictly preserve this character/style anchor: ${referencePromptTag}. Incorporate this into each scene's visualPrompt.`
+        : '';
+
       // Call HamroAI chat endpoint to intelligently break down the user's script
       const promptText = `Act as an award-winning cinematic director and storyboard artist. 
 Analyze the script below and break it down into exactly ${targetSceneCount} cinematic storyboard scenes.
-Language: ${selectedLanguage === 'ne' ? 'Nepali context and Nepali Devanagari voiceover' : selectedLanguage === 'hi' ? 'Hindi context' : 'English'}.
+Language: ${selectedLanguage === 'ne' ? 'Nepali context and Nepali Devanagari voiceover' : selectedLanguage === 'hi' ? 'Hindi context' : 'English'}.${referenceInstruction}
 
 Respond ONLY with a valid JSON array of ${targetSceneCount} objects, no markdown wrappers, no backticks, no preamble.
 Schema:
@@ -100,7 +108,13 @@ Script:
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]) as StoryboardScene[];
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setGeneratedStoryboard(parsed.slice(0, targetSceneCount));
+            const enriched = parsed.slice(0, targetSceneCount).map(s => {
+              if (referencePromptTag && !s.visualPrompt.includes(referencePromptTag)) {
+                return { ...s, visualPrompt: `${referencePromptTag} ${s.visualPrompt}` };
+              }
+              return s;
+            });
+            setGeneratedStoryboard(enriched);
             setIsGenerating(false);
             return;
           }
@@ -294,6 +308,28 @@ Script:
               placeholder="Paste or write your script, promotional narrative, or article here..."
             />
           </div>
+
+          {/* Reference Image / Avatar / Style Anchor Component */}
+          <UploadReferenceImage
+            selectedImageUrl={referenceImageUrl}
+            selectedImageName={referenceImageName}
+            label="Visual Reference Image &amp; Character / Style Avatar"
+            subLabel="Select an avatar or style image to inject visual continuity across all generated scenes"
+            currentPrompt={scriptInput}
+            onSelectImage={(url, name, promptInjection) => {
+              setReferenceImageUrl(url);
+              setReferenceImageName(name);
+              setReferencePromptTag(promptInjection);
+            }}
+            onClearImage={() => {
+              setReferenceImageUrl(null);
+              setReferenceImageName(null);
+              setReferencePromptTag(null);
+            }}
+            onAppendToPrompt={(newScript) => {
+              setScriptInput(newScript);
+            }}
+          />
 
           {/* Controls: Target Language & Scene Count */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

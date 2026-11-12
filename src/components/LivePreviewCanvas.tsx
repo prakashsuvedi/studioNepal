@@ -379,17 +379,19 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         }
         const drift = vidA.currentTime - targetTimeA;
         const absDrift = Math.abs(drift);
-        if (absDrift > 0.75 && !vidA.seeking) {
-          // Large scrub or boundary jump: hard seek
+        if (absDrift > 1.8 && !vidA.seeking) {
+          // Significant playhead jump / manual seek: hard sync
           vidA.currentTime = targetTimeA;
-        } else if (absDrift > 0.08 && !vidA.seeking) {
-          // Micro rate pitch adjustment for ultra-smooth optical synchronization without seeking
-          vidA.playbackRate = baseSpeed * (drift < 0 ? 1.04 : 0.96);
+        } else if (absDrift > 0.12 && !vidA.seeking) {
+          // Continuous smooth rate adjustment to lock sync without dropping decoder frames
+          vidA.playbackRate = baseSpeed * (drift < 0 ? 1.05 : 0.95);
+        } else if (absDrift <= 0.05) {
+          vidA.playbackRate = baseSpeed;
         }
       } else {
         if (!vidA.paused) vidA.pause();
         const drift = Math.abs(vidA.currentTime - targetTimeA);
-        if (drift > 0.04 && !vidA.seeking) {
+        if (drift > 0.08 && !vidA.seeking) {
           vidA.currentTime = targetTimeA;
         }
       }
@@ -402,14 +404,16 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         }
         const drift = vidA.currentTime - targetTimeA;
         const absDrift = Math.abs(drift);
-        if (absDrift > 0.75 && !vidA.seeking) {
+        if (absDrift > 1.8 && !vidA.seeking) {
           vidA.currentTime = targetTimeA;
-        } else if (absDrift > 0.08 && !vidA.seeking) {
-          vidA.playbackRate = baseSpeed * (drift < 0 ? 1.04 : 0.96);
+        } else if (absDrift > 0.12 && !vidA.seeking) {
+          vidA.playbackRate = baseSpeed * (drift < 0 ? 1.05 : 0.95);
+        } else if (absDrift <= 0.05) {
+          vidA.playbackRate = baseSpeed;
         }
       } else {
         if (!vidA.paused) vidA.pause();
-        if (Math.abs(vidA.currentTime - targetTimeA) > 0.04 && !vidA.seeking) {
+        if (Math.abs(vidA.currentTime - targetTimeA) > 0.15 && !vidA.seeking) {
           vidA.currentTime = targetTimeA;
         }
       }
@@ -436,15 +440,17 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         }
         const drift = vidB.currentTime - targetTimeB;
         const absDrift = Math.abs(drift);
-        if (absDrift > 0.75 && !vidB.seeking) {
+        if (absDrift > 1.8 && !vidB.seeking) {
           vidB.currentTime = targetTimeB;
-        } else if (absDrift > 0.08 && !vidB.seeking) {
-          vidB.playbackRate = baseSpeed * (drift < 0 ? 1.04 : 0.96);
+        } else if (absDrift > 0.12 && !vidB.seeking) {
+          vidB.playbackRate = baseSpeed * (drift < 0 ? 1.05 : 0.95);
+        } else if (absDrift <= 0.05) {
+          vidB.playbackRate = baseSpeed;
         }
       } else {
         if (!vidB.paused) vidB.pause();
         const drift = Math.abs(vidB.currentTime - targetTimeB);
-        if (drift > 0.04 && !vidB.seeking) {
+        if (drift > 0.08 && !vidB.seeking) {
           vidB.currentTime = targetTimeB;
         }
       }
@@ -457,14 +463,16 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
         }
         const drift = vidB.currentTime - targetTimeB;
         const absDrift = Math.abs(drift);
-        if (absDrift > 0.75 && !vidB.seeking) {
+        if (absDrift > 1.8 && !vidB.seeking) {
           vidB.currentTime = targetTimeB;
-        } else if (absDrift > 0.08 && !vidB.seeking) {
-          vidB.playbackRate = baseSpeed * (drift < 0 ? 1.04 : 0.96);
+        } else if (absDrift > 0.12 && !vidB.seeking) {
+          vidB.playbackRate = baseSpeed * (drift < 0 ? 1.05 : 0.95);
+        } else if (absDrift <= 0.05) {
+          vidB.playbackRate = baseSpeed;
         }
       } else {
         if (!vidB.paused) vidB.pause();
-        if (Math.abs(vidB.currentTime - targetTimeB) > 0.04 && !vidB.seeking) {
+        if (Math.abs(vidB.currentTime - targetTimeB) > 0.15 && !vidB.seeking) {
           vidB.currentTime = targetTimeB;
         }
       }
@@ -1159,7 +1167,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
                 playsInline
                 muted={!isEvenScene || isMuted || !!deckAScene?.isMuted || deckAScene?.volume === 0}
                 preload="auto"
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
+                className={`absolute inset-0 w-full h-full object-contain ${isTransitioning ? 'transition-opacity duration-150' : 'transition-none'} z-[2]`}
                 style={{
                   filter: activeVideoFilter,
                   opacity: opacityA,
@@ -1218,7 +1226,7 @@ export const LivePreviewCanvas: React.FC<LivePreviewCanvasProps> = ({
                 playsInline
                 muted={isEvenScene || isMuted || !!deckBScene?.isMuted || deckBScene?.volume === 0}
                 preload="auto"
-                className="absolute inset-0 w-full h-full object-contain transition-opacity duration-150 z-[2]"
+                className={`absolute inset-0 w-full h-full object-contain ${isTransitioning ? 'transition-opacity duration-150' : 'transition-none'} z-[2]`}
                 style={{
                   filter: activeVideoFilter,
                   opacity: opacityB,

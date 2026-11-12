@@ -182,13 +182,14 @@ export const CapCutPlayerPanel: React.FC<CapCutPlayerPanelProps> = ({
       </div>
 
       {/* Main Viewport Container */}
-      <div className="flex-1 flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden relative bg-[#05070c]">
+      <div className="flex-1 flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden relative bg-[#05070c] min-h-[160px]">
         <div 
-          className="relative bg-black rounded-md overflow-hidden shadow-2xl shadow-black/95 flex items-center justify-center ring-1 ring-white/5 transition-all duration-150"
+          className="relative bg-black rounded-md overflow-hidden shadow-2xl shadow-black/95 flex items-center justify-center ring-1 ring-white/5 transition-all duration-150 max-h-full max-w-full"
           style={{
             aspectRatio: aspectRatio === '16:9' ? '16 / 9' : aspectRatio === '9:16' ? '9 / 16' : '1 / 1',
             height: '100%',
             width: 'auto',
+            minHeight: '140px',
             maxWidth: '100%',
             maxHeight: '100%',
           }}

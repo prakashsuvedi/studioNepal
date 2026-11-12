@@ -40,7 +40,9 @@ import {
   Copy,
   Heading,
   Shield,
-  Award
+  Award,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Scene, AudioTrack, StarterTemplate, TransitionType } from '../../types';
 import { getStoredMedia, MediaItem, saveMediaItem, deleteMediaItem } from '../../lib/mediaLibrary';
@@ -67,6 +69,8 @@ interface CapCutLeftPanelProps {
   subtitles?: SubtitleItem[];
   subtitleBurnOptions?: SubtitleBurnOptions;
   setSubtitleBurnOptions?: React.Dispatch<React.SetStateAction<SubtitleBurnOptions>>;
+  isFolded?: boolean;
+  onToggleFold?: () => void;
 }
 
 type TabType = 'media' | 'audio' | 'text' | 'titles' | 'watermark' | 'effects' | 'transitions' | 'captions' | 'filters' | 'templates' | 'ai';
@@ -93,6 +97,8 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
   subtitles,
   subtitleBurnOptions,
   setSubtitleBurnOptions,
+  isFolded = false,
+  onToggleFold,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('media');
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('all');
@@ -797,7 +803,12 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={() => {
+                setActiveTab(tab.id as TabType);
+                if (isFolded && onToggleFold) {
+                  onToggleFold();
+                }
+              }}
               className={`relative flex flex-col items-center justify-center w-11 py-1.5 rounded-lg text-[9px] font-semibold transition-all duration-150 cursor-pointer group ${
                 isActive 
                   ? 'bg-slate-800/90 text-cyan-400 font-bold shadow-sm' 
@@ -813,38 +824,63 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
             </button>
           );
         })}
+
+        {/* Fold / Expand Drawer Toggle Button on Rail */}
+        {onToggleFold && (
+          <div className="pt-2 mt-auto pb-2 border-t border-slate-800/80 w-full flex justify-center">
+            <button
+              onClick={onToggleFold}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition cursor-pointer flex items-center justify-center"
+              title={isFolded ? 'Expand Tool Drawer' : 'Fold Tool Drawer'}
+            >
+              {isFolded ? <ChevronRight className="w-4 h-4 text-cyan-400" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 2. Contextual Media / Tools Panel */}
-      <div className="w-60 sm:w-64 md:w-68 bg-[#0c0e17] flex flex-col h-full overflow-hidden shrink-0">
-        {/* Contextual Header Bar */}
-        <div className="h-8.5 px-3 border-b border-slate-800/80 bg-[#0a0d14] flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold text-slate-200 capitalize tracking-wide">
-              {activeTab === 'ai' ? 'AI Studio' : activeTab === 'watermark' ? 'Brand Watermark' : `${activeTab}`}
-            </span>
-            <span className="px-1.5 py-0.2 rounded bg-slate-800 text-[9px] font-mono text-cyan-400 font-bold">
-              {activeTab === 'media' ? filteredMedia.length :
-               activeTab === 'audio' ? (audioTracks.length + sfxLibrary.length + importedVoiceovers.length + bgmSampleCatalog.length) :
-               activeTab === 'effects' ? vfxPresets.length :
-               activeTab === 'transitions' ? transitionPresets.length :
-               activeTab === 'filters' ? filterPresets.length :
-               activeTab === 'text' ? textPresets.length :
-               activeTab === 'watermark' ? (brandOverlayConfig?.enabled ? 'ACTIVE' : 'OFF') :
-               activeTab === 'captions' ? (subtitles?.length || 0) : ''}
-            </span>
+      {/* 2. Contextual Media / Tools Panel (Can be folded into slim rail to maximize player viewport) */}
+      {!isFolded && (
+        <div className="w-60 sm:w-64 md:w-68 bg-[#0c0e17] flex flex-col h-full overflow-hidden shrink-0 animate-in fade-in duration-150">
+          {/* Contextual Header Bar */}
+          <div className="h-8.5 px-3 border-b border-slate-800/80 bg-[#0a0d14] flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-200 capitalize tracking-wide">
+                {activeTab === 'ai' ? 'AI Studio' : activeTab === 'watermark' ? 'Brand Watermark' : `${activeTab}`}
+              </span>
+              <span className="px-1.5 py-0.2 rounded bg-slate-800 text-[9px] font-mono text-cyan-400 font-bold">
+                {activeTab === 'media' ? filteredMedia.length :
+                 activeTab === 'audio' ? (audioTracks.length + sfxLibrary.length + importedVoiceovers.length + bgmSampleCatalog.length) :
+                 activeTab === 'effects' ? vfxPresets.length :
+                 activeTab === 'transitions' ? transitionPresets.length :
+                 activeTab === 'filters' ? filterPresets.length :
+                 activeTab === 'text' ? textPresets.length :
+                 activeTab === 'watermark' ? (brandOverlayConfig?.enabled ? 'ACTIVE' : 'OFF') :
+                 activeTab === 'captions' ? (subtitles?.length || 0) : ''}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {activeTab === 'media' && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-2 py-0.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded text-[10px] font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer active:scale-95"
+                  title="Import local files"
+                >
+                  <Upload className="w-2.5 h-2.5 text-slate-950 stroke-[2.5]" />
+                  <span>Import</span>
+                </button>
+              )}
+              {onToggleFold && (
+                <button
+                  onClick={onToggleFold}
+                  className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+                  title="Fold Drawer (Maximize Viewport)"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
-          {activeTab === 'media' && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-2 py-0.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded text-[10px] font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer active:scale-95"
-              title="Import local files"
-            >
-              <Upload className="w-2.5 h-2.5 text-slate-950 stroke-[2.5]" />
-              <span>Import</span>
-            </button>
-          )}
-        </div>
 
         {/* 2. Search & Filter Header (when applicable) */}
         {(activeTab === 'media' || activeTab === 'audio') && (
@@ -2631,6 +2667,7 @@ export const CapCutLeftPanel: React.FC<CapCutLeftPanelProps> = ({
         </div>
       )}
       </div>
+      )}
     </div>
   );
 };

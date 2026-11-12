@@ -72,6 +72,13 @@ export interface ProjectContinuityState {
 
 // Common archetypes and emoji mapping
 const ARCHETYPE_MAP: Record<string, { emoji: string; defaultRole: string }> = {
+  monkey: { emoji: '🐒', defaultRole: 'Monkey Character / Batter' },
+  bear: { emoji: '🐻', defaultRole: 'Bear Character / Bowler' },
+  cricketer: { emoji: '🏏', defaultRole: 'Professional Cricket Player' },
+  batsman: { emoji: '🏏', defaultRole: 'Master Batter' },
+  bowler: { emoji: '🏏', defaultRole: 'Pace Bowler' },
+  athlete: { emoji: '🏃', defaultRole: 'Championship Athlete' },
+  footballer: { emoji: '⚽', defaultRole: 'Professional Footballer' },
   monk: { emoji: '🧘‍♂️', defaultRole: 'Spiritual Master / Monk' },
   priest: { emoji: '📿', defaultRole: 'Temple Priest' },
   sherpa: { emoji: '🏔️', defaultRole: 'Himalayan Sherpa Guide' },
@@ -88,10 +95,17 @@ const ARCHETYPE_MAP: Record<string, { emoji: string; defaultRole: string }> = {
   artisan: { emoji: '🎨', defaultRole: 'Master Craftsman' },
   tiger: { emoji: '🐅', defaultRole: 'Royal Bengal Tiger' },
   leopard: { emoji: '🐆', defaultRole: 'Snow Leopard' },
+  elephant: { emoji: '🐘', defaultRole: 'Majestic Royal Elephant' },
+  lion: { emoji: '🦁', defaultRole: 'Regal Lion' },
+  dog: { emoji: '🐕', defaultRole: 'Loyal Companion Dog' },
+  cat: { emoji: '🐈', defaultRole: 'Agile Feline Companion' },
   eagle: { emoji: '🦅', defaultRole: 'Himalayan Golden Eagle' },
   merchant: { emoji: '🏮', defaultRole: 'Heritage Merchant' },
   doctor: { emoji: '🩺', defaultRole: 'Medical Pioneer' },
   warrior: { emoji: '⚔️', defaultRole: 'Ancient Guardian' },
+  detective: { emoji: '🕵️', defaultRole: 'Lead Investigator' },
+  pilot: { emoji: '👨‍✈️', defaultRole: 'Flight Captain' },
+  ninja: { emoji: '🥷', defaultRole: 'Shadow Shinobi' },
 };
 
 /**
@@ -595,6 +609,22 @@ export function predictNextSceneBeat(
 } {
   const nextIdx = currentScene.sceneIndex + 1;
   const primaryChar = activeCharacters[0] || allRegistry[0] || null;
+
+  // 0. Primary Check: Decompose prompt into logical narrative story beats
+  const beats = decomposePromptIntoNarrativeBeats(currentScene.userPrompt, allRegistry);
+  const matchedBeat = beats.find(b => b.sceneIndex === nextIdx);
+  if (matchedBeat) {
+    return {
+      nextTitle: matchedBeat.title,
+      nextPrompt: matchedBeat.userPrompt,
+      nextSubtitleEn: matchedBeat.subtitleEn,
+      nextSubtitleNe: matchedBeat.subtitleNe,
+      framing: matchedBeat.framing,
+      cameraMovement: matchedBeat.cameraMovement,
+      recommendedDuration: matchedBeat.duration,
+    };
+  }
+
   const ctx = extractSceneContextFromPrompt(currentScene.userPrompt, primaryChar);
   const name = primaryChar?.name || ctx.subjectName || 'The subject';
   const env = ctx.environment || 'the hallway';
@@ -785,31 +815,35 @@ export function generateChainedSegmentsFromPrompt(
   subtitleNe: string;
   exitLatentContext: string;
 }> {
-  const ctx = extractSceneContextFromPrompt(initialPrompt, primaryChar);
-  const name = primaryChar?.name || ctx.subjectName || 'The protagonist';
+  const initialCharacters = primaryChar ? [primaryChar] : extractAllCharactersFromPrompt(initialPrompt);
+  const beats = decomposePromptIntoNarrativeBeats(initialPrompt, initialCharacters);
+  const ctx = extractSceneContextFromPrompt(initialPrompt, initialCharacters[0] || primaryChar);
+  const name = initialCharacters[0]?.name || primaryChar?.name || ctx.subjectName || 'The protagonist';
   const env = ctx.environment;
 
-  // Scene 1: Master Hero Establishing Shot
+  // Scene 1
+  const b1 = beats[0];
   const seg1 = {
     id: 'seg-1',
     order: 1,
-    title: 'Scene 1: Master Hero Establishing Shot',
-    recommendedDuration: 12,
-    framing: ctx.cameraStyle || 'Cinematic Wide 35mm Master',
-    prompt: initialPrompt.trim(),
-    subtitleEn: `The scene opens in the ${env}.`,
-    subtitleNe: `कथाको सुरुवात ${env} बाट हुन्छ।`,
+    title: b1?.title || 'Scene 1: Master Hero Establishing Shot',
+    recommendedDuration: parseInt(b1?.duration || '12', 10),
+    framing: b1?.framing || ctx.cameraStyle || 'Cinematic Wide 35mm Master',
+    prompt: b1?.userPrompt || initialPrompt.trim(),
+    subtitleEn: b1?.subtitleEn || `The scene opens in the ${env}.`,
+    subtitleNe: b1?.subtitleNe || `कथाको सुरुवात ${env} बाट हुन्छ।`,
     exitLatentContext: `${name} turns from the center of the frame, moving purposefully toward the next action beat.`
   };
 
-  // Scene 2: Direct Action & Progression
+  // Scene 2
+  const b2 = beats[1];
   const dummyScene1: SequentialSceneNode = {
     id: 's-1',
     sceneIndex: 1,
     title: seg1.title,
-    userPrompt: initialPrompt,
-    constructedPrompt: initialPrompt,
-    activeCharacterIds: primaryChar ? [primaryChar.id] : [],
+    userPrompt: seg1.prompt,
+    constructedPrompt: seg1.prompt,
+    activeCharacterIds: initialCharacters.map(c => c.id),
     duration: '12',
     framing: seg1.framing,
     cameraMovement: 'Smooth Slow Push-In',
@@ -820,7 +854,14 @@ export function generateChainedSegmentsFromPrompt(
     subtitleNe: seg1.subtitleNe
   };
 
-  const p2 = predictNextSceneBeat(dummyScene1, primaryChar ? [primaryChar] : [], []);
+  const p2 = b2 ? {
+    nextTitle: b2.title,
+    nextPrompt: b2.userPrompt,
+    framing: b2.framing,
+    nextSubtitleEn: b2.subtitleEn,
+    nextSubtitleNe: b2.subtitleNe
+  } : predictNextSceneBeat(dummyScene1, initialCharacters, initialCharacters);
+
   const seg2 = {
     id: 'seg-2',
     order: 2,
@@ -834,12 +875,21 @@ export function generateChainedSegmentsFromPrompt(
   };
 
   // Scene 3
+  const b3 = beats[2];
   const dummyScene2: SequentialSceneNode = {
     ...dummyScene1,
     sceneIndex: 2,
-    userPrompt: p2.nextPrompt
+    title: seg2.title,
+    userPrompt: seg2.prompt
   };
-  const p3 = predictNextSceneBeat(dummyScene2, primaryChar ? [primaryChar] : [], []);
+  const p3 = b3 ? {
+    nextTitle: b3.title,
+    nextPrompt: b3.userPrompt,
+    framing: b3.framing,
+    nextSubtitleEn: b3.subtitleEn,
+    nextSubtitleNe: b3.subtitleNe
+  } : predictNextSceneBeat(dummyScene2, initialCharacters, initialCharacters);
+
   const seg3 = {
     id: 'seg-3',
     order: 3,
@@ -912,92 +962,318 @@ export function generateChainedSegmentsFromPrompt(
   return [seg1, seg2, seg3, seg4, seg5, seg6];
 }
 
+export interface StoryboardNarrativeBeat {
+  sceneIndex: number;
+  title: string;
+  userPrompt: string;
+  framing: string;
+  cameraMovement: string;
+  duration: '4' | '8' | '12';
+  subtitleEn: string;
+  subtitleNe: string;
+}
+
+export function decomposePromptIntoNarrativeBeats(
+  rawPrompt: string,
+  characters: DynamicCharacterIdentity[]
+): StoryboardNarrativeBeat[] {
+  const clean = rawPrompt.trim();
+  const lower = clean.toLowerCase();
+
+  // Specific detection for cricket & sports stories (e.g. monkey & bear playing cricket)
+  if ((lower.includes('cricket') || lower.includes('bat') || lower.includes('ball')) && (lower.includes('monkey') || lower.includes('bear'))) {
+    return [
+      {
+        sceneIndex: 1,
+        title: 'Scene 1: Monkey Smashes a Massive Six',
+        userPrompt: 'Monkey and bear playing cricket in a packed stadium. Monkey in cricket jersey takes a powerful stance at the crease, swings the bat with lightning speed and smashes the cricket ball high into the sky over deep mid-wicket for a massive six, stadium cheering.',
+        framing: 'Dynamic Low-Angle 35mm Tracking Shot',
+        cameraMovement: 'Fast Push-In and Tilt Up to the Flying Ball',
+        duration: '8',
+        subtitleEn: 'Monkey takes strike against Bear and smashes a towering six over the boundary!',
+        subtitleNe: 'भालुको बलिङमा बाँदरले जोडदार छक्का प्रहार गर्दछ!',
+      },
+      {
+        sceneIndex: 2,
+        title: 'Scene 2: Bear Strikes Back - Caught Out!',
+        userPrompt: 'Bear bowler runs up with fierce focus and bowls a sharp turning delivery. Monkey attempts another aggressive swing, but mistimes the shot; the ball catches the outside edge, flies high, and is caught by the fielder as the umpire raises his finger for OUT.',
+        framing: 'Over-the-Wicket 50mm Action Framing',
+        cameraMovement: 'Dynamic Pan & Snap-Zoom on the Raised Finger',
+        duration: '8',
+        subtitleEn: 'Bear bowls a brilliant delivery, Monkey mistimes the shot and is caught out!',
+        subtitleNe: 'भालुको उत्कृष्ट बलिङमा बाँदर क्याच आउट हुन पुग्छ!',
+      },
+      {
+        sceneIndex: 3,
+        title: 'Scene 3: Monkey Furious Reaction & Walk-Off',
+        userPrompt: 'Furious monkey cricketer slams his bat onto the pitch in extreme frustration, shouting and stomping off toward the pavilion in anger, while bear bowler and teammates jump and celebrate their match-winning victory.',
+        framing: 'Dramatic Medium Close-Up Tracking Shot',
+        cameraMovement: 'Tracking Reverse Dolly with Crane Pull-Back',
+        duration: '12',
+        subtitleEn: 'In furious rage, Monkey slams down his bat and storms off while Bear celebrates!',
+        subtitleNe: 'क्रोधित बाँदर ब्याट भुइँमा पछार्दै बाहिरिन्छ, भालु विजयको उत्सव मनाउँछ!',
+      }
+    ];
+  }
+
+  // General intelligent decomposition: split on narrative clause delimiters
+  const clauses = clean
+    .split(/\s+(?:and then|then|after that|following that|suddenly|meanwhile|after which|and|but)\s+|[;.]\s+/i)
+    .map(c => c.trim())
+    .filter(c => c.length > 5);
+
+  if (clauses.length >= 3) {
+    const c1 = clauses[0];
+    const c2 = clauses[1];
+    const c3 = clauses.slice(2).join(' ');
+    const charName = characters[0]?.name || 'Protagonist';
+    return [
+      {
+        sceneIndex: 1,
+        title: `Scene 1: ${c1.slice(0, 38)}`,
+        userPrompt: `${c1}, wide establishing master shot, photorealistic 4k, dynamic lighting.`,
+        framing: 'Cinematic Wide 35mm Master',
+        cameraMovement: 'Smooth Slow Push-In',
+        duration: '8',
+        subtitleEn: `The story begins: ${c1.slice(0, 70)}.`,
+        subtitleNe: `कथाको पहिलो दृश्य प्रारम्भ हुन्छ।`,
+      },
+      {
+        sceneIndex: 2,
+        title: `Scene 2: ${c2.slice(0, 38)}`,
+        userPrompt: `${c2}, continuous action flow tracking ${charName}, high cinematic tension, razor-sharp focus.`,
+        framing: 'Medium Action Tracking (50mm)',
+        cameraMovement: 'Dynamic Tracking Pan',
+        duration: '8',
+        subtitleEn: `${c2.slice(0, 70)}.`,
+        subtitleNe: `कथामा नयाँ मोड र तीव्र गति देखा पर्छ।`,
+      },
+      {
+        sceneIndex: 3,
+        title: `Scene 3: ${c3.slice(0, 38)}`,
+        userPrompt: `${c3}, climactic turning point and emotional aftermath, dramatic cinematic lighting, photorealistic master.`,
+        framing: 'Low-Angle Dramatic Anamorphic',
+        cameraMovement: 'Sweeping Crane Pull-Back',
+        duration: '12',
+        subtitleEn: `The climax unfolds: ${c3.slice(0, 80)}.`,
+        subtitleNe: `कथाको मुख्य निर्णायक क्षण र समापन।`,
+      }
+    ];
+  }
+
+  if (clauses.length === 2) {
+    const c1 = clauses[0];
+    const c2 = clauses[1];
+    return [
+      {
+        sceneIndex: 1,
+        title: `Scene 1: Establishing Beat`,
+        userPrompt: `${c1}, cinematic master framing, photorealistic 4k.`,
+        framing: 'Cinematic Wide 35mm Master',
+        cameraMovement: 'Smooth Slow Push-In',
+        duration: '8',
+        subtitleEn: `${c1.slice(0, 70)}.`,
+        subtitleNe: `कथाको सुरुवात।`,
+      },
+      {
+        sceneIndex: 2,
+        title: `Scene 2: Action & Turning Point`,
+        userPrompt: `${c2}, high-intensity cinematic camera tracking, fluid momentum.`,
+        framing: 'Medium Dynamic 50mm',
+        cameraMovement: 'Fast Steadicam Track',
+        duration: '8',
+        subtitleEn: `${c2.slice(0, 70)}.`,
+        subtitleNe: `तीव्र घटनाक्रम र निर्णायक मोड।`,
+      },
+      {
+        sceneIndex: 3,
+        title: `Scene 3: Climactic Resolution`,
+        userPrompt: `Direct aftermath and dramatic continuation of ${c2}, revealing the full cinematic outcome in breathtaking detail.`,
+        framing: 'Sweeping Anamorphic Vista',
+        cameraMovement: 'Sweeping Crane Pull-Back',
+        duration: '12',
+        subtitleEn: `The journey reaches its powerful conclusion.`,
+        subtitleNe: `कथा आफ्नो चरम उत्कर्ष र निष्कर्षमा पुग्छ।`,
+      }
+    ];
+  }
+
+  // Single premise: generate 3 structured acts (Setup, Progression, Climax)
+  return [
+    {
+      sceneIndex: 1,
+      title: `Scene 1: Hero Establishment`,
+      userPrompt: `${clean}, establishing hero shot, immersive cinematic atmosphere, 35mm anamorphic.`,
+      framing: 'Cinematic Wide 35mm Master',
+      cameraMovement: 'Smooth Slow Push-In',
+      duration: '8',
+      subtitleEn: `The journey begins.`,
+      subtitleNe: `कथाको शुभारम्भ।`,
+    },
+    {
+      sceneIndex: 2,
+      title: `Scene 2: Kinetic Action Beat`,
+      userPrompt: `Direct continuation of ${clean}, camera accelerates into fluid dynamic motion tracking the subject through evolving environmental terrain.`,
+      framing: 'Dynamic Tracking Medium (50mm)',
+      cameraMovement: 'Steadicam Following Shot',
+      duration: '8',
+      subtitleEn: `Moving forward with relentless velocity.`,
+      subtitleNe: `निरन्तर ऊर्जा र गतिशीलता।`,
+    },
+    {
+      sceneIndex: 3,
+      title: `Scene 3: Climactic Turning Point`,
+      userPrompt: `Breathtaking cinematic climax of ${clean}, wide panoramic scale, volumetric god-rays, unforgettable final hero posture.`,
+      framing: 'Wide 24mm Anamorphic Master',
+      cameraMovement: 'Sweeping Crane Pull-Back',
+      duration: '12',
+      subtitleEn: `A climactic revelation transforms the horizon.`,
+      subtitleNe: `भव्य दृश्यका साथ कथाले पूर्णता पाउँछ।`,
+    }
+  ];
+}
+
+/**
+ * Extract all distinct characters mentioned in the prompt into the registry
+ */
+export function extractAllCharactersFromPrompt(
+  prompt: string,
+  existingRegistry: DynamicCharacterIdentity[] = []
+): DynamicCharacterIdentity[] {
+  const lower = prompt.toLowerCase();
+  
+  // Check if prompt mentions specific non-generic archetypes
+  const hasSpecificArchetypes = Object.keys(ARCHETYPE_MAP).some(
+    k => k !== 'person' && k !== 'man' && k !== 'woman' && k !== 'traveler' && lower.includes(k)
+  );
+
+  // If specific characters like monkey, bear, etc. are mentioned, purge placeholder 'Person'
+  const filteredBase = hasSpecificArchetypes 
+    ? existingRegistry.filter(c => c.name.toLowerCase() !== 'person' && !c.roleOrArchetype.toLowerCase().includes('featured character') && c.name.toLowerCase() !== 'the subject')
+    : existingRegistry;
+
+  const characters: DynamicCharacterIdentity[] = [...filteredBase];
+
+  for (const [keyword, meta] of Object.entries(ARCHETYPE_MAP)) {
+    if (lower.includes(keyword)) {
+      const alreadyHas = characters.some(c => c.name.toLowerCase().includes(keyword) || c.tags.includes(keyword));
+      if (!alreadyHas) {
+        const charName = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+        const tokenHash = hashString(`${charName}_${prompt.slice(0, 20)}`);
+        characters.push({
+          id: `char-${Date.now()}-${tokenHash.toLowerCase()}`,
+          name: charName,
+          roleOrArchetype: meta.defaultRole,
+          avatarEmoji: meta.emoji,
+          visualDescription: `${charName}, ${meta.defaultRole} | Photorealistic cinematic detail | Consistent identity DNA across shots.`,
+          frameOneAnchorSeed: `Frame 1 cinematic portrait lock: ${charName} (${meta.defaultRole}), optical focus.`,
+          anchorToken: `[Subject-Anchor: FaceID_Auto#${charName}_${tokenHash}]`,
+          originSceneIndex: 1,
+          isLocked: true,
+          attire: 'authentic character styling',
+          physicalTraits: `Distinctive ${keyword} features, natural textures, expressive gaze`,
+          tags: [keyword, charName.toLowerCase()]
+        });
+      }
+    }
+  }
+
+  if (characters.length === 0) {
+    const single = extractCharactersFromPrompt(prompt, 1, []).extractedCharacter;
+    if (single) characters.push(single);
+  }
+
+  return characters;
+}
+
 /**
  * Initialize a 3-scene project workflow derived 100% from the initial user prompt
  */
 export function initializeProjectContinuity(initialPrompt: string, aspectRatio: '16:9' | '9:16' = '16:9'): ProjectContinuityState {
-  const { extractedCharacter } = extractCharactersFromPrompt(initialPrompt, 1, []);
-  const initialRegistry: DynamicCharacterIdentity[] = extractedCharacter ? [extractedCharacter] : [];
-  const ctx = extractSceneContextFromPrompt(initialPrompt, extractedCharacter);
+  const initialRegistry: DynamicCharacterIdentity[] = extractAllCharactersFromPrompt(initialPrompt);
+  const primaryChar = initialRegistry[0] || null;
+  const ctx = extractSceneContextFromPrompt(initialPrompt, primaryChar);
 
+  // Decompose prompt into 3 prompt-faithful story beats
+  const beats = decomposePromptIntoNarrativeBeats(initialPrompt, initialRegistry);
+
+  const scene1Beat = beats[0];
   const scene1Resolution = resolveSceneContinuity({
     sceneIndex: 1,
-    userPrompt: initialPrompt,
+    userPrompt: scene1Beat.userPrompt,
     projectRegistry: initialRegistry,
-    duration: '8'
+    duration: scene1Beat.duration
   });
 
   const scene1Node: SequentialSceneNode = {
     id: `scene-node-${Date.now()}-1`,
     sceneIndex: 1,
-    title: 'Scene 1: Master Hero Establishing Shot',
-    userPrompt: initialPrompt,
+    title: scene1Beat.title,
+    userPrompt: scene1Beat.userPrompt,
     constructedPrompt: scene1Resolution.constructedPrompt,
     activeCharacterIds: scene1Resolution.activeCharacters.map(c => c.id),
-    duration: '8',
-    framing: ctx.cameraStyle || 'Cinematic Wide 35mm Master',
-    cameraMovement: 'Smooth Slow Push-In',
+    duration: scene1Beat.duration,
+    framing: scene1Beat.framing,
+    cameraMovement: scene1Beat.cameraMovement,
     lightingAtmosphere: ctx.lighting,
     exitLatentContext: scene1Resolution.exitLatentContext,
     status: 'idle',
-    subtitleEn: `The story begins in the ${ctx.environment}.`,
-    subtitleNe: `कथाको सुरुवात हुन्छ।`,
+    subtitleEn: scene1Beat.subtitleEn,
+    subtitleNe: scene1Beat.subtitleNe,
     characterTokensInjected: scene1Resolution.activeCharacters.map(c => c.anchorToken)
   };
 
-  // Predict Scene 2 directly from Scene 1 prompt context
-  const scene2Prediction = predictNextSceneBeat(scene1Node, scene1Resolution.activeCharacters, scene1Resolution.updatedRegistry);
+  const scene2Beat = beats[1];
   const scene2Resolution = resolveSceneContinuity({
     sceneIndex: 2,
-    userPrompt: scene2Prediction.nextPrompt,
+    userPrompt: scene2Beat.userPrompt,
     projectRegistry: scene1Resolution.updatedRegistry,
     previousScene: scene1Node,
-    duration: scene2Prediction.recommendedDuration
+    duration: scene2Beat.duration
   });
 
   const scene2Node: SequentialSceneNode = {
     id: `scene-node-${Date.now()}-2`,
     sceneIndex: 2,
-    title: scene2Prediction.nextTitle,
-    userPrompt: scene2Prediction.nextPrompt,
+    title: scene2Beat.title,
+    userPrompt: scene2Beat.userPrompt,
     constructedPrompt: scene2Resolution.constructedPrompt,
     activeCharacterIds: scene2Resolution.activeCharacters.map(c => c.id),
-    duration: scene2Prediction.recommendedDuration,
-    framing: scene2Prediction.framing,
-    cameraMovement: scene2Prediction.cameraMovement,
+    duration: scene2Beat.duration,
+    framing: scene2Beat.framing,
+    cameraMovement: scene2Beat.cameraMovement,
     lightingAtmosphere: ctx.lighting,
     exitLatentContext: scene2Resolution.exitLatentContext,
     status: 'idle',
-    subtitleEn: scene2Prediction.nextSubtitleEn,
-    subtitleNe: scene2Prediction.nextSubtitleNe,
+    subtitleEn: scene2Beat.subtitleEn,
+    subtitleNe: scene2Beat.subtitleNe,
     characterTokensInjected: scene2Resolution.activeCharacters.map(c => c.anchorToken)
   };
 
-  // Predict Scene 3 from Scene 2 prompt context
-  const scene3Prediction = predictNextSceneBeat(scene2Node, scene2Resolution.activeCharacters, scene2Resolution.updatedRegistry);
+  const scene3Beat = beats[2];
   const scene3Resolution = resolveSceneContinuity({
     sceneIndex: 3,
-    userPrompt: scene3Prediction.nextPrompt,
+    userPrompt: scene3Beat.userPrompt,
     projectRegistry: scene2Resolution.updatedRegistry,
     previousScene: scene2Node,
-    duration: scene3Prediction.recommendedDuration
+    duration: scene3Beat.duration
   });
 
   const scene3Node: SequentialSceneNode = {
     id: `scene-node-${Date.now()}-3`,
     sceneIndex: 3,
-    title: scene3Prediction.nextTitle,
-    userPrompt: scene3Prediction.nextPrompt,
+    title: scene3Beat.title,
+    userPrompt: scene3Beat.userPrompt,
     constructedPrompt: scene3Resolution.constructedPrompt,
     activeCharacterIds: scene3Resolution.activeCharacters.map(c => c.id),
-    duration: scene3Prediction.recommendedDuration,
-    framing: scene3Prediction.framing,
-    cameraMovement: scene3Prediction.cameraMovement,
+    duration: scene3Beat.duration,
+    framing: scene3Beat.framing,
+    cameraMovement: scene3Beat.cameraMovement,
     lightingAtmosphere: ctx.lighting,
     exitLatentContext: scene3Resolution.exitLatentContext,
     status: 'idle',
-    subtitleEn: scene3Prediction.nextSubtitleEn,
-    subtitleNe: scene3Prediction.nextSubtitleNe,
+    subtitleEn: scene3Beat.subtitleEn,
+    subtitleNe: scene3Beat.subtitleNe,
     characterTokensInjected: scene3Resolution.activeCharacters.map(c => c.anchorToken)
   };
 

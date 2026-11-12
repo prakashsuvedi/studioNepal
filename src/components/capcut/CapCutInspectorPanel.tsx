@@ -13,6 +13,8 @@ import {
   Scissors, 
   Layers,
   ChevronDown,
+  ChevronRight,
+  ChevronLeft,
   Trash2,
   Copy,
   Radio,
@@ -54,6 +56,8 @@ interface CapCutInspectorPanelProps {
   currentUser?: UserSession | null;
   brandOverlayConfig?: BrandOverlayConfig;
   setBrandOverlayConfig?: React.Dispatch<React.SetStateAction<BrandOverlayConfig>>;
+  isFolded?: boolean;
+  onToggleFold?: () => void;
 }
 
 type InspectorTab = 'basic' | 'color' | 'brand' | 'ticker' | 'speed' | 'animation' | 'audio' | 'comments';
@@ -77,6 +81,8 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
   currentUser,
   brandOverlayConfig,
   setBrandOverlayConfig,
+  isFolded = false,
+  onToggleFold,
 }) => {
   const [activeTab, setActiveTab] = useState<InspectorTab>('basic');
   const [commentDraft, setCommentDraft] = useState('');
@@ -164,12 +170,36 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
     onUpdateScene({ tickerConfig: undefined });
   };
 
+  if (isFolded) {
+    return (
+      <div 
+        onClick={onToggleFold}
+        className="w-10 bg-[#0a0d14] hover:bg-[#0e121c] border-l border-slate-800/80 flex flex-col items-center py-2.5 h-full select-none shrink-0 cursor-pointer transition-colors group"
+        title="Click to expand Inspector Properties"
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onToggleFold) onToggleFold();
+          }}
+          className="p-1.5 text-slate-400 group-hover:text-cyan-400 rounded hover:bg-slate-800 transition cursor-pointer"
+          title="Expand Properties Inspector"
+        >
+          <Sliders className="w-4 h-4" />
+        </button>
+        <span className="text-[9px] text-slate-500 group-hover:text-cyan-400 font-bold uppercase tracking-wider [writing-mode:vertical-rl] rotate-180 mt-4 transition-colors">
+          Properties
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-64 md:w-72 bg-[#0a0d14] border-l border-slate-800/80 flex flex-col h-full select-none shrink-0 overflow-hidden">
+    <div className="w-64 md:w-72 bg-[#0a0d14] border-l border-slate-800/80 flex flex-col h-full select-none shrink-0 overflow-hidden animate-in fade-in duration-150">
       {/* 1. Header & Tabs (CapCut Style) */}
       <div className="border-b border-slate-800/80 bg-[#090c14]">
         <div className="p-2.5 pb-0.5 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-200 truncate max-w-[150px]" title={selectedScene.title}>
+          <span className="text-xs font-bold text-slate-200 truncate max-w-[130px]" title={selectedScene.title}>
             {selectedScene.title}
           </span>
           <div className="flex items-center gap-1">
@@ -189,6 +219,15 @@ export const CapCutInspectorPanel: React.FC<CapCutInspectorPanelProps> = ({
                 title="Delete Clip (Del)"
               >
                 <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+            {onToggleFold && (
+              <button
+                onClick={onToggleFold}
+                className="p-1 text-slate-400 hover:text-cyan-400 rounded hover:bg-slate-800 transition cursor-pointer ml-0.5"
+                title="Fold Inspector (Maximize Viewport)"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             )}
           </div>

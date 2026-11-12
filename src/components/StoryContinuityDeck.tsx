@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Clapperboard, 
   Sparkles, 
@@ -20,12 +20,19 @@ import {
   SlidersHorizontal,
   Edit2,
   ShieldCheck,
-  Video
+  Video,
+  Upload,
+  Link as LinkIcon,
+  Save,
+  X,
+  ArrowUpRight,
+  Download
 } from 'lucide-react';
 import { 
   DynamicCharacterIdentity, 
   SequentialSceneNode 
 } from '../services/characterContinuityEngine';
+import { UploadReferenceImage } from './UploadReferenceImage';
 
 interface StoryContinuityDeckProps {
   scenes: SequentialSceneNode[];
@@ -43,6 +50,9 @@ interface StoryContinuityDeckProps {
   onAddNewCharacter: (name: string, role: string, description: string, hair?: string, clothing?: string, facialFeatures?: string) => void;
   onRemoveScene?: (sceneIndex: number) => void;
   onApplyPromptToScene?: (sceneIndex: number, promptText: string, title?: string, duration?: '4' | '8' | '12') => void;
+  onLoadPromptToStudio?: (promptText: string, duration?: '4' | '8' | '12') => void;
+  onSetSceneMediaUrl?: (sceneIndex: number, mediaUrl: string) => void;
+  onResynthesizeStoryboard?: () => void;
   currentPrompt?: string;
 }
 
@@ -61,6 +71,11 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
   onToggleCharacterForScene,
   onAddNewCharacter,
   onRemoveScene,
+  onApplyPromptToScene,
+  onLoadPromptToStudio,
+  onSetSceneMediaUrl,
+  onResynthesizeStoryboard,
+  currentPrompt = '',
 }) => {
   const completedScenes = scenes.filter(s => !!s.videoUrl);
   const nextUnrenderedIndex = scenes.findIndex(s => !s.videoUrl);
@@ -71,6 +86,16 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
   const [tempPromptText, setTempPromptText] = useState<string>('');
   const [showAddCharModal, setShowAddCharModal] = useState<boolean>(false);
   const [showContinuityDetails, setShowContinuityDetails] = useState<boolean>(false);
+
+  // Dedicated Scene Editor Modal state
+  const [selectedSceneForEdit, setSelectedSceneForEdit] = useState<{ scene: SequentialSceneNode; index: number } | null>(null);
+  const [editPromptValue, setEditPromptValue] = useState<string>('');
+  const [editDuration, setEditDuration] = useState<'4' | '8' | '12'>('8');
+  const [customMediaInput, setCustomMediaInput] = useState<string>('');
+  const [sceneReferenceImage, setSceneReferenceImage] = useState<string | null>(null);
+  const [sceneReferenceImageName, setSceneReferenceImageName] = useState<string | null>(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState<boolean>(false);
+  const sceneFileRef = useRef<HTMLInputElement>(null);
 
   // New character form state
   const [newCharName, setNewCharName] = useState('');
@@ -90,6 +115,86 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
   }, [characterRegistry, activeCharacterId]);
 
   const scene1 = scenes[0] || null;
+
+  const handleOpenSceneEditor = (scene: SequentialSceneNode, index: number) => {
+    setSelectedSceneForEdit({ scene, index });
+    setEditPromptValue(scene.userPrompt);
+    setEditDuration((scene.duration as any) || '8');
+    setCustomMediaInput(scene.videoUrl || '');
+
+    // Extract any existing reference image or avatar anchor in prompt
+    const anchorMatch = scene.userPrompt.match(/\[(?:Visual Reference Anchor|Subject Visual Anchor|Subject Reference Lock|Visual Style Reference Lock): ([^|(]+)(?: \| |\()([^)]+)\)?\]/i);
+    if (anchorMatch) {
+      setSceneReferenceImageName(anchorMatch[1].trim());
+      setSceneReferenceImage(anchorMatch[2].replace(/\)$/, '').trim());
+    } else {
+      setSceneReferenceImage(null);
+      setSceneReferenceImageName(null);
+    }
+  };
+
+  const handleSaveSceneEditor = () => {
+    if (!selectedSceneForEdit) return;
+    const { index, scene } = selectedSceneForEdit;
+    const finalPrompt = editPromptValue.trim() || scene.userPrompt;
+    if (onApplyPromptToScene) {
+      onApplyPromptToScene(index, finalPrompt, scene.title, editDuration);
+    } else {
+      onUpdateScenePrompt(index, finalPrompt);
+    }
+    if (customMediaInput.trim() && onSetSceneMediaUrl) {
+      onSetSceneMediaUrl(index, customMediaInput.trim());
+    }
+    setSelectedSceneForEdit(null);
+  };
+
+  const handleFileUploadForScene = async (e: React.ChangeEvent<HTMLInputElement>, sceneIndex: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingMedia(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = reader.result as string;
+        const res = await fetch('/api/storage/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: `scene_${sceneIndex + 1}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`,
+            fileData: base64Data,
+            mimeType: file.type || 'video/mp4',
+          }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          if (onSetSceneMediaUrl) {
+            onSetSceneMediaUrl(sceneIndex, data.url);
+          }
+          setCustomMediaInput(data.url);
+          if (selectedSceneForEdit) {
+            setSelectedSceneForEdit(prev => prev ? {
+              ...prev,
+              scene: { ...prev.scene, videoUrl: data.url }
+            } : null);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Failed to upload scene media:', err);
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const handlePasteStudioPromptToScene = (idx: number) => {
+    if (!currentPrompt.trim()) return;
+    if (onApplyPromptToScene) {
+      onApplyPromptToScene(idx, currentPrompt.trim());
+    } else {
+      onUpdateScenePrompt(idx, currentPrompt.trim());
+    }
+  };
 
   const handleStartEditPrompt = (idx: number, currentText: string) => {
     setEditingSceneIdx(idx);
@@ -146,7 +251,19 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {onResynthesizeStoryboard && (
+            <button
+              type="button"
+              onClick={onResynthesizeStoryboard}
+              className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+              title="Decompose current prompt into 3 narrative scenes"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Sync Story to Prompt</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setActiveTab(activeTab === 'storyboard' ? 'characters' : 'storyboard')}
@@ -340,14 +457,18 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
                   : 'bg-slate-950/50 border-slate-800/80'
               }`}
             >
-              {/* Scene Header */}
+              {/* Scene Header (Click to Open Full Scene & Media Editor) */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div 
+                  onClick={() => handleOpenSceneEditor(scene, idx)}
+                  className="flex items-center justify-between mb-2 cursor-pointer group"
+                  title="Click to edit prompt, duration, character, or upload media"
+                >
                   <div className="flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">
+                    <span className="w-5 h-5 rounded-md bg-indigo-600 group-hover:bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold transition">
                       {scene.sceneIndex}
                     </span>
-                    <span className="text-xs font-bold text-white truncate max-w-[170px]">
+                    <span className="text-xs font-bold text-white group-hover:text-indigo-300 truncate max-w-[170px] transition">
                       {scene.title || `Scene ${scene.sceneIndex}`}
                     </span>
                     {isMaster && (
@@ -375,7 +496,7 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
                 </div>
 
                 {/* Video Preview or Placeholder */}
-                <div className="relative aspect-video w-full rounded-lg bg-slate-900 overflow-hidden mb-2.5 border border-slate-800/80 shadow-inner">
+                <div className="relative aspect-video w-full rounded-lg bg-slate-900 overflow-hidden mb-2.5 border border-slate-800/80 shadow-inner group">
                   {isDone && scene.videoUrl ? (
                     <>
                       <video
@@ -384,15 +505,33 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
                         muted
                         playsInline
                       />
-                      <button
-                        type="button"
-                        onClick={() => onOpenPreview(scene.videoUrl!)}
-                        className="absolute inset-0 bg-black/40 hover:bg-black/20 flex items-center justify-center transition cursor-pointer group"
-                      >
-                        <div className="w-9 h-9 rounded-full bg-white/90 group-hover:bg-white text-indigo-900 flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+                      <div className="absolute inset-0 bg-black/40 hover:bg-black/20 flex items-center justify-center transition">
+                        <button
+                          type="button"
+                          onClick={() => onOpenPreview(scene.videoUrl!)}
+                          className="w-10 h-10 rounded-full bg-white/95 hover:bg-white text-indigo-900 flex items-center justify-center shadow-xl hover:scale-110 transition cursor-pointer"
+                          title="Play Scene Video"
+                        >
                           <Play className="w-4 h-4 fill-indigo-900 ml-0.5" />
-                        </div>
-                      </button>
+                        </button>
+                      </div>
+                      <div className="absolute bottom-1.5 inset-x-2 flex items-center justify-between pointer-events-auto">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenSceneEditor(scene, idx);
+                          }}
+                          className="px-2 py-0.5 rounded bg-black/80 hover:bg-indigo-600 text-white text-[10px] font-semibold backdrop-blur-xs border border-white/20 transition cursor-pointer flex items-center gap-1"
+                          title="Edit scene prompt, duration, or upload new video"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                          <span>Edit Prompt &amp; Video</span>
+                        </button>
+                        <span className="text-[9px] text-white/90 font-mono bg-black/70 px-1.5 py-0.5 rounded">
+                          {scene.duration || 8}s
+                        </span>
+                      </div>
                     </>
                   ) : isCurrent ? (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-950/40 p-3 text-center">
@@ -401,10 +540,20 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
                       <span className="text-[9px] text-indigo-300/80">Preserving character &amp; camera continuity</span>
                     </div>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/90 p-3 text-center text-slate-500">
-                      <Video className="w-6 h-6 text-slate-700 mb-1" />
-                      <span className="text-[10.5px] text-slate-400 font-medium">{scene.duration || 8}s Cinematic Shot</span>
-                      <span className="text-[9px] text-slate-500 font-mono">{scene.framing || '35mm anamorphic'}</span>
+                    <div 
+                      onClick={() => handleOpenSceneEditor(scene, idx)}
+                      className="w-full h-full flex flex-col items-center justify-center bg-slate-900/95 hover:bg-indigo-950/40 border-2 border-dashed border-slate-700/80 hover:border-indigo-500/80 p-3 text-center text-slate-400 hover:text-white cursor-pointer transition group"
+                      title="Click to add prompt, reference avatar or upload video for this scene"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-indigo-600/20 group-hover:bg-indigo-600 border border-indigo-500/40 group-hover:border-indigo-400 flex items-center justify-center text-indigo-400 group-hover:text-white transition mb-1.5">
+                        <Video className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-white group-hover:text-indigo-200 transition">
+                        Click to Set Scene {scene.sceneIndex} Prompt &amp; Video
+                      </span>
+                      <span className="text-[9.5px] text-slate-400 font-mono mt-0.5">
+                        Add scene prompt, upload clip, or select avatar • {scene.duration || 8}s
+                      </span>
                     </div>
                   )}
                 </div>
@@ -437,14 +586,48 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
                   </div>
                 ) : (
                   <div
-                    onClick={() => handleStartEditPrompt(idx, scene.userPrompt)}
-                    className="text-[11px] text-slate-300 bg-slate-950/60 hover:bg-slate-950 p-2 rounded-lg border border-slate-800/70 leading-relaxed line-clamp-2 cursor-pointer group"
-                    title="Click to edit prompt"
+                    onClick={() => handleOpenSceneEditor(scene, idx)}
+                    className="text-[11px] text-slate-300 bg-slate-950/60 hover:bg-slate-950 hover:border-indigo-500/50 p-2 rounded-lg border border-slate-800/70 leading-relaxed line-clamp-2 cursor-pointer group transition"
+                    title="Click to open prompt and video editor"
                   >
                     <span className="group-hover:text-white transition">"{scene.userPrompt}"</span>
-                    <Edit2 className="w-2.5 h-2.5 inline-block ml-1 text-slate-500 opacity-0 group-hover:opacity-100 transition" />
+                    <Edit2 className="w-2.5 h-2.5 inline-block ml-1 text-indigo-400 opacity-70 group-hover:opacity-100 transition" />
                   </div>
                 )}
+
+                {/* Quick Scene Action Strip */}
+                <div className="grid grid-cols-3 gap-1 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSceneEditor(scene, idx)}
+                    className="py-1 px-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-[10px] font-medium border border-slate-800 flex items-center justify-center gap-1 cursor-pointer transition"
+                    title="Open Scene Editor dialog"
+                  >
+                    <Edit2 className="w-2.5 h-2.5 text-indigo-400" />
+                    <span>Edit Scene</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePasteStudioPromptToScene(idx)}
+                    disabled={!currentPrompt.trim()}
+                    className="py-1 px-1.5 rounded bg-indigo-950/40 hover:bg-indigo-900/60 disabled:opacity-30 text-indigo-300 hover:text-white text-[10px] font-medium border border-indigo-800/40 flex items-center justify-center gap-1 cursor-pointer transition truncate"
+                    title="Apply the main studio prompt to this scene"
+                  >
+                    <ArrowUpRight className="w-2.5 h-2.5" />
+                    <span>Paste Prompt</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onLoadPromptToStudio && onLoadPromptToStudio(scene.userPrompt, scene.duration as any)}
+                    className="py-1 px-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-[10px] font-medium border border-slate-800 flex items-center justify-center gap-1 cursor-pointer transition truncate"
+                    title="Copy this scene's prompt to the main studio prompt textarea"
+                  >
+                    <Download className="w-2.5 h-2.5 text-amber-400" />
+                    <span>Load Studio</span>
+                  </button>
+                </div>
               </div>
 
               {/* Card Footer Actions */}
@@ -685,6 +868,287 @@ export const StoryContinuityDeck: React.FC<StoryContinuityDeckProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Full Scene Prompt & Media Editor Modal */}
+      {selectedSceneForEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-xl bg-slate-900 border border-slate-700 rounded-2xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+                  {selectedSceneForEdit.index + 1}
+                </span>
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>Scene {selectedSceneForEdit.index + 1}: {selectedSceneForEdit.scene.title || `Scene Beat ${selectedSceneForEdit.index + 1}`}</span>
+                    {selectedSceneForEdit.index === 0 && (
+                      <span className="text-[10px] text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded font-medium">
+                        Master Anchor
+                      </span>
+                    )}
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Customize scene prompt, duration, assigned characters, or upload your own video clip.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSceneForEdit(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Prompt Editor */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-200">
+                  Scene Prompt &amp; Visual Direction:
+                </label>
+                {currentPrompt.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setEditPromptValue(currentPrompt)}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium transition cursor-pointer"
+                  >
+                    <ArrowUpRight className="w-3 h-3" />
+                    <span>Copy from Main Studio Prompt</span>
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={editPromptValue}
+                onChange={(e) => setEditPromptValue(e.target.value)}
+                rows={4}
+                placeholder="Describe what happens in this scene, camera movements, lighting, and character actions..."
+                className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl p-3 text-xs text-white leading-relaxed focus:outline-none resize-none transition"
+              />
+
+              {/* Reference Image & Character / Style Avatar Component */}
+              <UploadReferenceImage
+                selectedImageUrl={sceneReferenceImage}
+                selectedImageName={sceneReferenceImageName}
+                label="Scene Reference Image &amp; Character / Style Avatar"
+                subLabel="Select an avatar or style image that gets sent to the backend as part of prompt injection"
+                currentPrompt={editPromptValue}
+                onSelectImage={(url, name, promptInjection) => {
+                  setSceneReferenceImage(url);
+                  setSceneReferenceImageName(name);
+                  setEditPromptValue(prev => {
+                    if (prev.includes(url)) return prev;
+                    return prev.trim() ? `${prev.trim()}, ${promptInjection}` : promptInjection;
+                  });
+                }}
+                onClearImage={() => {
+                  setSceneReferenceImage(null);
+                  setSceneReferenceImageName(null);
+                }}
+                onAppendToPrompt={(newPrompt) => {
+                  setEditPromptValue(newPrompt);
+                }}
+              />
+            </div>
+
+            {/* Duration Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-200 block">
+                Scene Duration (Sora-2 Supported):
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['4', '8', '12'] as const).map((dur) => (
+                  <button
+                    key={dur}
+                    type="button"
+                    onClick={() => setEditDuration(dur)}
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      editDuration === dur
+                        ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-xs'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span>{dur} Seconds</span>
+                    {dur === '8' && <span className="text-[9px] text-indigo-300 bg-indigo-900/50 px-1 rounded">Standard</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Character Assignment */}
+            {characterRegistry.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-200 block">
+                  Assigned Characters in this Scene:
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {characterRegistry.map((char) => {
+                    const isActive = selectedSceneForEdit.scene.activeCharacterIds.includes(char.id);
+                    return (
+                      <button
+                        key={char.id}
+                        type="button"
+                        onClick={() => {
+                          onToggleCharacterForScene(selectedSceneForEdit.index, char.id);
+                          setSelectedSceneForEdit(prev => {
+                            if (!prev) return null;
+                            const curActive = prev.scene.activeCharacterIds;
+                            const nextActive = curActive.includes(char.id)
+                              ? curActive.filter(id => id !== char.id)
+                              : [...curActive, char.id];
+                            return {
+                              ...prev,
+                              scene: { ...prev.scene, activeCharacterIds: nextActive }
+                            };
+                          });
+                        }}
+                        className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer border flex items-center gap-1.5 ${
+                          isActive
+                            ? 'bg-indigo-600/30 text-indigo-200 border-indigo-500'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                        }`}
+                      >
+                        <span>{char.avatarEmoji || '👤'}</span>
+                        <span>{char.name}</span>
+                        {isActive && <Check className="w-3 h-3 text-emerald-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Media Upload / Video Source */}
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <label className="text-xs font-bold text-slate-200 block">
+                Scene Media Clip (Upload Video/Image or Paste URL):
+              </label>
+
+              <input
+                ref={sceneFileRef}
+                type="file"
+                accept="video/*,image/*"
+                className="hidden"
+                onChange={(e) => handleFileUploadForScene(e, selectedSceneForEdit.index)}
+              />
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => sceneFileRef.current?.click()}
+                  disabled={isUploadingMedia}
+                  className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                >
+                  {isUploadingMedia ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Upload Clip</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="relative flex-1">
+                  <LinkIcon className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                  <input
+                    type="url"
+                    value={customMediaInput}
+                    onChange={(e) => setCustomMediaInput(e.target.value)}
+                    placeholder="https://... or /dist/uploads/... (video or image URL)"
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Preview if URL exists */}
+              {customMediaInput.trim() && (
+                <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden border border-slate-700 shadow-inner">
+                  {customMediaInput.match(/\.(mp4|webm|mov)(\?.*)?$/i) || customMediaInput.includes('/api/video') ? (
+                    <video
+                      src={customMediaInput}
+                      className="w-full h-full object-contain"
+                      controls
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={customMediaInput}
+                      alt="Scene preview"
+                      className="w-full h-full object-contain"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCustomMediaInput('')}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-black/60 hover:bg-black/90 text-white text-xs transition"
+                    title="Clear media"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedSceneForEdit) return;
+                  const idx = selectedSceneForEdit.index;
+                  const finalPrompt = editPromptValue.trim() || selectedSceneForEdit.scene.userPrompt;
+                  const updatedNode: SequentialSceneNode = {
+                    ...selectedSceneForEdit.scene,
+                    userPrompt: finalPrompt,
+                    constructedPrompt: finalPrompt,
+                    duration: editDuration,
+                    videoUrl: customMediaInput.trim() || selectedSceneForEdit.scene.videoUrl,
+                  };
+                  if (onApplyPromptToScene) {
+                    onApplyPromptToScene(idx, finalPrompt, selectedSceneForEdit.scene.title, editDuration);
+                  } else {
+                    onUpdateScenePrompt(idx, finalPrompt);
+                  }
+                  if (customMediaInput.trim() && onSetSceneMediaUrl) {
+                    onSetSceneMediaUrl(idx, customMediaInput.trim());
+                  }
+                  setSelectedSceneForEdit(null);
+                  onGenerateScene(updatedNode, idx);
+                }}
+                disabled={currentGeneratingIndex !== null || isBatchRendering}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Save &amp; Generate Sora-2 Video</span>
+              </button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSceneForEdit(null)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveSceneEditor}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Scene</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

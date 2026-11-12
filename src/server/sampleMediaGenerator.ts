@@ -298,7 +298,7 @@ export async function ensureSampleMediaFiles(): Promise<void> {
     }
   }
 
-  // 3. Photographic Video Definitions (Authentic Nepal & Himalayan Footage)
+  // 3. Photographic Video Definitions (Authentic Nepal & Himalayan Footage with Dynamic Camera Motion)
   const videoFiles: Array<{
     filename: string;
     imageUrl: string;
@@ -310,63 +310,63 @@ export async function ensureSampleMediaFiles(): Promise<void> {
       filename: 'everest_sunrise.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=1920&auto=format&fit=crop',
       motion: 'zoom_in',
-      duration: 6,
+      duration: 8,
       audioFreq: 432,
     },
     {
       filename: 'durbar_square.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1570789210967-2cac24afeb00?q=80&w=1920&auto=format&fit=crop',
       motion: 'pan_right',
-      duration: 6,
+      duration: 8,
       audioFreq: 528,
     },
     {
       filename: 'phewa_lake.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1920&auto=format&fit=crop',
       motion: 'zoom_out',
-      duration: 6,
+      duration: 8,
       audioFreq: 396,
     },
     {
       filename: 'ForBiggerBlazes.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1920&auto=format&fit=crop',
       motion: 'zoom_in',
-      duration: 6,
+      duration: 8,
       audioFreq: 440,
     },
     {
       filename: 'ForBiggerJoyBlazes.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1920&auto=format&fit=crop',
       motion: 'pan_left',
-      duration: 6,
+      duration: 8,
       audioFreq: 528,
     },
     {
       filename: 'ForBiggerEscapes.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?q=80&w=1920&auto=format&fit=crop',
       motion: 'zoom_out',
-      duration: 6,
+      duration: 8,
       audioFreq: 432,
     },
     {
       filename: 'ForBiggerFun.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1920&auto=format&fit=crop',
       motion: 'pan_right',
-      duration: 6,
+      duration: 8,
       audioFreq: 639,
     },
     {
       filename: 'ForBiggerMeltdowns.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?q=80&w=1920&auto=format&fit=crop',
       motion: 'zoom_in',
-      duration: 6,
+      duration: 8,
       audioFreq: 396,
     },
     {
       filename: 'TearsOfSteel.mp4',
       imageUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1920&auto=format&fit=crop',
       motion: 'zoom_out',
-      duration: 6,
+      duration: 8,
       audioFreq: 440,
     },
   ];
@@ -604,15 +604,26 @@ export async function ensureSampleMediaFiles(): Promise<void> {
         if (fs.existsSync(distSamplesDir)) fs.copyFileSync(framePath, thumbDist);
       } catch {}
 
-      // 2. Render fast 5s MP4 with AAC silent audio
+      // 2. Render broadcast-quality MP4 with dynamic cinematic camera motion & atmospheric audio
+      const vidDur = vf.duration || 8;
+      const totalFrames = vidDur * 25;
+      let motionFilter = `zoompan=z='min(zoom+0.0016,1.35)':d=${totalFrames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720:fps=25,format=yuv420p`;
+      if (vf.motion === 'zoom_out') {
+        motionFilter = `zoompan=z='if(lte(zoom,1.0),1.35,max(1.001,zoom-0.0016))':d=${totalFrames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720:fps=25,format=yuv420p`;
+      } else if (vf.motion === 'pan_right') {
+        motionFilter = `zoompan=z=1.2:d=${totalFrames}:x='min(x+1.5,iw-iw/zoom)':y='ih/2-(ih/zoom/2)':s=1280x720:fps=25,format=yuv420p`;
+      } else if (vf.motion === 'pan_left') {
+        motionFilter = `zoompan=z=1.2:d=${totalFrames}:x='max(0,x-1.5)':y='ih/2-(ih/zoom/2)':s=1280x720:fps=25,format=yuv420p`;
+      }
+
       await execFileAsync('ffmpeg', [
         '-y',
         '-loop', '1',
         '-i', framePath,
         '-f', 'lavfi',
-        '-i', 'anullsrc=r=44100:cl=stereo',
-        '-vf', 'scale=1280:720,format=yuv420p',
-        '-t', `${vf.duration || 5}`,
+        '-i', `anoisesrc=d=${vidDur}:c=pink:r=44100:a=0.07,lowpass=f=${vf.audioFreq || 440},flanger=delay=15:depth=4`,
+        '-vf', motionFilter,
+        '-t', `${vidDur}`,
         '-c:v', 'libx264',
         '-preset', 'ultrafast',
         '-c:a', 'aac',

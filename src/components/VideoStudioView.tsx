@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { Component, useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Scene, 
   WorkflowStep, 
@@ -85,6 +85,7 @@ import {
   FileText,
   Database,
   ChevronDown,
+  ChevronUp,
   Plus,
   FolderDown,
   X
@@ -132,6 +133,55 @@ import { RenderingDebuggerModal } from './RenderingDebuggerModal';
 import { HardwareAccelerationIndicator } from './HardwareAccelerationIndicator';
 import { mediaErrorLogger } from '../lib/mediaErrorLogger';
 
+interface TimelineErrorBoundaryProps {
+  children: React.ReactNode;
+  onReset?: () => void;
+}
+
+interface TimelineErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+const ComponentBase: any = Component;
+
+class TimelineErrorBoundary extends ComponentBase {
+  state: TimelineErrorBoundaryState = { hasError: false };
+
+  constructor(props: TimelineErrorBoundaryProps) {
+    super(props);
+  }
+
+  static getDerivedStateFromError(error: Error): TimelineErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('[TimelineErrorBoundary] Intercepted timeline error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-56 shrink-0 flex flex-col items-center justify-center bg-[#090b12] border-t border-slate-800 p-4 text-center select-none">
+          <p className="text-slate-300 text-sm font-semibold mb-1">Timeline Deck Notice</p>
+          <p className="text-slate-400 text-xs mb-3">Timeline encountered a display issue with one of the clips.</p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false });
+              this.props.onReset?.();
+            }}
+            className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs font-semibold cursor-pointer transition shadow"
+          >
+            Refresh Timeline View
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 interface VideoStudioViewProps {
   scenes: Scene[];
   setScenes: React.Dispatch<React.SetStateAction<Scene[]>>;
@@ -176,9 +226,14 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // Version History Modal state
   const [showVersionHistoryModal, setShowVersionHistoryModal] = useState(false);
   
+  // User-scoped storage keys for strict multi-tenant project isolation
+  const userScopeSuffix = currentUser?.id || 'guest';
+  const scopedAutosaveKey = `nepalai_video_project_autosave_${userScopeSuffix}`;
+  const scopedTitleKey = `nepalai_video_project_title_${userScopeSuffix}`;
+
   // Project Title & Persistence state
   const [projectTitle, setProjectTitle] = useState<string>(() => {
-    return localStorage.getItem('nepalai_video_project_title') || 'Nepal Tourism Reel';
+    return localStorage.getItem(scopedTitleKey) || localStorage.getItem('nepalai_video_project_title') || 'Nepal Tourism Reel';
   });
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
@@ -199,6 +254,11 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
   // Preview Mode: 'canvas' (Live Canvas API Proxy with real-time transitions) | 'interactive'
   const [previewMode, setPreviewMode] = useState<'canvas' | 'interactive'>('canvas');
+
+  // Scientific Foldable Panels state (Allows user to collapse left drawer, right properties, or timeline to maximize center preview)
+  const [isLeftFolded, setIsLeftFolded] = useState<boolean>(false);
+  const [isInspectorFolded, setIsInspectorFolded] = useState<boolean>(false);
+  const [isTimelineFolded, setIsTimelineFolded] = useState<boolean>(false);
 
   // Asset Library Sidebar Drawer
   const [showAssetLibrary, setShowAssetLibrary] = useState(false);
@@ -689,7 +749,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const projectFileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalDuration = scenes.reduce((acc, s) => acc + s.duration, 0);
+  const totalDuration = Math.max(0, scenes.reduce((acc, s) => acc + (Number(s.duration) || 4), 0));
   const selectedScene = scenes.find(s => s.id === selectedSceneId) || scenes[0];
 
   // Timeline zoom calculations
@@ -698,8 +758,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // Check for existing auto-save on initial mount (sessionStorage & localStorage)
   useEffect(() => {
     try {
-      const savedSession = sessionStorage.getItem('nepalai_video_project_autosave');
-      const savedLocal = localStorage.getItem('nepalai_video_project_autosave');
+      const savedSession = sessionStorage.getItem(scopedAutosaveKey) || sessionStorage.getItem('nepalai_video_project_autosave');
+      const savedLocal = localStorage.getItem(scopedAutosaveKey) || localStorage.getItem('nepalai_video_project_autosave');
       const saved = savedSession || savedLocal;
 
       if (saved) {
@@ -708,8 +768,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
         const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
         if (savedTime > 0 && Date.now() - savedTime > SEVEN_DAYS_MS) {
-          sessionStorage.removeItem('nepalai_video_project_autosave');
-          localStorage.removeItem('nepalai_video_project_autosave');
+          sessionStorage.removeItem(scopedAutosaveKey);
+          localStorage.removeItem(scopedAutosaveKey);
           setHasExistingAutoSave(false);
           setShowSessionRestoreBanner(false);
         } else if (parsed?.scenes?.length > 0) {
@@ -797,9 +857,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           lastSavedAt: new Date().toISOString(),
         };
         const serialized = JSON.stringify(projectData);
-        sessionStorage.setItem('nepalai_video_project_autosave', serialized);
-        localStorage.setItem('nepalai_video_project_autosave', serialized);
-        localStorage.setItem('nepalai_video_project_title', projectTitle);
+        sessionStorage.setItem(scopedAutosaveKey, serialized);
+        localStorage.setItem(scopedAutosaveKey, serialized);
+        localStorage.setItem(scopedTitleKey, projectTitle);
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastAutoSavedTime(timeStr);
         setHasExistingAutoSave(true);
@@ -811,7 +871,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [scenes, audioTracks, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig]);
+  }, [scenes, audioTracks, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig, scopedAutosaveKey, scopedTitleKey]);
 
   // Periodic 30-second interval Auto-Save to sessionStorage & localStorage
   useEffect(() => {
@@ -833,8 +893,9 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
           lastSavedAt: new Date().toISOString(),
         };
         const serialized = JSON.stringify(projectData);
-        sessionStorage.setItem('nepalai_video_project_autosave', serialized);
-        localStorage.setItem('nepalai_video_project_autosave', serialized);
+        sessionStorage.setItem(scopedAutosaveKey, serialized);
+        localStorage.setItem(scopedAutosaveKey, serialized);
+        localStorage.setItem(scopedTitleKey, projectTitle);
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastAutoSavedTime(timeStr);
         setHasExistingAutoSave(true);
@@ -844,7 +905,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [scenes, audioTracks, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig]);
+  }, [scenes, audioTracks, projectTitle, aspectRatio, selectedAudioId, totalDuration, subtitles, subtitleBurnOptions, brandOverlayConfig, scopedAutosaveKey, scopedTitleKey]);
 
   // Auto-scroll timeline to keep playhead in view during playback
   useEffect(() => {
@@ -1451,8 +1512,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   // Restore project from sessionStorage or localStorage auto-save
   const handleRestoreAutoSave = () => {
     try {
-      const savedSession = sessionStorage.getItem('nepalai_video_project_autosave');
-      const savedLocal = localStorage.getItem('nepalai_video_project_autosave');
+      const savedSession = sessionStorage.getItem(scopedAutosaveKey) || sessionStorage.getItem('nepalai_video_project_autosave');
+      const savedLocal = localStorage.getItem(scopedAutosaveKey) || localStorage.getItem('nepalai_video_project_autosave');
       const saved = savedSession || savedLocal;
 
       if (!saved) {
@@ -1491,6 +1552,8 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
 
   // Discard draft and reset storage
   const handleDiscardAutoSave = () => {
+    sessionStorage.removeItem(scopedAutosaveKey);
+    localStorage.removeItem(scopedAutosaveKey);
     sessionStorage.removeItem('nepalai_video_project_autosave');
     localStorage.removeItem('nepalai_video_project_autosave');
     setShowSessionRestoreModal(false);
@@ -1782,6 +1845,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
     try {
       const activeAudio = audioTracks.filter(t => !!t.url);
       const res = await renderTimelineToVideoBlob({
+        userId: currentUser?.id,
         scenes,
         audioTracks: activeAudio.length > 0 ? activeAudio : internalAudioTracks,
         aspectRatio,
@@ -1876,7 +1940,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
   };
 
   return (
-    <div className="w-full h-full bg-slate-100 dark:bg-[#07090e] text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none">
+    <div className="w-full h-full bg-[#07090e] text-slate-100 flex flex-col overflow-hidden select-none">
       {/* Hidden File Input for Importing Project JSON */}
       <input
         type="file"
@@ -2086,7 +2150,7 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
       </div>
 
       {/* 2. Upper Deck: 3 Non-Overlapping Studio Columns */}
-      <div className="flex-1 flex overflow-hidden min-h-0 bg-slate-100 dark:bg-[#07090e]">
+      <div className="flex-1 flex overflow-hidden min-h-0 bg-[#07090e]">
         {/* Left: Media / Audio / Text / Effects Asset Browser */}
         <div className={`${mobileDeckTab === 'tools' ? 'flex w-full' : 'hidden'} lg:flex shrink-0 h-full`}>
           <CapCutLeftPanel
@@ -2135,50 +2199,308 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             setSubtitleBurnOptions={setSubtitleBurnOptions}
             scenes={scenes}
             audioTracks={audioTracks}
+            isFolded={isLeftFolded}
+            onToggleFold={() => setIsLeftFolded(prev => !prev)}
           />
         </div>
 
-        {/* Center: Real-Time High-Res Player Canvas */}
-        <div className={`${mobileDeckTab === 'player' ? 'flex' : 'hidden'} lg:flex flex-1 min-w-0 h-full`}>
-          <CapCutPlayerPanel
-            scenes={scenes}
-            selectedScene={selectedScene || scenes[0] || null}
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-            currentTime={currentTime}
-            totalDuration={totalDuration}
-            aspectRatio={aspectRatio}
-            setAspectRatio={setAspectRatio}
-            onPrevScene={handlePrevScene}
-            onNextScene={handleNextScene}
-            onStepFrame={handleStepFrame}
-            onOpenMediaLibrary={() => setShowGlobalMediaLibrary(true)}
-            brandOverlayConfig={brandOverlayConfig}
-            subtitles={subtitles}
-            subtitleBurnOptions={subtitleBurnOptions}
-            previewMode={previewMode === 'interactive' ? 'stage' : 'canvas'}
-            setPreviewMode={(m) => setPreviewMode(m === 'stage' ? 'interactive' : 'canvas')}
-            isMuted={isMuted}
-            setIsMuted={setIsMuted}
-            onToggleCurrentTicker={() => {
-              const targetScene = selectedScene || scenes[0];
-              if (!targetScene) return;
-              const currentEnabled = Boolean(targetScene.tickerConfig?.enabled);
-              const updatedTicker = {
-                ...(targetScene.tickerConfig || {
-                  badgeText: 'BREAKING',
-                  headlineText: targetScene.textNepali || targetScene.title || 'Live Broadcast Update',
-                  speed: 'normal' as const,
-                  style: 'breaking_red' as const,
-                }),
-                enabled: !currentEnabled,
-              };
+        {/* Center: Real-Time High-Res Player Canvas + Multi-Track Timeline */}
+        <div className={`${mobileDeckTab === 'player' ? 'flex' : 'hidden'} lg:flex flex-1 min-w-0 h-full flex-col bg-[#07090e] border-r border-slate-800/80 overflow-hidden`}>
+          {/* Top: Video Viewport Player Canvas */}
+          <div className="flex-1 min-h-[180px] flex flex-col overflow-hidden">
+            <CapCutPlayerPanel
+              scenes={scenes}
+              selectedScene={selectedScene || scenes[0] || null}
+              isPlaying={isPlaying}
+              onTogglePlay={togglePlay}
+              currentTime={currentTime}
+              totalDuration={totalDuration}
+              aspectRatio={aspectRatio}
+              setAspectRatio={setAspectRatio}
+              onPrevScene={handlePrevScene}
+              onNextScene={handleNextScene}
+              onStepFrame={handleStepFrame}
+              onOpenMediaLibrary={() => setShowGlobalMediaLibrary(true)}
+              brandOverlayConfig={brandOverlayConfig}
+              subtitles={subtitles}
+              subtitleBurnOptions={subtitleBurnOptions}
+              previewMode={previewMode === 'interactive' ? 'stage' : 'canvas'}
+              setPreviewMode={(m) => setPreviewMode(m === 'stage' ? 'interactive' : 'canvas')}
+              isMuted={isMuted}
+              setIsMuted={setIsMuted}
+              onToggleCurrentTicker={() => {
+                const targetScene = selectedScene || scenes[0];
+                if (!targetScene) return;
+                const currentEnabled = Boolean(targetScene.tickerConfig?.enabled);
+                const updatedTicker = {
+                  ...(targetScene.tickerConfig || {
+                    badgeText: 'BREAKING',
+                    headlineText: targetScene.textNepali || targetScene.title || 'Live Broadcast Update',
+                    speed: 'normal' as const,
+                    style: 'breaking_red' as const,
+                  }),
+                  enabled: !currentEnabled,
+                };
+                pushToHistory(scenes);
+                setScenes(prev => prev.map(s => s.id === targetScene.id ? { ...s, tickerConfig: updatedTicker } : s));
+                setProjectNotice(updatedTicker.enabled ? 'Enabled scrolling ticker overlay!' : 'Disabled scrolling ticker overlay!');
+                setTimeout(() => setProjectNotice(null), 2500);
+              }}
+            />
+          </div>
+
+          {/* Mid: Timeline Edit Toolbar */}
+          <CapCutTimelineToolbar
+            onSplitClip={handleSplitAtPlayhead}
+            onDeleteClip={() => {
+              if (scenes.length === 0) return;
               pushToHistory(scenes);
-              setScenes(prev => prev.map(s => s.id === targetScene.id ? { ...s, tickerConfig: updatedTicker } : s));
-              setProjectNotice(updatedTicker.enabled ? 'Enabled scrolling ticker overlay!' : 'Disabled scrolling ticker overlay!');
-              setTimeout(() => setProjectNotice(null), 2500);
+              const remaining = scenes.filter(s => s.id !== selectedSceneId);
+              setScenes(remaining);
+              setSelectedSceneId(remaining[0]?.id || '');
             }}
+            onDuplicateClip={handleDuplicateScene}
+            onClearAllClips={() => {
+              if (scenes.length === 0) return;
+              pushToHistory(scenes);
+              setScenes([]);
+              setSelectedSceneId('');
+              setCurrentTime(0);
+              setIsPlaying(false);
+              setProjectNotice('Timeline cleared. Ready for new media clips!');
+              setTimeout(() => setProjectNotice(null), 3000);
+            }}
+            onAddMedia={() => setShowGlobalMediaLibrary(true)}
+            onAddAudio={() => setShowAudioAddModal(true)}
+            onAddSceneTemplate={() => setShowSceneTemplatesModal(true)}
+            onOpenRenderPreview={() => setShowRenderPreviewModal(true)}
+            onAutoCrossfadeAll={() => {
+              if (scenes.length <= 1) {
+                setProjectNotice('Add multiple scenes to auto-crossfade');
+                setTimeout(() => setProjectNotice(null), 2500);
+                return;
+              }
+              pushToHistory(scenes);
+              setScenes(prev => prev.map((s, idx) => ({
+                ...s,
+                transition: idx === 0 ? 'cut' : 'dissolve',
+                transitionDuration: 0.8,
+              })));
+              setProjectNotice('✨ Auto-applied smooth 0.8s crossfade dissolves between all story scenes!');
+              setTimeout(() => setProjectNotice(null), 3500);
+            }}
+            onAutoSyncAudio={() => {
+              const ambientBgm: AudioTrack = {
+                id: 'bgm-himalayan-' + Date.now(),
+                title: 'Himalayan Serenade (Traditional Bansuri & Sarangi)',
+                artist: 'NepalAI Atmospheric Studio',
+                url: 'https://assets.mixkit.co/music/preview/mixkit-ethereal-fairy-win-576.mp3',
+                duration: Math.max(30, totalDuration || 30),
+                volume: 40,
+                isMuted: false,
+                startTime: 0,
+                type: 'bgm'
+              };
+              setAudioTracks(prev => {
+                const hasBgm = prev.some(t => t.type === 'bgm');
+                return hasBgm ? prev : [...prev, ambientBgm];
+              });
+              setProjectNotice('🎵 Multi-track atmospheric soundtrack auto-synced to story timeline!');
+              setTimeout(() => setProjectNotice(null), 3500);
+            }}
+            zoomLevel={pixelsPerSecond}
+            setZoomLevel={(z) => setTimelineZoom(z / 36)}
+            isSnapping={snapEnabled}
+            setIsSnapping={setSnapEnabled}
+            hasSelectedClip={!!selectedScene}
+            selectedScene={selectedScene}
+            onUpdateSelectedScene={(updated) => {
+              if (!selectedScene) return;
+              pushToHistory(scenes);
+              setScenes(prev => prev.map(s => s.id === selectedScene.id ? { ...s, ...updated } : s));
+            }}
+            onOpenComments={() => setShowCommentsDrawer(true)}
+            commentsCount={scenes.reduce((acc, s) => acc + (s.comments?.filter(c => !c.resolved).length || 0), 0)}
+            onExportAssetsZip={handleExportAssetsZip}
+            isTimelineFolded={isTimelineFolded}
+            onToggleTimelineFold={() => setIsTimelineFolded(prev => !prev)}
           />
+
+          {/* Bottom: CapCut Multi-Track Timeline Deck */}
+          {!isTimelineFolded ? (
+            <TimelineErrorBoundary onReset={() => setScenes(prev => prev.map(s => ({ ...s, duration: Number(s.duration) || 4 })))}>
+              <div 
+                onWheel={handleTimelineWheel}
+                className="h-52 sm:h-56 md:h-60 lg:h-64 shrink-0 flex flex-col bg-[#090b12] border-t border-slate-800/80 relative transition-all duration-150 animate-in fade-in select-none"
+              >
+              <CapCutTimelineDeck
+                ref={timelineScrollRef}
+                scenes={scenes}
+                selectedSceneId={selectedSceneId}
+                onSelectScene={(id) => {
+                  setSelectedSceneId(id);
+                  const idx = scenes.findIndex(s => s.id === id);
+                  if (idx >= 0) {
+                    let t = 0;
+                    for (let i = 0; i < idx; i++) t += scenes[i].duration;
+                    setCurrentTime(t);
+                  }
+                }}
+                onReorderScenes={(newScenes) => {
+                  pushToHistory(scenes);
+                  setScenes(newScenes);
+                }}
+                onUpdateScene={(sceneId, updatedProps) => {
+                  pushToHistory(scenes);
+                  setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updatedProps } : s));
+                }}
+                onDeleteScene={(sceneId) => {
+                  pushToHistory(scenes);
+                  const remaining = scenes.filter(s => s.id !== sceneId);
+                  setScenes(remaining);
+                  setSelectedSceneId(remaining[0]?.id || '');
+                }}
+                onDuplicateScene={handleDuplicateScene}
+                currentTime={currentTime}
+                totalDuration={totalDuration}
+                onSeek={(t) => {
+                  setCurrentTime(t);
+                  if (isPlaying) setSeekVersion(v => v + 1);
+                }}
+                zoomLevel={pixelsPerSecond}
+                audioTracks={audioTracks}
+                selectedAudioId={selectedAudioId}
+                onSelectAudioId={setSelectedAudioId}
+                voTrack={voTrack}
+                onUpdateAudioTrack={(id, updated) => {
+                  setAudioTracks(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
+                }}
+                onUpdateVoiceoverDuration={(newDur) => {
+                  if (voTrack) {
+                    setAudioTracks(prev => prev.map(t => t.id === voTrack.id ? { ...t, duration: newDur } : t));
+                  }
+                }}
+                onDeleteVoiceover={() => {
+                  setAudioTracks(prev => prev.filter(t => t.type !== 'voiceover'));
+                  setProjectNotice('Voiceover track removed from timeline');
+                  setTimeout(() => setProjectNotice(null), 3000);
+                }}
+                onDeleteBgm={(id) => {
+                  setAudioTracks(prev => prev.filter(t => id ? t.id !== id : t.type !== 'bgm'));
+                  if (selectedAudioId === id) setSelectedAudioId('');
+                  setProjectNotice('Music track removed from timeline');
+                  setTimeout(() => setProjectNotice(null), 3000);
+                }}
+                onOpenVoiceStudio={onOpenVoiceStudio}
+                onAddMedia={() => setShowGlobalMediaLibrary(true)}
+                onAddAudio={() => setShowAudioAddModal(true)}
+                onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
+                onOpenImageStudio={onOpenImageStudio}
+                onOpenSoraStudio={onOpenSoraStudio}
+                isBgmMuted={isBgmMuted}
+                setIsBgmMuted={setIsBgmMuted}
+                isVoMuted={isVoMuted}
+                setIsVoMuted={setIsVoMuted}
+                bgmVolume={bgmVolume}
+                setBgmVolume={setBgmVolume}
+                voVolume={voVolume}
+                setVoVolume={setVoVolume}
+                isPlaying={isPlaying}
+                snapEnabled={snapEnabled}
+                isAudioBuffering={isAudioBuffering}
+                audioLoadingStatus={audioLoadingStatus}
+                onApplyTransitionToAll={(type, duration) => {
+                  pushToHistory(scenes);
+                  setScenes(prev => prev.map((s, idx) => idx === 0 ? s : { ...s, transition: type, transitionDuration: duration }));
+                  setProjectNotice(`Applied "${type}" transition (${duration}s) across all scenes!`);
+                  setTimeout(() => setProjectNotice(null), 3000);
+                }}
+              />
+
+              {/* Real-time Render Preview Timeline Blur-Overlay */}
+              {showRenderPreviewModal && (
+                <div className="absolute inset-0 z-30 backdrop-blur-md bg-slate-950/80 border-t border-cyan-500/50 flex items-center justify-between px-4 sm:px-6 py-2 sm:py-3 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/10">
+                      <Eye className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse text-cyan-300" />
+                    </div>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white truncate">
+                          Real-Time Render Preview Active
+                        </span>
+                        <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-[9px] font-bold uppercase tracking-wider">
+                          Timeline Synced
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 truncate">
+                        Simulating multi-layer compositor pass • Audio mix & subtitle burn-in previewing
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+                    {/* Simulated Frame Progress on Timeline */}
+                    <div className="hidden lg:flex flex-col items-end gap-1 w-44">
+                      <div className="flex items-center justify-between w-full text-[10px] font-mono text-slate-400">
+                        <span>Frame Export Pass</span>
+                        <span className="text-cyan-400 font-bold">
+                          {totalDuration > 0 ? `${Math.round((currentTime / totalDuration) * 100)}%` : '100%'}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                        <div
+                          className="h-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 rounded-full transition-all duration-75"
+                          style={{
+                            width: totalDuration > 0 ? `${Math.min(100, Math.round((currentTime / totalDuration) * 100))}%` : '0%',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setShowRenderPreviewModal(false);
+                          setExportHubTab('render');
+                          setShowExportHubModal(true);
+                        }}
+                        className="px-3 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      >
+                        <Download className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
+                        <span className="hidden sm:inline">Commit Export</span>
+                        <span className="sm:hidden">Export</span>
+                      </button>
+                      <button
+                        onClick={() => setShowRenderPreviewModal(false)}
+                        className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </TimelineErrorBoundary>
+          ) : (
+            /* Collapsed Timeline Quick-Restore Bar */
+            <button
+              onClick={() => setIsTimelineFolded(false)}
+              className="h-7 bg-[#0a0d17] hover:bg-[#101424] border-t border-slate-800/90 px-4 flex items-center justify-between text-xs text-slate-400 hover:text-cyan-400 transition cursor-pointer select-none shrink-0 group"
+              title="Click to expand timeline tracks"
+            >
+              <div className="flex items-center gap-2">
+                <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="font-semibold text-slate-300 group-hover:text-cyan-400">Timeline Folded</span>
+                <span className="text-[11px] text-slate-500 font-mono">({scenes.length} {scenes.length === 1 ? 'clip' : 'clips'}, {audioTracks.length} audio tracks)</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-cyan-400">
+                <span>Expand Timeline Deck</span>
+                <ChevronUp className="w-3.5 h-3.5" />
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Right: Inspector Properties Panel */}
@@ -2236,228 +2558,10 @@ export const VideoStudioView: React.FC<VideoStudioViewProps> = ({
             setVoVolume={setVoVolume}
             brandOverlayConfig={brandOverlayConfig}
             setBrandOverlayConfig={setBrandOverlayConfig}
+            isFolded={isInspectorFolded}
+            onToggleFold={() => setIsInspectorFolded(prev => !prev)}
           />
         </div>
-      </div>
-
-      {/* 3. Mid Divider: Timeline Edit Toolbar */}
-      <CapCutTimelineToolbar
-        onSplitClip={handleSplitAtPlayhead}
-        onDeleteClip={() => {
-          if (scenes.length === 0) return;
-          pushToHistory(scenes);
-          const remaining = scenes.filter(s => s.id !== selectedSceneId);
-          setScenes(remaining);
-          setSelectedSceneId(remaining[0]?.id || '');
-        }}
-        onDuplicateClip={handleDuplicateScene}
-        onAddMedia={() => setShowGlobalMediaLibrary(true)}
-        onAddAudio={() => setShowAudioAddModal(true)}
-        onAddSceneTemplate={() => setShowSceneTemplatesModal(true)}
-        onOpenRenderPreview={() => setShowRenderPreviewModal(true)}
-        onAutoCrossfadeAll={() => {
-          if (scenes.length <= 1) {
-            setProjectNotice('Add multiple scenes to auto-crossfade');
-            setTimeout(() => setProjectNotice(null), 2500);
-            return;
-          }
-          pushToHistory(scenes);
-          setScenes(prev => prev.map((s, idx) => ({
-            ...s,
-            transition: idx === 0 ? 'cut' : 'dissolve',
-            transitionDuration: 0.8,
-          })));
-          setProjectNotice('✨ Auto-applied smooth 0.8s crossfade dissolves between all story scenes!');
-          setTimeout(() => setProjectNotice(null), 3500);
-        }}
-        onAutoSyncAudio={() => {
-          const ambientBgm: AudioTrack = {
-            id: 'bgm-himalayan-' + Date.now(),
-            title: 'Himalayan Serenade (Traditional Bansuri & Sarangi)',
-            artist: 'NepalAI Atmospheric Studio',
-            url: 'https://assets.mixkit.co/music/preview/mixkit-ethereal-fairy-win-576.mp3',
-            duration: Math.max(30, totalDuration || 30),
-            volume: 40,
-            isMuted: false,
-            startTime: 0,
-            type: 'bgm'
-          };
-          setAudioTracks(prev => {
-            const hasBgm = prev.some(t => t.type === 'bgm');
-            return hasBgm ? prev : [...prev, ambientBgm];
-          });
-          setProjectNotice('🎵 Multi-track atmospheric soundtrack auto-synced to story timeline!');
-          setTimeout(() => setProjectNotice(null), 3500);
-        }}
-        zoomLevel={pixelsPerSecond}
-        setZoomLevel={(z) => setTimelineZoom(z / 36)}
-        isSnapping={snapEnabled}
-        setIsSnapping={setSnapEnabled}
-        hasSelectedClip={!!selectedScene}
-        selectedScene={selectedScene}
-        onUpdateSelectedScene={(updated) => {
-          if (!selectedScene) return;
-          pushToHistory(scenes);
-          setScenes(prev => prev.map(s => s.id === selectedScene.id ? { ...s, ...updated } : s));
-        }}
-        onOpenComments={() => setShowCommentsDrawer(true)}
-        commentsCount={scenes.reduce((acc, s) => acc + (s.comments?.filter(c => !c.resolved).length || 0), 0)}
-        onExportAssetsZip={handleExportAssetsZip}
-      />
-
-      {/* 4. Bottom Deck: CapCut Multi-Track Timeline */}
-      <div 
-        onWheel={handleTimelineWheel}
-        className="h-44 sm:h-48 shrink-0 flex flex-col bg-slate-200 dark:bg-[#090b12] border-t border-slate-300 dark:border-slate-800/80 relative"
-      >
-        <CapCutTimelineDeck
-          ref={timelineScrollRef}
-          scenes={scenes}
-          selectedSceneId={selectedSceneId}
-          onSelectScene={(id) => {
-            setSelectedSceneId(id);
-            const idx = scenes.findIndex(s => s.id === id);
-            if (idx >= 0) {
-              let t = 0;
-              for (let i = 0; i < idx; i++) t += scenes[i].duration;
-              setCurrentTime(t);
-            }
-          }}
-          onReorderScenes={(newScenes) => {
-            pushToHistory(scenes);
-            setScenes(newScenes);
-          }}
-          onUpdateScene={(sceneId, updatedProps) => {
-            pushToHistory(scenes);
-            setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updatedProps } : s));
-          }}
-          onDeleteScene={(sceneId) => {
-            pushToHistory(scenes);
-            const remaining = scenes.filter(s => s.id !== sceneId);
-            setScenes(remaining);
-            setSelectedSceneId(remaining[0]?.id || '');
-          }}
-          onDuplicateScene={handleDuplicateScene}
-          currentTime={currentTime}
-          totalDuration={totalDuration}
-          onSeek={(t) => {
-            setCurrentTime(t);
-            if (isPlaying) setSeekVersion(v => v + 1);
-          }}
-          zoomLevel={pixelsPerSecond}
-          audioTracks={audioTracks}
-          selectedAudioId={selectedAudioId}
-          onSelectAudioId={setSelectedAudioId}
-          voTrack={voTrack}
-          onUpdateAudioTrack={(id, updated) => {
-            setAudioTracks(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
-          }}
-          onUpdateVoiceoverDuration={(newDur) => {
-            if (voTrack) {
-              setAudioTracks(prev => prev.map(t => t.id === voTrack.id ? { ...t, duration: newDur } : t));
-            }
-          }}
-          onDeleteVoiceover={() => {
-            setAudioTracks(prev => prev.filter(t => t.type !== 'voiceover'));
-            setProjectNotice('Voiceover track removed from timeline');
-            setTimeout(() => setProjectNotice(null), 3000);
-          }}
-          onDeleteBgm={(id) => {
-            setAudioTracks(prev => prev.filter(t => id ? t.id !== id : t.type !== 'bgm'));
-            if (selectedAudioId === id) setSelectedAudioId('');
-            setProjectNotice('Music track removed from timeline');
-            setTimeout(() => setProjectNotice(null), 3000);
-          }}
-          onOpenVoiceStudio={onOpenVoiceStudio}
-          onAddMedia={() => setShowGlobalMediaLibrary(true)}
-          onAddAudio={() => setShowAudioAddModal(true)}
-          onOpenSceneTemplates={() => setShowSceneTemplatesModal(true)}
-          onOpenImageStudio={onOpenImageStudio}
-          onOpenSoraStudio={onOpenSoraStudio}
-          isBgmMuted={isBgmMuted}
-          setIsBgmMuted={setIsBgmMuted}
-          isVoMuted={isVoMuted}
-          setIsVoMuted={setIsVoMuted}
-          bgmVolume={bgmVolume}
-          setBgmVolume={setBgmVolume}
-          voVolume={voVolume}
-          setVoVolume={setVoVolume}
-          isPlaying={isPlaying}
-          snapEnabled={snapEnabled}
-          isAudioBuffering={isAudioBuffering}
-          audioLoadingStatus={audioLoadingStatus}
-          onApplyTransitionToAll={(type, duration) => {
-            pushToHistory(scenes);
-            setScenes(prev => prev.map((s, idx) => idx === 0 ? s : { ...s, transition: type, transitionDuration: duration }));
-            setProjectNotice(`Applied "${type}" transition (${duration}s) across all scenes!`);
-            setTimeout(() => setProjectNotice(null), 3000);
-          }}
-        />
-
-        {/* Real-time Render Preview Timeline Blur-Overlay */}
-        {showRenderPreviewModal && (
-          <div className="absolute inset-0 z-30 backdrop-blur-md bg-slate-950/80 border-t border-cyan-500/50 flex items-center justify-between px-4 sm:px-6 py-2 sm:py-3 animate-in fade-in duration-200">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/10">
-                <Eye className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse text-cyan-300" />
-              </div>
-              <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-white truncate">
-                    Real-Time Render Preview Active
-                  </span>
-                  <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-[9px] font-bold uppercase tracking-wider">
-                    Timeline Synced
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Simulating multi-layer compositor pass • Audio mix & subtitle burn-in previewing
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 sm:gap-5 shrink-0">
-              {/* Simulated Frame Progress on Timeline */}
-              <div className="hidden lg:flex flex-col items-end gap-1 w-44">
-                <div className="flex items-center justify-between w-full text-[10px] font-mono text-slate-400">
-                  <span>Frame Export Pass</span>
-                  <span className="text-cyan-400 font-bold">
-                    {totalDuration > 0 ? `${Math.round((currentTime / totalDuration) * 100)}%` : '100%'}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                  <div
-                    className="h-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 rounded-full transition-all duration-75"
-                    style={{
-                      width: totalDuration > 0 ? `${Math.min(100, Math.round((currentTime / totalDuration) * 100))}%` : '0%',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setShowRenderPreviewModal(false);
-                    setExportHubTab('render');
-                    setShowExportHubModal(true);
-                  }}
-                  className="px-3 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
-                >
-                  <Download className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" />
-                  <span className="hidden sm:inline">Commit Export</span>
-                  <span className="sm:hidden">Export</span>
-                </button>
-                <button
-                  onClick={() => setShowRenderPreviewModal(false)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* New Project Dialog Modal */}

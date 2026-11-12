@@ -401,7 +401,7 @@ export default function App() {
       />
 
       {/* Main Studio Viewport */}
-      <main className={`flex-1 ${activeTab === 'hamro_ai' || activeTab === 'video_studio' || activeTab === 'character_studio' || activeTab === 'ad_builder' ? 'h-[calc(100dvh-3.25rem)] overflow-hidden pb-0' : 'pb-24 md:pb-16'}`}>
+      <main className={`flex-1 ${activeTab === 'hamro_ai' || activeTab === 'video_studio' || activeTab === 'character_studio' || activeTab === 'ad_builder' ? 'h-[calc(100dvh-3.25rem)] overflow-hidden pb-0 bg-[#07090e]' : 'pb-24 md:pb-16'}`}>
         {activeTab === 'landing' && (
           <LandingPageView
             user={user}

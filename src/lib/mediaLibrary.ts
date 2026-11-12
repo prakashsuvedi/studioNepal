@@ -156,22 +156,39 @@ export const DEFAULT_MEDIA_ITEMS: MediaItem[] = [
   }
 ];
 
-const STORAGE_KEY = 'nepalai_generated_media_library_v2';
+const BASE_STORAGE_KEY = 'nepalai_generated_media_library_v2';
 
-let memoryMediaCache: MediaItem[] | null = null;
+function resolveStorageKey(userId?: string): string {
+  if (userId && typeof userId === 'string' && userId.trim()) {
+    return `${BASE_STORAGE_KEY}_${userId.trim()}`;
+  }
+  try {
+    const sessionRaw = localStorage.getItem('nepalai_user_session');
+    if (sessionRaw) {
+      const parsed = JSON.parse(sessionRaw);
+      if (parsed?.userId || parsed?.id) {
+        return `${BASE_STORAGE_KEY}_${parsed.userId || parsed.id}`;
+      }
+    }
+  } catch {}
+  return BASE_STORAGE_KEY;
+}
+
+let memoryMediaCache: Record<string, MediaItem[]> = {};
 
 /**
- * Retrieve all user generated assets + uploads + default presets
+ * Retrieve all user generated assets + uploads + default presets scoped to user
  */
-export function getMediaLibrary(): MediaItem[] {
+export function getMediaLibrary(userId?: string): MediaItem[] {
+  const key = resolveStorageKey(userId);
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      if (memoryMediaCache && memoryMediaCache.length > 0) {
-        return memoryMediaCache;
+      if (memoryMediaCache[key] && memoryMediaCache[key].length > 0) {
+        return memoryMediaCache[key];
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_MEDIA_ITEMS));
-      memoryMediaCache = DEFAULT_MEDIA_ITEMS;
+      localStorage.setItem(key, JSON.stringify(DEFAULT_MEDIA_ITEMS));
+      memoryMediaCache[key] = DEFAULT_MEDIA_ITEMS;
       return DEFAULT_MEDIA_ITEMS;
     }
     const parsed = JSON.parse(raw);
@@ -188,25 +205,26 @@ export function getMediaLibrary(): MediaItem[] {
         thumbnailUrl: m.thumbnailUrl ? sanitizeMediaUrl(m.thumbnailUrl) : m.thumbnailUrl,
       }));
 
-      if (memoryMediaCache && memoryMediaCache.length > sanitized.length) {
+      if (memoryMediaCache[key] && memoryMediaCache[key].length > sanitized.length) {
         const existingIds = new Set(sanitized.map(s => s.id));
-        const extras = memoryMediaCache.filter(m => !existingIds.has(m.id));
+        const extras = memoryMediaCache[key].filter(m => !existingIds.has(m.id));
         return [...extras, ...sanitized];
       }
 
-      memoryMediaCache = sanitized;
+      memoryMediaCache[key] = sanitized;
       return sanitized;
     }
   } catch (e) {
     console.warn('Failed to parse media library from localStorage', e);
   }
-  return memoryMediaCache || DEFAULT_MEDIA_ITEMS;
+  return memoryMediaCache[key] || DEFAULT_MEDIA_ITEMS;
 }
 
 /**
  * Save or prepend a new generated asset / upload to the media library
  */
 export function saveMediaItem(item: {
+  userId?: string;
   type: 'sora_video' | 'ai_image' | 'upload' | 'ai_audio';
   title: string;
   url: string;
@@ -218,7 +236,8 @@ export function saveMediaItem(item: {
   resolution?: string;
   engine?: string;
 }): MediaItem {
-  const current = getMediaLibrary();
+  const key = resolveStorageKey(item.userId);
+  const current = getMediaLibrary(item.userId);
   
   const newItem: MediaItem = {
     id: 'media-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
@@ -240,16 +259,16 @@ export function saveMediaItem(item: {
   let updated = [newItem, ...filtered];
 
   // Immediately store in memory cache
-  memoryMediaCache = updated;
+  memoryMediaCache[key] = updated;
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(key, JSON.stringify(updated));
   } catch (e) {
     console.warn('Storage quota notice, optimizing storage...', e);
     while (updated.length > 8) {
       updated.pop();
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        localStorage.setItem(key, JSON.stringify(updated));
         break;
       } catch (err) {
         // continue trimming
@@ -266,8 +285,8 @@ export function saveMediaItem(item: {
 /**
  * Retrieve all generated sounds & voiceovers
  */
-export function getGeneratedSoundList(): MediaItem[] {
-  const all = getMediaLibrary();
+export function getGeneratedSoundList(userId?: string): MediaItem[] {
+  const all = getMediaLibrary(userId);
   return all.filter(item => 
     item.type === 'ai_audio' || 
     (item as any).type === 'audio' ||
@@ -281,12 +300,13 @@ export function getGeneratedSoundList(): MediaItem[] {
 /**
  * Delete an item from the media library
  */
-export function removeMediaItem(id: string): MediaItem[] {
-  const current = getMediaLibrary();
+export function removeMediaItem(id: string, userId?: string): MediaItem[] {
+  const key = resolveStorageKey(userId);
+  const current = getMediaLibrary(userId);
   const updated = current.filter(i => i.id !== id);
-  memoryMediaCache = updated;
+  memoryMediaCache[key] = updated;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(key, JSON.stringify(updated));
   } catch (e) {}
   window.dispatchEvent(new CustomEvent('nepalai_media_library_updated', { detail: { removedId: id } }));
   return updated;

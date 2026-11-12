@@ -32,6 +32,7 @@ interface CapCutTimelineToolbarProps {
   onSplitClip?: () => void;
   onDeleteClip?: () => void;
   onDuplicateClip?: () => void;
+  onClearAllClips?: () => void;
   onAddMedia?: () => void;
   onAddAudio?: () => void;
   onAddSceneTemplate?: () => void;
@@ -51,12 +52,15 @@ interface CapCutTimelineToolbarProps {
   hasSelectedClip: boolean;
   selectedScene?: Scene | null;
   onUpdateSelectedScene?: (updated: Partial<Scene>) => void;
+  isTimelineFolded?: boolean;
+  onToggleTimelineFold?: () => void;
 }
 
 export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   onSplitClip,
   onDeleteClip,
   onDuplicateClip,
+  onClearAllClips,
   onAddMedia,
   onAddAudio,
   onAddSceneTemplate,
@@ -76,12 +80,14 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
   hasSelectedClip,
   selectedScene,
   onUpdateSelectedScene,
+  isTimelineFolded = false,
+  onToggleTimelineFold,
 }) => {
   const [isPresetDropdownOpen, setIsPresetDropdownOpen] = useState(false);
   const activePreset = WORKFLOW_PRESETS.find(p => p.id === selectedWorkflowPresetId) || WORKFLOW_PRESETS[0];
 
   return (
-    <div className="h-10 bg-[#090c13] border-t border-b border-slate-800/80 px-2 sm:px-3.5 flex items-center justify-between select-none shrink-0 text-xs relative z-30 overflow-x-auto no-scrollbar overflow-touch">
+    <div className="h-10 bg-[#090b13] border-t border-b border-slate-800/80 px-2 sm:px-3.5 flex items-center justify-between select-none shrink-0 text-xs relative z-30 overflow-x-auto no-scrollbar overflow-touch">
       <div className="flex items-center justify-between min-w-max w-full gap-3">
         {/* Left Edit Tools (CapCut Style) */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -113,6 +119,18 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
+
+        {/* Clear All / Remove All */}
+        {onClearAllClips && (
+          <button
+            onClick={onClearAllClips}
+            className="px-2 py-1 text-slate-400 hover:text-rose-400 rounded-md hover:bg-rose-950/40 border border-slate-800 hover:border-rose-800 transition cursor-pointer flex items-center gap-1 text-[10.5px] font-semibold"
+            title="Clear all clips and reset timeline"
+          >
+            <Trash2 className="w-3 h-3 text-rose-500" />
+            <span className="hidden sm:inline">Clear All</span>
+          </button>
+        )}
 
         {/* Duplicate */}
         <button
@@ -442,6 +460,22 @@ export const CapCutTimelineToolbar: React.FC<CapCutTimelineToolbarProps> = ({
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Timeline Fold / Expand Button */}
+        {onToggleTimelineFold && (
+          <button
+            onClick={onToggleTimelineFold}
+            className={`px-2 py-1 rounded-md text-[10.5px] font-bold border transition cursor-pointer flex items-center gap-1 shrink-0 ${
+              isTimelineFolded
+                ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-xs'
+                : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800'
+            }`}
+            title={isTimelineFolded ? 'Expand Multi-Track Timeline' : 'Fold Timeline (Maximize Preview)'}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isTimelineFolded ? 'Expand Timeline' : 'Fold'}</span>
+          </button>
+        )}
       </div>
     </div>
   </div>

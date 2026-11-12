@@ -9,7 +9,7 @@
       "tier": "pro_studio",
       "credits": 999999,
       "createdAt": "2026-08-01T10:00:00.000Z",
-      "updatedAt": "2026-11-04T14:07:44.029Z"
+      "updatedAt": "2026-11-04T14:25:49.756Z"
     },
     {
       "id": "usr_admin_saghimire12",
@@ -45,17 +45,6 @@
       "updatedAt": "2026-11-02T11:12:42.074Z"
     },
     {
-      "id": "usr_1793800854798_h795b",
-      "email": "creator_usr_guest@nepalai.tech",
-      "name": "Creator User",
-      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      "role": "user",
-      "tier": "free_trial",
-      "credits": 500,
-      "createdAt": "2026-11-04T14:00:54.798Z",
-      "updatedAt": "2026-11-04T14:00:54.798Z"
-    },
-    {
       "id": "usr_1793801264011_ml439",
       "email": "creative.artist@gmail.com",
       "name": "Creative Artist",
@@ -80,12 +69,12 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 99999,
-      "totalTokensUsed": 36900,
-      "lastUsedAt": "2026-11-04T14:00:45.773Z",
+      "totalTokensUsed": 48100,
+      "lastUsedAt": "2026-11-10T11:10:53.603Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-11-04",
-      "lastResetAt": "2026-11-04T13:56:14.995Z"
+      "lastResetDate": "2026-11-10",
+      "lastResetAt": "2026-11-10T02:55:03.440Z"
     },
     "usr_client_02": {
       "userId": "usr_client_02",
@@ -811,8 +800,8 @@
       "lastUsedAt": "2026-09-19T03:49:38.418Z",
       "maxChat": 999999,
       "chatCount": 0,
-      "lastResetDate": "2026-11-04",
-      "lastResetAt": "2026-11-04T13:57:43.407Z"
+      "lastResetDate": "2026-11-10",
+      "lastResetAt": "2026-11-10T03:11:37.381Z"
     },
     "usr_1789831067926_t38vo": {
       "userId": "usr_1789831067926_t38vo",
@@ -906,8 +895,8 @@
       "maxChat": 999999,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-10-10T03:07:51.968Z",
-      "lastResetDate": "2026-11-04",
-      "lastResetAt": "2026-11-04T13:57:43.409Z"
+      "lastResetDate": "2026-11-10",
+      "lastResetAt": "2026-11-10T03:11:37.384Z"
     },
     "usr_test": {
       "userId": "usr_test",
@@ -959,12 +948,12 @@
       "audioDurationSeconds": 0,
       "rendersCount": 0,
       "maxRenders": 25,
-      "chatCount": 1,
+      "chatCount": 0,
       "maxChat": 20,
       "totalTokensUsed": 0,
       "lastUsedAt": "2026-10-12T04:49:06.337Z",
-      "lastResetDate": "2026-11-04",
-      "lastResetAt": "2026-11-04T13:08:40.599Z"
+      "lastResetDate": "2026-11-10",
+      "lastResetAt": "2026-11-10T10:01:50.114Z"
     },
     "usr_1792554133922_7ug47": {
       "userId": "usr_1792554133922_7ug47",
@@ -1042,8 +1031,8 @@
       "lastUsedAt": "2026-11-02T11:12:42.077Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-11-04",
-      "lastResetAt": "2026-11-04T13:57:43.411Z"
+      "lastResetDate": "2026-11-10",
+      "lastResetAt": "2026-11-10T03:11:37.386Z"
     },
     "usr_1793614352027_hhpgd": {
       "userId": "usr_1793614352027_hhpgd",
@@ -1121,12 +1110,109 @@
       "lastUsedAt": "2026-11-04T14:07:44.011Z",
       "maxChat": 20,
       "chatCount": 0,
-      "lastResetDate": "2026-11-04",
-      "lastResetAt": "2026-11-04T14:07:44.016Z"
+      "lastResetDate": "2026-11-10",
+      "lastResetAt": "2026-11-10T03:11:37.390Z"
+    },
+    "usr_1794304910107_9kwdc": {
+      "userId": "usr_1794304910107_9kwdc",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-11-10T10:01:50.107Z"
+    },
+    "usr_1794306454793_1q3wm": {
+      "userId": "usr_1794306454793_1q3wm",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-11-10T10:27:34.793Z",
+      "maxChat": 20,
+      "chatCount": 0,
+      "lastResetDate": "2026-11-10",
+      "lastResetAt": "2026-11-10T10:28:43.155Z"
+    },
+    "usr_1794307132215_3wg1w": {
+      "userId": "usr_1794307132215_3wg1w",
+      "imagesCount": 0,
+      "maxImages": 50,
+      "videoCount": 0,
+      "maxVideo": 20,
+      "videoDurationSeconds": 0,
+      "audioCount": 0,
+      "maxAudio": 30,
+      "audioDurationSeconds": 0,
+      "rendersCount": 0,
+      "maxRenders": 20,
+      "totalTokensUsed": 0,
+      "lastUsedAt": "2026-11-10T10:38:52.215Z"
     }
   },
   "transactions": [],
   "generationLogs": [
+    {
+      "id": "gen_1794309053603_a7kx",
+      "userId": "usr_admin_01",
+      "type": "video",
+      "model": "sora-2 (Cinematic Neural Motion Pipeline)",
+      "prompt": "Monkey and bear playing cricket in a packed stadium",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/sora_neural_1794309052734_gb6f6.mp4",
+      "tokensCost": 2800,
+      "creditsCost": 25,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-11-10T11:10:53.603Z"
+    },
+    {
+      "id": "gen_1794120336152_9qya",
+      "userId": "usr_admin_01",
+      "type": "video",
+      "model": "sora-2 (Cinematic Neural Motion Pipeline)",
+      "prompt": "Cinematic drone shot of Mt Everest Himalayan peaks at sunrise",
+      "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/sora_neural_1794120334986_3gl4d.mp4",
+      "tokensCost": 2800,
+      "creditsCost": 25,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-11-08T06:45:36.152Z"
+    },
+    {
+      "id": "gen_1794120266487_mbzc",
+      "userId": "usr_admin_01",
+      "type": "video",
+      "model": "sora-2 (Cinematic Studio Master)",
+      "prompt": "Cinematic drone shot over Machapuchare peak at golden hour",
+      "resultUrl": "/samples/ForBiggerEscapes.mp4",
+      "tokensCost": 2800,
+      "creditsCost": 25,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-11-08T06:44:26.487Z"
+    },
+    {
+      "id": "gen_1794119360543_v0mm",
+      "userId": "usr_admin_01",
+      "type": "video",
+      "model": "sora-2 (Cinematic Studio Master)",
+      "prompt": "Cinematic 4k shot of Mount Everest at sunrise",
+      "resultUrl": "/samples/everest_sunrise.mp4",
+      "tokensCost": 2800,
+      "creditsCost": 25,
+      "deductionSource": "package_credits",
+      "createdAt": "2026-11-08T06:29:20.543Z"
+    },
     {
       "id": "gen_1793800845773_fqt9",
       "userId": "usr_admin_01",
@@ -2878,54 +2964,6 @@
       "creditsCost": 10,
       "deductionSource": "package_credits",
       "createdAt": "2026-09-12T08:52:10.828Z"
-    },
-    {
-      "id": "gen_1789099128816_399z",
-      "userId": "usr_admin_01",
-      "type": "image",
-      "model": "gpt-image-1.5 (High-Res Photorealistic Master)",
-      "prompt": "Mount Everest sunrise golden hour 8k photorealistic",
-      "resultUrl": "/api/storage/file/gpt_image_1789099128385_y0zu.png",
-      "tokensCost": 350,
-      "creditsCost": 5,
-      "deductionSource": "package_credits",
-      "createdAt": "2026-09-11T03:58:48.816Z"
-    },
-    {
-      "id": "gen_1789098630627_anif",
-      "userId": "usr_admin_01",
-      "type": "image",
-      "model": "gpt-image-1.5 (High-Res Photorealistic Master)",
-      "prompt": "A beautiful view of Pokhara Phewa Lake with Annapurna in background",
-      "resultUrl": "/api/storage/file/gpt_image_1789098630104_kvmd.png",
-      "tokensCost": 350,
-      "creditsCost": 5,
-      "deductionSource": "package_credits",
-      "createdAt": "2026-09-11T03:50:30.627Z"
-    },
-    {
-      "id": "gen_1788880651388_5lnf",
-      "userId": "usr_admin_01",
-      "type": "audio",
-      "model": "ne-NP-SagarNeural",
-      "prompt": "नमस्ते अंकल, नमस्ते आन्टी ! म नयाँ कथा सुनाउँछु है।",
-      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
-      "tokensCost": 900,
-      "creditsCost": 10,
-      "deductionSource": "package_credits",
-      "createdAt": "2026-09-08T15:17:31.388Z"
-    },
-    {
-      "id": "gen_1788880616239_mly1",
-      "userId": "usr_admin_01",
-      "type": "audio",
-      "model": "ne-NP-HemkalaNeural",
-      "prompt": "पसलको चहलपहल र नेपाली संवादको पृष्ठभूमि आवाज।",
-      "resultUrl": "data:audio/mp3;base64,//PkxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVV...[truncated_base64_media]",
-      "tokensCost": 900,
-      "creditsCost": 10,
-      "deductionSource": "package_credits",
-      "createdAt": "2026-09-08T15:16:56.239Z"
     }
   ],
   "pricingConfig": {
@@ -5485,6 +5523,154 @@
         "updatedAt": "2026-11-04T14:07:44.029Z"
       },
       "createdAt": "2026-11-04T14:07:44.032Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1793802349758_8y80f",
+      "type": "user",
+      "payload": {
+        "id": "usr_admin_01",
+        "email": "prakashsuvedi.backup@gmail.com",
+        "name": "Prakash Suvedi (Platform Owner)",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "role": "admin",
+        "tier": "pro_studio",
+        "credits": 999999,
+        "createdAt": "2026-08-01T10:00:00.000Z",
+        "updatedAt": "2026-11-04T14:25:49.756Z"
+      },
+      "createdAt": "2026-11-04T14:25:49.758Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1794119360546_kfb2j",
+      "type": "generation_log",
+      "payload": {
+        "id": "gen_1794119360543_v0mm",
+        "userId": "usr_admin_01",
+        "type": "video",
+        "model": "sora-2 (Cinematic Studio Master)",
+        "prompt": "Cinematic 4k shot of Mount Everest at sunrise",
+        "resultUrl": "/samples/everest_sunrise.mp4",
+        "tokensCost": 2800,
+        "creditsCost": 25,
+        "deductionSource": "package_credits",
+        "createdAt": "2026-11-08T06:29:20.543Z"
+      },
+      "createdAt": "2026-11-08T06:29:20.546Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1794120266490_jbwcx",
+      "type": "generation_log",
+      "payload": {
+        "id": "gen_1794120266487_mbzc",
+        "userId": "usr_admin_01",
+        "type": "video",
+        "model": "sora-2 (Cinematic Studio Master)",
+        "prompt": "Cinematic drone shot over Machapuchare peak at golden hour",
+        "resultUrl": "/samples/ForBiggerEscapes.mp4",
+        "tokensCost": 2800,
+        "creditsCost": 25,
+        "deductionSource": "package_credits",
+        "createdAt": "2026-11-08T06:44:26.487Z"
+      },
+      "createdAt": "2026-11-08T06:44:26.490Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1794120336155_ax7i6",
+      "type": "generation_log",
+      "payload": {
+        "id": "gen_1794120336152_9qya",
+        "userId": "usr_admin_01",
+        "type": "video",
+        "model": "sora-2 (Cinematic Neural Motion Pipeline)",
+        "prompt": "Cinematic drone shot of Mt Everest Himalayan peaks at sunrise",
+        "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/sora_neural_1794120334986_3gl4d.mp4",
+        "tokensCost": 2800,
+        "creditsCost": 25,
+        "deductionSource": "package_credits",
+        "createdAt": "2026-11-08T06:45:36.152Z"
+      },
+      "createdAt": "2026-11-08T06:45:36.155Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1794304910111_8zvb6",
+      "type": "user",
+      "payload": {
+        "id": "usr_1794304910107_9kwdc",
+        "email": "creator_usr_guest@nepalai.tech",
+        "name": "Creator User",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        "role": "user",
+        "tier": "free_trial",
+        "credits": 500,
+        "createdAt": "2026-11-10T10:01:50.107Z",
+        "updatedAt": "2026-11-10T10:01:50.107Z"
+      },
+      "createdAt": "2026-11-10T10:01:50.111Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1794306454796_c5099",
+      "type": "user",
+      "payload": {
+        "id": "usr_1794306454793_1q3wm",
+        "email": "creator_usr_guest@nepalai.tech",
+        "name": "Creator User",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        "role": "user",
+        "tier": "free_trial",
+        "credits": 500,
+        "createdAt": "2026-11-10T10:27:34.793Z",
+        "updatedAt": "2026-11-10T10:27:34.793Z"
+      },
+      "createdAt": "2026-11-10T10:27:34.796Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1794307132218_9t156",
+      "type": "user",
+      "payload": {
+        "id": "usr_1794307132215_3wg1w",
+        "email": "creator_usr_guest@nepalai.tech",
+        "name": "Creator User",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        "role": "user",
+        "tier": "free_trial",
+        "credits": 500,
+        "createdAt": "2026-11-10T10:38:52.215Z",
+        "updatedAt": "2026-11-10T10:38:52.215Z"
+      },
+      "createdAt": "2026-11-10T10:38:52.218Z",
+      "attempts": 0,
+      "lastError": "PostgreSQL disconnected"
+    },
+    {
+      "id": "outbox_1794309053606_rwail",
+      "type": "generation_log",
+      "payload": {
+        "id": "gen_1794309053603_a7kx",
+        "userId": "usr_admin_01",
+        "type": "video",
+        "model": "sora-2 (Cinematic Neural Motion Pipeline)",
+        "prompt": "Monkey and bear playing cricket in a packed stadium",
+        "resultUrl": "https://pub-20267cc1e40d4fbbaf3f4ecba614954e.r2.dev/sora_neural_1794309052734_gb6f6.mp4",
+        "tokensCost": 2800,
+        "creditsCost": 25,
+        "deductionSource": "package_credits",
+        "createdAt": "2026-11-10T11:10:53.603Z"
+      },
+      "createdAt": "2026-11-10T11:10:53.606Z",
       "attempts": 0,
       "lastError": "PostgreSQL disconnected"
     }

@@ -224,7 +224,8 @@ export const CapCutTimelineDeck = React.forwardRef<HTMLDivElement, CapCutTimelin
   const [isVideoTrackVisible, setIsVideoTrackVisible] = useState(true);
 
   const pixelsPerSecond = Math.max(12, zoomLevel);
-  const timelineWidth = Math.max(800, Math.ceil(totalDuration * pixelsPerSecond) + 360);
+  const safeTotalDuration = Number.isFinite(totalDuration) && totalDuration > 0 ? totalDuration : 15;
+  const timelineWidth = Math.max(800, Math.ceil(safeTotalDuration * pixelsPerSecond) + 360);
 
   // Deterministic scene timings based on exact half-open intervals
   const sceneTimings = React.useMemo(() => computeSceneTimings(scenes), [scenes]);
@@ -254,7 +255,7 @@ export const CapCutTimelineDeck = React.forwardRef<HTMLDivElement, CapCutTimelin
 
   // Ruler markings
   const rulerIntervalSeconds = pixelsPerSecond > 35 ? 1 : pixelsPerSecond > 20 ? 2 : 5;
-  const numRulerTicks = Math.ceil((Math.max(totalDuration, 15) + 5) / rulerIntervalSeconds);
+  const numRulerTicks = Math.max(1, Math.min(2000, Math.ceil((Math.max(safeTotalDuration, 15) + 5) / (rulerIntervalSeconds || 1))));
 
   // Mouse scrubbing handler
   const handleSeekFromEvent = (e: MouseEvent | React.MouseEvent) => {
@@ -630,6 +631,12 @@ export const CapCutTimelineDeck = React.forwardRef<HTMLDivElement, CapCutTimelin
                           onDragStart={() => handleDragStart(idx)}
                           onDragOver={(e) => handleDragOver(e, idx)}
                           onDragEnd={handleDragEnd}
+                          onTouchStart={() => {
+                            if (!isVideoTrackLocked) setDraggedSceneIdx(idx);
+                          }}
+                          onTouchEnd={() => {
+                            setDraggedSceneIdx(null);
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             onSelectScene(scene.id);
@@ -645,16 +652,24 @@ export const CapCutTimelineDeck = React.forwardRef<HTMLDivElement, CapCutTimelin
                           }`}
                         >
                         {/* Filmstrip Sprocket Perforations */}
-                        <div className="absolute top-0 left-0 right-0 h-1.5 flex justify-between px-1 pointer-events-none z-10 opacity-50">
-                          {Array.from({ length: Math.max(2, Math.floor(widthPx / 18)) }).map((_, si) => (
-                            <div key={si} className="w-1.5 h-1 bg-black/80 rounded-[1px] border border-white/20"></div>
-                          ))}
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-1.5 flex justify-between px-1 pointer-events-none z-10 opacity-50">
-                          {Array.from({ length: Math.max(2, Math.floor(widthPx / 18)) }).map((_, si) => (
-                            <div key={si} className="w-1.5 h-1 bg-black/80 rounded-[1px] border border-white/20"></div>
-                          ))}
-                        </div>
+                        {(() => {
+                          const safeW = Number.isFinite(widthPx) && widthPx > 0 ? widthPx : 80;
+                          const sprocketCount = Math.max(2, Math.min(100, Math.floor(safeW / 18)));
+                          return (
+                            <>
+                              <div className="absolute top-0 left-0 right-0 h-1.5 flex justify-between px-1 pointer-events-none z-10 opacity-50">
+                                {Array.from({ length: sprocketCount }).map((_, si) => (
+                                  <div key={si} className="w-1.5 h-1 bg-black/80 rounded-[1px] border border-white/20"></div>
+                                ))}
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 h-1.5 flex justify-between px-1 pointer-events-none z-10 opacity-50">
+                                {Array.from({ length: sprocketCount }).map((_, si) => (
+                                  <div key={si} className="w-1.5 h-1 bg-black/80 rounded-[1px] border border-white/20"></div>
+                                ))}
+                              </div>
+                            </>
+                          );
+                        })()}
 
                         {/* Clip Background Media Thumbnail */}
                         {scene.mediaUrl && (

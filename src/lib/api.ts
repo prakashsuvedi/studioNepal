@@ -208,6 +208,20 @@ export async function apiLogout(): Promise<{ success: boolean }> {
   return { success: true };
 }
 
+export function getAuthHeaders(userId?: string): Record<string, string> {
+  const token = typeof localStorage !== 'undefined'
+    ? (localStorage.getItem('nepalai_auth_token') || localStorage.getItem('nepalai_token') || localStorage.getItem('auth_token') || '')
+    : '';
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (userId) {
+    headers['x-user-id'] = userId;
+  }
+  if (token) {
+    headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function apiGenerateImage(
   userId: string,
   prompt: string,
@@ -218,6 +232,7 @@ export async function apiGenerateImage(
     negativePrompt?: string;
     stylePreset?: string;
     cameraAngle?: string;
+    referenceImageUrl?: string;
   }
 ): Promise<{
   success: boolean;
@@ -227,7 +242,7 @@ export async function apiGenerateImage(
 }> {
   const res = await fetch('/api/generate/image', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    headers: getAuthHeaders(userId),
     body: JSON.stringify({
       userId,
       prompt,
@@ -237,6 +252,7 @@ export async function apiGenerateImage(
       negativePrompt: options?.negativePrompt,
       stylePreset: options?.stylePreset,
       cameraAngle: options?.cameraAngle,
+      referenceImageUrl: options?.referenceImageUrl,
     }),
   });
   const data = await res.json().catch(() => ({ error: 'Image generation failed' }));
@@ -272,6 +288,9 @@ export async function apiGenerateVideo(
     lockedSubjectDescription?: string;
     frameOneSeedPrompt?: string;
     continuationOf?: string;
+    referenceImageUrl?: string;
+    referenceImageBase64?: string;
+    motionMagnitude?: number;
   }
 ): Promise<{
   success: boolean;
@@ -291,7 +310,7 @@ export async function apiGenerateVideo(
 }> {
   const res = await fetch('/api/generate/video', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    headers: getAuthHeaders(userId),
     body: JSON.stringify({
       userId,
       prompt,
@@ -306,6 +325,9 @@ export async function apiGenerateVideo(
       lockedSubjectDescription: options?.lockedSubjectDescription,
       frameOneSeedPrompt: options?.frameOneSeedPrompt,
       continuationOf: options?.continuationOf,
+      referenceImageUrl: options?.referenceImageUrl,
+      referenceImageBase64: options?.referenceImageBase64,
+      motionMagnitude: options?.motionMagnitude,
     }),
   });
   const data = await res.json().catch(() => ({ error: 'Video generation failed' }));
@@ -348,7 +370,7 @@ export async function apiGenerateAudio(
 }> {
   const res = await fetch('/api/generate/audio', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    headers: getAuthHeaders(userId),
     body: JSON.stringify({ userId, text, voiceId, language, emotion, deliveryStyle, speed, volume, pitch, phoneticDict, customVoiceId }),
   });
   const data = await res.json().catch(() => ({ error: 'Audio generation failed' }));
